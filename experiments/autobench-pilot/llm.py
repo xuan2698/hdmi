@@ -2,6 +2,7 @@
 """Small synchronous client for OpenCode Go's Chat Completions API."""
 
 import json
+import http.client
 import os
 import re
 import threading
@@ -26,6 +27,7 @@ LOG = Path(__file__).resolve().parent / "output" / "llm_calls.jsonl"
 LOG_PATH = ContextVar("llm_log_path", default=None)
 REASONING_EFFORT = ContextVar("llm_reasoning_effort", default=None)
 THINKING = ContextVar("llm_thinking", default=None)
+TRANSPORT = ContextVar("llm_transport_policy", default=None)
 MIN_INTERVAL_SECONDS = 1.0
 MAX_ATTEMPTS = 3
 MAX_RETRY_WAIT_SECONDS = 90
@@ -151,20 +153,27 @@ def call_llm(model, prompt, temperature, max_tokens):
             "prompt": prompt, "temperature": temperature, "max_tokens": max_tokens}
     effort = REASONING_EFFORT.get()
     thinking = THINKING.get()
+    policy = TRANSPORT.get() or {}
+    stream = policy.get("stream", True)
+    timeout = policy.get("timeout_seconds", 220)
+    attempts = policy.get("max_attempts", MAX_ATTEMPTS)
+    max_wait = policy.get("max_retry_wait_seconds", MAX_RETRY_WAIT_SECONDS)
     if effort:
         base["reasoning_effort"] = effort
     if thinking:
         base["thinking"] = thinking
-    base["stream"] = True
+    base["stream"] = stream
+    base["timeout_seconds"] = timeout
     if not key:
         write_log({**base, "attempt": 0, "status": "missing_credentials", "response": None}, key)
         raise LLMError("Set OPENCODE_GO_API_KEY or OPENCODE_API_KEY, or connect OpenCode Go.")
 
     body = {
         "model": model_id, "messages": [{"role": "user", "content": prompt}],
-        "temperature": temperature, "max_tokens": max_tokens, "stream": True,
-        "stream_options": {"include_usage": True},
+        "temperature": temperature, "max_tokens": max_tokens, "stream": stream,
     }
+    if stream:
+        body["stream_options"] = {"include_usage": True}
     if effort:
         body["reasoning_effort"] = effort
     if thinking:
@@ -175,19 +184,19 @@ def call_llm(model, prompt, temperature, max_tokens):
         "User-Agent": "autobench-preflight/1.0", "x-opencode-session": session,
     })
     delay = 0
-    for attempt in range(1, MAX_ATTEMPTS + 1):
+    for attempt in range(1, attempts + 1):
         wait_for_slot(delay)
         attempt_started = time.monotonic()
-        record = {**base, "attempt": attempt}
+        record = {**base, "attempt": attempt, "is_retry": attempt > 1, "truncated": False}
         status = None
         rate_headers = {}
         provider_error = {}
         retry_after = 0
         try:
-            with _opener.open(request, timeout=220) as response:
+            with _opener.open(request, timeout=timeout) as response:
                 status = response.status
                 rate_headers = rate_limit_headers(response.headers)
-                result = read_stream(response)
+                result = read_stream(response) if stream else json.load(response)
             choice = result["choices"][0]
             content = choice["message"].get("content")
             actual_model = result["model"]
@@ -217,7 +226,7 @@ def call_llm(model, prompt, temperature, max_tokens):
                 exc.close()
             error = f"HTTP {status}"
             transient = status in (408, 429) or 500 <= status <= 599
-        except (URLError, OSError) as exc:
+        except (URLError, OSError, http.client.HTTPException) as exc:
             error = type(exc).__name__
             transient = True
         except (AttributeError, IndexError, KeyError, TypeError, ValueError):
@@ -233,6 +242,7 @@ def call_llm(model, prompt, temperature, max_tokens):
                 "model_requested": model_id, "model_actual": actual_model.replace(key, "[REDACTED]"),
                 "attempt": attempt, "http_status": status, "status": "received",
                 "finish_reason": finish.replace(key, "[REDACTED]") if isinstance(finish, str) else None,
+                "truncated": finish == "length",
                 "response": content,
                 "complete": finish == "stop" and isinstance(content, str) and bool(content.strip()),
                 "request_seconds": round(time.monotonic() - attempt_started, 3),
@@ -247,13 +257,19 @@ def call_llm(model, prompt, temperature, max_tokens):
                           if isinstance(v, int) and k in
                           ("prompt_tokens", "completion_tokens", "total_tokens")},
             }
-            write_log({**record, **answer}, key)
+            retry_length = (answer["truncated"] and policy.get("retry_truncation") and
+                            attempt < attempts)
+            write_log({**record, **answer, "will_retry": bool(retry_length)}, key)
+            if retry_length:
+                delay = 2 ** (attempt - 1)
+                continue
             return answer
 
         delay = max(2 ** (attempt - 1), retry_after)
-        retry = transient and attempt < MAX_ATTEMPTS and delay <= MAX_RETRY_WAIT_SECONDS
+        retry = transient and attempt < attempts and delay <= max_wait
         write_log({**record, "status": error, "http_status": status, "response": None,
                    "provider_error": provider_error, "rate_limit_headers": rate_headers,
+                   "will_retry": bool(retry),
                    "request_seconds": round(time.monotonic() - attempt_started, 3),
                    "retry_in_seconds": delay if retry else None}, key)
         if not retry:

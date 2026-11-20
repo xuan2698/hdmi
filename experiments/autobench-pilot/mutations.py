@@ -14,7 +14,7 @@ OPERATION = {
     ">": (">=", "<"), "<=": ("<", ">="), ">=": (">", "<="),
 }
 OPERATORS = re.compile("|".join(re.escape(x) for x in sorted(OPERATION, key=len, reverse=True)))
-ASSIGNMENT = re.compile(r"^\s*(\w+)\s*(?:<=|=)\s*([^;]+);")
+ASSIGNMENT = re.compile(r"^\s*(?:assign\s+)?(\w+)\s*(?:<=|=(?!=))\s*([^;]+);")
 CONDITION = re.compile(r"\bif\s*\(([^()]+)\)")
 STATE = re.compile(r"\b(?:localparam|parameter)\b[^;]*;")
 
@@ -172,7 +172,11 @@ def diagnostic(record, source, replay):
     probes = [f"reg [0:0] {tags[0]};", f"reg [{change.width-1}:0] {tags[1]}, {tags[2]};"]
     probes += [f"reg [{({**replay.inputs, **replay.outputs, **names})[name]-1}:0] pilot_arg_{name};"
                for name in operands]
-    probes += ["always @(posedge clk) begin", f"{tags[0]} <= {change.guard};",
+    clock = getattr(replay, "clock", "clk")
+    if not clock:
+        raise RunError("Procedural reach probes require a clocked public interface")
+    edge = getattr(replay, "edge", "posedge")
+    probes += [f"always @({edge} {clock}) begin", f"{tags[0]} <= {change.guard};",
                f"{tags[1]} <= {change.orig};", f"{tags[2]} <= {change.changed};"]
     probes += [f"pilot_arg_{name} <= {name};" for name in operands]
     probes += ["end"]

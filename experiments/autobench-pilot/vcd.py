@@ -1,7 +1,7 @@
 import re
 
 
-def rising_edges(path, clock, signals):
+def rising_edges(path, clock, signals, *, edge="posedge"):
     """Read settled scalar/vector values at each 0-to-1 clock transition."""
     requested = (clock, *signals)
     names, widths, scopes = {}, {}, []
@@ -40,7 +40,8 @@ def rising_edges(path, clock, signals):
         def sample():
             nonlocal last_clock
             now = current.get(clock_id)
-            if last_clock == "0" and now == "1":
+            from_value, to_value = ("1", "0") if edge == "negedge" else ("0", "1")
+            if last_clock == from_value and now == to_value:
                 samples.append((tick, {name: current[names[name]] for name in signals}))
             last_clock = now
 

@@ -24,6 +24,9 @@ def main():
     exec(compile(tree, "<model source>", "exec"), scope)
     if request["kind"] == "checker":
         result = scope["reference"](request["vectors"])
+    elif request["kind"] == "screen":
+        result = scope["screen_vectors"](random.Random(request["seed"]), request["cycles"],
+                                         request["widths"], request["resets"])
     else:
         result = scope["stimulus"](random.Random(request["seed"]), request["cycles"])
     json.dump(result, sys.stdout, allow_nan=False)

@@ -30,7 +30,7 @@ def put_once(path, content):
         Path(temporary).unlink(missing_ok=True)
 
 
-def prepare(task_ids, target, sources):
+def prepare(task_ids, target, sources, *, write_sample=True):
     auto = sources / "AutoBench/data/HDLBits"
     correct = sources / "CorrectBench/data/HDLBits"
     types = read_table(auto, "circuit_type")
@@ -63,7 +63,8 @@ def prepare(task_ids, target, sources):
         for i, proxy in enumerate(variants, start=1):
             put_once(generation / f"R{i}.v", proxy)
         sample.append({k: details[k] for k in ("task_id", "task_number")})
-    put_once(target / "sample.json", json.dumps(sample, indent=2) + "\n")
+    if write_sample:
+        put_once(target / "sample.json", json.dumps(sample, indent=2) + "\n")
 
 
 def score_proxies(target, task_ids):

@@ -26,8 +26,9 @@ def ports(problem):
     return parsed["input"], parsed["output"]
 
 
-def execute_code(source, kind, *, vectors=None, seed=None, cycles=None):
-    request = {"source": source, "kind": kind, "vectors": vectors, "seed": seed, "cycles": cycles}
+def execute_code(source, kind, *, vectors=None, seed=None, cycles=None, widths=None, resets=None):
+    request = {"source": source, "kind": kind, "vectors": vectors, "seed": seed, "cycles": cycles,
+               "widths": widths, "resets": resets}
     args = ["bwrap", "--unshare-all", "--die-with-parent", "--ro-bind", "/usr", "/usr",
             "--ro-bind", "/lib", "/lib", "--ro-bind", "/lib64", "/lib64",
             "--ro-bind", str(ROOT / "model_worker.py"), "/worker.py",
