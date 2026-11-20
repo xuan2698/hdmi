@@ -36,6 +36,10 @@ Stimulus revisions are append-only. The runner appends a separately generated su
 
 Guided configurations activate a deeper screened cohort when all active mutants have been exposed. New cohorts favor multiple sites, separate state assignments and timing-sensitive edits. The runner stops at the round cap or after two consecutive newly introduced cohorts are fully exposed. A0 is a single-round control. The checker categories count each qualifying mutant/cycle/output observation and keep R1-bug findings out of revision evidence. Evaluation of H for the full round history starts after that configuration has finished generating. Detection requires a checker mismatch absent at the same cycle/output on the golden RTL.
 
+The proxy simulator first compiles the original CorrectBench RTL. If Icarus rejects an enum assignment for requiring a cast, it retries that proxy with a width-preserving vector encoding and the same state constants. The repository retains the original sources. The evaluator compiles golden and official variants as supplied, so this proxy accommodation carries no effect into H.
+
+Reach and infection feedback uses source-site probes. Their synthesized guards are approximate for complex nested branches and case arms. Retained G and H exposure verdicts use actual replayed outputs and remain independent of those probe labels.
+
 Run the v2 stages from this directory after installing the tools and configuring the environment secret.
 
 ```bash

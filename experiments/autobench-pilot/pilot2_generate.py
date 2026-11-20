@@ -84,9 +84,12 @@ rng.randrange, rng.choice or rng.random. Generate deterministic, targeted and va
 the public behavior, resets, boundaries and transitions. Drive inputs only.
 """
         if role == "append":
-            instructions += """This source creates a new suffix of exactly the requested length.
-The complete previous sequence is immutable and will run first. Add directed sequences for the feedback.
-Use a new reset when necessary to reach the intended state. Do not regenerate the previous sequence.
+            instructions += f"""The harness calls this source with cycles={plan['append_cycles']}.
+The previous sequence is immutable and runs first. Write a compact new suffix with just a few directed
+patterns represented by short binary strings or lists and a loop. Use at most 16 literal input rows.
+Fill unused rows with a loop using rng, then return the first cycles rows. Keep the whole function
+under 40 lines. Do not write out a row-by-row sequence or regenerate the previous sequence.
+Use a new reset when needed to reach the intended state.
 """
     if previous:
         instructions += "\nPrior source:\n" + previous + "\n"

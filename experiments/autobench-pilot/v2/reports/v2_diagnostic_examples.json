@@ -1,0 +1,315 @@
+{
+  "stimulus": [
+    {
+      "task": "2014_q3c",
+      "config": "O-B",
+      "repeat": 1,
+      "round_before": 2,
+      "round_after": 3,
+      "stimulus_also_appended": true,
+      "checker_also_updated": false,
+      "artifact": "runs/second/2014_q3c/O-B/rep1/stimulus_03.py",
+      "evidence": {
+        "G1-30": [
+          {
+            "label": "未传播",
+            "first_infected": 2,
+            "intervals": [],
+            "cause": "下游赋值未产生可观察的状态差异"
+          }
+        ],
+        "G1-39": [
+          {
+            "label": "未传播",
+            "first_infected": 2,
+            "intervals": [],
+            "cause": "下游赋值未产生可观察的状态差异"
+          }
+        ]
+      },
+      "generated_change": [
+        "def stimulus(rng, cycles):",
+        "    seq = []",
+        "    states = [0, 1, 2, 3, 4]",
+        "    for i in range(cycles):",
+        "        if i % 7 == 0:",
+        "            y = rng.choice(states)",
+        "            x = rng.getrandbits(1)",
+        "        elif i % 7 == 1:",
+        "            y = 3",
+        "            x = rng.getrandbits(1)",
+        "        elif i % 7 == 2:",
+        "            y = 4",
+        "            x = rng.getrandbits(1)",
+        "        elif i % 7 == 3:",
+        "            y = rng.choice([0, 1, 2])",
+        "            x = 1",
+        "        elif i % 7 == 4:",
+        "            y = rng.choice([0, 1, 2])",
+        "            x = 0",
+        "        elif i % 7 == 5:",
+        "            y = rng.randrange(8)",
+        "            x = rng.getrandbits(1)",
+        "        else:",
+        "            y = rng.choice(states)",
+        "            x = rng.choice([0, 1])"
+      ],
+      "G_fixed_before": [
+        29,
+        31
+      ],
+      "G_fixed_after": [
+        29,
+        31
+      ],
+      "H_exposed_before": [
+        7,
+        9
+      ],
+      "H_exposed_after": [
+        7,
+        9
+      ],
+      "H_detected_before": 7,
+      "H_detected_after": 7
+    },
+    {
+      "task": "review2015_fsmseq",
+      "config": "O-O",
+      "repeat": 2,
+      "round_before": 1,
+      "round_after": 2,
+      "stimulus_also_appended": true,
+      "checker_also_updated": true,
+      "artifact": "runs/second/review2015_fsmseq/O-O/rep2/stimulus_02.py",
+      "evidence": {
+        "G1-06": [
+          {
+            "label": "未传播",
+            "first_infected": 1,
+            "intervals": [],
+            "cause": "下游赋值未产生可观察的状态差异"
+          }
+        ],
+        "G1-16": [
+          {
+            "label": "未传播",
+            "first_infected": 1,
+            "intervals": [],
+            "cause": "下游赋值未产生可观察的状态差异"
+          }
+        ],
+        "G1-39": [
+          {
+            "label": "未传播",
+            "first_infected": 1,
+            "intervals": [],
+            "cause": "下游赋值未产生可观察的状态差异"
+          }
+        ]
+      },
+      "generated_change": [
+        "def stimulus(rng, cycles):",
+        "    seq = []",
+        "    def add(reset, data):",
+        "        seq.append({'reset': reset, 'data': data})",
+        "    add(1, 0)",
+        "    add(1, 1)",
+        "    add(0, 1)",
+        "    add(0, 1)",
+        "    add(0, 0)",
+        "    add(0, 1)",
+        "    add(0, 1)",
+        "    add(0, 1)",
+        "    add(0, 0)",
+        "    add(0, 1)",
+        "    add(0, 0)",
+        "    add(0, 1)",
+        "    add(0, 1)",
+        "    add(0, 0)",
+        "    add(0, 1)",
+        "    add(1, 0)",
+        "    add(0, 1)",
+        "    add(0, 1)",
+        "    add(0, 0)",
+        "    add(0, 1)",
+        "    add(0, 1)"
+      ],
+      "G_fixed_before": [
+        53,
+        56
+      ],
+      "G_fixed_after": [
+        56,
+        56
+      ],
+      "H_exposed_before": [
+        7,
+        7
+      ],
+      "H_exposed_after": [
+        7,
+        7
+      ],
+      "H_detected_before": 7,
+      "H_detected_after": 7
+    }
+  ],
+  "checker": [
+    {
+      "task": "edgecapture",
+      "config": "B-O",
+      "repeat": 1,
+      "round_before": 1,
+      "round_after": 2,
+      "stimulus_also_appended": false,
+      "checker_also_updated": true,
+      "artifact": "runs/second/edgecapture/B-O/rep1/checker_02.py",
+      "evidence": {
+        "counts": {
+          "r1_bug": 0,
+          "both_proxies_disagree_with_checker": 214,
+          "proxies_disagree_with_each_other": 1103
+        },
+        "cases": {
+          "r1_bug": [],
+          "both_proxies_disagree_with_checker": [
+            {
+              "cycle": 48,
+              "signal": "out",
+              "mutant": "G1-01",
+              "expected": 3187666799,
+              "R1_binary": "11111111111111111111111111111111",
+              "mutant_binary": "11111111111101111101101100111111",
+              "R2": 4294967295,
+              "R3": 4294967295
+            }
+          ],
+          "proxies_disagree_with_each_other": [
+            {
+              "cycle": 3,
+              "signal": "out",
+              "mutant": "G1-01",
+              "expected": 3220688038,
+              "R1_binary": "10010100100100000000000001100010",
+              "mutant_binary": "00000000000000000000000000000000",
+              "R2": 2492465250,
+              "R3": 4103114850
+            }
+          ]
+        }
+      },
+      "generated_change": [
+        "--- checker_01.py",
+        "+++ checker_02.py",
+        "@@ -1,13 +1,14 @@",
+        " def reference(vectors):",
+        "     out = []",
+        "     state = 0",
+        "+    prev = 0",
+        "     for v in vectors:",
+        "         reset = v.get('reset', 0)",
+        "-        inp = v.get('in', 0)",
+        "+        inp = v.get('in', 0) & 0xFFFFFFFF",
+        "         if reset:",
+        "             state = 0",
+        "         else:",
+        "-            state = (state | (inp ^ (inp << 1))) & 0xFFFFFFFF",
+        "-            state = (state | ((~inp) & (inp << 1))) & 0xFFFFFFFF",
+        "+            state = (state | (prev & (~inp))) & 0xFFFFFFFF",
+        "+        prev = inp",
+        "         out.append({'out': state & 0xFFFFFFFF})",
+        "     return out"
+      ],
+      "G_fixed_before": [
+        58,
+        58
+      ],
+      "G_fixed_after": [
+        58,
+        58
+      ],
+      "H_exposed_before": [
+        10,
+        10
+      ],
+      "H_exposed_after": [
+        10,
+        10
+      ],
+      "H_detected_before": 10,
+      "H_detected_after": 10
+    },
+    {
+      "task": "review2015_fsmseq",
+      "config": "O-O",
+      "repeat": 2,
+      "round_before": 1,
+      "round_after": 2,
+      "stimulus_also_appended": true,
+      "checker_also_updated": true,
+      "artifact": "runs/second/review2015_fsmseq/O-O/rep2/checker_02.py",
+      "evidence": {
+        "counts": {
+          "r1_bug": 0,
+          "both_proxies_disagree_with_checker": 0,
+          "proxies_disagree_with_each_other": 2
+        },
+        "cases": {
+          "r1_bug": [],
+          "both_proxies_disagree_with_checker": [],
+          "proxies_disagree_with_each_other": [
+            {
+              "cycle": 16,
+              "signal": "start_shifting",
+              "mutant": "G1-03",
+              "expected": 1,
+              "R1_binary": "0",
+              "mutant_binary": "x",
+              "R2": 1,
+              "R3": 0
+            }
+          ]
+        }
+      },
+      "generated_change": [
+        "--- checker_01.py",
+        "+++ checker_02.py",
+        "@@ -1,5 +1,6 @@",
+        " def reference(vectors):",
+        "     state = 0",
+        "+    start = 0",
+        "     out = []",
+        "     for v in vectors:",
+        "         reset = v['reset']",
+        "@@ -18,6 +19,7 @@",
+        "                 state = 4 if data == 1 else 0",
+        "             elif state == 4:",
+        "                 state = 4",
+        "-            start = 1 if state == 4 else 0",
+        "+            if state == 4:",
+        "+                start = 1",
+        "         out.append({'start_shifting': start})",
+        "     return out"
+      ],
+      "G_fixed_before": [
+        53,
+        56
+      ],
+      "G_fixed_after": [
+        56,
+        56
+      ],
+      "H_exposed_before": [
+        7,
+        7
+      ],
+      "H_exposed_after": [
+        7,
+        7
+      ],
+      "H_detected_before": 7,
+      "H_detected_after": 7
+    }
+  ]
+}
