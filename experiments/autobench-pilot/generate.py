@@ -2,7 +2,7 @@ import json
 import re
 from pathlib import Path
 
-from llm import LOG_PATH, REASONING_EFFORT, call_llm
+from llm import LOG_PATH, REASONING_EFFORT, THINKING, call_llm
 
 ROOT = Path(__file__).resolve().parent
 
@@ -46,6 +46,11 @@ cycle budget. Cover meaningful edge/state transitions and reset interactions imp
         instruction += "\nPrevious source:\n" + previous + "\n"
     if feedback:
         instruction += "\nFeedback for this revision:\n" + feedback + "\n"
+        if role == "checker":
+            instruction += ("Produce the complete source with only the edits justified by the "
+                            "spec. Keep existing behavior if proxy disagreement does not justify an edit.\n")
+        else:
+            instruction += "Produce the complete source with a targeted, minimal stimulus edit.\n"
     return prefix + instruction
 
 
@@ -55,11 +60,13 @@ def generate(task_dir, problem, plan, role, code_path, feedback="", previous="")
     log = task_dir / "calls.jsonl"
     token = LOG_PATH.set(log)
     effort = REASONING_EFFORT.set(plan.get("reasoning_effort"))
+    thinking = THINKING.set(plan.get("thinking"))
     code_path.parent.mkdir(parents=True, exist_ok=True)
     prompt = prompt_for(problem, role, feedback, previous)
     try:
         answer = call_llm(plan["model"], prompt, plan["temperature"], plan["max_tokens"])
     finally:
+        THINKING.reset(thinking)
         REASONING_EFFORT.reset(effort)
         LOG_PATH.reset(token)
     response = answer["response"]

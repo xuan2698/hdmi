@@ -102,5 +102,5 @@ if command -v verilator >/dev/null; then
 fi
 opencode --version
 python3 --version
-printf '\nOffline checks: python3 %q\n' "$root/preflight.py"
-printf 'Go model checks: python3 %q\n' "$root/llm.py"
+printf '\nPrepare from pinned sources: python3 %q\n' "$root/prepare.py"
+printf 'Run or resume the pilot: python3 %q\n' "$root/run_pilot.py"

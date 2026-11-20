@@ -1,0 +1,126 @@
+{
+  "stimulus": {
+    "task": "edgecapture",
+    "configuration": "O-O",
+    "round": 1,
+    "feedback": {
+      "G12": {
+        "label": "未感染",
+        "operands_binary": {
+          "reset": [
+            "0"
+          ],
+          "in": [
+            "00000000000000000000000000000000",
+            "00000000000000000000000000000001",
+            "00000000000000000000000000000010",
+            "00000000000000000000000000000100"
+          ],
+          "out": [
+            "00000000000000000000000000000000",
+            "11111111111111111111111111111111"
+          ],
+          "previous_in": [
+            "00000000000000000000000000000000",
+            "00000000000000000000000000000001",
+            "00000000000000000000000000000010",
+            "00000000000000000000000000000100"
+          ]
+        },
+        "reached": 91
+      },
+      "G22": {
+        "label": "未感染",
+        "operands_binary": {
+          "reset": [
+            "0"
+          ],
+          "in": [
+            "00000000000000000000000000000000",
+            "00000000000000000000000000000001",
+            "00000000000000000000000000000010",
+            "00000000000000000000000000000100"
+          ],
+          "out": [
+            "00000000000000000000000000000000",
+            "11111111111111111111111111111111"
+          ],
+          "previous_in": [
+            "00000000000000000000000000000000",
+            "00000000000000000000000000000001",
+            "00000000000000000000000000000010",
+            "00000000000000000000000000000100"
+          ]
+        },
+        "reached": 91
+      }
+    },
+    "change": [
+      "--- stimulus_01.py",
+      "+++ stimulus_02.py",
+      "@@ -20,6 +20,24 @@",
+      "     seq.append((1, 0))",
+      "     seq.append((0, 0xFFFFFFFF))",
+      "     seq.append((0, 0x00000000))",
+      "+    # Targeted: adjacent-bit 1->0 transitions to distinguish shift mutations",
+      "+    seq.append((0, 0x00000003))",
+      "+    seq.append((0, 0x00000002))",
+      "+    seq.append((0, 0x00000000))",
+      "+    seq.append((0, 0x00000006))",
+      "+    seq.append((0, 0x00000004))",
+      "+    seq.append((0, 0x00000000))",
+      "+    seq.append((0, 0x80000001))",
+      "+    seq.append((0, 0x80000000))",
+      "+    seq.append((0, 0x00000000))",
+      "+    seq.append((0, 0x00000001))",
+      "+    seq.append((0, 0x00000000))",
+      "+    seq.append((0, 0x00000002))",
+      "+    seq.append((0, 0x00000000))",
+      "+    seq.append((0, 0x00000004))",
+      "+    seq.append((0, 0x00000000))",
+      "+    seq.append((0, 0x00000008))",
+      "+    seq.append((0, 0x00000000))",
+      "     while len(seq) < cycles:",
+      "         v = rng.getrandbits(32)",
+      "         seq.append((0, v))"
+    ]
+  },
+  "checker": {
+    "task": "edgecapture",
+    "configuration": "B-O",
+    "round": 1,
+    "feedback": [
+      {
+        "mutant": "G02",
+        "cycle": 57,
+        "signal": "out",
+        "input": {
+          "reset": 0,
+          "in": 2250929115
+        },
+        "R1_binary": "00111001110101011000110000100100",
+        "mutation_binary": "00000000000000000000000000000000",
+        "both": "fail",
+        "R2_binary": "00111001110101011000110000100100",
+        "R3_binary": "01111001110101011000110000100100",
+        "spec": "For each bit in a 32-bit vector, capture when the input signal changes from 1 in one clock cycle to 0 the next. \"Capture\" means that the output will remain 1 until the register is reset (active high synchronous reset)."
+      }
+    ],
+    "change": [
+      "--- checker_01.py",
+      "+++ checker_02.py",
+      "@@ -11,7 +11,10 @@",
+      "             if reset:",
+      "                 new_out[i] = 0",
+      "             else:",
+      "-                cap = 0 if in_i == 1 else prev_bits[i]",
+      "+                if in_i == 1:",
+      "+                    cap = 0",
+      "+                else:",
+      "+                    cap = prev_bits[i]",
+      "                 o = out_bits[i]",
+      "                 if o == 1 or cap == 1:",
+      "                     new_out[i] = 1"
+    ]
+  }
+}

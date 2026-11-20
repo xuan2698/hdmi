@@ -182,10 +182,15 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--commit-dir", type=Path, default=ROOT)
     parser.add_argument("--workers", type=int, default=6)
+    parser.add_argument("--recovery-profile", type=Path)
     args = parser.parse_args()
     if not os.environ.get("OPENCODE_GO_API_KEY", "").strip():
         raise SystemExit("Missing OPENCODE_GO_API_KEY")
     plan = read(ROOT / "plan.json")
+    recovery = read(args.recovery_profile) if args.recovery_profile else {}
+    if set(recovery) - {"temperature", "max_tokens", "reasoning_effort", "thinking"}:
+        raise ValueError("The recovery profile may only override model request options")
+    generation_plan = {**plan, **recovery}
     tasks = [entry["task_id"] for entry in read(ROOT / "sample.json")]
     destination = args.commit_dir.resolve()
     kind = "failed"
@@ -206,7 +211,7 @@ def main():
                 if record and (destination / record["result"]).is_file():
                     print(f"resume: {task} {cfg} already complete", flush=True)
                 else:
-                    future = pool.submit(trial, task, cfg, plan, screening)
+                    future = pool.submit(trial, task, cfg, generation_plan, screening)
                     futures[future] = task, cfg
         failures = []
         for future in as_completed(futures):

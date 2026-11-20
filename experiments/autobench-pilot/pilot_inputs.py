@@ -9,7 +9,7 @@ import subprocess
 import tempfile
 from pathlib import Path
 
-from preflight import ROOT, read_table, simulate
+from evaluation_io import ROOT, read_table, simulate
 
 
 def put_once(path, content):

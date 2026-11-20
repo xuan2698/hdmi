@@ -25,6 +25,7 @@ MODELS = {
 LOG = Path(__file__).resolve().parent / "output" / "llm_calls.jsonl"
 LOG_PATH = ContextVar("llm_log_path", default=None)
 REASONING_EFFORT = ContextVar("llm_reasoning_effort", default=None)
+THINKING = ContextVar("llm_thinking", default=None)
 MIN_INTERVAL_SECONDS = 1.0
 MAX_ATTEMPTS = 3
 MAX_RETRY_WAIT_SECONDS = 90
@@ -113,6 +114,31 @@ def retry_after_seconds(value):
             return 0
 
 
+def read_stream(response):
+    pieces, usage = [], {}
+    model, finish = None, None
+    for line in response:
+        if not line.startswith(b"data:"):
+            continue
+        payload = line[5:].strip()
+        if payload == b"[DONE]":
+            break
+        event = json.loads(payload)
+        model = event.get("model") or model
+        usage = event.get("usage") or usage
+        choices = event.get("choices") or []
+        if choices:
+            choice = choices[0]
+            text = choice.get("delta", {}).get("content")
+            if text:
+                pieces.append(text)
+            finish = choice.get("finish_reason") or finish
+    if not model or not finish:
+        raise OSError("Completion stream ended before its final event")
+    return {"model": model, "usage": usage,
+            "choices": [{"message": {"content": "".join(pieces)}, "finish_reason": finish}]}
+
+
 def call_llm(model, prompt, temperature, max_tokens):
     """Return content, reported model, finish reason, usage and timing for one Go call."""
     model_id = MODELS.get(model)
@@ -124,18 +150,25 @@ def call_llm(model, prompt, temperature, max_tokens):
     base = {"model_requested": model_id, "endpoint": ENDPOINT, "session": session,
             "prompt": prompt, "temperature": temperature, "max_tokens": max_tokens}
     effort = REASONING_EFFORT.get()
+    thinking = THINKING.get()
     if effort:
         base["reasoning_effort"] = effort
+    if thinking:
+        base["thinking"] = thinking
+    base["stream"] = True
     if not key:
         write_log({**base, "attempt": 0, "status": "missing_credentials", "response": None}, key)
         raise LLMError("Set OPENCODE_GO_API_KEY or OPENCODE_API_KEY, or connect OpenCode Go.")
 
     body = {
         "model": model_id, "messages": [{"role": "user", "content": prompt}],
-        "temperature": temperature, "max_tokens": max_tokens, "stream": False,
+        "temperature": temperature, "max_tokens": max_tokens, "stream": True,
+        "stream_options": {"include_usage": True},
     }
     if effort:
         body["reasoning_effort"] = effort
+    if thinking:
+        body["thinking"] = {"type": thinking}
     payload = json.dumps(body).encode()
     request = Request(ENDPOINT, data=payload, headers={
         "Authorization": f"Bearer {key}", "Content-Type": "application/json",
@@ -151,10 +184,10 @@ def call_llm(model, prompt, temperature, max_tokens):
         provider_error = {}
         retry_after = 0
         try:
-            with _opener.open(request, timeout=100) as response:
+            with _opener.open(request, timeout=220) as response:
                 status = response.status
                 rate_headers = rate_limit_headers(response.headers)
-                result = json.load(response)
+                result = read_stream(response)
             choice = result["choices"][0]
             content = choice["message"].get("content")
             actual_model = result["model"]

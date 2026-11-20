@@ -4,7 +4,7 @@ import random
 from pathlib import Path
 
 from pilot_inputs import prepare, put_once, score_proxies
-from preflight import read_table
+from evaluation_io import read_table
 
 ROOT = Path(__file__).resolve().parent
 
