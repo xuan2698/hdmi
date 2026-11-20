@@ -1,0 +1,734 @@
+{
+  "variants": [
+    {
+      "id": "G01",
+      "rule": "clock_edge",
+      "line": 9,
+      "before": "    always @(posedge clk) begin",
+      "after": "    always @(negedge clk) begin",
+      "orig": "posedge",
+      "changed": "negedge",
+      "guard": "1'b1",
+      "lhs": "",
+      "width": 1,
+      "screen_differences": [
+        8,
+        5,
+        6
+      ],
+      "retained": true
+    },
+    {
+      "id": "G02",
+      "rule": "negated_condition",
+      "line": 10,
+      "before": "        if (reset) begin",
+      "after": "        if (!(reset)) begin",
+      "orig": "reset",
+      "changed": "!(reset)",
+      "guard": "1'b1",
+      "lhs": "",
+      "width": 1,
+      "screen_differences": [
+        1665,
+        1625,
+        1645
+      ],
+      "retained": true
+    },
+    {
+      "id": "G03",
+      "rule": "removed_condition",
+      "line": 10,
+      "before": "        if (reset) begin",
+      "after": "        if (1'b0) begin",
+      "orig": "reset",
+      "changed": "1'b0",
+      "guard": "1'b1",
+      "lhs": "",
+      "width": 1,
+      "screen_differences": [
+        1306,
+        1440,
+        1423
+      ],
+      "retained": true
+    },
+    {
+      "id": "G04",
+      "rule": "relation",
+      "line": 10,
+      "before": "        if (reset) begin",
+      "after": "        if ((reset) == 1'b0) begin",
+      "orig": "reset",
+      "changed": "(reset) == 1'b0",
+      "guard": "1'b1",
+      "lhs": "",
+      "width": 1,
+      "screen_differences": [
+        1665,
+        1625,
+        1645
+      ],
+      "retained": true
+    },
+    {
+      "id": "G05",
+      "rule": "condition_operator",
+      "line": 10,
+      "before": "        if (reset) begin",
+      "after": "        if ((reset) && in[0]) begin",
+      "orig": "reset",
+      "changed": "(reset) && in[0]",
+      "guard": "1'b1",
+      "lhs": "",
+      "width": 1,
+      "screen_differences": [
+        662,
+        691,
+        643
+      ],
+      "retained": true
+    },
+    {
+      "id": "G06",
+      "rule": "constant_offset",
+      "line": 11,
+      "before": "            out <= 32'b0;",
+      "after": "            out <= (32'b0) - 1;",
+      "orig": "32'b0",
+      "changed": "(32'b0) - 1",
+      "guard": "(reset)",
+      "lhs": "out",
+      "width": 32,
+      "screen_differences": [
+        1306,
+        1440,
+        1423
+      ],
+      "retained": true
+    },
+    {
+      "id": "G07",
+      "rule": "unary_operator",
+      "line": 11,
+      "before": "            out <= 32'b0;",
+      "after": "            out <= ~(32'b0);",
+      "orig": "32'b0",
+      "changed": "~(32'b0)",
+      "guard": "(reset)",
+      "lhs": "out",
+      "width": 32,
+      "screen_differences": [
+        1306,
+        1440,
+        1423
+      ],
+      "retained": true
+    },
+    {
+      "id": "G08",
+      "rule": "arithmetic_or_bitwise",
+      "line": 11,
+      "before": "            out <= 32'b0;",
+      "after": "            out <= (32'b0) ^ 1;",
+      "orig": "32'b0",
+      "changed": "(32'b0) ^ 1",
+      "guard": "(reset)",
+      "lhs": "out",
+      "width": 32,
+      "screen_differences": [
+        660,
+        678,
+        669
+      ],
+      "retained": true
+    },
+    {
+      "id": "G09",
+      "rule": "deleted_assignment",
+      "line": 11,
+      "before": "            out <= 32'b0;",
+      "after": "            out <= out;",
+      "orig": "32'b0",
+      "changed": "out",
+      "guard": "(reset)",
+      "lhs": "out",
+      "width": 32,
+      "screen_differences": [
+        1306,
+        1440,
+        1423
+      ],
+      "retained": true
+    },
+    {
+      "id": "G10",
+      "rule": "replaced_assignment",
+      "line": 11,
+      "before": "            out <= 32'b0;",
+      "after": "            out <= 32'd0;",
+      "orig": "32'b0",
+      "changed": "32'd0",
+      "guard": "(reset)",
+      "lhs": "out",
+      "width": 32,
+      "screen_differences": [
+        0,
+        0,
+        0
+      ],
+      "retained": false
+    },
+    {
+      "id": "G11",
+      "rule": "operator_replacement",
+      "line": 14,
+      "before": "            out <= out | (previous_in & ~in);",
+      "after": "            out <= out & (previous_in & ~in);",
+      "orig": "out | (previous_in & ~in)",
+      "changed": "out & (previous_in & ~in)",
+      "guard": "!(reset)",
+      "lhs": "out",
+      "width": 32,
+      "screen_differences": [
+        1664,
+        1624,
+        1644
+      ],
+      "retained": true
+    },
+    {
+      "id": "G12",
+      "rule": "bit_index_offset",
+      "line": 14,
+      "before": "            out <= out | (previous_in & ~in);",
+      "after": "            out <= out | (previous_in & ~(in << 1));",
+      "orig": "out | (previous_in & ~in)",
+      "changed": "out | (previous_in & ~(in << 1))",
+      "guard": "!(reset)",
+      "lhs": "out",
+      "width": 32,
+      "screen_differences": [
+        1325,
+        1368,
+        1336
+      ],
+      "retained": true
+    },
+    {
+      "id": "G13",
+      "rule": "removed_condition",
+      "line": 10,
+      "before": "        if (reset) begin",
+      "after": "        if (1'b1) begin",
+      "orig": "reset",
+      "changed": "1'b1",
+      "guard": "1'b1",
+      "lhs": "",
+      "width": 1,
+      "screen_differences": [
+        1664,
+        1624,
+        1644
+      ],
+      "retained": true
+    },
+    {
+      "id": "G14",
+      "rule": "relation",
+      "line": 10,
+      "before": "        if (reset) begin",
+      "after": "        if ((reset) != 1'b0) begin",
+      "orig": "reset",
+      "changed": "(reset) != 1'b0",
+      "guard": "1'b1",
+      "lhs": "",
+      "width": 1,
+      "screen_differences": [
+        0,
+        0,
+        0
+      ],
+      "retained": false
+    },
+    {
+      "id": "G15",
+      "rule": "condition_operator",
+      "line": 10,
+      "before": "        if (reset) begin",
+      "after": "        if ((reset) || in[0]) begin",
+      "orig": "reset",
+      "changed": "(reset) || in[0]",
+      "guard": "1'b1",
+      "lhs": "",
+      "width": 1,
+      "screen_differences": [
+        1566,
+        1533,
+        1557
+      ],
+      "retained": true
+    },
+    {
+      "id": "G16",
+      "rule": "constant_offset",
+      "line": 11,
+      "before": "            out <= 32'b0;",
+      "after": "            out <= (32'b0) + 1;",
+      "orig": "32'b0",
+      "changed": "(32'b0) + 1",
+      "guard": "(reset)",
+      "lhs": "out",
+      "width": 32,
+      "screen_differences": [
+        660,
+        678,
+        669
+      ],
+      "retained": true
+    },
+    {
+      "id": "G17",
+      "rule": "unary_operator",
+      "line": 11,
+      "before": "            out <= 32'b0;",
+      "after": "            out <= !(32'b0);",
+      "orig": "32'b0",
+      "changed": "!(32'b0)",
+      "guard": "(reset)",
+      "lhs": "out",
+      "width": 32,
+      "screen_differences": [
+        660,
+        678,
+        669
+      ],
+      "retained": true
+    },
+    {
+      "id": "G18",
+      "rule": "arithmetic_or_bitwise",
+      "line": 11,
+      "before": "            out <= 32'b0;",
+      "after": "            out <= (32'b0) & 1;",
+      "orig": "32'b0",
+      "changed": "(32'b0) & 1",
+      "guard": "(reset)",
+      "lhs": "out",
+      "width": 32,
+      "screen_differences": [
+        0,
+        0,
+        0
+      ],
+      "retained": false
+    },
+    {
+      "id": "G19",
+      "rule": "deleted_assignment",
+      "line": 12,
+      "before": "            previous_in <= 32'b0;",
+      "after": "            previous_in <= previous_in;",
+      "orig": "32'b0",
+      "changed": "previous_in",
+      "guard": "(reset)",
+      "lhs": "previous_in",
+      "width": 32,
+      "screen_differences": [
+        1016,
+        1080,
+        1094
+      ],
+      "retained": true
+    },
+    {
+      "id": "G20",
+      "rule": "replaced_assignment",
+      "line": 11,
+      "before": "            out <= 32'b0;",
+      "after": "            out <= 32'd1;",
+      "orig": "32'b0",
+      "changed": "32'd1",
+      "guard": "(reset)",
+      "lhs": "out",
+      "width": 32,
+      "screen_differences": [
+        660,
+        678,
+        669
+      ],
+      "retained": true
+    },
+    {
+      "id": "G21",
+      "rule": "operator_replacement",
+      "line": 14,
+      "before": "            out <= out | (previous_in & ~in);",
+      "after": "            out <= out ^ (previous_in & ~in);",
+      "orig": "out | (previous_in & ~in)",
+      "changed": "out ^ (previous_in & ~in)",
+      "guard": "!(reset)",
+      "lhs": "out",
+      "width": 32,
+      "screen_differences": [
+        1302,
+        1220,
+        1268
+      ],
+      "retained": true
+    },
+    {
+      "id": "G22",
+      "rule": "bit_index_offset",
+      "line": 14,
+      "before": "            out <= out | (previous_in & ~in);",
+      "after": "            out <= out | (previous_in & ~(in >> 1));",
+      "orig": "out | (previous_in & ~in)",
+      "changed": "out | (previous_in & ~(in >> 1))",
+      "guard": "!(reset)",
+      "lhs": "out",
+      "width": 32,
+      "screen_differences": [
+        1286,
+        1362,
+        1335
+      ],
+      "retained": true
+    },
+    {
+      "id": "G23",
+      "rule": "condition_operator",
+      "line": 10,
+      "before": "        if (reset) begin",
+      "after": "        if ((reset) ^ in[0]) begin",
+      "orig": "reset",
+      "changed": "(reset) ^ in[0]",
+      "guard": "1'b1",
+      "lhs": "",
+      "width": 1,
+      "screen_differences": [
+        1698,
+        1667,
+        1682
+      ],
+      "retained": true
+    },
+    {
+      "id": "G24",
+      "rule": "constant_offset",
+      "line": 12,
+      "before": "            previous_in <= 32'b0;",
+      "after": "            previous_in <= (32'b0) - 1;",
+      "orig": "32'b0",
+      "changed": "(32'b0) - 1",
+      "guard": "(reset)",
+      "lhs": "previous_in",
+      "width": 32,
+      "screen_differences": [
+        1126,
+        1231,
+        1223
+      ],
+      "retained": true
+    },
+    {
+      "id": "G25",
+      "rule": "unary_operator",
+      "line": 11,
+      "before": "            out <= 32'b0;",
+      "after": "            out <= +(32'b0);",
+      "orig": "32'b0",
+      "changed": "+(32'b0)",
+      "guard": "(reset)",
+      "lhs": "out",
+      "width": 32,
+      "screen_differences": [
+        0,
+        0,
+        0
+      ],
+      "retained": false
+    },
+    {
+      "id": "G26",
+      "rule": "arithmetic_or_bitwise",
+      "line": 11,
+      "before": "            out <= 32'b0;",
+      "after": "            out <= (32'b0) | 1;",
+      "orig": "32'b0",
+      "changed": "(32'b0) | 1",
+      "guard": "(reset)",
+      "lhs": "out",
+      "width": 32,
+      "screen_differences": [
+        660,
+        678,
+        669
+      ],
+      "retained": true
+    },
+    {
+      "id": "G27",
+      "rule": "deleted_assignment",
+      "line": 14,
+      "before": "            out <= out | (previous_in & ~in);",
+      "after": "            out <= out;",
+      "orig": "out | (previous_in & ~in)",
+      "changed": "out",
+      "guard": "!(reset)",
+      "lhs": "out",
+      "width": 32,
+      "screen_differences": [
+        1664,
+        1624,
+        1644
+      ],
+      "retained": true
+    },
+    {
+      "id": "G28",
+      "rule": "replaced_assignment",
+      "line": 11,
+      "before": "            out <= 32'b0;",
+      "after": "            out <= in;",
+      "orig": "32'b0",
+      "changed": "in",
+      "guard": "(reset)",
+      "lhs": "out",
+      "width": 32,
+      "screen_differences": [
+        1211,
+        1289,
+        1308
+      ],
+      "retained": true
+    },
+    {
+      "id": "G29",
+      "rule": "operator_replacement",
+      "line": 14,
+      "before": "            out <= out | (previous_in & ~in);",
+      "after": "            out <= out || (previous_in & ~in);",
+      "orig": "out | (previous_in & ~in)",
+      "changed": "out || (previous_in & ~in)",
+      "guard": "!(reset)",
+      "lhs": "out",
+      "width": 32,
+      "screen_differences": [
+        1664,
+        1624,
+        1644
+      ],
+      "retained": true
+    },
+    {
+      "id": "G30",
+      "rule": "bit_index_offset",
+      "line": 14,
+      "before": "            out <= out | (previous_in & ~in);",
+      "after": "            out <= (out << 1) | (previous_in & ~in);",
+      "orig": "out | (previous_in & ~in)",
+      "changed": "(out << 1) | (previous_in & ~in)",
+      "guard": "!(reset)",
+      "lhs": "out",
+      "width": 32,
+      "screen_differences": [
+        1492,
+        1436,
+        1463
+      ],
+      "retained": true
+    },
+    {
+      "id": "G31",
+      "rule": "condition_operator",
+      "line": 10,
+      "before": "        if (reset) begin",
+      "after": "        if ((reset) && in[31]) begin",
+      "orig": "reset",
+      "changed": "(reset) && in[31]",
+      "guard": "1'b1",
+      "lhs": "",
+      "width": 1,
+      "screen_differences": [
+        647,
+        761,
+        665
+      ],
+      "retained": true
+    },
+    {
+      "id": "G32",
+      "rule": "constant_offset",
+      "line": 12,
+      "before": "            previous_in <= 32'b0;",
+      "after": "            previous_in <= (32'b0) + 1;",
+      "orig": "32'b0",
+      "changed": "(32'b0) + 1",
+      "guard": "(reset)",
+      "lhs": "previous_in",
+      "width": 32,
+      "screen_differences": [
+        368,
+        336,
+        325
+      ],
+      "retained": true
+    },
+    {
+      "id": "G33",
+      "rule": "unary_operator",
+      "line": 11,
+      "before": "            out <= 32'b0;",
+      "after": "            out <= -(32'b0);",
+      "orig": "32'b0",
+      "changed": "-(32'b0)",
+      "guard": "(reset)",
+      "lhs": "out",
+      "width": 32,
+      "screen_differences": [
+        0,
+        0,
+        0
+      ],
+      "retained": false
+    },
+    {
+      "id": "G34",
+      "rule": "arithmetic_or_bitwise",
+      "line": 11,
+      "before": "            out <= 32'b0;",
+      "after": "            out <= (32'b0) << 1;",
+      "orig": "32'b0",
+      "changed": "(32'b0) << 1",
+      "guard": "(reset)",
+      "lhs": "out",
+      "width": 32,
+      "screen_differences": [
+        0,
+        0,
+        0
+      ],
+      "retained": false
+    },
+    {
+      "id": "G35",
+      "rule": "deleted_assignment",
+      "line": 15,
+      "before": "            previous_in <= in;",
+      "after": "            previous_in <= previous_in;",
+      "orig": "in",
+      "changed": "previous_in",
+      "guard": "!(reset)",
+      "lhs": "previous_in",
+      "width": 32,
+      "screen_differences": [
+        1664,
+        1624,
+        1644
+      ],
+      "retained": true
+    },
+    {
+      "id": "G36",
+      "rule": "replaced_assignment",
+      "line": 11,
+      "before": "            out <= 32'b0;",
+      "after": "            out <= previous_in;",
+      "orig": "32'b0",
+      "changed": "previous_in",
+      "guard": "(reset)",
+      "lhs": "out",
+      "width": 32,
+      "screen_differences": [
+        1208,
+        1310,
+        1301
+      ],
+      "retained": true
+    },
+    {
+      "id": "G37",
+      "rule": "operator_replacement",
+      "line": 14,
+      "before": "            out <= out | (previous_in & ~in);",
+      "after": "            out <= out | (previous_in | ~in);",
+      "orig": "out | (previous_in & ~in)",
+      "changed": "out | (previous_in | ~in)",
+      "guard": "!(reset)",
+      "lhs": "out",
+      "width": 32,
+      "screen_differences": [
+        1138,
+        1252,
+        1245
+      ],
+      "retained": true
+    },
+    {
+      "id": "G38",
+      "rule": "bit_index_offset",
+      "line": 14,
+      "before": "            out <= out | (previous_in & ~in);",
+      "after": "            out <= (out >> 1) | (previous_in & ~in);",
+      "orig": "out | (previous_in & ~in)",
+      "changed": "(out >> 1) | (previous_in & ~in)",
+      "guard": "!(reset)",
+      "lhs": "out",
+      "width": 32,
+      "screen_differences": [
+        1494,
+        1433,
+        1465
+      ],
+      "retained": true
+    },
+    {
+      "id": "G39",
+      "rule": "condition_operator",
+      "line": 10,
+      "before": "        if (reset) begin",
+      "after": "        if ((reset) || in[31]) begin",
+      "orig": "reset",
+      "changed": "(reset) || in[31]",
+      "guard": "1'b1",
+      "lhs": "",
+      "width": 1,
+      "screen_differences": [
+        1595,
+        1547,
+        1559
+      ],
+      "retained": true
+    },
+    {
+      "id": "G40",
+      "rule": "unary_operator",
+      "line": 12,
+      "before": "            previous_in <= 32'b0;",
+      "after": "            previous_in <= ~(32'b0);",
+      "orig": "32'b0",
+      "changed": "~(32'b0)",
+      "guard": "(reset)",
+      "lhs": "previous_in",
+      "width": 32,
+      "screen_differences": [
+        1126,
+        1231,
+        1223
+      ],
+      "retained": true
+    }
+  ],
+  "invalid": [],
+  "retained": 34,
+  "suspected_equivalent": 6,
+  "seeds": [
+    101,
+    203,
+    307
+  ],
+  "cycles_per_seed": 2000,
+  "seconds": 3.492
+}
