@@ -13,7 +13,7 @@ def main():
     for node in ast.walk(tree):
         if isinstance(node, (ast.Import, ast.ImportFrom, ast.Global, ast.Nonlocal, ast.ClassDef)):
             raise ValueError(f"Forbidden Python construct: {type(node).__name__}")
-        if isinstance(node, ast.Name) and node.id.startswith("_"):
+        if isinstance(node, ast.Name) and node.id != "_" and node.id.startswith("_"):
             raise ValueError("Private names are unavailable")
         if isinstance(node, ast.Attribute) and node.attr.startswith("_"):
             raise ValueError("Private attributes are unavailable")

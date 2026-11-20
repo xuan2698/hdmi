@@ -57,8 +57,9 @@ def source(directory, filename, problem, interface, role, plan, feedback="", pre
         return path.read_text()
     ins, outs, clock, edge = interface
     edge_name = "falling" if edge == "negedge" else "rising"
-    public = f"""Implement this public hardware specification as executable Python. Output the complete Python source only.
+    public = f"""Implement this public hardware specification as executable Python. Output concise complete Python only.
 Do not import anything, print, define classes, or access files. Common builtin functions are provided.
+Omit comments and explanations. Never reproduce a waveform table or narrate a search.
 Specification:
 {problem['spec']}
 Interface: nonclock inputs (name -> bits) {ins}; outputs (name -> bits) {outs}. Main clock is {clock or 'none'}.
@@ -71,6 +72,10 @@ and the independently derived expected integer, bounded to the output width. Ret
 Use None only when the public spec leaves that output value undefined, e.g. unknown power-up state.
 Read the task carefully. Handle every required state and explicitly preserve bit widths. You receive no observed
 device output at runtime. If proxy reports disagree, reason from the spec before deciding whether to change code.
+"""
+        if "simulation waveforms" in problem["spec"].lower():
+            instructions += """Use the shortest state/output model supported by the public waveform. If the
+waveform underdetermines a value, return None for that value. Keep the implementation under 50 lines.
 """
     else:
         instructions = """Define stimulus(rng, cycles) returning exactly cycles dictionaries with ONLY every listed

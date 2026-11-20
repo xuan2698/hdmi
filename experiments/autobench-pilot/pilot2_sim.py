@@ -1,3 +1,4 @@
+import hashlib
 import re
 import tempfile
 from pathlib import Path
@@ -7,6 +8,45 @@ from vcd import rising_edges
 
 DECL = re.compile(r"^(input|output|inout)\b\s*(?:(?:wire|logic|reg|signed|unsigned|var)\s+)*"
                   r"(?:\[\s*(\d+)\s*:\s*(\d+)\s*\]\s*)?(\w+)\s*$")
+COMPILED = tempfile.TemporaryDirectory(prefix="autobench-v2-compiled-")
+ENUM = re.compile(r"\btypedef\s+enum\s+(?:(logic|reg|bit|int)(\s*\[[^\]]+\])?\s*)?"
+                  r"\{([^{}]+)\}\s*(\w+)\s*;", re.S)
+
+
+def lower_proxy_enums(rtl):
+    """Preserve state encodings while bypassing Icarus enum assignment restrictions."""
+    def lower(match):
+        kind, dimensions, members, alias = match.groups()
+        carrier = "int" if not kind or kind == "int" else kind
+        declaration = carrier + (dimensions or "")
+        clean = re.sub(r"//[^\n]*|/\*.*?\*/", "", members, flags=re.S)
+        constants, prior = [], None
+        for piece in clean.split(","):
+            member = re.fullmatch(r"\s*(\w+)\s*(?:=\s*(.+?))?\s*", piece, re.S)
+            if not member:
+                return match[0]
+            name, value = member.groups()
+            value = value or (f"({prior}) + 1" if prior else "0")
+            constants.append(f"localparam {declaration} {name} = {value};")
+            prior = name
+        return f"typedef {declaration} {alias};\n" + "\n".join(constants)
+    return ENUM.sub(lower, rtl)
+
+
+def compiled(harness, rtl):
+    token = hashlib.sha256((harness + "\0" + rtl).encode()).hexdigest()
+    root = Path(COMPILED.name)
+    executable = root / f"{token}.vvp"
+    if executable.is_file():
+        return executable
+    with tempfile.TemporaryDirectory(dir=root) as directory:
+        where = Path(directory)
+        (where / "replay.v").write_text(harness)
+        (where / "subject.v").write_text(rtl)
+        Replay._run(where, "iverilog", "-g2012", "-s", "replay", "-o", "sim.vvp",
+                    "subject.v", "replay.v")
+        (where / "sim.vvp").replace(executable)
+    return executable
 
 
 def interface_from(problem):
@@ -46,10 +86,11 @@ def interface_from(problem):
 class VectorReplay:
     """Connect public ports and observe settled outputs during pure input replay."""
 
-    def __init__(self, interface, vectors, *, all_edges=False):
+    def __init__(self, interface, vectors, *, all_edges=False, proxy_compat=False):
         self.inputs, self.outputs, self.clock, self.edge = interface
         self.vectors = vectors
         self.all_edges = all_edges
+        self.proxy_compat = proxy_compat
 
     def trace(self, rtl, *, observe=()):
         inputs, outputs = self.inputs, self.outputs
@@ -101,11 +142,18 @@ endmodule
         with tempfile.TemporaryDirectory(prefix="autobench-v2-") as temp:
             where = Path(temp)
             (where / "vectors.mem").write_text(vector_mem)
-            (where / "replay.v").write_text(code)
-            (where / "subject.v").write_text(rtl)
-            Replay._run(where, "iverilog", "-g2012", "-s", "replay", "-o", "sim.vvp",
-                        "subject.v", "replay.v")
-            text = Replay._run(where, "vvp", "sim.vvp")
+            try:
+                executable = compiled(code, rtl)
+            except RunError as exc:
+                if not self.proxy_compat or not re.search(
+                    "requires an explicit cast|Enumeration name .* incorrectly sized", str(exc)
+                ):
+                    raise
+                relaxed = lower_proxy_enums(rtl)
+                if relaxed == rtl:
+                    raise
+                executable = compiled(code, relaxed)
+            text = Replay._run(where, "vvp", str(executable))
             waves = []
             if observe:
                 full = tuple(f"replay.dut.{n}" for n in observe)
@@ -119,5 +167,5 @@ endmodule
         return rows, waves
 
 
-def replay(interface, vectors):
-    return VectorReplay(interface, vectors)
+def replay(interface, vectors, *, proxy_compat=False):
+    return VectorReplay(interface, vectors, proxy_compat=proxy_compat)

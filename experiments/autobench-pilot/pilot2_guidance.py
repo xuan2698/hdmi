@@ -72,7 +72,8 @@ def build_catalog(task, problem, interface, original, stimulus, plan):
     if location.is_file():
         return load(location)
     inputs, outputs, _, _ = interface
-    screening = [VectorReplay(interface, vectors) for vectors in random_rows(stimulus, problem, inputs, plan)]
+    screening = [VectorReplay(interface, vectors, proxy_compat=True)
+                 for vectors in random_rows(stimulus, problem, inputs, plan)]
     baseline = [bench.trace(original)[0] for bench in screening]
     basic = list(unique_edits(proposals(original, inputs, outputs)))
     temporal = list(unique_edits(temporal_edits(original)))
@@ -99,7 +100,8 @@ def build_catalog(task, problem, interface, original, stimulus, plan):
     groups.extend({"candidates": retained[i:i + width], "retained": len(retained[i:i + width])}
                   for i in range(0, min(len(retained), width * 4), width))
     result = {"task": task, "groups": groups, "advanced_screen": advanced,
-              "initial_proposal_count": len(basic), "policy": "rarer differences first among harder edits"}
+              "initial_proposal_count": len(basic), "policy": "rarer differences first among harder edits",
+              "proxy_enum_policy": "strict Icarus first, then width-preserving enum lowering"}
     save(location, result)
     return result
 

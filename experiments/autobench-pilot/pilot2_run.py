@@ -87,7 +87,7 @@ def trial(phase, task, cfg, rep, seed, plan, catalogue):
     exposure_cache = {}
     last_checker_message = ""
     for number in range(1, (1 if cfg == "A0" else plan["max_rounds"]) + 1):
-        bench = replay(interface, vectors)
+        bench = replay(interface, vectors, proxy_compat=True)
         observations = []
         if catalogue:
             key = len(vectors)
