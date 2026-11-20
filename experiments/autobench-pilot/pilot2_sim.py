@@ -92,7 +92,7 @@ class VectorReplay:
         self.all_edges = all_edges
         self.proxy_compat = proxy_compat
 
-    def trace(self, rtl, *, observe=()):
+    def trace(self, rtl, *, observe=(), probes=None):
         inputs, outputs = self.inputs, self.outputs
         clock = self.clock
         edge = self.edge
@@ -161,6 +161,8 @@ endmodule
                 waves = [{name: row[f] for name, f in zip(observe, full)} for _, row in sampled]
         rows = [dict(zip(outputs, line.split()[1:]))
                 for line in text.splitlines() if line.startswith("TRACE ")]
+        if probes is not None:
+            probes.extend(line.split()[1:] for line in text.splitlines() if line.startswith("PROBE "))
         count = len(self.vectors) * (3 if self.all_edges else 1)
         if len(rows) != count or any(row.keys() != outputs.keys() for row in rows):
             raise RunError(f"Replay captured {len(rows)} of {count} samples")
