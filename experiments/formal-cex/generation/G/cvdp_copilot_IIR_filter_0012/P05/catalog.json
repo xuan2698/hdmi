@@ -1,0 +1,396 @@
+{
+  "task": "cvdp_copilot_IIR_filter_0012",
+  "proxy": "P05",
+  "proxy_sha256": "b58f9842078207fb8e0e718a739af220980e4f0af4958d6dc45e6bd24d1063e2",
+  "status": "ready",
+  "reason": "",
+  "ports": {
+    "top": "iir_filt",
+    "clock": "clk",
+    "input": {
+      "reset": 1,
+      "in_1": 16,
+      "in_2": 16,
+      "in_3": 16,
+      "filter_select": 2
+    },
+    "output": {
+      "out_1": 16,
+      "out_2": 16,
+      "out_3": 16
+    },
+    "resets": {
+      "reset": 1
+    },
+    "parameters": {}
+  },
+  "candidates": [
+    {
+      "id": "G01",
+      "mutant_sha256": "5806d5850c00d84307c5c22d53590f1599aa657ec04913a95e4577ce3a2fdcdd",
+      "edit": {
+        "rule": "AssignN2B",
+        "line": 52,
+        "before": "            out_2 <= sat16(acc2);",
+        "after": "            out_2 = sat16(acc2);",
+        "orig": "<=",
+        "changed": "=",
+        "guard": "1'b1",
+        "lhs": "out_2",
+        "width": 16
+      }
+    },
+    {
+      "id": "G02",
+      "mutant_sha256": "976295df8cbae2969baf8e5a78da9bcb068f4bc9242dfcd465d662bd2ae93736",
+      "edit": {
+        "rule": "EdgeDelete",
+        "line": 38,
+        "before": "    always_ff @(posedge clk or posedge reset) begin",
+        "after": "    always_ff @(posedge clk ) begin",
+        "orig": "or posedge reset",
+        "changed": "",
+        "guard": "1'b1",
+        "lhs": "",
+        "width": 1
+      }
+    },
+    {
+      "id": "G03",
+      "mutant_sha256": "b02e7d4841726fd0a153918c62180bd119f1789ea6ffe39a4725dd7a0bd3a018",
+      "edit": {
+        "rule": "ExprInsert",
+        "line": 35,
+        "before": "            sat16 = v[15:0];",
+        "after": "            sat16 = (v[15:0]) ^ 1;",
+        "orig": "v[15:0]",
+        "changed": "(v[15:0]) ^ 1",
+        "guard": "1'b1",
+        "lhs": "sat16",
+        "width": 1
+      }
+    },
+    {
+      "id": "G04",
+      "mutant_sha256": "400d554f9dace5ef9ae4621fb24050a76c9275a50e6b94a76b4aebbd5b63175f",
+      "edit": {
+        "rule": "IOFlip1",
+        "line": 49,
+        "before": "            acc3 = (b0 * in_3) + (b1 * x1_3) - (a1 * y1_3);",
+        "after": "            acc3 = (b0 * (~in_3)) + (b1 * x1_3) - (a1 * y1_3);",
+        "orig": "in_3",
+        "changed": "(~in_3)",
+        "guard": "1'b1",
+        "lhs": "acc3",
+        "width": 1
+      }
+    },
+    {
+      "id": "G05",
+      "mutant_sha256": "38c4bbb095cd6ae7644a855c920a4e4d1966da3aa0e58821b4fff24e45da590f",
+      "edit": {
+        "rule": "IOFlip2",
+        "line": 43,
+        "before": "            out_1 <= 16'sd0;",
+        "after": "            out_1 <= ~(16'sd0);",
+        "orig": "16'sd0",
+        "changed": "~(16'sd0)",
+        "guard": "1'b1",
+        "lhs": "out_1",
+        "width": 16
+      }
+    },
+    {
+      "id": "G06",
+      "mutant_sha256": "d6be7d35acf48edf3aedd401ea2ad1a5248eec33258d9d832e8399507c4384f9",
+      "edit": {
+        "rule": "NSubDelete",
+        "line": 55,
+        "before": "            x2_1 <= x1_1; x1_1 <= in_1; y1_1 <= sat16(acc1);",
+        "after": "            ;",
+        "orig": "x2_1 <= x1_1; x1_1 <= in_1; y1_1 <= sat16(acc1);",
+        "changed": ";",
+        "guard": "1'b1",
+        "lhs": "x2_1",
+        "width": 1
+      }
+    },
+    {
+      "id": "G07",
+      "mutant_sha256": "51301d60992f090bebf8d590e428821e8f3a018e87a0dc7a099e0abf6a931463",
+      "edit": {
+        "rule": "NSubInsert",
+        "line": 57,
+        "before": "            x2_3 <= x1_3; x1_3 <= in_3; y1_3 <= sat16(acc3);",
+        "after": "            begin x2_3 <= x1_3; x2_3 <= 0; end",
+        "orig": "x2_3 <= x1_3; x1_3 <= in_3; y1_3 <= sat16(acc3);",
+        "changed": "begin x2_3 <= x1_3; x2_3 <= 0; end",
+        "guard": "1'b1",
+        "lhs": "x2_3",
+        "width": 1
+      }
+    },
+    {
+      "id": "G08",
+      "mutant_sha256": "8c28d818c669945d931264190c61f56b51d5a17abda902b48ebaf95515f58c99",
+      "edit": {
+        "rule": "NSubInsert_IF",
+        "line": 45,
+        "before": "            out_3 <= 16'sd0;",
+        "after": "            begin out_3 <= 16'sd0; out_3 <= 0; end",
+        "orig": "out_3 <= 16'sd0;",
+        "changed": "begin out_3 <= 16'sd0; out_3 <= 0; end",
+        "guard": "1'b1",
+        "lhs": "out_3",
+        "width": 16
+      }
+    },
+    {
+      "id": "G09",
+      "mutant_sha256": "0faf229a6cb4075cb222a3aaaf19fe77df2e2e27c13f3e56a693b05d691f0d78",
+      "edit": {
+        "rule": "NSubUpdate",
+        "line": 56,
+        "before": "            x2_2 <= x1_2; x1_2 <= in_2; y1_2 <= sat16(acc2);",
+        "after": "            x2_2 <= (x1_2) + 1; x1_2 <= in_2; y1_2 <= sat16(acc2);",
+        "orig": "x1_2",
+        "changed": "(x1_2) + 1",
+        "guard": "1'b1",
+        "lhs": "x2_2",
+        "width": 1
+      }
+    },
+    {
+      "id": "G10",
+      "mutant_sha256": "1c6a33dfdaf14380a6b1d48b97352dfea156ef506866de05ae5b1a74ab54a29c",
+      "edit": {
+        "rule": "PartselectDelete",
+        "line": 35,
+        "before": "            sat16 = v[15:0];",
+        "after": "            sat16 = v;",
+        "orig": "v[15:0]",
+        "changed": "v",
+        "guard": "1'b1",
+        "lhs": "sat16",
+        "width": 1
+      }
+    },
+    {
+      "id": "G11",
+      "mutant_sha256": "9038ca9cfa2b1f42f4474b1de9fe5e4c3ad4863077ca567a68a6688bfc43294b",
+      "edit": {
+        "rule": "PartselectInsert",
+        "line": 49,
+        "before": "            acc3 = (b0 * in_3) + (b1 * x1_3) - (a1 * y1_3);",
+        "after": "            acc3 = (b0 * in_3[14:0]) + (b1 * x1_3) - (a1 * y1_3);",
+        "orig": "in_3",
+        "changed": "in_3[14:0]",
+        "guard": "1'b1",
+        "lhs": "acc3",
+        "width": 1
+      }
+    },
+    {
+      "id": "G12",
+      "mutant_sha256": "7265442ac90e064a55b8fcf1e36bc4508cc6104e389860c0b260e2080aeaec61",
+      "edit": {
+        "rule": "PartselectUpdate",
+        "line": 35,
+        "before": "            sat16 = v[15:0];",
+        "after": "            sat16 = v[16:1];",
+        "orig": "v[15:0]",
+        "changed": "v[16:1]",
+        "guard": "1'b1",
+        "lhs": "sat16",
+        "width": 1
+      }
+    },
+    {
+      "id": "G13",
+      "mutant_sha256": "898e50b36832bc6ccaa36fbc0591fe7f0cf60ef0534d50a2853f0216b21d1c84",
+      "edit": {
+        "rule": "PointerInsert",
+        "line": 47,
+        "before": "            acc1 = (b0 * in_1) + (b1 * x1_1) - (a1 * y1_1);",
+        "after": "            acc1 = (b0 * in_1[0]) + (b1 * x1_1) - (a1 * y1_1);",
+        "orig": "in_1",
+        "changed": "in_1[0]",
+        "guard": "1'b1",
+        "lhs": "acc1",
+        "width": 1
+      }
+    },
+    {
+      "id": "G14",
+      "mutant_sha256": "580279db2ff4e9aea722b7969c52f0ad26d70f5cc852c625c8f75f9bc3ccfcca",
+      "edit": {
+        "rule": "arithmetic_or_bitwise",
+        "line": 47,
+        "before": "            acc1 = (b0 * in_1) + (b1 * x1_1) - (a1 * y1_1);",
+        "after": "            acc1 = ((b0 * in_1) + (b1 * x1_1) - (a1 * y1_1)) >> 1;",
+        "orig": "(b0 * in_1) + (b1 * x1_1) - (a1 * y1_1)",
+        "changed": "((b0 * in_1) + (b1 * x1_1) - (a1 * y1_1)) >> 1",
+        "guard": "!(reset)",
+        "lhs": "acc1",
+        "width": 1
+      }
+    },
+    {
+      "id": "G15",
+      "mutant_sha256": "bb0fec34cdf85b940ff72ef70ab1cd812251a50695c03cc199fe13498772bbc4",
+      "edit": {
+        "rule": "bit_index_offset",
+        "line": 48,
+        "before": "            acc2 = (b0 * in_2) + (b1 * x1_2) - (a1 * y1_2);",
+        "after": "            acc2 = (b0 * (in_2 >> 1)) + (b1 * x1_2) - (a1 * y1_2);",
+        "orig": "(b0 * in_2) + (b1 * x1_2) - (a1 * y1_2)",
+        "changed": "(b0 * (in_2 >> 1)) + (b1 * x1_2) - (a1 * y1_2)",
+        "guard": "!(reset)",
+        "lhs": "acc2",
+        "width": 1
+      }
+    },
+    {
+      "id": "G16",
+      "mutant_sha256": "bb28d32d346e017b5b1b853bcec2007af99a86eaaff423fc8ed23db3bbdfc81e",
+      "edit": {
+        "rule": "clock_edge",
+        "line": 38,
+        "before": "    always_ff @(posedge clk or posedge reset) begin",
+        "after": "    always_ff @(posedge clk or negedge reset) begin",
+        "orig": "posedge",
+        "changed": "negedge",
+        "guard": "1'b1",
+        "lhs": "",
+        "width": 1
+      }
+    },
+    {
+      "id": "G17",
+      "mutant_sha256": "70415acbee3abf3f01c9f54eeca08eda3b279c15ef83189a0dd949b28b43b2b5",
+      "edit": {
+        "rule": "condition_operator",
+        "line": 30,
+        "before": "        if (v > 33'sd32767)",
+        "after": "        if ((v > 33'sd32767) || in_2[0])",
+        "orig": "v > 33'sd32767",
+        "changed": "(v > 33'sd32767) || in_2[0]",
+        "guard": "1'b1",
+        "lhs": "",
+        "width": 1
+      }
+    },
+    {
+      "id": "G18",
+      "mutant_sha256": "daeabc4396128504a7694a0fe337aca4d94979b741c83092da736452828ce138",
+      "edit": {
+        "rule": "constant_offset",
+        "line": 43,
+        "before": "            out_1 <= 16'sd0;",
+        "after": "            out_1 <= (16'sd0) - 1;",
+        "orig": "16'sd0",
+        "changed": "(16'sd0) - 1",
+        "guard": "(reset)",
+        "lhs": "out_1",
+        "width": 16
+      }
+    },
+    {
+      "id": "G19",
+      "mutant_sha256": "ce8e95e7599a769b4e5f7a2d125a910152e68fda9fa0e43cddbc4da06fbe6d72",
+      "edit": {
+        "rule": "deleted_assignment",
+        "line": 51,
+        "before": "            out_1 <= sat16(acc1);",
+        "after": "            out_1 <= out_1;",
+        "orig": "sat16(acc1)",
+        "changed": "out_1",
+        "guard": "!(reset)",
+        "lhs": "out_1",
+        "width": 16
+      }
+    },
+    {
+      "id": "G20",
+      "mutant_sha256": "66d9f9f781ff085465aaf7fafed0b4d53ccc615d9438e171af2d87798a71a966",
+      "edit": {
+        "rule": "negated_condition",
+        "line": 39,
+        "before": "        if (reset) begin",
+        "after": "        if (!(reset)) begin",
+        "orig": "reset",
+        "changed": "!(reset)",
+        "guard": "1'b1",
+        "lhs": "",
+        "width": 1
+      }
+    },
+    {
+      "id": "G21",
+      "mutant_sha256": "4ce6e77b28ce1dd082c1130f38909cb4558bb77fda3b62c45271bc393929ee4b",
+      "edit": {
+        "rule": "operator_replacement",
+        "line": 49,
+        "before": "            acc3 = (b0 * in_3) + (b1 * x1_3) - (a1 * y1_3);",
+        "after": "            acc3 = (b0 * in_3) + (b1 * x1_3) + (a1 * y1_3);",
+        "orig": "(b0 * in_3) + (b1 * x1_3) - (a1 * y1_3)",
+        "changed": "(b0 * in_3) + (b1 * x1_3) + (a1 * y1_3)",
+        "guard": "!(reset)",
+        "lhs": "acc3",
+        "width": 1
+      }
+    },
+    {
+      "id": "G22",
+      "mutant_sha256": "45e6bc41a37f0905164c962239dd42340e80fa1350f7f5a22cae61963c120dd6",
+      "edit": {
+        "rule": "relation",
+        "line": 32,
+        "before": "        else if (v < -33'sd32768)",
+        "after": "        else if ((v < -33'sd32768) != 1'b0)",
+        "orig": "v < -33'sd32768",
+        "changed": "(v < -33'sd32768) != 1'b0",
+        "guard": "1'b1",
+        "lhs": "",
+        "width": 1
+      }
+    },
+    {
+      "id": "G23",
+      "mutant_sha256": "e938964dfbdd093b813e8d4f6296690c96f2dac1cf785e4df25008af8006b225",
+      "edit": {
+        "rule": "removed_condition",
+        "line": 30,
+        "before": "        if (v > 33'sd32767)",
+        "after": "        if (1'b1)",
+        "orig": "v > 33'sd32767",
+        "changed": "1'b1",
+        "guard": "1'b1",
+        "lhs": "",
+        "width": 1
+      }
+    },
+    {
+      "id": "G24",
+      "mutant_sha256": "5ed9e23c53666da22bb34840f13de7eacff2cf1f58f427d584dcbebe19b70a6f",
+      "edit": {
+        "rule": "replaced_assignment",
+        "line": 51,
+        "before": "            out_1 <= sat16(acc1);",
+        "after": "            out_1 <= out_3;",
+        "orig": "sat16(acc1)",
+        "changed": "out_3",
+        "guard": "!(reset)",
+        "lhs": "out_1",
+        "width": 16
+      }
+    }
+  ],
+  "rejected": [
+    {
+      "rule": "AssignB2N",
+      "line": 35,
+      "reason": "iverilog exited 1: variant.sv:35: error: functions cannot have non blocking assignment statements."
+    }
+  ]
+}

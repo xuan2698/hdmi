@@ -1,0 +1,393 @@
+{
+  "task": "cvdp_agentic_byte_enable_ram_0004",
+  "proxy": "P03",
+  "proxy_sha256": "dc650e819ae89a9b0b413b9c9f2992a8bccd1ace5ed7a859ce6f6590a4ca864b",
+  "status": "ready",
+  "reason": "",
+  "ports": {
+    "top": "custom_byte_enable_ram",
+    "clock": "clk",
+    "input": {
+      "addr_a": 13,
+      "en_a": 1,
+      "be_a": 4,
+      "data_in_a": 32,
+      "addr_b": 13,
+      "en_b": 1,
+      "be_b": 4,
+      "data_in_b": 32
+    },
+    "output": {
+      "data_out_a": 32,
+      "data_out_b": 32
+    },
+    "resets": {},
+    "parameters": {
+      "XLEN": 32,
+      "LINES": 8192
+    }
+  },
+  "candidates": [
+    {
+      "id": "G01",
+      "mutant_sha256": "f2f351c278645cb1a1e48422f0cedbe5f08f2166a632cc4160e1e7aaa25a3f6a",
+      "edit": {
+        "rule": "AssignB2N",
+        "line": 36,
+        "before": "            ram[i] = {XLEN{1'b0}};",
+        "after": "            ram[i] <= {XLEN{1'b0}};",
+        "orig": "=",
+        "changed": "<=",
+        "guard": "1'b1",
+        "lhs": "ram[i]",
+        "width": 1
+      }
+    },
+    {
+      "id": "G02",
+      "mutant_sha256": "efacc0ba413b7a25e1665a99d8aa45b890b626a39c46045818018bdb55f967e6",
+      "edit": {
+        "rule": "AssignN2B",
+        "line": 43,
+        "before": "        be_a_reg      <= be_a;",
+        "after": "        be_a_reg      = be_a;",
+        "orig": "<=",
+        "changed": "=",
+        "guard": "1'b1",
+        "lhs": "be_a_reg",
+        "width": 1
+      }
+    },
+    {
+      "id": "G03",
+      "mutant_sha256": "f949ab6dd6f332c86e82d1f0ac68b62ae5e0c5b11e753123938075ed730de27b",
+      "edit": {
+        "rule": "ExprInsert",
+        "line": 81,
+        "before": "        data_out_b <= ram[addr_b_reg];",
+        "after": "        data_out_b <= (ram[addr_b_reg]) ^ 1;",
+        "orig": "ram[addr_b_reg]",
+        "changed": "(ram[addr_b_reg]) ^ 1",
+        "guard": "1'b1",
+        "lhs": "data_out_b",
+        "width": 32
+      }
+    },
+    {
+      "id": "G04",
+      "mutant_sha256": "5d63f850c7c19ea1a2d0e1636bb480228e0d34763c97d17ba358c9bb490f0dfa",
+      "edit": {
+        "rule": "IOFlip1",
+        "line": 49,
+        "before": "        data_in_b_reg <= data_in_b;",
+        "after": "        data_in_b_reg <= (~data_in_b);",
+        "orig": "data_in_b",
+        "changed": "(~data_in_b)",
+        "guard": "1'b1",
+        "lhs": "data_in_b_reg",
+        "width": 1
+      }
+    },
+    {
+      "id": "G05",
+      "mutant_sha256": "f502a935ef5d363425a132254c0ac54546e9c58d32925c7781437ae785227597",
+      "edit": {
+        "rule": "IOFlip2",
+        "line": 80,
+        "before": "        data_out_a <= ram[addr_a_reg];",
+        "after": "        data_out_a <= ~(ram[addr_a_reg]);",
+        "orig": "ram[addr_a_reg]",
+        "changed": "~(ram[addr_a_reg])",
+        "guard": "1'b1",
+        "lhs": "data_out_a",
+        "width": 32
+      }
+    },
+    {
+      "id": "G06",
+      "mutant_sha256": "0370f2481bdaced4f283e01b68a91ffc3c52a962c89ee5aa294a042341b90432",
+      "edit": {
+        "rule": "NSubDelete",
+        "line": 80,
+        "before": "        data_out_a <= ram[addr_a_reg];",
+        "after": "        ;",
+        "orig": "data_out_a <= ram[addr_a_reg];",
+        "changed": ";",
+        "guard": "1'b1",
+        "lhs": "data_out_a",
+        "width": 32
+      }
+    },
+    {
+      "id": "G07",
+      "mutant_sha256": "4d558ca7cab438b6a4129177b9589d32b6dc1ec80c0efae1f621cdbc76efe8dd",
+      "edit": {
+        "rule": "NSubInsert",
+        "line": 42,
+        "before": "        en_a_reg      <= en_a;",
+        "after": "        begin en_a_reg <= en_a; en_a_reg <= 0; end",
+        "orig": "en_a_reg      <= en_a;",
+        "changed": "begin en_a_reg <= en_a; en_a_reg <= 0; end",
+        "guard": "1'b1",
+        "lhs": "en_a_reg",
+        "width": 1
+      }
+    },
+    {
+      "id": "G08",
+      "mutant_sha256": "9fa1feab3be04b877b38b105bedcb0cb4401a6c5a8bd1bae4e5ffa6d5b074375",
+      "edit": {
+        "rule": "NSubUpdate",
+        "line": 47,
+        "before": "        en_b_reg      <= en_b;",
+        "after": "        en_b_reg      <= (en_b) + 1;",
+        "orig": "en_b",
+        "changed": "(en_b) + 1",
+        "guard": "1'b1",
+        "lhs": "en_b_reg",
+        "width": 1
+      }
+    },
+    {
+      "id": "G09",
+      "mutant_sha256": "9c3f33c8632fd53878fb2024cbcfe44401c228c5d1e22c8166f07d358e9fe7a0",
+      "edit": {
+        "rule": "PartselectInsert",
+        "line": 43,
+        "before": "        be_a_reg      <= be_a;",
+        "after": "        be_a_reg      <= be_a[2:0];",
+        "orig": "be_a",
+        "changed": "be_a[2:0]",
+        "guard": "1'b1",
+        "lhs": "be_a_reg",
+        "width": 1
+      }
+    },
+    {
+      "id": "G10",
+      "mutant_sha256": "153e8121d2d7ebd36c879df04f4d2cca685c90b5392f9921c15028513bd79757",
+      "edit": {
+        "rule": "PointerInsert",
+        "line": 43,
+        "before": "        be_a_reg      <= be_a;",
+        "after": "        be_a_reg      <= be_a[0];",
+        "orig": "be_a",
+        "changed": "be_a[0]",
+        "guard": "1'b1",
+        "lhs": "be_a_reg",
+        "width": 1
+      }
+    },
+    {
+      "id": "G11",
+      "mutant_sha256": "4d32f2adc7d7f31e1ce44d9fe307a493a9ae8c2399122fe5bfd58359ef87354f",
+      "edit": {
+        "rule": "arithmetic_or_bitwise",
+        "line": 81,
+        "before": "        data_out_b <= ram[addr_b_reg];",
+        "after": "        data_out_b <= (ram[addr_b_reg]) | 1;",
+        "orig": "ram[addr_b_reg]",
+        "changed": "(ram[addr_b_reg]) | 1",
+        "guard": "(be_b_reg[i])",
+        "lhs": "data_out_b",
+        "width": 32
+      }
+    },
+    {
+      "id": "G12",
+      "mutant_sha256": "65f94a8d25a7b2b18bfc33110c7a5c196bbb048b1c0f59b1eb374dd719964183",
+      "edit": {
+        "rule": "bit_index_offset",
+        "line": 49,
+        "before": "        data_in_b_reg <= data_in_b;",
+        "after": "        data_in_b_reg <= (data_in_b >> 1);",
+        "orig": "data_in_b",
+        "changed": "(data_in_b >> 1)",
+        "guard": "1'b1",
+        "lhs": "data_in_b_reg",
+        "width": 1
+      }
+    },
+    {
+      "id": "G13",
+      "mutant_sha256": "63118f85920b28772bedea50a0746d98992a1349ee6ebfa71c8a2fe02125210b",
+      "edit": {
+        "rule": "clock_edge",
+        "line": 52,
+        "before": "    always_ff @(posedge clk) begin",
+        "after": "    always_ff @(negedge clk) begin",
+        "orig": "posedge",
+        "changed": "negedge",
+        "guard": "1'b1",
+        "lhs": "",
+        "width": 1
+      }
+    },
+    {
+      "id": "G14",
+      "mutant_sha256": "34527ece8317649e7f25339e62c6a2f71d6d4aec25483d33a096a8fca1696cf7",
+      "edit": {
+        "rule": "condition_operator",
+        "line": 62,
+        "before": "            if (en_a_reg) begin",
+        "after": "            if ((en_a_reg) ^ addr_b[12]) begin",
+        "orig": "en_a_reg",
+        "changed": "(en_a_reg) ^ addr_b[12]",
+        "guard": "1'b1",
+        "lhs": "",
+        "width": 1
+      }
+    },
+    {
+      "id": "G15",
+      "mutant_sha256": "3c8a003dfbdc171681b3693ac33d3f911300d19fa8e09be2d71c13129045e459",
+      "edit": {
+        "rule": "deleted_assignment",
+        "line": 49,
+        "before": "        data_in_b_reg <= data_in_b;",
+        "after": "        data_in_b_reg <= data_in_b_reg;",
+        "orig": "data_in_b",
+        "changed": "data_in_b_reg",
+        "guard": "1'b1",
+        "lhs": "data_in_b_reg",
+        "width": 1
+      }
+    },
+    {
+      "id": "G16",
+      "mutant_sha256": "7b7a18f97be3bbb0c75869de4da5a38e9e3657974cc808b12e715da78cfe67cf",
+      "edit": {
+        "rule": "negated_condition",
+        "line": 71,
+        "before": "                    if (be_b_reg[i]) begin",
+        "after": "                    if (!(be_b_reg[i])) begin",
+        "orig": "be_b_reg[i]",
+        "changed": "!(be_b_reg[i])",
+        "guard": "1'b1",
+        "lhs": "",
+        "width": 1
+      }
+    },
+    {
+      "id": "G17",
+      "mutant_sha256": "1535313868ecaa684049adf4dec4f48b084885d5b8c79a62c0a1813e53720581",
+      "edit": {
+        "rule": "relation",
+        "line": 62,
+        "before": "            if (en_a_reg) begin",
+        "after": "            if ((en_a_reg) != 1'b0) begin",
+        "orig": "en_a_reg",
+        "changed": "(en_a_reg) != 1'b0",
+        "guard": "1'b1",
+        "lhs": "",
+        "width": 1
+      }
+    },
+    {
+      "id": "G18",
+      "mutant_sha256": "27bb81e0eca4e6920b7a2557a260143b26263864f97eaef9906d77bca175a171",
+      "edit": {
+        "rule": "removed_condition",
+        "line": 64,
+        "before": "                    if (be_a_reg[i]) begin",
+        "after": "                    if (1'b1) begin",
+        "orig": "be_a_reg[i]",
+        "changed": "1'b1",
+        "guard": "1'b1",
+        "lhs": "",
+        "width": 1
+      }
+    },
+    {
+      "id": "G19",
+      "mutant_sha256": "0de6a717b71abc81a2f4efcc5e789652c45934a3ac9f65e1a4fbf5b0ef84b375",
+      "edit": {
+        "rule": "replaced_assignment",
+        "line": 49,
+        "before": "        data_in_b_reg <= data_in_b;",
+        "after": "        data_in_b_reg <= 1'd0;",
+        "orig": "data_in_b",
+        "changed": "1'd0",
+        "guard": "1'b1",
+        "lhs": "data_in_b_reg",
+        "width": 1
+      }
+    },
+    {
+      "id": "G20",
+      "mutant_sha256": "eae41c9156d1cf8ffe1a846e2cedfa0140ba20627b2f30be0d0c5c0388864624",
+      "edit": {
+        "rule": "unary_operator",
+        "line": 47,
+        "before": "        en_b_reg      <= en_b;",
+        "after": "        en_b_reg      <= !(en_b);",
+        "orig": "en_b",
+        "changed": "!(en_b)",
+        "guard": "1'b1",
+        "lhs": "en_b_reg",
+        "width": 1
+      }
+    },
+    {
+      "id": "G21",
+      "mutant_sha256": "1318f0dd04c0ba6bfba66b0b731930654defe41f675d73810bb35f4f2337e0a7",
+      "edit": {
+        "rule": "AssignN2B",
+        "line": 49,
+        "before": "        data_in_b_reg <= data_in_b;",
+        "after": "        data_in_b_reg = data_in_b;",
+        "orig": "<=",
+        "changed": "=",
+        "guard": "1'b1",
+        "lhs": "data_in_b_reg",
+        "width": 1
+      }
+    },
+    {
+      "id": "G22",
+      "mutant_sha256": "6868beee405b9f984c4e7dafa416c291dcf926ac6a7aa90b69516be081598258",
+      "edit": {
+        "rule": "ExprInsert",
+        "line": 42,
+        "before": "        en_a_reg      <= en_a;",
+        "after": "        en_a_reg      <= (en_a) ^ 1;",
+        "orig": "en_a",
+        "changed": "(en_a) ^ 1",
+        "guard": "1'b1",
+        "lhs": "en_a_reg",
+        "width": 1
+      }
+    },
+    {
+      "id": "G23",
+      "mutant_sha256": "7baee206e4699565e916dd6ee848e9f617a83df2417ba48f104ef47493a1571f",
+      "edit": {
+        "rule": "IOFlip1",
+        "line": 48,
+        "before": "        be_b_reg      <= be_b;",
+        "after": "        be_b_reg      <= (~be_b);",
+        "orig": "be_b",
+        "changed": "(~be_b)",
+        "guard": "1'b1",
+        "lhs": "be_b_reg",
+        "width": 1
+      }
+    },
+    {
+      "id": "G24",
+      "mutant_sha256": "6e86181fc4844b1a911e7998cce95ea026a855879289319e57bdaa36035b8e56",
+      "edit": {
+        "rule": "IOFlip2",
+        "line": 81,
+        "before": "        data_out_b <= ram[addr_b_reg];",
+        "after": "        data_out_b <= ~(ram[addr_b_reg]);",
+        "orig": "ram[addr_b_reg]",
+        "changed": "~(ram[addr_b_reg])",
+        "guard": "1'b1",
+        "lhs": "data_out_b",
+        "width": 32
+      }
+    }
+  ],
+  "rejected": []
+}

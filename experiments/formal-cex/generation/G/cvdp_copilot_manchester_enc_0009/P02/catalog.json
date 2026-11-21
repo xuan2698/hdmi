@@ -1,0 +1,393 @@
+{
+  "task": "cvdp_copilot_manchester_enc_0009",
+  "proxy": "P02",
+  "proxy_sha256": "712041c27007ba82490465e8f46ae78e763bc5e26be814916eb56a27bbe16c69",
+  "status": "ready",
+  "reason": "",
+  "ports": {
+    "top": "top_manchester",
+    "clock": "clk_in",
+    "input": {
+      "rst_in": 1,
+      "enc_valid_in": 1,
+      "enc_data_in": 8,
+      "dec_valid_in": 1,
+      "dec_data_in": 16
+    },
+    "output": {
+      "enc_valid_out": 1,
+      "enc_data_out": 16,
+      "dec_valid_out": 1,
+      "dec_data_out": 8
+    },
+    "resets": {
+      "rst_in": 1
+    },
+    "parameters": {
+      "N": 8
+    }
+  },
+  "candidates": [
+    {
+      "id": "G01",
+      "mutant_sha256": "e3ab4de7c8bd160c5ac09e65600569880f68ead8cba0045aed56f3a73c8097f4",
+      "edit": {
+        "rule": "AssignN2B",
+        "line": 32,
+        "before": "                    enc_data_reg[2*i+1] <=  enc_data_in[i];",
+        "after": "                    enc_data_reg[2*i+1] =  enc_data_in[i];",
+        "orig": "<=",
+        "changed": "=",
+        "guard": "1'b1",
+        "lhs": "enc_data_reg[2*i+1]",
+        "width": 1
+      }
+    },
+    {
+      "id": "G02",
+      "mutant_sha256": "dc1cdf373fbfc24346015e550bf7df420bfa252c04344e3a04faf6a463866d78",
+      "edit": {
+        "rule": "EdgeDelete",
+        "line": 21,
+        "before": "    always_ff @(posedge clk_in or posedge rst_in) begin",
+        "after": "    always_ff @(posedge clk_in ) begin",
+        "orig": "or posedge rst_in",
+        "changed": "",
+        "guard": "1'b1",
+        "lhs": "",
+        "width": 1
+      }
+    },
+    {
+      "id": "G03",
+      "mutant_sha256": "59bcbe3a5553762d29c386270a4068a225695cf2f9316e72c1c806293479640c",
+      "edit": {
+        "rule": "ExprInsert",
+        "line": 42,
+        "before": "                        dec_data_reg[i] <= 1'b0;",
+        "after": "                        dec_data_reg[i] <= (1'b0) ^ 1;",
+        "orig": "1'b0",
+        "changed": "(1'b0) ^ 1",
+        "guard": "1'b1",
+        "lhs": "dec_data_reg[i]",
+        "width": 1
+      }
+    },
+    {
+      "id": "G04",
+      "mutant_sha256": "145f64c9ae7480744d7faac4fc2d58b60b57b72526bf8c4491af60dccd962977",
+      "edit": {
+        "rule": "IOFlip1",
+        "line": 29,
+        "before": "            if (enc_valid_in) begin",
+        "after": "            if ((~enc_valid_in)) begin",
+        "orig": "enc_valid_in",
+        "changed": "(~enc_valid_in)",
+        "guard": "1'b1",
+        "lhs": "",
+        "width": 1
+      }
+    },
+    {
+      "id": "G05",
+      "mutant_sha256": "d0d5389c43398710cf4f5f8d183a99d9dc3780539116378c8d8a4d87c5bce576",
+      "edit": {
+        "rule": "NSubDelete",
+        "line": 26,
+        "before": "            dec_valid_reg <= 1'b0;",
+        "after": "            ;",
+        "orig": "dec_valid_reg <= 1'b0;",
+        "changed": ";",
+        "guard": "1'b1",
+        "lhs": "dec_valid_reg",
+        "width": 1
+      }
+    },
+    {
+      "id": "G06",
+      "mutant_sha256": "c440127bd07e8e3f6d266ab6cc2fb1dbb0eea901b0f79b84cd66d1b4569b3d8f",
+      "edit": {
+        "rule": "NSubInsert",
+        "line": 25,
+        "before": "            dec_data_reg  <= '0;",
+        "after": "            begin dec_data_reg <= '0; dec_data_reg <= 0; end",
+        "orig": "dec_data_reg  <= '0;",
+        "changed": "begin dec_data_reg <= '0; dec_data_reg <= 0; end",
+        "guard": "1'b1",
+        "lhs": "dec_data_reg",
+        "width": 1
+      }
+    },
+    {
+      "id": "G07",
+      "mutant_sha256": "f0a37459490d2c86b93788289d030f051e7f35f0c44738934ac102e441b90a2b",
+      "edit": {
+        "rule": "NSubUpdate",
+        "line": 25,
+        "before": "            dec_data_reg  <= '0;",
+        "after": "            dec_data_reg  <= ('0) + 1;",
+        "orig": "'0",
+        "changed": "('0) + 1",
+        "guard": "1'b1",
+        "lhs": "dec_data_reg",
+        "width": 1
+      }
+    },
+    {
+      "id": "G08",
+      "mutant_sha256": "b0f4eb2cde90b643478b45afc925d9bc03458d407021bf1755c62efb9e403a58",
+      "edit": {
+        "rule": "arithmetic_or_bitwise",
+        "line": 51,
+        "before": "    assign dec_valid_out = dec_valid_reg;",
+        "after": "    assign dec_valid_out = (dec_valid_reg) >> 1;",
+        "orig": "dec_valid_reg",
+        "changed": "(dec_valid_reg) >> 1",
+        "guard": "!(dec_data_in[2*i] == 1'b0 && dec_data_in[2*i+1] == 1'b1)",
+        "lhs": "dec_valid_out",
+        "width": 1
+      }
+    },
+    {
+      "id": "G09",
+      "mutant_sha256": "37b834e63a6cbf0254e598585eac188ab59c453b7c0ffa7d11b532bb1835406f",
+      "edit": {
+        "rule": "clock_edge",
+        "line": 21,
+        "before": "    always_ff @(posedge clk_in or posedge rst_in) begin",
+        "after": "    always_ff @(negedge clk_in or posedge rst_in) begin",
+        "orig": "posedge",
+        "changed": "negedge",
+        "guard": "1'b1",
+        "lhs": "",
+        "width": 1
+      }
+    },
+    {
+      "id": "G10",
+      "mutant_sha256": "90d5278a174b07c760a189c8cfdf07320709353f3a752a56070f93a5d1614281",
+      "edit": {
+        "rule": "condition_operator",
+        "line": 22,
+        "before": "        if (rst_in) begin",
+        "after": "        if ((rst_in) ^ enc_data_in[0]) begin",
+        "orig": "rst_in",
+        "changed": "(rst_in) ^ enc_data_in[0]",
+        "guard": "1'b1",
+        "lhs": "",
+        "width": 1
+      }
+    },
+    {
+      "id": "G11",
+      "mutant_sha256": "a4d3cd30135df8442dc754823e4646c5589eb4e35a2fde3729ea00c3a33c2936",
+      "edit": {
+        "rule": "constant_offset",
+        "line": 26,
+        "before": "            dec_valid_reg <= 1'b0;",
+        "after": "            dec_valid_reg <= (1'b0) - 1;",
+        "orig": "1'b0",
+        "changed": "(1'b0) - 1",
+        "guard": "(rst_in)",
+        "lhs": "dec_valid_reg",
+        "width": 1
+      }
+    },
+    {
+      "id": "G12",
+      "mutant_sha256": "83f562462a9564121bf23514379126d2ae27739ea24dd9944a89a5d42b9654f8",
+      "edit": {
+        "rule": "deleted_assignment",
+        "line": 48,
+        "before": "    assign enc_data_out  = enc_data_reg;",
+        "after": "    assign enc_data_out  = enc_data_out;",
+        "orig": "enc_data_reg",
+        "changed": "enc_data_out",
+        "guard": "!(dec_data_in[2*i] == 1'b0 && dec_data_in[2*i+1] == 1'b1)",
+        "lhs": "enc_data_out",
+        "width": 16
+      }
+    },
+    {
+      "id": "G13",
+      "mutant_sha256": "dcdb23be551c87668b5e67bd5ff6225d50d895aaea19aac4b700a3b0993fc080",
+      "edit": {
+        "rule": "negated_condition",
+        "line": 37,
+        "before": "            if (dec_valid_in) begin",
+        "after": "            if (!(dec_valid_in)) begin",
+        "orig": "dec_valid_in",
+        "changed": "!(dec_valid_in)",
+        "guard": "1'b1",
+        "lhs": "",
+        "width": 1
+      }
+    },
+    {
+      "id": "G14",
+      "mutant_sha256": "585f28f823377e70860aef78ffcb6bf04f35a82e313f3c0333ef6439cc530e6c",
+      "edit": {
+        "rule": "relation",
+        "line": 39,
+        "before": "                    if (dec_data_in[2*i] == 1'b0 && dec_data_in[2*i+1] == 1'b1)",
+        "after": "                    if ((dec_data_in[2*i] == 1'b0 && dec_data_in[2*i+1] == 1'b1) != 1'b0)",
+        "orig": "dec_data_in[2*i] == 1'b0 && dec_data_in[2*i+1] == 1'b1",
+        "changed": "(dec_data_in[2*i] == 1'b0 && dec_data_in[2*i+1] == 1'b1) != 1'b0",
+        "guard": "1'b1",
+        "lhs": "",
+        "width": 1
+      }
+    },
+    {
+      "id": "G15",
+      "mutant_sha256": "61ae5684020c107ab11dd91aa9ff2b83fb1a6b5312b909db1912bc8a04ddceb5",
+      "edit": {
+        "rule": "removed_condition",
+        "line": 29,
+        "before": "            if (enc_valid_in) begin",
+        "after": "            if (1'b0) begin",
+        "orig": "enc_valid_in",
+        "changed": "1'b0",
+        "guard": "1'b1",
+        "lhs": "",
+        "width": 1
+      }
+    },
+    {
+      "id": "G16",
+      "mutant_sha256": "f0a473dddc052c6009d9512b968da57e3f60989af91547942f72688c8df05b0a",
+      "edit": {
+        "rule": "replaced_assignment",
+        "line": 24,
+        "before": "            enc_valid_reg <= 1'b0;",
+        "after": "            enc_valid_reg <= rst_in;",
+        "orig": "1'b0",
+        "changed": "rst_in",
+        "guard": "(rst_in)",
+        "lhs": "enc_valid_reg",
+        "width": 1
+      }
+    },
+    {
+      "id": "G17",
+      "mutant_sha256": "016bcab7fbd0694448540859dfa03c122832faf9c57e6b7bfbfbd3e91c66fa9f",
+      "edit": {
+        "rule": "temporal_control",
+        "line": 22,
+        "before": "        if (rst_in) begin",
+        "after": "        if (1'b0) begin",
+        "orig": "rst_in",
+        "changed": "1'b0",
+        "guard": "1'b1",
+        "lhs": "",
+        "width": 1
+      }
+    },
+    {
+      "id": "G18",
+      "mutant_sha256": "acc3793cac06b39016158bec3e8f8bf80981cd352091c72f4385644fde11e2fa",
+      "edit": {
+        "rule": "threshold_offset",
+        "line": 39,
+        "before": "                    if (dec_data_in[2*i] == 1'b0 && dec_data_in[2*i+1] == 1'b1)",
+        "after": "                    if (dec_data_in[2*i] == 1'd1 && dec_data_in[2*i+1] == 1'b1)",
+        "orig": "1'b0",
+        "changed": "1'd1",
+        "guard": "1'b1",
+        "lhs": "",
+        "width": 1
+      }
+    },
+    {
+      "id": "G19",
+      "mutant_sha256": "1b70131115077a6d791de6b557b71eb850dafdb0fe15da0acc3c4392b8c10153",
+      "edit": {
+        "rule": "unary_operator",
+        "line": 24,
+        "before": "            enc_valid_reg <= 1'b0;",
+        "after": "            enc_valid_reg <= ~(1'b0);",
+        "orig": "1'b0",
+        "changed": "~(1'b0)",
+        "guard": "(rst_in)",
+        "lhs": "enc_valid_reg",
+        "width": 1
+      }
+    },
+    {
+      "id": "G20",
+      "mutant_sha256": "4b0e384f7231f04014ee4b4ed1c77132bd56e2dda1768c5d80a05e5f1316ff33",
+      "edit": {
+        "rule": "AssignN2B",
+        "line": 40,
+        "before": "                        dec_data_reg[i] <= 1'b1;",
+        "after": "                        dec_data_reg[i] = 1'b1;",
+        "orig": "<=",
+        "changed": "=",
+        "guard": "1'b1",
+        "lhs": "dec_data_reg[i]",
+        "width": 1
+      }
+    },
+    {
+      "id": "G21",
+      "mutant_sha256": "7fe68c8029cc82794bfd9ee4f51f0a63c391a9eb3373de0b23d92191709e1e62",
+      "edit": {
+        "rule": "ExprInsert",
+        "line": 40,
+        "before": "                        dec_data_reg[i] <= 1'b1;",
+        "after": "                        dec_data_reg[i] <= (1'b1) ^ 1;",
+        "orig": "1'b1",
+        "changed": "(1'b1) ^ 1",
+        "guard": "1'b1",
+        "lhs": "dec_data_reg[i]",
+        "width": 1
+      }
+    },
+    {
+      "id": "G22",
+      "mutant_sha256": "ab037c3ec509b2064e419b1be0de1452df7d370a5141f0a8bb983fb37dab379a",
+      "edit": {
+        "rule": "IOFlip1",
+        "line": 22,
+        "before": "        if (rst_in) begin",
+        "after": "        if ((~rst_in)) begin",
+        "orig": "rst_in",
+        "changed": "(~rst_in)",
+        "guard": "1'b1",
+        "lhs": "",
+        "width": 1
+      }
+    },
+    {
+      "id": "G23",
+      "mutant_sha256": "c5ea13f55b377545d0356e49a00c268e8aeafcdf00a7a2040a10e4b35f6ce838",
+      "edit": {
+        "rule": "NSubDelete",
+        "line": 32,
+        "before": "                    enc_data_reg[2*i+1] <=  enc_data_in[i];",
+        "after": "                    ;",
+        "orig": "enc_data_reg[2*i+1] <=  enc_data_in[i];",
+        "changed": ";",
+        "guard": "1'b1",
+        "lhs": "enc_data_reg[2*i+1]",
+        "width": 1
+      }
+    },
+    {
+      "id": "G24",
+      "mutant_sha256": "710be19b9268d3c737bbe58eb238b003285b983b3f9bce0ca3cb35ab003d35da",
+      "edit": {
+        "rule": "NSubInsert",
+        "line": 32,
+        "before": "                    enc_data_reg[2*i+1] <=  enc_data_in[i];",
+        "after": "                    begin enc_data_reg[2*i+1] <= enc_data_in[i]; enc_data_reg[2*i+1] <= 0; end",
+        "orig": "enc_data_reg[2*i+1] <=  enc_data_in[i];",
+        "changed": "begin enc_data_reg[2*i+1] <= enc_data_in[i]; enc_data_reg[2*i+1] <= 0; end",
+        "guard": "1'b1",
+        "lhs": "enc_data_reg[2*i+1]",
+        "width": 1
+      }
+    }
+  ],
+  "rejected": []
+}

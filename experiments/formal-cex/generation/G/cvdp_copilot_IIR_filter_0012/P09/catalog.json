@@ -1,0 +1,396 @@
+{
+  "task": "cvdp_copilot_IIR_filter_0012",
+  "proxy": "P09",
+  "proxy_sha256": "e82d4ce7b574b7cf94bcc630c2ca7f50da95a89df3dd99cf85990c571936a82c",
+  "status": "ready",
+  "reason": "",
+  "ports": {
+    "top": "iir_filt",
+    "clock": "clk",
+    "input": {
+      "reset": 1,
+      "in_1": 16,
+      "in_2": 16,
+      "in_3": 16,
+      "filter_select": 2
+    },
+    "output": {
+      "out_1": 16,
+      "out_2": 16,
+      "out_3": 16
+    },
+    "resets": {
+      "reset": 1
+    },
+    "parameters": {}
+  },
+  "candidates": [
+    {
+      "id": "G01",
+      "mutant_sha256": "dd7bd78b58e42afce78c8a527c0a3cbb6813109e57369b90805da1354990d52f",
+      "edit": {
+        "rule": "AssignN2B",
+        "line": 80,
+        "before": "            y1_d2 <= y1_d1; y1_d1 <= sat16(acc1);",
+        "after": "            y1_d2 = y1_d1; y1_d1 <= sat16(acc1);",
+        "orig": "<=",
+        "changed": "=",
+        "guard": "1'b1",
+        "lhs": "y1_d2",
+        "width": 1
+      }
+    },
+    {
+      "id": "G02",
+      "mutant_sha256": "cbe04314c22fb21f142fa87c9da37356870cb7b86998c9c152e5d3be9fdff12b",
+      "edit": {
+        "rule": "EdgeDelete",
+        "line": 60,
+        "before": "    always_ff @(posedge clk or posedge reset) begin",
+        "after": "    always_ff @(posedge clk ) begin",
+        "orig": "or posedge reset",
+        "changed": "",
+        "guard": "1'b1",
+        "lhs": "",
+        "width": 1
+      }
+    },
+    {
+      "id": "G03",
+      "mutant_sha256": "bbdaae0c2d3b7f143f3536cd05c018aedab32c9226a6e8f4b7b59e1c84a242e2",
+      "edit": {
+        "rule": "ExprInsert",
+        "line": 65,
+        "before": "            y1_d1 <= 16'sd0; y1_d2 <= 16'sd0;",
+        "after": "            y1_d1 <= (16'sd0) ^ 1; y1_d2 <= 16'sd0;",
+        "orig": "16'sd0",
+        "changed": "(16'sd0) ^ 1",
+        "guard": "1'b1",
+        "lhs": "y1_d1",
+        "width": 1
+      }
+    },
+    {
+      "id": "G04",
+      "mutant_sha256": "20621b41dff8aed3451ed31f3d2ef859aacbd9d1f17eb5f0e77c832892c034a0",
+      "edit": {
+        "rule": "IOFlip1",
+        "line": 55,
+        "before": "        acc1 = (b0 * in_1) + (b1 * x1_d1) + (b2 * x1_d2) - (a1 * y1_d1) - (a2 * y1_d2);",
+        "after": "        acc1 = (b0 * (~in_1)) + (b1 * x1_d1) + (b2 * x1_d2) - (a1 * y1_d1) - (a2 * y1_d2);",
+        "orig": "in_1",
+        "changed": "(~in_1)",
+        "guard": "1'b1",
+        "lhs": "acc1",
+        "width": 1
+      }
+    },
+    {
+      "id": "G05",
+      "mutant_sha256": "3379bee727441fed9b4ba3d9a284ac17ed5b8309de0e4c3e774b400efb4c27b7",
+      "edit": {
+        "rule": "IOFlip2",
+        "line": 69,
+        "before": "            out_2 <= 16'sd0;",
+        "after": "            out_2 <= ~(16'sd0);",
+        "orig": "16'sd0",
+        "changed": "~(16'sd0)",
+        "guard": "1'b1",
+        "lhs": "out_2",
+        "width": 16
+      }
+    },
+    {
+      "id": "G06",
+      "mutant_sha256": "bfff27e3908719b4ee49c1dbd25a5c7ac76b36fa5627c8588d2dc0ac291ba178",
+      "edit": {
+        "rule": "NSubDelete",
+        "line": 62,
+        "before": "            x1_d1 <= 16'sd0; x1_d2 <= 16'sd0;",
+        "after": "            ;",
+        "orig": "x1_d1 <= 16'sd0; x1_d2 <= 16'sd0;",
+        "changed": ";",
+        "guard": "1'b1",
+        "lhs": "x1_d1",
+        "width": 1
+      }
+    },
+    {
+      "id": "G07",
+      "mutant_sha256": "48ddfb5e43f76027e2b3328a0d5e5d5474454d220de28f7afab2023855268aeb",
+      "edit": {
+        "rule": "NSubInsert",
+        "line": 69,
+        "before": "            out_2 <= 16'sd0;",
+        "after": "            begin out_2 <= 16'sd0; out_2 <= 0; end",
+        "orig": "out_2 <= 16'sd0;",
+        "changed": "begin out_2 <= 16'sd0; out_2 <= 0; end",
+        "guard": "1'b1",
+        "lhs": "out_2",
+        "width": 16
+      }
+    },
+    {
+      "id": "G08",
+      "mutant_sha256": "86c5fe5a527942135aa3ce539ebc8c064fdad604176f3f2d0284900f658e1fbe",
+      "edit": {
+        "rule": "NSubInsert_IF",
+        "line": 68,
+        "before": "            out_1 <= 16'sd0;",
+        "after": "            begin out_1 <= 16'sd0; out_1 <= 0; end",
+        "orig": "out_1 <= 16'sd0;",
+        "changed": "begin out_1 <= 16'sd0; out_1 <= 0; end",
+        "guard": "1'b1",
+        "lhs": "out_1",
+        "width": 16
+      }
+    },
+    {
+      "id": "G09",
+      "mutant_sha256": "e90af36cd7365c2ed59e9b767e7570709c7b602740c71038feaab6f67dcb3c14",
+      "edit": {
+        "rule": "NSubUpdate",
+        "line": 69,
+        "before": "            out_2 <= 16'sd0;",
+        "after": "            out_2 <= (16'sd0) + 1;",
+        "orig": "16'sd0",
+        "changed": "(16'sd0) + 1",
+        "guard": "1'b1",
+        "lhs": "out_2",
+        "width": 16
+      }
+    },
+    {
+      "id": "G10",
+      "mutant_sha256": "062700d9f5cad7cf71b49b94b39392dfd8947261962015ced83a378e2dc2c4ec",
+      "edit": {
+        "rule": "PartselectDelete",
+        "line": 49,
+        "before": "            sat16 = v[15:0];",
+        "after": "            sat16 = v;",
+        "orig": "v[15:0]",
+        "changed": "v",
+        "guard": "1'b1",
+        "lhs": "sat16",
+        "width": 1
+      }
+    },
+    {
+      "id": "G11",
+      "mutant_sha256": "604c22b77e6f574668131757b72d4efac9fce1d9ee6197babc902b39e7cf0360",
+      "edit": {
+        "rule": "PartselectInsert",
+        "line": 57,
+        "before": "        acc3 = (b0 * in_3) + (b1 * x3_d1) + (b2 * x3_d2) - (a1 * y3_d1) - (a2 * y3_d2);",
+        "after": "        acc3 = (b0 * in_3[14:0]) + (b1 * x3_d1) + (b2 * x3_d2) - (a1 * y3_d1) - (a2 * y3_d2);",
+        "orig": "in_3",
+        "changed": "in_3[14:0]",
+        "guard": "1'b1",
+        "lhs": "acc3",
+        "width": 1
+      }
+    },
+    {
+      "id": "G12",
+      "mutant_sha256": "ea3125e25ef87cf9bcf8f13624578353d24c29db83e5aa19d5050aaa7ada7939",
+      "edit": {
+        "rule": "PartselectUpdate",
+        "line": 49,
+        "before": "            sat16 = v[15:0];",
+        "after": "            sat16 = v[16:1];",
+        "orig": "v[15:0]",
+        "changed": "v[16:1]",
+        "guard": "1'b1",
+        "lhs": "sat16",
+        "width": 1
+      }
+    },
+    {
+      "id": "G13",
+      "mutant_sha256": "d7ba882fc952e91072607750afdf37def1ad652377b6534694f31c055e5628c4",
+      "edit": {
+        "rule": "PointerInsert",
+        "line": 55,
+        "before": "        acc1 = (b0 * in_1) + (b1 * x1_d1) + (b2 * x1_d2) - (a1 * y1_d1) - (a2 * y1_d2);",
+        "after": "        acc1 = (b0 * in_1[0]) + (b1 * x1_d1) + (b2 * x1_d2) - (a1 * y1_d1) - (a2 * y1_d2);",
+        "orig": "in_1",
+        "changed": "in_1[0]",
+        "guard": "1'b1",
+        "lhs": "acc1",
+        "width": 1
+      }
+    },
+    {
+      "id": "G14",
+      "mutant_sha256": "5a0c41beb6893da7b9637c2a0c82bc86571d83d1a87d261df8819c042a4ef21f",
+      "edit": {
+        "rule": "arithmetic_or_bitwise",
+        "line": 37,
+        "before": "                b0 = 16'sd16384; b1 = 16'sd0;     b2 = 16'sd0;",
+        "after": "                b0 = (16'sd16384) & 1; b1 = 16'sd0;     b2 = 16'sd0;",
+        "orig": "16'sd16384",
+        "changed": "(16'sd16384) & 1",
+        "guard": "1'b1",
+        "lhs": "b0",
+        "width": 1
+      }
+    },
+    {
+      "id": "G15",
+      "mutant_sha256": "a481f987a18e78b5907efc62b28917f7974bd5e480f0d65c00688350b97acd4b",
+      "edit": {
+        "rule": "bit_index_offset",
+        "line": 56,
+        "before": "        acc2 = (b0 * in_2) + (b1 * x2_d1) + (b2 * x2_d2) - (a1 * y2_d1) - (a2 * y2_d2);",
+        "after": "        acc2 = (b0 * (in_2 << 1)) + (b1 * x2_d1) + (b2 * x2_d2) - (a1 * y2_d1) - (a2 * y2_d2);",
+        "orig": "(b0 * in_2) + (b1 * x2_d1) + (b2 * x2_d2) - (a1 * y2_d1) - (a2 * y2_d2)",
+        "changed": "(b0 * (in_2 << 1)) + (b1 * x2_d1) + (b2 * x2_d2) - (a1 * y2_d1) - (a2 * y2_d2)",
+        "guard": "!(v < -32'sd32768)",
+        "lhs": "acc2",
+        "width": 1
+      }
+    },
+    {
+      "id": "G16",
+      "mutant_sha256": "d15348880b779f7eedfe1af2ef74bf15a4615b6150c68a300fb46730b7512d8e",
+      "edit": {
+        "rule": "clock_edge",
+        "line": 60,
+        "before": "    always_ff @(posedge clk or posedge reset) begin",
+        "after": "    always_ff @(negedge clk or posedge reset) begin",
+        "orig": "posedge",
+        "changed": "negedge",
+        "guard": "1'b1",
+        "lhs": "",
+        "width": 1
+      }
+    },
+    {
+      "id": "G17",
+      "mutant_sha256": "ddf9188e2ce6a5239c581b26119b8553f660850bb4f2d5b7e92a1b15b95c4742",
+      "edit": {
+        "rule": "condition_operator",
+        "line": 46,
+        "before": "        else if (v < -32'sd32768)",
+        "after": "        else if ((v < -32'sd32768) ^ in_2[15])",
+        "orig": "v < -32'sd32768",
+        "changed": "(v < -32'sd32768) ^ in_2[15]",
+        "guard": "1'b1",
+        "lhs": "",
+        "width": 1
+      }
+    },
+    {
+      "id": "G18",
+      "mutant_sha256": "115e2e12dce0df956cdbbdd21accfba6c9895dde173943901dafc4c8bc0882f6",
+      "edit": {
+        "rule": "constant_offset",
+        "line": 66,
+        "before": "            y2_d1 <= 16'sd0; y2_d2 <= 16'sd0;",
+        "after": "            y2_d1 <= (16'sd0) + 1; y2_d2 <= 16'sd0;",
+        "orig": "16'sd0",
+        "changed": "(16'sd0) + 1",
+        "guard": "(reset)",
+        "lhs": "y2_d1",
+        "width": 1
+      }
+    },
+    {
+      "id": "G19",
+      "mutant_sha256": "e963cb90dc70f2277ac7e7666f85437134a3ee9aff0be81200fdf79841dcae5d",
+      "edit": {
+        "rule": "deleted_assignment",
+        "line": 45,
+        "before": "            sat16 = 16'sd32767;",
+        "after": "            sat16 = sat16;",
+        "orig": "16'sd32767",
+        "changed": "sat16",
+        "guard": "(v > 32'sd32767)",
+        "lhs": "sat16",
+        "width": 1
+      }
+    },
+    {
+      "id": "G20",
+      "mutant_sha256": "da5b0d419ed8f8b59430db45c6974307422460773c1cc8be02b0c11702eaf485",
+      "edit": {
+        "rule": "negated_condition",
+        "line": 46,
+        "before": "        else if (v < -32'sd32768)",
+        "after": "        else if (!(v < -32'sd32768))",
+        "orig": "v < -32'sd32768",
+        "changed": "!(v < -32'sd32768)",
+        "guard": "1'b1",
+        "lhs": "",
+        "width": 1
+      }
+    },
+    {
+      "id": "G21",
+      "mutant_sha256": "95d70b5d8980772e6355513e2e3eb7f9bb562d98bacd37cd65b5d6a17f44ad17",
+      "edit": {
+        "rule": "operator_replacement",
+        "line": 55,
+        "before": "        acc1 = (b0 * in_1) + (b1 * x1_d1) + (b2 * x1_d2) - (a1 * y1_d1) - (a2 * y1_d2);",
+        "after": "        acc1 = (b0 * in_1) + (b1 * x1_d1) + (b2 * x1_d2) - (a1 * y1_d1) + (a2 * y1_d2);",
+        "orig": "(b0 * in_1) + (b1 * x1_d1) + (b2 * x1_d2) - (a1 * y1_d1) - (a2 * y1_d2)",
+        "changed": "(b0 * in_1) + (b1 * x1_d1) + (b2 * x1_d2) - (a1 * y1_d1) + (a2 * y1_d2)",
+        "guard": "!(v < -32'sd32768)",
+        "lhs": "acc1",
+        "width": 1
+      }
+    },
+    {
+      "id": "G22",
+      "mutant_sha256": "14a57f5746eaa9af32a7e30f41a685eca4804dc4f4ce5590ffb2216c68fa33ae",
+      "edit": {
+        "rule": "relation",
+        "line": 61,
+        "before": "        if (reset) begin",
+        "after": "        if ((reset) != 1'b0) begin",
+        "orig": "reset",
+        "changed": "(reset) != 1'b0",
+        "guard": "1'b1",
+        "lhs": "",
+        "width": 1
+      }
+    },
+    {
+      "id": "G23",
+      "mutant_sha256": "1a5d48cced940ac43fc9248d729943b4610bf585c9743bffb22f4ebd03adc51e",
+      "edit": {
+        "rule": "removed_condition",
+        "line": 44,
+        "before": "        if (v > 32'sd32767)",
+        "after": "        if (1'b1)",
+        "orig": "v > 32'sd32767",
+        "changed": "1'b1",
+        "guard": "1'b1",
+        "lhs": "",
+        "width": 1
+      }
+    },
+    {
+      "id": "G24",
+      "mutant_sha256": "03fc0ed71b613f8d6e74d48a991ff924ccbc211384eb628c03e6d43d4f7b295d",
+      "edit": {
+        "rule": "replaced_assignment",
+        "line": 66,
+        "before": "            y2_d1 <= 16'sd0; y2_d2 <= 16'sd0;",
+        "after": "            y2_d1 <= reset; y2_d2 <= 16'sd0;",
+        "orig": "16'sd0",
+        "changed": "reset",
+        "guard": "(reset)",
+        "lhs": "y2_d1",
+        "width": 1
+      }
+    }
+  ],
+  "rejected": [
+    {
+      "rule": "AssignB2N",
+      "line": 47,
+      "reason": "iverilog exited 1: variant.sv:47: error: functions cannot have non blocking assignment statements."
+    }
+  ]
+}

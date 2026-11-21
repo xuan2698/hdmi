@@ -1,0 +1,395 @@
+{
+  "task": "cvdp_copilot_signed_adder_0003",
+  "proxy": "P09",
+  "proxy_sha256": "5a14ec8a8162e3fdacfdc2eb711e4e0a5194bfd846904fda5eee64d72f4883d5",
+  "status": "ready",
+  "reason": "",
+  "ports": {
+    "top": "signedadder",
+    "clock": "i_clk",
+    "input": {
+      "i_rst_n": 1,
+      "i_enable": 1,
+      "i_start": 1,
+      "i_mode": 1,
+      "i_clear": 1,
+      "i_operand_a": 8,
+      "i_operand_b": 8
+    },
+    "output": {
+      "o_resultant_sum": 8,
+      "o_overflow": 1,
+      "o_ready": 1,
+      "o_status": 2
+    },
+    "resets": {
+      "i_rst_n": 0
+    },
+    "parameters": {
+      "DATA_WIDTH": 8
+    }
+  },
+  "candidates": [
+    {
+      "id": "G01",
+      "mutant_sha256": "647bbfb285872c8e717f32d227db832177c110c1c8eafc61388e9acaaef82a09",
+      "edit": {
+        "rule": "AssignB2N",
+        "line": 96,
+        "before": "            OUTPUT:  next_state = IDLE;",
+        "after": "            OUTPUT:  next_state <= IDLE;",
+        "orig": "=",
+        "changed": "<=",
+        "guard": "1'b1",
+        "lhs": "next_state",
+        "width": 1
+      }
+    },
+    {
+      "id": "G02",
+      "mutant_sha256": "8520206e03c242c208bc4ab2b23f92c396db16c3b9f6ee7132f559cf9c0ab9f9",
+      "edit": {
+        "rule": "AssignN2B",
+        "line": 35,
+        "before": "            o_resultant_sum  <= {DATA_WIDTH{1'b0}};",
+        "after": "            o_resultant_sum  = {DATA_WIDTH{1'b0}};",
+        "orig": "<=",
+        "changed": "=",
+        "guard": "1'b1",
+        "lhs": "o_resultant_sum",
+        "width": 8
+      }
+    },
+    {
+      "id": "G03",
+      "mutant_sha256": "fcb0c27aa1d5f7874b4d457d2e3c91d54dc83372de9fe9b205c47321265faa2d",
+      "edit": {
+        "rule": "EdgeDelete",
+        "line": 29,
+        "before": "    always @(posedge i_clk or negedge i_rst_n) begin",
+        "after": "    always @(posedge i_clk ) begin",
+        "orig": "or negedge i_rst_n",
+        "changed": "",
+        "guard": "1'b1",
+        "lhs": "",
+        "width": 1
+      }
+    },
+    {
+      "id": "G04",
+      "mutant_sha256": "efcb9bb894ef706e687c2c839c1b37205aa47425d1e8846bdf53ff6a985d63b0",
+      "edit": {
+        "rule": "ExprInsert",
+        "line": 40,
+        "before": "            state            <= IDLE;",
+        "after": "            state            <= (IDLE) ^ 1;",
+        "orig": "IDLE",
+        "changed": "(IDLE) ^ 1",
+        "guard": "1'b1",
+        "lhs": "state",
+        "width": 1
+      }
+    },
+    {
+      "id": "G05",
+      "mutant_sha256": "e92ae9962c9d8a6454fa437705d45c470d1935f3ca78159ee91cb7a3f96e5417",
+      "edit": {
+        "rule": "IOFlip1",
+        "line": 59,
+        "before": "                    mode_reg <= i_mode;",
+        "after": "                    mode_reg <= (~i_mode);",
+        "orig": "i_mode",
+        "changed": "(~i_mode)",
+        "guard": "1'b1",
+        "lhs": "mode_reg",
+        "width": 1
+      }
+    },
+    {
+      "id": "G06",
+      "mutant_sha256": "d1ee65048da8ef8ff57b421ace6abec8cae961f6a2f588a298d575950908a9d2",
+      "edit": {
+        "rule": "IOFlip2",
+        "line": 77,
+        "before": "                    o_ready         <= 1'b1;",
+        "after": "                    o_ready         <= ~(1'b1);",
+        "orig": "1'b1",
+        "changed": "~(1'b1)",
+        "guard": "1'b1",
+        "lhs": "o_ready",
+        "width": 1
+      }
+    },
+    {
+      "id": "G07",
+      "mutant_sha256": "bf3379223c69a0b1686a9b11bcd16c9401e8dba974b5d1f35969e9e6cc49aca5",
+      "edit": {
+        "rule": "NSubDelete",
+        "line": 35,
+        "before": "            o_resultant_sum  <= {DATA_WIDTH{1'b0}};",
+        "after": "            ;",
+        "orig": "o_resultant_sum  <= {DATA_WIDTH{1'b0}};",
+        "changed": ";",
+        "guard": "1'b1",
+        "lhs": "o_resultant_sum",
+        "width": 8
+      }
+    },
+    {
+      "id": "G08",
+      "mutant_sha256": "0d7c59d12f03262e6b4b76855d9db3a7712a7b64562826a7d74845746f23d114",
+      "edit": {
+        "rule": "NSubInsert",
+        "line": 59,
+        "before": "                    mode_reg <= i_mode;",
+        "after": "                    begin mode_reg <= i_mode; mode_reg <= 0; end",
+        "orig": "mode_reg <= i_mode;",
+        "changed": "begin mode_reg <= i_mode; mode_reg <= 0; end",
+        "guard": "1'b1",
+        "lhs": "mode_reg",
+        "width": 1
+      }
+    },
+    {
+      "id": "G09",
+      "mutant_sha256": "6f811eac613998182d1d3c186b28652e93fee01ed557ddd646b814650f90c1d7",
+      "edit": {
+        "rule": "NSubInsert_IF",
+        "line": 40,
+        "before": "            state            <= IDLE;",
+        "after": "            begin state <= IDLE; state <= 0; end",
+        "orig": "state            <= IDLE;",
+        "changed": "begin state <= IDLE; state <= 0; end",
+        "guard": "1'b1",
+        "lhs": "state",
+        "width": 1
+      }
+    },
+    {
+      "id": "G10",
+      "mutant_sha256": "1462f06b3081bff9d08a0e4238c4d0bb76b9880d15733e4e8c47b382c338621d",
+      "edit": {
+        "rule": "NSubUpdate",
+        "line": 38,
+        "before": "            o_status         <= IDLE;",
+        "after": "            o_status         <= (IDLE) + 1;",
+        "orig": "IDLE",
+        "changed": "(IDLE) + 1",
+        "guard": "1'b1",
+        "lhs": "o_status",
+        "width": 2
+      }
+    },
+    {
+      "id": "G11",
+      "mutant_sha256": "d62d1453aed489e29b54dfb7b7cc12819e07e63ac7fb8f2f279790507cbb0446",
+      "edit": {
+        "rule": "PartselectInsert",
+        "line": 58,
+        "before": "                    reg_b    <= i_operand_b;",
+        "after": "                    reg_b    <= i_operand_b[6:0];",
+        "orig": "i_operand_b",
+        "changed": "i_operand_b[6:0]",
+        "guard": "1'b1",
+        "lhs": "reg_b",
+        "width": 1
+      }
+    },
+    {
+      "id": "G12",
+      "mutant_sha256": "36e2a2062e4584544fda439bff4c41599c55ffa2c34224cd88fc8f309d3239be",
+      "edit": {
+        "rule": "PointerInsert",
+        "line": 57,
+        "before": "                    reg_a    <= i_operand_a;",
+        "after": "                    reg_a    <= i_operand_a[0];",
+        "orig": "i_operand_a",
+        "changed": "i_operand_a[0]",
+        "guard": "1'b1",
+        "lhs": "reg_a",
+        "width": 1
+      }
+    },
+    {
+      "id": "G13",
+      "mutant_sha256": "70009fa3fa037189521a449516f6f6f4e246cc5d04dba92fbda13a983a2ff67f",
+      "edit": {
+        "rule": "arithmetic_or_bitwise",
+        "line": 65,
+        "before": "                        sum_ext = {reg_a[DATA_WIDTH-1], reg_a} + {reg_b[DATA_WIDTH-1], reg_b};",
+        "after": "                        sum_ext = ({reg_a[DATA_WIDTH-1], reg_a} + {reg_b[DATA_WIDTH-1], reg_b}) - 1;",
+        "orig": "{reg_a[DATA_WIDTH-1], reg_a} + {reg_b[DATA_WIDTH-1], reg_b}",
+        "changed": "({reg_a[DATA_WIDTH-1], reg_a} + {reg_b[DATA_WIDTH-1], reg_b}) - 1",
+        "guard": "!(mode_reg)",
+        "lhs": "sum_ext",
+        "width": 1
+      }
+    },
+    {
+      "id": "G14",
+      "mutant_sha256": "6bd1a7baee4ef4f3501bee7a0985ae0ef61d9c3185191f199e01f8e1e99c927c",
+      "edit": {
+        "rule": "bit_index_offset",
+        "line": 58,
+        "before": "                    reg_b    <= i_operand_b;",
+        "after": "                    reg_b    <= (i_operand_b << 1);",
+        "orig": "i_operand_b",
+        "changed": "(i_operand_b << 1)",
+        "guard": "!(i_clear)",
+        "lhs": "reg_b",
+        "width": 1
+      }
+    },
+    {
+      "id": "G15",
+      "mutant_sha256": "b996599143f916a4758b9d1b40ca41f2c8386b43f3f2f86661cc3b04458ef781",
+      "edit": {
+        "rule": "clock_edge",
+        "line": 29,
+        "before": "    always @(posedge i_clk or negedge i_rst_n) begin",
+        "after": "    always @(negedge i_clk or negedge i_rst_n) begin",
+        "orig": "posedge",
+        "changed": "negedge",
+        "guard": "1'b1",
+        "lhs": "",
+        "width": 1
+      }
+    },
+    {
+      "id": "G16",
+      "mutant_sha256": "9b20414ea7f211edb07ab75bec5c7068fe9102797a9c427a78a3061a7752da14",
+      "edit": {
+        "rule": "condition_operator",
+        "line": 67,
+        "before": "                    if (mode_reg)",
+        "after": "                    if ((mode_reg) || i_operand_a[7])",
+        "orig": "mode_reg",
+        "changed": "(mode_reg) || i_operand_a[7]",
+        "guard": "1'b1",
+        "lhs": "",
+        "width": 1
+      }
+    },
+    {
+      "id": "G17",
+      "mutant_sha256": "b7947a05d24cfa070cda2a983ae860aaac77fb5484de046568b789d2cf66bff0",
+      "edit": {
+        "rule": "constant_offset",
+        "line": 46,
+        "before": "            o_ready          <= 1'b0;",
+        "after": "            o_ready          <= (1'b0) + 1;",
+        "orig": "1'b0",
+        "changed": "(1'b0) + 1",
+        "guard": "(i_clear)",
+        "lhs": "o_ready",
+        "width": 1
+      }
+    },
+    {
+      "id": "G18",
+      "mutant_sha256": "65f8c702a4da883e44e24b40c2e04add49c4fc81383a4ca897563d273629237b",
+      "edit": {
+        "rule": "deleted_assignment",
+        "line": 46,
+        "before": "            o_ready          <= 1'b0;",
+        "after": "            o_ready          <= o_ready;",
+        "orig": "1'b0",
+        "changed": "o_ready",
+        "guard": "(i_clear)",
+        "lhs": "o_ready",
+        "width": 1
+      }
+    },
+    {
+      "id": "G19",
+      "mutant_sha256": "54b281f56366f7bead09898b53fdc790623ea2bf9add87ec155f36c4dd263af6",
+      "edit": {
+        "rule": "negated_condition",
+        "line": 30,
+        "before": "        if (!i_rst_n) begin",
+        "after": "        if (!(!i_rst_n)) begin",
+        "orig": "!i_rst_n",
+        "changed": "!(!i_rst_n)",
+        "guard": "1'b1",
+        "lhs": "",
+        "width": 1
+      }
+    },
+    {
+      "id": "G20",
+      "mutant_sha256": "3f3fed876cc06a1128f75423d9a9c8dba2a84e781f2b58d038f8fe07069a929d",
+      "edit": {
+        "rule": "operator_replacement",
+        "line": 63,
+        "before": "                        sum_ext = {reg_a[DATA_WIDTH-1], reg_a} - {reg_b[DATA_WIDTH-1], reg_b};",
+        "after": "                        sum_ext = {reg_a[DATA_WIDTH-1], reg_a} - {reg_b[DATA_WIDTH*1], reg_b};",
+        "orig": "{reg_a[DATA_WIDTH-1], reg_a} - {reg_b[DATA_WIDTH-1], reg_b}",
+        "changed": "{reg_a[DATA_WIDTH-1], reg_a} - {reg_b[DATA_WIDTH*1], reg_b}",
+        "guard": "(mode_reg)",
+        "lhs": "sum_ext",
+        "width": 1
+      }
+    },
+    {
+      "id": "G21",
+      "mutant_sha256": "8f976a859e1f93c615edb935f015565bab2afad0be7c6df4dd430b3248e09479",
+      "edit": {
+        "rule": "relation",
+        "line": 39,
+        "before": "        end else if (i_clear) begin",
+        "after": "        end else if ((i_clear) == 1'b0) begin",
+        "orig": "i_clear",
+        "changed": "(i_clear) == 1'b0",
+        "guard": "1'b1",
+        "lhs": "",
+        "width": 1
+      }
+    },
+    {
+      "id": "G22",
+      "mutant_sha256": "a23aa69500cd8ebd54bd5449c363a844c688071b8922ea879d97c39fa25567c8",
+      "edit": {
+        "rule": "removed_condition",
+        "line": 89,
+        "before": "                if (i_enable && i_start)",
+        "after": "                if (1'b0)",
+        "orig": "i_enable && i_start",
+        "changed": "1'b0",
+        "guard": "1'b1",
+        "lhs": "",
+        "width": 1
+      }
+    },
+    {
+      "id": "G23",
+      "mutant_sha256": "b2f806ee6ae3dbe2b74aac411a001b1e4c793909cf72d16ac0fa7de18fca3b32",
+      "edit": {
+        "rule": "replaced_assignment",
+        "line": 42,
+        "before": "            reg_b            <= {DATA_WIDTH{1'b0}};",
+        "after": "            reg_b            <= i_enable;",
+        "orig": "{DATA_WIDTH{1'b0}}",
+        "changed": "i_enable",
+        "guard": "(i_clear)",
+        "lhs": "reg_b",
+        "width": 1
+      }
+    },
+    {
+      "id": "G24",
+      "mutant_sha256": "47def64d093ae3675ccc0e3d3f66b38d447f26b2f6b680becb45a6311e2530cb",
+      "edit": {
+        "rule": "state_transition",
+        "line": 31,
+        "before": "            state            <= IDLE;",
+        "after": "            state            <= LOAD;",
+        "orig": "IDLE",
+        "changed": "LOAD",
+        "guard": "(!i_rst_n)",
+        "lhs": "state",
+        "width": 1
+      }
+    }
+  ],
+  "rejected": []
+}

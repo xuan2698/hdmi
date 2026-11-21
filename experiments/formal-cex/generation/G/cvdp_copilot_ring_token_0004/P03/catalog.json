@@ -1,0 +1,388 @@
+{
+  "task": "cvdp_copilot_ring_token_0004",
+  "proxy": "P03",
+  "proxy_sha256": "277a5f4839b849935c1cb5fef0b804188300ddbd94a317caa3848e526cbda07b",
+  "status": "ready",
+  "reason": "",
+  "ports": {
+    "top": "token_ring_fsm",
+    "clock": "clk",
+    "input": {
+      "rst": 1,
+      "data_in": 4,
+      "has_data_to_send": 1
+    },
+    "output": {
+      "data_out": 4,
+      "token_received": 4,
+      "token": 4
+    },
+    "resets": {
+      "rst": 1
+    },
+    "parameters": {}
+  },
+  "candidates": [
+    {
+      "id": "G01",
+      "mutant_sha256": "304be6fb0e4c3586f647a0888ba345f9667f04ae1d2f8d57b2f781f2a0a53fa3",
+      "edit": {
+        "rule": "AssignB2N",
+        "line": 45,
+        "before": "                token_received = 4'b0010;",
+        "after": "                token_received <= 4'b0010;",
+        "orig": "=",
+        "changed": "<=",
+        "guard": "1'b1",
+        "lhs": "token_received",
+        "width": 4
+      }
+    },
+    {
+      "id": "G02",
+      "mutant_sha256": "0e8ce47a30f4a0c8c003490bcad198d9af42e90a6057c052a7704958b57f1855",
+      "edit": {
+        "rule": "AssignN2B",
+        "line": 24,
+        "before": "            state <= next_state;",
+        "after": "            state = next_state;",
+        "orig": "<=",
+        "changed": "=",
+        "guard": "1'b1",
+        "lhs": "state",
+        "width": 1
+      }
+    },
+    {
+      "id": "G03",
+      "mutant_sha256": "c9ef3d73d363b86de5f4105c3c085f87528b0142953041672050cdd87e6d9843",
+      "edit": {
+        "rule": "EdgeDelete",
+        "line": 20,
+        "before": "    always_ff @(posedge clk or posedge rst) begin",
+        "after": "    always_ff @(posedge clk ) begin",
+        "orig": "or posedge rst",
+        "changed": "",
+        "guard": "1'b1",
+        "lhs": "",
+        "width": 1
+      }
+    },
+    {
+      "id": "G04",
+      "mutant_sha256": "1770e8426ea42d1d401f3221ef1ae06209e8bcdbeaeb42dfa70fdf6d77cd4fe1",
+      "edit": {
+        "rule": "ExprInsert",
+        "line": 45,
+        "before": "                token_received = 4'b0010;",
+        "after": "                token_received = (4'b0010) ^ 1;",
+        "orig": "4'b0010",
+        "changed": "(4'b0010) ^ 1",
+        "guard": "1'b1",
+        "lhs": "token_received",
+        "width": 4
+      }
+    },
+    {
+      "id": "G05",
+      "mutant_sha256": "c49f7ff1c88f59ed70499af8b661f907b55cbc9657c8a8cdc17d6731da8e7b54",
+      "edit": {
+        "rule": "IOFlip1",
+        "line": 21,
+        "before": "        if (rst)",
+        "after": "        if ((~rst))",
+        "orig": "rst",
+        "changed": "(~rst)",
+        "guard": "1'b1",
+        "lhs": "",
+        "width": 1
+      }
+    },
+    {
+      "id": "G06",
+      "mutant_sha256": "3f4aa07a730a57cf9e4b314fbf4ad8af0af5d60df468af6942a4a4cc78bf09ed",
+      "edit": {
+        "rule": "IOFlip2",
+        "line": 58,
+        "before": "                token          = 4'b0010;",
+        "after": "                token          = ~(4'b0010);",
+        "orig": "4'b0010",
+        "changed": "~(4'b0010)",
+        "guard": "1'b1",
+        "lhs": "token",
+        "width": 4
+      }
+    },
+    {
+      "id": "G07",
+      "mutant_sha256": "2ea10527d090a23d3d0c211dd9feb3cf3d284f709a02fc992ef34ca96d65bbc5",
+      "edit": {
+        "rule": "NSubDelete",
+        "line": 22,
+        "before": "            state <= NODE0;",
+        "after": "            ;",
+        "orig": "state <= NODE0;",
+        "changed": ";",
+        "guard": "1'b1",
+        "lhs": "state",
+        "width": 1
+      }
+    },
+    {
+      "id": "G08",
+      "mutant_sha256": "843c9696d2112baf90949cb90e64a7af11a976bd4da67a86402b85d27ecec9ec",
+      "edit": {
+        "rule": "NSubInsert",
+        "line": 24,
+        "before": "            state <= next_state;",
+        "after": "            begin state <= next_state; state <= 0; end",
+        "orig": "state <= next_state;",
+        "changed": "begin state <= next_state; state <= 0; end",
+        "guard": "1'b1",
+        "lhs": "state",
+        "width": 1
+      }
+    },
+    {
+      "id": "G09",
+      "mutant_sha256": "f8d69d6d3a8e30e2816d3a409e0ddbd5d78bd84f653c2a0c7121588f9c86f450",
+      "edit": {
+        "rule": "NSubUpdate",
+        "line": 22,
+        "before": "            state <= NODE0;",
+        "after": "            state <= (NODE0) + 1;",
+        "orig": "NODE0",
+        "changed": "(NODE0) + 1",
+        "guard": "1'b1",
+        "lhs": "state",
+        "width": 1
+      }
+    },
+    {
+      "id": "G10",
+      "mutant_sha256": "68bf6db0ed146fa287d54045a5f4c877996aeaa373ca9df82886527cd7365127",
+      "edit": {
+        "rule": "PartselectInsert",
+        "line": 65,
+        "before": "            data_out = data_in;",
+        "after": "            data_out = data_in[2:0];",
+        "orig": "data_in",
+        "changed": "data_in[2:0]",
+        "guard": "1'b1",
+        "lhs": "data_out",
+        "width": 4
+      }
+    },
+    {
+      "id": "G11",
+      "mutant_sha256": "e47e1a1ad9194e363ad2152dc8acdc37b944542fe70002c7b969409fc6e5fdd7",
+      "edit": {
+        "rule": "PointerInsert",
+        "line": 65,
+        "before": "            data_out = data_in;",
+        "after": "            data_out = data_in[0];",
+        "orig": "data_in",
+        "changed": "data_in[0]",
+        "guard": "1'b1",
+        "lhs": "data_out",
+        "width": 4
+      }
+    },
+    {
+      "id": "G12",
+      "mutant_sha256": "ea58acd918c5190ef2c3a96dce12c071b3df7d0deaae5c53fd585985d8cddd5d",
+      "edit": {
+        "rule": "arithmetic_or_bitwise",
+        "line": 58,
+        "before": "                token          = 4'b0010;",
+        "after": "                token          = (4'b0010) ^ 1;",
+        "orig": "4'b0010",
+        "changed": "(4'b0010) ^ 1",
+        "guard": "!(rst)",
+        "lhs": "token",
+        "width": 4
+      }
+    },
+    {
+      "id": "G13",
+      "mutant_sha256": "6c0dc62462c8b05672d00a9f2b701759dbb7405b292bf3d5b2c13897eb8445f8",
+      "edit": {
+        "rule": "bit_index_offset",
+        "line": 65,
+        "before": "            data_out = data_in;",
+        "after": "            data_out = (data_in << 1);",
+        "orig": "data_in",
+        "changed": "(data_in << 1)",
+        "guard": "(has_data_to_send)",
+        "lhs": "data_out",
+        "width": 4
+      }
+    },
+    {
+      "id": "G14",
+      "mutant_sha256": "7a3bd8acb84cd726445dbe3d24186ea6b4d4bfbc418525f2dc0f9607f0e79f6b",
+      "edit": {
+        "rule": "clock_edge",
+        "line": 20,
+        "before": "    always_ff @(posedge clk or posedge rst) begin",
+        "after": "    always_ff @(negedge clk or posedge rst) begin",
+        "orig": "posedge",
+        "changed": "negedge",
+        "guard": "1'b1",
+        "lhs": "",
+        "width": 1
+      }
+    },
+    {
+      "id": "G15",
+      "mutant_sha256": "b159cca284b6a372f25340ae629859265604c27d25e6c3612ce5d0fb58a3ada5",
+      "edit": {
+        "rule": "condition_operator",
+        "line": 64,
+        "before": "        if (has_data_to_send)",
+        "after": "        if ((has_data_to_send) || data_in[0])",
+        "orig": "has_data_to_send",
+        "changed": "(has_data_to_send) || data_in[0]",
+        "guard": "1'b1",
+        "lhs": "",
+        "width": 1
+      }
+    },
+    {
+      "id": "G16",
+      "mutant_sha256": "2fb5584bfe72d2e0f8ea4738bba53f7f7c853b21d9cad07b89e632a8b09296d9",
+      "edit": {
+        "rule": "constant_offset",
+        "line": 57,
+        "before": "                token_received = 4'b0001;",
+        "after": "                token_received = (4'b0001) - 1;",
+        "orig": "4'b0001",
+        "changed": "(4'b0001) - 1",
+        "guard": "!(rst)",
+        "lhs": "token_received",
+        "width": 4
+      }
+    },
+    {
+      "id": "G17",
+      "mutant_sha256": "653b0a12e39499e5875ae64799c6913c8265f9769d89a451ec522b473543f78e",
+      "edit": {
+        "rule": "deleted_assignment",
+        "line": 54,
+        "before": "                token          = 4'b0001;",
+        "after": "                token          = token;",
+        "orig": "4'b0001",
+        "changed": "token",
+        "guard": "!(rst)",
+        "lhs": "token",
+        "width": 4
+      }
+    },
+    {
+      "id": "G18",
+      "mutant_sha256": "9afc3e7f069c2bd24cece00d462bdbaf0b0caee623480cc5b52d145fc2c6d689",
+      "edit": {
+        "rule": "negated_condition",
+        "line": 64,
+        "before": "        if (has_data_to_send)",
+        "after": "        if (!(has_data_to_send))",
+        "orig": "has_data_to_send",
+        "changed": "!(has_data_to_send)",
+        "guard": "1'b1",
+        "lhs": "",
+        "width": 1
+      }
+    },
+    {
+      "id": "G19",
+      "mutant_sha256": "30ee1e7421811954346449edf5b555bdf370970617b844b33c34fe9b31ab09c2",
+      "edit": {
+        "rule": "relation",
+        "line": 64,
+        "before": "        if (has_data_to_send)",
+        "after": "        if ((has_data_to_send) == 1'b0)",
+        "orig": "has_data_to_send",
+        "changed": "(has_data_to_send) == 1'b0",
+        "guard": "1'b1",
+        "lhs": "",
+        "width": 1
+      }
+    },
+    {
+      "id": "G20",
+      "mutant_sha256": "195354981d8bcb09cb7eea6ec6ae1c389108f74947647025a49763d597122117",
+      "edit": {
+        "rule": "removed_condition",
+        "line": 21,
+        "before": "        if (rst)",
+        "after": "        if (1'b0)",
+        "orig": "rst",
+        "changed": "1'b0",
+        "guard": "1'b1",
+        "lhs": "",
+        "width": 1
+      }
+    },
+    {
+      "id": "G21",
+      "mutant_sha256": "6102b006588819a8e23886782edb15b3b063a4ea450fdef6df6b392177bfcf3d",
+      "edit": {
+        "rule": "replaced_assignment",
+        "line": 50,
+        "before": "                token          = 4'b1000;",
+        "after": "                token          = data_in;",
+        "orig": "4'b1000",
+        "changed": "data_in",
+        "guard": "!(rst)",
+        "lhs": "token",
+        "width": 4
+      }
+    },
+    {
+      "id": "G22",
+      "mutant_sha256": "35895270c254c2f3739e04d50f1b8d0c57f14800be1a3288c1ca049ea80ee00f",
+      "edit": {
+        "rule": "temporal_control",
+        "line": 21,
+        "before": "        if (rst)",
+        "after": "        if (!(rst))",
+        "orig": "rst",
+        "changed": "!(rst)",
+        "guard": "1'b1",
+        "lhs": "",
+        "width": 1
+      }
+    },
+    {
+      "id": "G23",
+      "mutant_sha256": "f505d54d9214c7fc435a08984fae6e91fd984d6a551e85a4c1e27c84da8b6e5e",
+      "edit": {
+        "rule": "temporal_reset",
+        "line": 20,
+        "before": "    always_ff @(posedge clk or posedge rst) begin",
+        "after": "    always_ff @(posedge clk) begin",
+        "orig": "1'b1",
+        "changed": "1'b0",
+        "guard": "1'b1",
+        "lhs": "",
+        "width": 1
+      }
+    },
+    {
+      "id": "G24",
+      "mutant_sha256": "fe0157f1ef0ea5684332535c895b99fcd5fa65ac2b2f1f20ae55556a8fbc9282",
+      "edit": {
+        "rule": "unary_operator",
+        "line": 41,
+        "before": "                token_received = 4'b0001;",
+        "after": "                token_received = -(4'b0001);",
+        "orig": "4'b0001",
+        "changed": "-(4'b0001)",
+        "guard": "!(rst)",
+        "lhs": "token_received",
+        "width": 4
+      }
+    }
+  ],
+  "rejected": []
+}

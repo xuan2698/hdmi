@@ -1,0 +1,399 @@
+{
+  "task": "cvdp_copilot_hill_cipher_0012",
+  "proxy": "P04",
+  "proxy_sha256": "f0e51bbd4cf1aac8bd4016ae9dae7488fb2e99eed31d526e31e21400c330bdb3",
+  "status": "ready",
+  "reason": "",
+  "ports": {
+    "top": "hill_cipher",
+    "clock": "clk",
+    "input": {
+      "reset": 1,
+      "start": 1,
+      "plaintext": 15,
+      "key": 45
+    },
+    "output": {
+      "ciphertext": 15,
+      "done": 1
+    },
+    "resets": {
+      "reset": 1
+    },
+    "parameters": {}
+  },
+  "candidates": [
+    {
+      "id": "G01",
+      "mutant_sha256": "ab3cb7db873eaac31f272a6e989c1c1508b34c90a26ad2b33852bcb9449ac657",
+      "edit": {
+        "rule": "AssignN2B",
+        "line": 97,
+        "before": "                    state <= IDLE;",
+        "after": "                    state = IDLE;",
+        "orig": "<=",
+        "changed": "=",
+        "guard": "1'b1",
+        "lhs": "state",
+        "width": 2
+      }
+    },
+    {
+      "id": "G02",
+      "mutant_sha256": "f737d8da512cf53642d6aae6459b9be0b73ed61150c02f949b0dfdfb1a70a190",
+      "edit": {
+        "rule": "EdgeInsert",
+        "line": 67,
+        "before": "    always @(posedge clk) begin",
+        "after": "    always @(posedge clk or posedge reset) begin",
+        "orig": "posedge clk",
+        "changed": "posedge clk or posedge reset",
+        "guard": "1'b1",
+        "lhs": "",
+        "width": 1
+      }
+    },
+    {
+      "id": "G03",
+      "mutant_sha256": "05ef986ccc5b5d3819704cf57052c73482cddaff6063338dc27d6bffe06c8ca8",
+      "edit": {
+        "rule": "ExprInsert",
+        "line": 81,
+        "before": "                        pt_reg  <= plaintext;",
+        "after": "                        pt_reg  <= (plaintext) ^ 1;",
+        "orig": "plaintext",
+        "changed": "(plaintext) ^ 1",
+        "guard": "1'b1",
+        "lhs": "pt_reg",
+        "width": 15
+      }
+    },
+    {
+      "id": "G04",
+      "mutant_sha256": "c66eba1acf8e6a098ecd7465ec44e69dd47d50c92954f97535155b93c0b97bfa",
+      "edit": {
+        "rule": "IOFlip1",
+        "line": 81,
+        "before": "                        pt_reg  <= plaintext;",
+        "after": "                        pt_reg  <= (~plaintext);",
+        "orig": "plaintext",
+        "changed": "(~plaintext)",
+        "guard": "1'b1",
+        "lhs": "pt_reg",
+        "width": 15
+      }
+    },
+    {
+      "id": "G05",
+      "mutant_sha256": "08bcecf22ff7925c85b2aba4212eb052d16baa41f47dc037d1e89c3fa69a28d4",
+      "edit": {
+        "rule": "IOFlip2",
+        "line": 70,
+        "before": "            done       <= 1'b0;",
+        "after": "            done       <= ~(1'b0);",
+        "orig": "1'b0",
+        "changed": "~(1'b0)",
+        "guard": "1'b1",
+        "lhs": "done",
+        "width": 1
+      }
+    },
+    {
+      "id": "G06",
+      "mutant_sha256": "3ad1877ec163bae8f47bde4ba466de18349184f4b23b0affd4b3d4525c947b18",
+      "edit": {
+        "rule": "NSubDelete",
+        "line": 72,
+        "before": "            pt_reg     <= 15'd0;",
+        "after": "            ;",
+        "orig": "pt_reg     <= 15'd0;",
+        "changed": ";",
+        "guard": "1'b1",
+        "lhs": "pt_reg",
+        "width": 15
+      }
+    },
+    {
+      "id": "G07",
+      "mutant_sha256": "5c8f8e4b779f63216c7bd62818b43c10de859aa1299dd35c9c3a9f43d5fc59a3",
+      "edit": {
+        "rule": "NSubInsert",
+        "line": 87,
+        "before": "                    sum_reg <= {sum2[4:0], sum1[4:0], sum0[4:0]};",
+        "after": "                    begin sum_reg <= {sum2[4:0], sum1[4:0], sum0[4:0]}; sum_reg <= 0; end",
+        "orig": "sum_reg <= {sum2[4:0], sum1[4:0], sum0[4:0]};",
+        "changed": "begin sum_reg <= {sum2[4:0], sum1[4:0], sum0[4:0]}; sum_reg <= 0; end",
+        "guard": "1'b1",
+        "lhs": "sum_reg",
+        "width": 15
+      }
+    },
+    {
+      "id": "G08",
+      "mutant_sha256": "b30f760d69cb2820330fff09b1377cb3c141c9d4d67e8316697feff4e4e2bbdd",
+      "edit": {
+        "rule": "NSubInsert_Case",
+        "line": 92,
+        "before": "                    ciphertext <= {m2, m1, m0};",
+        "after": "                    begin ciphertext <= {m2, m1, m0}; ciphertext <= 0; end",
+        "orig": "ciphertext <= {m2, m1, m0};",
+        "changed": "begin ciphertext <= {m2, m1, m0}; ciphertext <= 0; end",
+        "guard": "1'b1",
+        "lhs": "ciphertext",
+        "width": 15
+      }
+    },
+    {
+      "id": "G09",
+      "mutant_sha256": "470740d63ef35b9b4447f591559dc01563f57c9cf0b710fbdff7460ab86a62a4",
+      "edit": {
+        "rule": "NSubInsert_IF",
+        "line": 72,
+        "before": "            pt_reg     <= 15'd0;",
+        "after": "            begin pt_reg <= 15'd0; pt_reg <= 0; end",
+        "orig": "pt_reg     <= 15'd0;",
+        "changed": "begin pt_reg <= 15'd0; pt_reg <= 0; end",
+        "guard": "1'b1",
+        "lhs": "pt_reg",
+        "width": 15
+      }
+    },
+    {
+      "id": "G10",
+      "mutant_sha256": "5c58f8872d96f1435a68785e405eeb84a95d66c3de69c590837e51b368245714",
+      "edit": {
+        "rule": "NSubUpdate",
+        "line": 72,
+        "before": "            pt_reg     <= 15'd0;",
+        "after": "            pt_reg     <= (15'd0) + 1;",
+        "orig": "15'd0",
+        "changed": "(15'd0) + 1",
+        "guard": "1'b1",
+        "lhs": "pt_reg",
+        "width": 15
+      }
+    },
+    {
+      "id": "G11",
+      "mutant_sha256": "1d2e3b8c28773523815d015a7a42b3cb3d6060bfb418ed951ea1a29f19368f04",
+      "edit": {
+        "rule": "PartselectDelete",
+        "line": 87,
+        "before": "                    sum_reg <= {sum2[4:0], sum1[4:0], sum0[4:0]};",
+        "after": "                    sum_reg <= {sum2[4:0], sum1, sum0[4:0]};",
+        "orig": "sum1[4:0]",
+        "changed": "sum1",
+        "guard": "1'b1",
+        "lhs": "sum_reg",
+        "width": 15
+      }
+    },
+    {
+      "id": "G12",
+      "mutant_sha256": "0b044d746f5c4cc5a9432ea80379f90f3c2f4364940cd47f5726f65a8c9d22aa",
+      "edit": {
+        "rule": "PartselectInsert",
+        "line": 82,
+        "before": "                        key_reg <= key;",
+        "after": "                        key_reg <= key[43:0];",
+        "orig": "key",
+        "changed": "key[43:0]",
+        "guard": "1'b1",
+        "lhs": "key_reg",
+        "width": 45
+      }
+    },
+    {
+      "id": "G13",
+      "mutant_sha256": "b6afc7afedcf2b218b210865497820dd2f933e9c603faceadba8208f37e0d903",
+      "edit": {
+        "rule": "PartselectUpdate",
+        "line": 87,
+        "before": "                    sum_reg <= {sum2[4:0], sum1[4:0], sum0[4:0]};",
+        "after": "                    sum_reg <= {sum2[5:1], sum1[4:0], sum0[4:0]};",
+        "orig": "sum2[4:0]",
+        "changed": "sum2[5:1]",
+        "guard": "1'b1",
+        "lhs": "sum_reg",
+        "width": 15
+      }
+    },
+    {
+      "id": "G14",
+      "mutant_sha256": "644541f34caedb074b4c4c7a62538839249df00d1a65b891004f5198a050b5d8",
+      "edit": {
+        "rule": "PointerInsert",
+        "line": 82,
+        "before": "                        key_reg <= key;",
+        "after": "                        key_reg <= key[0];",
+        "orig": "key",
+        "changed": "key[0]",
+        "guard": "1'b1",
+        "lhs": "key_reg",
+        "width": 45
+      }
+    },
+    {
+      "id": "G15",
+      "mutant_sha256": "f9f0d4682711032ba229a500695f1e502b704ebbcfe2a827df64663b1d729863",
+      "edit": {
+        "rule": "arithmetic_or_bitwise",
+        "line": 96,
+        "before": "                    done  <= 1'b1;",
+        "after": "                    done  <= (1'b1) ^ 1;",
+        "orig": "1'b1",
+        "changed": "(1'b1) ^ 1",
+        "guard": "(start)",
+        "lhs": "done",
+        "width": 1
+      }
+    },
+    {
+      "id": "G16",
+      "mutant_sha256": "a98d931e194326823965a893b3a6f464b5fe28922b65b33c5ec99e401eecc689",
+      "edit": {
+        "rule": "clock_edge",
+        "line": 67,
+        "before": "    always @(posedge clk) begin",
+        "after": "    always @(negedge clk) begin",
+        "orig": "posedge",
+        "changed": "negedge",
+        "guard": "1'b1",
+        "lhs": "",
+        "width": 1
+      }
+    },
+    {
+      "id": "G17",
+      "mutant_sha256": "6eb30ef4aae69f33c1d69a00964cc7f4f2ed319852fdac0194bad29ae98d01bd",
+      "edit": {
+        "rule": "condition_operator",
+        "line": 80,
+        "before": "                    if (start) begin",
+        "after": "                    if ((start) ^ reset) begin",
+        "orig": "start",
+        "changed": "(start) ^ reset",
+        "guard": "1'b1",
+        "lhs": "",
+        "width": 1
+      }
+    },
+    {
+      "id": "G18",
+      "mutant_sha256": "90bf8f07dc1ad3fc1a684cffd37d200e0b0804f21b078ca5dd15ffed7015d1af",
+      "edit": {
+        "rule": "constant_offset",
+        "line": 74,
+        "before": "            sum_reg    <= 15'd0;",
+        "after": "            sum_reg    <= (15'd0) + 1;",
+        "orig": "15'd0",
+        "changed": "(15'd0) + 1",
+        "guard": "(reset)",
+        "lhs": "sum_reg",
+        "width": 15
+      }
+    },
+    {
+      "id": "G19",
+      "mutant_sha256": "9b16693eb1241958c5ad02d27819a483186a49144b235094cf39ae6856e61659",
+      "edit": {
+        "rule": "deleted_assignment",
+        "line": 87,
+        "before": "                    sum_reg <= {sum2[4:0], sum1[4:0], sum0[4:0]};",
+        "after": "                    sum_reg <= sum_reg;",
+        "orig": "{sum2[4:0], sum1[4:0], sum0[4:0]}",
+        "changed": "sum_reg",
+        "guard": "(start)",
+        "lhs": "sum_reg",
+        "width": 15
+      }
+    },
+    {
+      "id": "G20",
+      "mutant_sha256": "8049716992389f8dcd0b63f11bfdda0dc2b94499d63ac5b9db19986d40446878",
+      "edit": {
+        "rule": "negated_condition",
+        "line": 68,
+        "before": "        if (reset) begin",
+        "after": "        if (!(reset)) begin",
+        "orig": "reset",
+        "changed": "!(reset)",
+        "guard": "1'b1",
+        "lhs": "",
+        "width": 1
+      }
+    },
+    {
+      "id": "G21",
+      "mutant_sha256": "4dab054f97e5930561a9a4781f5484df598df142a5b897b8628aca1623329e59",
+      "edit": {
+        "rule": "operator_replacement",
+        "line": 58,
+        "before": "                tmp = tmp - 15'd26;",
+        "after": "                tmp = tmp * 15'd26;",
+        "orig": "tmp - 15'd26",
+        "changed": "tmp * 15'd26",
+        "guard": "1'b1",
+        "lhs": "tmp",
+        "width": 15
+      }
+    },
+    {
+      "id": "G22",
+      "mutant_sha256": "5048031977135f448db7f15377b8b173d2fd81f6476d72ae4963355c8c8ea061",
+      "edit": {
+        "rule": "relation",
+        "line": 68,
+        "before": "        if (reset) begin",
+        "after": "        if ((reset) != 1'b0) begin",
+        "orig": "reset",
+        "changed": "(reset) != 1'b0",
+        "guard": "1'b1",
+        "lhs": "",
+        "width": 1
+      }
+    },
+    {
+      "id": "G23",
+      "mutant_sha256": "22bc94fa2cfe2dccc743d62889b8749f6cf6ab33542ae09d4dce603cda05e878",
+      "edit": {
+        "rule": "removed_condition",
+        "line": 68,
+        "before": "        if (reset) begin",
+        "after": "        if (1'b1) begin",
+        "orig": "reset",
+        "changed": "1'b1",
+        "guard": "1'b1",
+        "lhs": "",
+        "width": 1
+      }
+    },
+    {
+      "id": "G24",
+      "mutant_sha256": "23a459e599ac72b6636a5f8cce02e610319a9ed2721fafcc189732cc037c353c",
+      "edit": {
+        "rule": "replaced_assignment",
+        "line": 79,
+        "before": "                    done <= 1'b0;",
+        "after": "                    done <= start;",
+        "orig": "1'b0",
+        "changed": "start",
+        "guard": "!(reset)",
+        "lhs": "done",
+        "width": 1
+      }
+    }
+  ],
+  "rejected": [
+    {
+      "rule": "AssignB2N",
+      "line": 59,
+      "reason": "iverilog exited 1: variant.sv:59: error: functions cannot have non blocking assignment statements."
+    },
+    {
+      "rule": "bit_index_offset",
+      "line": 59,
+      "reason": "iverilog exited 2: variant.sv:59: syntax error"
+    }
+  ]
+}

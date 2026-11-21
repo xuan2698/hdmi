@@ -1,0 +1,11 @@
+#!/usr/bin/env python3
+"""Batch four formal substeps into a single bounded satisfiability query."""
+
+import os
+import sys
+
+args=sys.argv[1:]
+position=args.index("-t")+1
+if ":" not in args[position]:
+    args[position]="0:4:"+args[position]
+os.execvp("yosys-smtbmc",["yosys-smtbmc",*args])

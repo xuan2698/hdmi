@@ -1,0 +1,389 @@
+{
+  "task": "cvdp_copilot_digital_stopwatch_0017",
+  "proxy": "P06",
+  "proxy_sha256": "72f8d744d73cf57fbea6977f0d50a58e128e5aa265d41452c949c7fdf0de3c31",
+  "status": "ready",
+  "reason": "",
+  "ports": {
+    "top": "dig_stopwatch",
+    "clock": "clk",
+    "input": {
+      "reset": 1,
+      "start_stop": 1
+    },
+    "output": {
+      "seconds": 6,
+      "minutes": 6,
+      "hour": 1
+    },
+    "resets": {
+      "reset": 1
+    },
+    "parameters": {
+      "CLK_FREQ": 4
+    }
+  },
+  "candidates": [
+    {
+      "id": "G01",
+      "mutant_sha256": "f2d2029dd7063cf044eb438d4e817507352cc2a713a9f2fca18cc5814375cb54",
+      "edit": {
+        "rule": "AssignN2B",
+        "line": 48,
+        "before": "            seconds <= 6'd0;",
+        "after": "            seconds = 6'd0;",
+        "orig": "<=",
+        "changed": "=",
+        "guard": "1'b1",
+        "lhs": "seconds",
+        "width": 6
+      }
+    },
+    {
+      "id": "G02",
+      "mutant_sha256": "3158a5b166713034a77403fb669f18e910c127a751a7d032e60a16693ac8ec8a",
+      "edit": {
+        "rule": "EdgeDelete",
+        "line": 46,
+        "before": "    always_ff @(posedge clk or posedge reset) begin",
+        "after": "    always_ff @(posedge clk ) begin",
+        "orig": "or posedge reset",
+        "changed": "",
+        "guard": "1'b1",
+        "lhs": "",
+        "width": 1
+      }
+    },
+    {
+      "id": "G03",
+      "mutant_sha256": "868d2df3c9a3799d980449725761d46679132ba16d18775333f14dde13788b14",
+      "edit": {
+        "rule": "ExprInsert",
+        "line": 33,
+        "before": "                one_sec_pulse <= 1'b0;",
+        "after": "                one_sec_pulse <= (1'b0) ^ 1;",
+        "orig": "1'b0",
+        "changed": "(1'b0) ^ 1",
+        "guard": "1'b1",
+        "lhs": "one_sec_pulse",
+        "width": 1
+      }
+    },
+    {
+      "id": "G04",
+      "mutant_sha256": "57dd56d7f72010b8683bc9d6d813c6e3391505315a83551d32dab0673d4a2b6b",
+      "edit": {
+        "rule": "IOFlip1",
+        "line": 39,
+        "before": "        if (reset) begin",
+        "after": "        if ((~reset)) begin",
+        "orig": "reset",
+        "changed": "(~reset)",
+        "guard": "1'b1",
+        "lhs": "",
+        "width": 1
+      }
+    },
+    {
+      "id": "G05",
+      "mutant_sha256": "564d9e4e1c0f00854898c2f8f2ec38c2134b73863d778a9562680a8bf53188dc",
+      "edit": {
+        "rule": "IOFlip2",
+        "line": 53,
+        "before": "                seconds <= 6'd0;",
+        "after": "                seconds <= ~(6'd0);",
+        "orig": "6'd0",
+        "changed": "~(6'd0)",
+        "guard": "1'b1",
+        "lhs": "seconds",
+        "width": 6
+      }
+    },
+    {
+      "id": "G06",
+      "mutant_sha256": "39738d68e4c7a4032bd011efae339675727d36ca88aaff81fc805e76e01aff3c",
+      "edit": {
+        "rule": "NSubDelete",
+        "line": 61,
+        "before": "                seconds <= seconds + 1'b1;",
+        "after": "                ;",
+        "orig": "seconds <= seconds + 1'b1;",
+        "changed": ";",
+        "guard": "1'b1",
+        "lhs": "seconds",
+        "width": 6
+      }
+    },
+    {
+      "id": "G07",
+      "mutant_sha256": "4f16a5ec42fd79ebf9da3a6a302cc298606b14179ad6fd96d442e37c077b07ab",
+      "edit": {
+        "rule": "NSubInsert",
+        "line": 33,
+        "before": "                one_sec_pulse <= 1'b0;",
+        "after": "                begin one_sec_pulse <= 1'b0; one_sec_pulse <= 0; end",
+        "orig": "one_sec_pulse <= 1'b0;",
+        "changed": "begin one_sec_pulse <= 1'b0; one_sec_pulse <= 0; end",
+        "guard": "1'b1",
+        "lhs": "one_sec_pulse",
+        "width": 1
+      }
+    },
+    {
+      "id": "G08",
+      "mutant_sha256": "4bd70b2e7877f67cdba0e9a5a830dfa326c01176cfa737ae6229c191d2e52438",
+      "edit": {
+        "rule": "NSubInsert_IF",
+        "line": 20,
+        "before": "            div_cnt <= '0;",
+        "after": "            begin div_cnt <= '0; div_cnt <= 0; end",
+        "orig": "div_cnt <= '0;",
+        "changed": "begin div_cnt <= '0; div_cnt <= 0; end",
+        "guard": "1'b1",
+        "lhs": "div_cnt",
+        "width": 1
+      }
+    },
+    {
+      "id": "G09",
+      "mutant_sha256": "d1b4ae3e03d091486d277117133891924b99809462cf916a51415847d8db71ae",
+      "edit": {
+        "rule": "NSubUpdate",
+        "line": 25,
+        "before": "                    div_cnt <= '0;",
+        "after": "                    div_cnt <= ('0) + 1;",
+        "orig": "'0",
+        "changed": "('0) + 1",
+        "guard": "1'b1",
+        "lhs": "div_cnt",
+        "width": 1
+      }
+    },
+    {
+      "id": "G10",
+      "mutant_sha256": "592afd4062acadf8d5c4f22938ad768d661a23dc2b489ea3d6acf2e203bc5970",
+      "edit": {
+        "rule": "PartselectInsert",
+        "line": 61,
+        "before": "                seconds <= seconds + 1'b1;",
+        "after": "                seconds <= seconds[4:0] + 1'b1;",
+        "orig": "seconds",
+        "changed": "seconds[4:0]",
+        "guard": "1'b1",
+        "lhs": "seconds",
+        "width": 6
+      }
+    },
+    {
+      "id": "G11",
+      "mutant_sha256": "0d7f117793879f1aecec55d8fa3f967d6acd1b73fe45393f487e981f53a409cc",
+      "edit": {
+        "rule": "PointerInsert",
+        "line": 54,
+        "before": "                if (minutes == 6'd59) begin",
+        "after": "                if (minutes[0] == 6'd59) begin",
+        "orig": "minutes",
+        "changed": "minutes[0]",
+        "guard": "1'b1",
+        "lhs": "",
+        "width": 1
+      }
+    },
+    {
+      "id": "G12",
+      "mutant_sha256": "2ad0bfe2fe30d10fb07f12111b59a87d300c769653a46c6555faabe528ebad58",
+      "edit": {
+        "rule": "arithmetic_or_bitwise",
+        "line": 25,
+        "before": "                    div_cnt <= '0;",
+        "after": "                    div_cnt <= ('0) - 1;",
+        "orig": "'0",
+        "changed": "('0) - 1",
+        "guard": "(div_cnt == PERIOD - 1)",
+        "lhs": "div_cnt",
+        "width": 1
+      }
+    },
+    {
+      "id": "G13",
+      "mutant_sha256": "bbdc6d7594e91d6f8617fcb160956ae793404222dc5aae630b981fe55e4974ac",
+      "edit": {
+        "rule": "bit_index_offset",
+        "line": 61,
+        "before": "                seconds <= seconds + 1'b1;",
+        "after": "                seconds <= (seconds << 1) + 1'b1;",
+        "orig": "seconds + 1'b1",
+        "changed": "(seconds << 1) + 1'b1",
+        "guard": "!(minutes == 6'd59)",
+        "lhs": "seconds",
+        "width": 6
+      }
+    },
+    {
+      "id": "G14",
+      "mutant_sha256": "a4e8fabc8b5ce927892c1c1d6005dff8237b5af901892e7b2d7f614714dd669e",
+      "edit": {
+        "rule": "clock_edge",
+        "line": 18,
+        "before": "    always_ff @(posedge clk or posedge reset) begin",
+        "after": "    always_ff @(negedge clk or posedge reset) begin",
+        "orig": "posedge",
+        "changed": "negedge",
+        "guard": "1'b1",
+        "lhs": "",
+        "width": 1
+      }
+    },
+    {
+      "id": "G15",
+      "mutant_sha256": "9d33dbfbb4dec6d417fbccffc75d11aff8ae15b0c24b64da7fcb4c96b7d3d069",
+      "edit": {
+        "rule": "condition_operator",
+        "line": 19,
+        "before": "        if (reset) begin",
+        "after": "        if ((reset) && start_stop) begin",
+        "orig": "reset",
+        "changed": "(reset) && start_stop",
+        "guard": "1'b1",
+        "lhs": "",
+        "width": 1
+      }
+    },
+    {
+      "id": "G16",
+      "mutant_sha256": "c033551fe66399c83d52de90193c0f36ed36c5d1d6b0f5eb482b351f705e261d",
+      "edit": {
+        "rule": "constant_offset",
+        "line": 26,
+        "before": "                    one_sec_pulse <= 1'b1;",
+        "after": "                    one_sec_pulse <= (1'b1) - 1;",
+        "orig": "1'b1",
+        "changed": "(1'b1) - 1",
+        "guard": "(div_cnt == PERIOD - 1)",
+        "lhs": "one_sec_pulse",
+        "width": 1
+      }
+    },
+    {
+      "id": "G17",
+      "mutant_sha256": "87eabe9e2cc606cadc79b2d2c80b51ab7192ff1bada982d130954b05f18f47d8",
+      "edit": {
+        "rule": "deleted_assignment",
+        "line": 58,
+        "before": "                    minutes <= minutes + 1'b1;",
+        "after": "                    minutes <= minutes;",
+        "orig": "minutes + 1'b1",
+        "changed": "minutes",
+        "guard": "!(minutes == 6'd59)",
+        "lhs": "minutes",
+        "width": 6
+      }
+    },
+    {
+      "id": "G18",
+      "mutant_sha256": "a79dc4e05fa52a59897f6db976c92747c77dfb4d3e1a78635921088c01e1b71a",
+      "edit": {
+        "rule": "negated_condition",
+        "line": 39,
+        "before": "        if (reset) begin",
+        "after": "        if (!(reset)) begin",
+        "orig": "reset",
+        "changed": "!(reset)",
+        "guard": "1'b1",
+        "lhs": "",
+        "width": 1
+      }
+    },
+    {
+      "id": "G19",
+      "mutant_sha256": "d5c7270fc6d99b3d9a4cec780ff61df4410f5bee338bd9f5667f7c915c213fa8",
+      "edit": {
+        "rule": "operator_replacement",
+        "line": 61,
+        "before": "                seconds <= seconds + 1'b1;",
+        "after": "                seconds <= seconds * 1'b1;",
+        "orig": "seconds + 1'b1",
+        "changed": "seconds * 1'b1",
+        "guard": "!(minutes == 6'd59)",
+        "lhs": "seconds",
+        "width": 6
+      }
+    },
+    {
+      "id": "G20",
+      "mutant_sha256": "c60be7679f3fb7b44abf59e3264ef5333b2cd9e7c9dcdcf52cf0f22bcbfc27af",
+      "edit": {
+        "rule": "relation",
+        "line": 19,
+        "before": "        if (reset) begin",
+        "after": "        if ((reset) == 1'b0) begin",
+        "orig": "reset",
+        "changed": "(reset) == 1'b0",
+        "guard": "1'b1",
+        "lhs": "",
+        "width": 1
+      }
+    },
+    {
+      "id": "G21",
+      "mutant_sha256": "fef71af6af2f85a525e1abed2367285a06a7e9cf4cc7bf710ba8e0e204c96127",
+      "edit": {
+        "rule": "removed_condition",
+        "line": 19,
+        "before": "        if (reset) begin",
+        "after": "        if (1'b0) begin",
+        "orig": "reset",
+        "changed": "1'b0",
+        "guard": "1'b1",
+        "lhs": "",
+        "width": 1
+      }
+    },
+    {
+      "id": "G22",
+      "mutant_sha256": "6cd1a59afd39d16e413d3418b8aa2176ebf545c31341e9c617832fc901889baa",
+      "edit": {
+        "rule": "replaced_assignment",
+        "line": 56,
+        "before": "                    hour    <= 1'b1;",
+        "after": "                    hour    <= start_stop;",
+        "orig": "1'b1",
+        "changed": "start_stop",
+        "guard": "(minutes == 6'd59)",
+        "lhs": "hour",
+        "width": 1
+      }
+    },
+    {
+      "id": "G23",
+      "mutant_sha256": "34ef4401219a2441f72bd430cde74621fd521d5f60481c0091c2567c3551a195",
+      "edit": {
+        "rule": "temporal_control",
+        "line": 39,
+        "before": "        if (reset) begin",
+        "after": "        if (1'b1) begin",
+        "orig": "reset",
+        "changed": "1'b1",
+        "guard": "1'b1",
+        "lhs": "",
+        "width": 1
+      }
+    },
+    {
+      "id": "G24",
+      "mutant_sha256": "b9954c2817919d2310f59104ca7a104c2e0c9a2d11a372670bbce4195ca7b9a5",
+      "edit": {
+        "rule": "temporal_reset",
+        "line": 18,
+        "before": "    always_ff @(posedge clk or posedge reset) begin",
+        "after": "    always_ff @(posedge clk) begin",
+        "orig": "1'b1",
+        "changed": "1'b0",
+        "guard": "1'b1",
+        "lhs": "",
+        "width": 1
+      }
+    }
+  ],
+  "rejected": []
+}
