@@ -1,0 +1,54 @@
+#!/usr/bin/env python3
+"""Bound one SBY job and reap any subprocesses its shells leave behind."""
+
+import ctypes
+import os
+import signal
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+
+def terminate_children():
+    children = Path(f"/proc/{os.getpid()}/task/{os.getpid()}/children")
+    for _ in range(20):
+        while True:
+            try:
+                pid, _ = os.waitpid(-1, os.WNOHANG)
+            except ChildProcessError:
+                return
+            if not pid:
+                break
+        if children.exists():
+            remaining = children.read_text().split()
+        else:
+            query = subprocess.Popen(["ps", "-o", "pid=", "--ppid", str(os.getpid())],
+                                     stdout=subprocess.PIPE, text=True)
+            output, _ = query.communicate()
+            remaining = [uid for uid in output.split() if int(uid) != query.pid]
+        for uid in remaining:
+            try:
+                os.kill(int(uid), signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+        time.sleep(0.01)
+
+
+def main():
+    limit = float(sys.argv[1])
+    if ctypes.CDLL(None, use_errno=True).prctl(36, 1, 0, 0, 0):
+        raise OSError(ctypes.get_errno(), "Unable to set child subreaper")
+    job = subprocess.Popen(sys.argv[2:])
+    try:
+        return job.wait(timeout=limit)
+    except subprocess.TimeoutExpired:
+        job.kill()
+        job.wait()
+        return 124
+    finally:
+        terminate_children()
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

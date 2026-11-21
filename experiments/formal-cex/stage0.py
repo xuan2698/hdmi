@@ -13,6 +13,7 @@ import time
 from collections import Counter
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import asdict
+from functools import lru_cache
 from pathlib import Path
 
 from inputs import ROOT, REPO, GEN, development, load, save, sha
@@ -22,7 +23,7 @@ import hdl
 from formal_g import assertion, config, module, vcd_rows, vectors_from_witness
 from guide import variants
 from mutations import Candidate
-from pyslang import ast, syntax
+from pyslang import ast, parsing, syntax
 from replay import SimulationError, rename
 
 WORK = ROOT / ".work"
@@ -174,6 +175,8 @@ def formal_design(source, mutant, ports, work, repair, restricted=False, normali
         parameters["LINES"]=8
     miter=hdl.bind_params(module(ports),ports["top"],parameters)
     assertion_source=assertion(ports)
+    if repair>=3:
+        assertion_source=assertion_source.replace("    assert (", "    if (phase[0] && !phase_x[0]) assert (")
     if restricted:
         bounds=" && ".join(f"(in_{name} < 8)" for name in ("addr_a","addr_b"))
         assertion_source=assertion_source.replace("endmodule",f"always @* assume ({bounds});\nendmodule")
@@ -202,7 +205,11 @@ def state_property(source, mutant, ports, work):
         return None
     enriched={**ports,"output":{**ports["output"],**shared}}
     (work/"miter.sv").write_text(module(enriched))
-    (work/"assertion.sv").write_text(assertion(enriched))
+    plain=(work/"assertion.sv").read_text()
+    enriched_assertion=assertion(enriched)
+    if "if (phase[0]" in plain:
+        enriched_assertion=enriched_assertion.replace("    assert (", "    if (phase[0] && !phase_x[0]) assert (")
+    (work/"assertion.sv").write_text(enriched_assertion)
     tops=[prefix+ports["top"] for prefix in ("cvdp_r_","cvdp_m_")]
     parameters=" ".join(f"-set {k} {v}" for k,v in ports["parameters"].items())
     bind="\n".join(f"chparam {parameters} {top}" for top in tops) if parameters else ""
@@ -240,10 +247,11 @@ def run_sby(work, label, engine, limit, step, repair, mode="bmc", keep_memory=Fa
     file.write_text(cfg)
     start=time.monotonic()
     options=["--smtbmc",str(ROOT/"tools/grouped_smtbmc")] if repair and mode=="bmc" else []
-    process=subprocess.Popen(["sby",*options,"-f",file.name],cwd=work,stdout=subprocess.PIPE,
+    process=subprocess.Popen([str(ROOT/"tools/bounded_sby"),str(limit),"sby",*options,"-f",file.name],
+                             cwd=work,stdout=subprocess.PIPE,
                              stderr=subprocess.STDOUT,text=True,start_new_session=True)
     try:
-        logfile,_=process.communicate(timeout=limit+0.5)
+        logfile,_=process.communicate(timeout=limit+3)
     except subprocess.TimeoutExpired:
         try:
             os.killpg(process.pid,signal.SIGKILL)
@@ -251,10 +259,11 @@ def run_sby(work, label, engine, limit, step, repair, mode="bmc", keep_memory=Fa
             pass
         logfile,_=process.communicate()
     folder=work/label
-    reap_orphans(folder)
     (work/(label+".log")).write_text(logfile)
     status_path=folder/"status"
     status=status_path.read_text().split()[0] if status_path.exists() else "TIMEOUT"
+    if status == "TIMEOUT" and process.returncode not in {124,8}:
+        reap_orphans(folder)
     trace=next(folder.glob("engine_*/trace.vcd"),None)
     points=[int(m[2] or m[1]) for m in re.finditer(r"Checking assertions in steps? (\d+)(?: to (\d+))?",logfile)]
     reason=next((line.partition("ERROR:")[2].strip() for line in logfile.splitlines() if "ERROR:" in line),"")
@@ -373,6 +382,9 @@ def solve(row,candidate,repair,quick=False):
         for engine,allocation in (("boolector",75),("z3",120)):
             if attempt(engine,engine,allocation,4*BOUNDS[-1]+1,keep_memory=ram):
                 break
+        if repair>=3 and not sequence and "Latch inferred" in reason:
+            formal_design(source,mutant,ports,work,repair,normalized=True)
+            attempt("boolector_latch_search","boolector",12,4*BOUNDS[0]+1,restricted=True)
     result={"task":task,"proxy":proxy,"G":tag,"category":category,"formal_success":formal_success,
             "replayable":sequence is not None,"cycles":len(sequence) if sequence else None,
             "reset_cycles":1 if ports["resets"] else 0,"reason":reason,
@@ -413,6 +425,58 @@ def aggregate(catalogs,results,repair):
     return summary
 
 
+@lru_cache(maxsize=4000)
+def token_identity(source):
+    if re.search(r"`|(?:/\*|//)\s*(?:synopsys|synthesis|translate_)",source,re.I):
+        return sha(source.encode())
+    tokens=[]
+    tree=syntax.SyntaxTree.fromText(source)
+    if list(tree.diagnostics):
+        return sha(source.encode())
+    def record(node):
+        if isinstance(node,parsing.Token):
+            tokens.append((str(node.kind),node.rawText))
+    tree.root.visit(record)
+    return sha(json.dumps(tokens,separators=(",",":")).encode())
+
+
+def identical_groups(jobs):
+    groups={}
+    for row,candidate in jobs:
+        task,proxy=row["task"],row["proxy"]
+        source=(GEN/task/proxy/"proxy.sv").read_text()
+        changed=Candidate(**candidate["edit"]).rtl(source)
+        key=(task,token_identity(source),token_identity(changed),json.dumps(row["ports"],sort_keys=True))
+        groups.setdefault(key,[]).append((row,candidate))
+    return groups.values()
+
+
+def run_identical_group(group,repair,quick):
+    def loc(job,kind):
+        row,candidate=job
+        return RESULTS/f"{kind}{repair}"/row["task"]/row["proxy"]/(candidate["id"]+".json")
+
+    completed=[loc(job,"round") for job in group if loc(job,"round").exists()]
+    if completed:
+        decision=load(completed[0])
+    else:
+        prior=next((job for job in group if loc(job,"quick").exists()),None)
+        row,candidate=prior or group[0]
+        decision=solve(row,candidate,repair,quick)
+    if decision["category"]=="pending_full_bmc":
+        return []
+    materialized=[]
+    for job in group:
+        row,candidate=job
+        destination=loc(job,"round")
+        if not destination.exists():
+            cloned={**decision,"task":row["task"],"proxy":row["proxy"],"G":candidate["id"],
+                    "seconds":0,"identical_to":[decision[key] for key in ("task","proxy","G")]}
+            save(destination,cloned)
+        materialized.append(load(destination))
+    return materialized
+
+
 def main():
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument("--workers",type=int,default=6)
@@ -420,7 +484,7 @@ def main():
     p.add_argument("--task")
     p.add_argument("--summarize",action="store_true")
     p.add_argument("--quick",action="store_true")
-    p.add_argument("--repair",type=int,choices=range(3),default=0)
+    p.add_argument("--repair",type=int,choices=range(4),default=0)
     args=p.parse_args()
     limits=load(REPO/"stimulus-v1/split.json")["parameters"]
     with ThreadPoolExecutor(max_workers=args.workers) as pool:
@@ -434,13 +498,15 @@ def main():
             found=[RESULTS/f"round{args.repair}"/r["task"]/r["proxy"]/(c["id"]+".json") for r,c in jobs]
             aggregate(catalogs,[load(path) for path in found],args.repair)
             return
-        work=[pool.submit(solve,r,c,args.repair,args.quick) for r,c in sorted(jobs,key=lambda job:
-              sha(f"{job[0]['task']}/{job[0]['proxy']}/{job[1]['id']}".encode()))]
+        groups=identical_groups(sorted(jobs,key=lambda job:
+                sha(f"{job[0]['task']}/{job[0]['proxy']}/{job[1]['id']}".encode())))
+        print("Distinct proxy/G circuits",len(groups),flush=True)
+        work=[pool.submit(run_identical_group,g,args.repair,args.quick) for g in groups]
         results=[]
         for i,future in enumerate(as_completed(work),1):
-            results.append(future.result())
+            results.extend(future.result())
             if i%100==0:
-                print("Checked formal pairs",i,"/",len(work),flush=True)
+                print("Checked unique formal pairs",i,"/",len(work),"final rows",len(results),flush=True)
         if not args.task and not args.quick:
             aggregate(catalogs,sorted(results,key=lambda r:(r["task"],r["proxy"],r["G"])),args.repair)
 
