@@ -191,7 +191,14 @@ def diagnostic(record, source, replay):
         representative = [waves[i] for i in reached]
         values = {name: sorted({wave[f"pilot_arg_{name}"] for wave in representative})[:4]
                   for name in operands}
-        return {"label": "未感染", "operands_binary": values, "reached": len(reached)}
+        ranges = {}
+        for name in operands:
+            samples = [int(wave[f"pilot_arg_{name}"], 2) for wave in representative
+                       if set(wave[f"pilot_arg_{name}"]) <= {"0", "1"}]
+            if samples:
+                ranges[name] = {"min": min(samples), "max": max(samples), "known_samples": len(samples)}
+        return {"label": "未感染", "operands_binary": values, "reached": len(reached),
+                "operand_ranges": ranges}
     modified, state = replay.trace(change.rtl(source), observe=tuple(names))
     if differences(trace, modified):
         raise RunError("Instrumented diagnostic contradicted the original output classification")

@@ -1,0 +1,4530 @@
+{
+  "task": "lemmings4",
+  "groups": [
+    {
+      "candidates": [
+        {
+          "edits": [
+            {
+              "rule": "clock_edge",
+              "line": 29,
+              "before": "    always_ff @(posedge clk or posedge areset) begin",
+              "after": "    always_ff @(negedge clk or posedge areset) begin",
+              "orig": "posedge",
+              "changed": "negedge",
+              "guard": "1'b1",
+              "lhs": "",
+              "width": 1
+            }
+          ],
+          "id": "G1-01",
+          "screen_differences": [
+            2462,
+            2390,
+            2472
+          ],
+          "retained": true
+        },
+        {
+          "edits": [
+            {
+              "rule": "negated_condition",
+              "line": 30,
+              "before": "        if (areset) begin",
+              "after": "        if (!(areset)) begin",
+              "orig": "areset",
+              "changed": "!(areset)",
+              "guard": "1'b1",
+              "lhs": "",
+              "width": 1
+            }
+          ],
+          "id": "G1-02",
+          "screen_differences": [
+            3204,
+            3270,
+            3208
+          ],
+          "retained": true
+        },
+        {
+          "edits": [
+            {
+              "rule": "removed_condition",
+              "line": 30,
+              "before": "        if (areset) begin",
+              "after": "        if (1'b0) begin",
+              "orig": "areset",
+              "changed": "1'b0",
+              "guard": "1'b1",
+              "lhs": "",
+              "width": 1
+            }
+          ],
+          "id": "G1-03",
+          "screen_differences": [
+            400,
+            386,
+            380
+          ],
+          "retained": true
+        },
+        {
+          "edits": [
+            {
+              "rule": "relation",
+              "line": 30,
+              "before": "        if (areset) begin",
+              "after": "        if ((areset) == 1'b0) begin",
+              "orig": "areset",
+              "changed": "(areset) == 1'b0",
+              "guard": "1'b1",
+              "lhs": "",
+              "width": 1
+            }
+          ],
+          "id": "G1-04",
+          "screen_differences": [
+            3204,
+            3270,
+            3208
+          ],
+          "retained": true
+        },
+        {
+          "edits": [
+            {
+              "rule": "condition_operator",
+              "line": 30,
+              "before": "        if (areset) begin",
+              "after": "        if ((areset) && bump_left) begin",
+              "orig": "areset",
+              "changed": "(areset) && bump_left",
+              "guard": "1'b1",
+              "lhs": "",
+              "width": 1
+            }
+          ],
+          "id": "G1-05",
+          "screen_differences": [
+            164,
+            194,
+            180
+          ],
+          "retained": true
+        },
+        {
+          "edits": [
+            {
+              "rule": "unary_operator",
+              "line": 31,
+              "before": "            state <= STATE_WALK_LEFT;",
+              "after": "            state <= ~(STATE_WALK_LEFT);",
+              "orig": "STATE_WALK_LEFT",
+              "changed": "~(STATE_WALK_LEFT)",
+              "guard": "(areset)",
+              "lhs": "state",
+              "width": 1
+            }
+          ],
+          "id": "G1-06",
+          "screen_differences": [
+            2000,
+            2000,
+            2000
+          ],
+          "retained": true
+        },
+        {
+          "edits": [
+            {
+              "rule": "arithmetic_or_bitwise",
+              "line": 31,
+              "before": "            state <= STATE_WALK_LEFT;",
+              "after": "            state <= (STATE_WALK_LEFT) + 1;",
+              "orig": "STATE_WALK_LEFT",
+              "changed": "(STATE_WALK_LEFT) + 1",
+              "guard": "(areset)",
+              "lhs": "state",
+              "width": 1
+            }
+          ],
+          "id": "G1-07",
+          "screen_differences": [
+            688,
+            680,
+            590
+          ],
+          "retained": true
+        },
+        {
+          "edits": [
+            {
+              "rule": "deleted_assignment",
+              "line": 31,
+              "before": "            state <= STATE_WALK_LEFT;",
+              "after": "            state <= state;",
+              "orig": "STATE_WALK_LEFT",
+              "changed": "state",
+              "guard": "(areset)",
+              "lhs": "state",
+              "width": 1
+            }
+          ],
+          "id": "G1-08",
+          "screen_differences": [
+            460,
+            428,
+            350
+          ],
+          "retained": true
+        },
+        {
+          "edits": [
+            {
+              "rule": "replaced_assignment",
+              "line": 31,
+              "before": "            state <= STATE_WALK_LEFT;",
+              "after": "            state <= 1'd0;",
+              "orig": "STATE_WALK_LEFT",
+              "changed": "1'd0",
+              "guard": "(areset)",
+              "lhs": "state",
+              "width": 1
+            }
+          ],
+          "id": "G1-09",
+          "screen_differences": [
+            0,
+            0,
+            0
+          ],
+          "retained": false
+        },
+        {
+          "edits": [
+            {
+              "rule": "constant_offset",
+              "line": 32,
+              "before": "            fall_count <= 5'b0;",
+              "after": "            fall_count <= (5'b0) - 1;",
+              "orig": "5'b0",
+              "changed": "(5'b0) - 1",
+              "guard": "(areset)",
+              "lhs": "fall_count",
+              "width": 5
+            }
+          ],
+          "id": "G1-10",
+          "screen_differences": [
+            0,
+            0,
+            0
+          ],
+          "retained": false
+        },
+        {
+          "edits": [
+            {
+              "rule": "operator_replacement",
+              "line": 36,
+              "before": "                fall_count <= fall_count + 1;",
+              "after": "                fall_count <= fall_count - 1;",
+              "orig": "fall_count + 1",
+              "changed": "fall_count - 1",
+              "guard": "(next_state == STATE_FALL_LEFT || next_state == STATE_FALL_RIGHT)",
+              "lhs": "fall_count",
+              "width": 5
+            }
+          ],
+          "id": "G1-11",
+          "screen_differences": [
+            1802,
+            1799,
+            1820
+          ],
+          "retained": true
+        },
+        {
+          "edits": [
+            {
+              "rule": "bit_index_offset",
+              "line": 36,
+              "before": "                fall_count <= fall_count + 1;",
+              "after": "                fall_count <= (fall_count << 1) + 1;",
+              "orig": "fall_count + 1",
+              "changed": "(fall_count << 1) + 1",
+              "guard": "(next_state == STATE_FALL_LEFT || next_state == STATE_FALL_RIGHT)",
+              "lhs": "fall_count",
+              "width": 5
+            }
+          ],
+          "id": "G1-12",
+          "screen_differences": [
+            566,
+            608,
+            579
+          ],
+          "retained": true
+        },
+        {
+          "edits": [
+            {
+              "rule": "negated_condition",
+              "line": 35,
+              "before": "            if (next_state == STATE_FALL_LEFT || next_state == STATE_FALL_RIGHT) begin",
+              "after": "            if (!(next_state == STATE_FALL_LEFT || next_state == STATE_FALL_RIGHT)) begin",
+              "orig": "next_state == STATE_FALL_LEFT || next_state == STATE_FALL_RIGHT",
+              "changed": "!(next_state == STATE_FALL_LEFT || next_state == STATE_FALL_RIGHT)",
+              "guard": "1'b1",
+              "lhs": "",
+              "width": 1
+            }
+          ],
+          "id": "G1-13",
+          "screen_differences": [
+            0,
+            0,
+            0
+          ],
+          "retained": false
+        },
+        {
+          "edits": [
+            {
+              "rule": "removed_condition",
+              "line": 30,
+              "before": "        if (areset) begin",
+              "after": "        if (1'b1) begin",
+              "orig": "areset",
+              "changed": "1'b1",
+              "guard": "1'b1",
+              "lhs": "",
+              "width": 1
+            }
+          ],
+          "id": "G1-14",
+          "screen_differences": [
+            3112,
+            3164,
+            3100
+          ],
+          "retained": true
+        },
+        {
+          "edits": [
+            {
+              "rule": "relation",
+              "line": 30,
+              "before": "        if (areset) begin",
+              "after": "        if ((areset) != 1'b0) begin",
+              "orig": "areset",
+              "changed": "(areset) != 1'b0",
+              "guard": "1'b1",
+              "lhs": "",
+              "width": 1
+            }
+          ],
+          "id": "G1-15",
+          "screen_differences": [
+            0,
+            0,
+            0
+          ],
+          "retained": false
+        },
+        {
+          "edits": [
+            {
+              "rule": "condition_operator",
+              "line": 30,
+              "before": "        if (areset) begin",
+              "after": "        if ((areset) || bump_left) begin",
+              "orig": "areset",
+              "changed": "(areset) || bump_left",
+              "guard": "1'b1",
+              "lhs": "",
+              "width": 1
+            }
+          ],
+          "id": "G1-16",
+          "screen_differences": [
+            1944,
+            1988,
+            1966
+          ],
+          "retained": true
+        },
+        {
+          "edits": [
+            {
+              "rule": "unary_operator",
+              "line": 31,
+              "before": "            state <= STATE_WALK_LEFT;",
+              "after": "            state <= !(STATE_WALK_LEFT);",
+              "orig": "STATE_WALK_LEFT",
+              "changed": "!(STATE_WALK_LEFT)",
+              "guard": "(areset)",
+              "lhs": "state",
+              "width": 1
+            }
+          ],
+          "id": "G1-17",
+          "screen_differences": [
+            688,
+            680,
+            590
+          ],
+          "retained": true
+        },
+        {
+          "edits": [
+            {
+              "rule": "arithmetic_or_bitwise",
+              "line": 31,
+              "before": "            state <= STATE_WALK_LEFT;",
+              "after": "            state <= (STATE_WALK_LEFT) - 1;",
+              "orig": "STATE_WALK_LEFT",
+              "changed": "(STATE_WALK_LEFT) - 1",
+              "guard": "(areset)",
+              "lhs": "state",
+              "width": 1
+            }
+          ],
+          "id": "G1-18",
+          "screen_differences": [
+            2000,
+            2000,
+            2000
+          ],
+          "retained": true
+        },
+        {
+          "edits": [
+            {
+              "rule": "deleted_assignment",
+              "line": 32,
+              "before": "            fall_count <= 5'b0;",
+              "after": "            fall_count <= fall_count;",
+              "orig": "5'b0",
+              "changed": "fall_count",
+              "guard": "(areset)",
+              "lhs": "fall_count",
+              "width": 5
+            }
+          ],
+          "id": "G1-19",
+          "screen_differences": [
+            0,
+            0,
+            0
+          ],
+          "retained": false
+        },
+        {
+          "edits": [
+            {
+              "rule": "replaced_assignment",
+              "line": 31,
+              "before": "            state <= STATE_WALK_LEFT;",
+              "after": "            state <= 1'd1;",
+              "orig": "STATE_WALK_LEFT",
+              "changed": "1'd1",
+              "guard": "(areset)",
+              "lhs": "state",
+              "width": 1
+            }
+          ],
+          "id": "G1-20",
+          "screen_differences": [
+            688,
+            680,
+            590
+          ],
+          "retained": true
+        },
+        {
+          "edits": [
+            {
+              "rule": "constant_offset",
+              "line": 32,
+              "before": "            fall_count <= 5'b0;",
+              "after": "            fall_count <= (5'b0) + 1;",
+              "orig": "5'b0",
+              "changed": "(5'b0) + 1",
+              "guard": "(areset)",
+              "lhs": "fall_count",
+              "width": 5
+            }
+          ],
+          "id": "G1-21",
+          "screen_differences": [
+            0,
+            0,
+            0
+          ],
+          "retained": false
+        },
+        {
+          "edits": [
+            {
+              "rule": "operator_replacement",
+              "line": 36,
+              "before": "                fall_count <= fall_count + 1;",
+              "after": "                fall_count <= fall_count * 1;",
+              "orig": "fall_count + 1",
+              "changed": "fall_count * 1",
+              "guard": "(next_state == STATE_FALL_LEFT || next_state == STATE_FALL_RIGHT)",
+              "lhs": "fall_count",
+              "width": 5
+            }
+          ],
+          "id": "G1-22",
+          "screen_differences": [
+            0,
+            0,
+            0
+          ],
+          "retained": false
+        },
+        {
+          "edits": [
+            {
+              "rule": "bit_index_offset",
+              "line": 36,
+              "before": "                fall_count <= fall_count + 1;",
+              "after": "                fall_count <= (fall_count >> 1) + 1;",
+              "orig": "fall_count + 1",
+              "changed": "(fall_count >> 1) + 1",
+              "guard": "(next_state == STATE_FALL_LEFT || next_state == STATE_FALL_RIGHT)",
+              "lhs": "fall_count",
+              "width": 5
+            }
+          ],
+          "id": "G1-23",
+          "screen_differences": [
+            0,
+            0,
+            0
+          ],
+          "retained": false
+        },
+        {
+          "edits": [
+            {
+              "rule": "negated_condition",
+              "line": 47,
+              "before": "                if (!ground) begin",
+              "after": "                if (!(!ground)) begin",
+              "orig": "!ground",
+              "changed": "!(!ground)",
+              "guard": "1'b1",
+              "lhs": "",
+              "width": 1
+            }
+          ],
+          "id": "G1-24",
+          "screen_differences": [
+            1694,
+            1666,
+            1570
+          ],
+          "retained": true
+        },
+        {
+          "edits": [
+            {
+              "rule": "removed_condition",
+              "line": 35,
+              "before": "            if (next_state == STATE_FALL_LEFT || next_state == STATE_FALL_RIGHT) begin",
+              "after": "            if (1'b0) begin",
+              "orig": "next_state == STATE_FALL_LEFT || next_state == STATE_FALL_RIGHT",
+              "changed": "1'b0",
+              "guard": "1'b1",
+              "lhs": "",
+              "width": 1
+            }
+          ],
+          "id": "G1-25",
+          "screen_differences": [
+            0,
+            0,
+            0
+          ],
+          "retained": false
+        },
+        {
+          "edits": [
+            {
+              "rule": "relation",
+              "line": 35,
+              "before": "            if (next_state == STATE_FALL_LEFT || next_state == STATE_FALL_RIGHT) begin",
+              "after": "            if ((next_state == STATE_FALL_LEFT || next_state == STATE_FALL_RIGHT) == 1'b0) begin",
+              "orig": "next_state == STATE_FALL_LEFT || next_state == STATE_FALL_RIGHT",
+              "changed": "(next_state == STATE_FALL_LEFT || next_state == STATE_FALL_RIGHT) == 1'b0",
+              "guard": "1'b1",
+              "lhs": "",
+              "width": 1
+            }
+          ],
+          "id": "G1-26",
+          "screen_differences": [
+            0,
+            0,
+            0
+          ],
+          "retained": false
+        },
+        {
+          "edits": [
+            {
+              "rule": "condition_operator",
+              "line": 30,
+              "before": "        if (areset) begin",
+              "after": "        if ((areset) ^ bump_left) begin",
+              "orig": "areset",
+              "changed": "(areset) ^ bump_left",
+              "guard": "1'b1",
+              "lhs": "",
+              "width": 1
+            }
+          ],
+          "id": "G1-27",
+          "screen_differences": [
+            2004,
+            2056,
+            2024
+          ],
+          "retained": true
+        },
+        {
+          "edits": [
+            {
+              "rule": "unary_operator",
+              "line": 31,
+              "before": "            state <= STATE_WALK_LEFT;",
+              "after": "            state <= +(STATE_WALK_LEFT);",
+              "orig": "STATE_WALK_LEFT",
+              "changed": "+(STATE_WALK_LEFT)",
+              "guard": "(areset)",
+              "lhs": "state",
+              "width": 1
+            }
+          ],
+          "id": "G1-28",
+          "screen_differences": [
+            0,
+            0,
+            0
+          ],
+          "retained": false
+        },
+        {
+          "edits": [
+            {
+              "rule": "arithmetic_or_bitwise",
+              "line": 31,
+              "before": "            state <= STATE_WALK_LEFT;",
+              "after": "            state <= (STATE_WALK_LEFT) ^ 1;",
+              "orig": "STATE_WALK_LEFT",
+              "changed": "(STATE_WALK_LEFT) ^ 1",
+              "guard": "(areset)",
+              "lhs": "state",
+              "width": 1
+            }
+          ],
+          "id": "G1-29",
+          "screen_differences": [
+            688,
+            680,
+            590
+          ],
+          "retained": true
+        },
+        {
+          "edits": [
+            {
+              "rule": "deleted_assignment",
+              "line": 34,
+              "before": "            state <= next_state;",
+              "after": "            state <= state;",
+              "orig": "next_state",
+              "changed": "state",
+              "guard": "!(areset)",
+              "lhs": "state",
+              "width": 1
+            }
+          ],
+          "id": "G1-30",
+          "screen_differences": [
+            3112,
+            3164,
+            3100
+          ],
+          "retained": true
+        },
+        {
+          "edits": [
+            {
+              "rule": "replaced_assignment",
+              "line": 31,
+              "before": "            state <= STATE_WALK_LEFT;",
+              "after": "            state <= areset;",
+              "orig": "STATE_WALK_LEFT",
+              "changed": "areset",
+              "guard": "(areset)",
+              "lhs": "state",
+              "width": 1
+            }
+          ],
+          "id": "G1-31",
+          "screen_differences": [
+            688,
+            680,
+            590
+          ],
+          "retained": true
+        },
+        {
+          "edits": [
+            {
+              "rule": "constant_offset",
+              "line": 38,
+              "before": "                fall_count <= 5'b0;",
+              "after": "                fall_count <= (5'b0) - 1;",
+              "orig": "5'b0",
+              "changed": "(5'b0) - 1",
+              "guard": "!(next_state == STATE_FALL_LEFT || next_state == STATE_FALL_RIGHT)",
+              "lhs": "fall_count",
+              "width": 5
+            }
+          ],
+          "id": "G1-32",
+          "screen_differences": [
+            0,
+            0,
+            0
+          ],
+          "retained": false
+        },
+        {
+          "edits": [
+            {
+              "rule": "operator_replacement",
+              "line": 110,
+              "before": "    assign walk_left = (state == STATE_WALK_LEFT);",
+              "after": "    assign walk_left = (state != STATE_WALK_LEFT);",
+              "orig": "(state == STATE_WALK_LEFT)",
+              "changed": "(state != STATE_WALK_LEFT)",
+              "guard": "!(!ground)",
+              "lhs": "walk_left",
+              "width": 1
+            }
+          ],
+          "id": "G1-33",
+          "screen_differences": [
+            2000,
+            2000,
+            2000
+          ],
+          "retained": true
+        },
+        {
+          "edits": [
+            {
+              "rule": "negated_condition",
+              "line": 49,
+              "before": "                end else if (dig) begin",
+              "after": "                end else if (!(dig)) begin",
+              "orig": "dig",
+              "changed": "!(dig)",
+              "guard": "1'b1",
+              "lhs": "",
+              "width": 1
+            }
+          ],
+          "id": "G1-34",
+          "screen_differences": [
+            992,
+            926,
+            950
+          ],
+          "retained": true
+        },
+        {
+          "edits": [
+            {
+              "rule": "removed_condition",
+              "line": 35,
+              "before": "            if (next_state == STATE_FALL_LEFT || next_state == STATE_FALL_RIGHT) begin",
+              "after": "            if (1'b1) begin",
+              "orig": "next_state == STATE_FALL_LEFT || next_state == STATE_FALL_RIGHT",
+              "changed": "1'b1",
+              "guard": "1'b1",
+              "lhs": "",
+              "width": 1
+            }
+          ],
+          "id": "G1-35",
+          "screen_differences": [
+            976,
+            874,
+            919
+          ],
+          "retained": true
+        },
+        {
+          "edits": [
+            {
+              "rule": "relation",
+              "line": 35,
+              "before": "            if (next_state == STATE_FALL_LEFT || next_state == STATE_FALL_RIGHT) begin",
+              "after": "            if ((next_state == STATE_FALL_LEFT || next_state == STATE_FALL_RIGHT) != 1'b0) begin",
+              "orig": "next_state == STATE_FALL_LEFT || next_state == STATE_FALL_RIGHT",
+              "changed": "(next_state == STATE_FALL_LEFT || next_state == STATE_FALL_RIGHT) != 1'b0",
+              "guard": "1'b1",
+              "lhs": "",
+              "width": 1
+            }
+          ],
+          "id": "G1-36",
+          "screen_differences": [
+            0,
+            0,
+            0
+          ],
+          "retained": false
+        },
+        {
+          "edits": [
+            {
+              "rule": "condition_operator",
+              "line": 30,
+              "before": "        if (areset) begin",
+              "after": "        if ((areset) && bump_right) begin",
+              "orig": "areset",
+              "changed": "(areset) && bump_right",
+              "guard": "1'b1",
+              "lhs": "",
+              "width": 1
+            }
+          ],
+          "id": "G1-37",
+          "screen_differences": [
+            198,
+            182,
+            248
+          ],
+          "retained": true
+        },
+        {
+          "edits": [
+            {
+              "rule": "unary_operator",
+              "line": 31,
+              "before": "            state <= STATE_WALK_LEFT;",
+              "after": "            state <= -(STATE_WALK_LEFT);",
+              "orig": "STATE_WALK_LEFT",
+              "changed": "-(STATE_WALK_LEFT)",
+              "guard": "(areset)",
+              "lhs": "state",
+              "width": 1
+            }
+          ],
+          "id": "G1-38",
+          "screen_differences": [
+            0,
+            0,
+            0
+          ],
+          "retained": false
+        },
+        {
+          "edits": [
+            {
+              "rule": "arithmetic_or_bitwise",
+              "line": 31,
+              "before": "            state <= STATE_WALK_LEFT;",
+              "after": "            state <= (STATE_WALK_LEFT) & 1;",
+              "orig": "STATE_WALK_LEFT",
+              "changed": "(STATE_WALK_LEFT) & 1",
+              "guard": "(areset)",
+              "lhs": "state",
+              "width": 1
+            }
+          ],
+          "id": "G1-39",
+          "screen_differences": [
+            0,
+            0,
+            0
+          ],
+          "retained": false
+        },
+        {
+          "edits": [
+            {
+              "rule": "deleted_assignment",
+              "line": 36,
+              "before": "                fall_count <= fall_count + 1;",
+              "after": "                fall_count <= fall_count;",
+              "orig": "fall_count + 1",
+              "changed": "fall_count",
+              "guard": "(next_state == STATE_FALL_LEFT || next_state == STATE_FALL_RIGHT)",
+              "lhs": "fall_count",
+              "width": 5
+            }
+          ],
+          "id": "G1-40",
+          "screen_differences": [
+            0,
+            0,
+            0
+          ],
+          "retained": false
+        }
+      ],
+      "invalid": [],
+      "attempted": 40,
+      "retained": 24
+    },
+    {
+      "candidates": [
+        {
+          "edits": [
+            {
+              "rule": "clock_edge",
+              "line": 29,
+              "before": "    always_ff @(posedge clk or posedge areset) begin",
+              "after": "    always_ff @(posedge clk or negedge areset) begin",
+              "orig": "posedge",
+              "changed": "negedge",
+              "guard": "1'b1",
+              "lhs": "",
+              "width": 1
+            }
+          ],
+          "id": "GX-01",
+          "screen_differences": [
+            76,
+            42,
+            4
+          ],
+          "retained": true
+        },
+        {
+          "edits": [
+            {
+              "rule": "removed_condition",
+              "line": 30,
+              "before": "        if (areset) begin",
+              "after": "        if (1'b0) begin",
+              "orig": "areset",
+              "changed": "1'b0",
+              "guard": "1'b1",
+              "lhs": "",
+              "width": 1
+            },
+            {
+              "rule": "clock_edge",
+              "line": 29,
+              "before": "    always_ff @(posedge clk or posedge areset) begin",
+              "after": "    always_ff @(posedge clk or negedge areset) begin",
+              "orig": "posedge",
+              "changed": "negedge",
+              "guard": "1'b1",
+              "lhs": "",
+              "width": 1
+            }
+          ],
+          "id": "GX-61",
+          "screen_differences": [
+            414,
+            268,
+            384
+          ],
+          "retained": true
+        },
+        {
+          "edits": [
+            {
+              "rule": "temporal_control",
+              "line": 30,
+              "before": "        if (areset) begin",
+              "after": "        if (1'b0) begin",
+              "orig": "areset",
+              "changed": "1'b0",
+              "guard": "1'b1",
+              "lhs": "",
+              "width": 1
+            }
+          ],
+          "id": "GX-04",
+          "screen_differences": [
+            400,
+            386,
+            380
+          ],
+          "retained": true
+        },
+        {
+          "edits": [
+            {
+              "rule": "removed_condition",
+              "line": 30,
+              "before": "        if (areset) begin",
+              "after": "        if (1'b0) begin",
+              "orig": "areset",
+              "changed": "1'b0",
+              "guard": "1'b1",
+              "lhs": "",
+              "width": 1
+            },
+            {
+              "rule": "unary_operator",
+              "line": 31,
+              "before": "            state <= STATE_WALK_LEFT;",
+              "after": "            state <= ~(STATE_WALK_LEFT);",
+              "orig": "STATE_WALK_LEFT",
+              "changed": "~(STATE_WALK_LEFT)",
+              "guard": "(areset)",
+              "lhs": "state",
+              "width": 1
+            }
+          ],
+          "id": "GX-53",
+          "screen_differences": [
+            400,
+            386,
+            380
+          ],
+          "retained": true
+        },
+        {
+          "edits": [
+            {
+              "rule": "removed_condition",
+              "line": 30,
+              "before": "        if (areset) begin",
+              "after": "        if (1'b0) begin",
+              "orig": "areset",
+              "changed": "1'b0",
+              "guard": "1'b1",
+              "lhs": "",
+              "width": 1
+            },
+            {
+              "rule": "arithmetic_or_bitwise",
+              "line": 31,
+              "before": "            state <= STATE_WALK_LEFT;",
+              "after": "            state <= (STATE_WALK_LEFT) + 1;",
+              "orig": "STATE_WALK_LEFT",
+              "changed": "(STATE_WALK_LEFT) + 1",
+              "guard": "(areset)",
+              "lhs": "state",
+              "width": 1
+            }
+          ],
+          "id": "GX-54",
+          "screen_differences": [
+            400,
+            386,
+            380
+          ],
+          "retained": true
+        },
+        {
+          "edits": [
+            {
+              "rule": "removed_condition",
+              "line": 30,
+              "before": "        if (areset) begin",
+              "after": "        if (1'b0) begin",
+              "orig": "areset",
+              "changed": "1'b0",
+              "guard": "1'b1",
+              "lhs": "",
+              "width": 1
+            },
+            {
+              "rule": "deleted_assignment",
+              "line": 31,
+              "before": "            state <= STATE_WALK_LEFT;",
+              "after": "            state <= state;",
+              "orig": "STATE_WALK_LEFT",
+              "changed": "state",
+              "guard": "(areset)",
+              "lhs": "state",
+              "width": 1
+            }
+          ],
+          "id": "GX-55",
+          "screen_differences": [
+            400,
+            386,
+            380
+          ],
+          "retained": true
+        },
+        {
+          "edits": [
+            {
+              "rule": "removed_condition",
+              "line": 30,
+              "before": "        if (areset) begin",
+              "after": "        if (1'b0) begin",
+              "orig": "areset",
+              "changed": "1'b0",
+              "guard": "1'b1",
+              "lhs": "",
+              "width": 1
+            },
+            {
+              "rule": "unary_operator",
+              "line": 31,
+              "before": "            state <= STATE_WALK_LEFT;",
+              "after": "            state <= !(STATE_WALK_LEFT);",
+              "orig": "STATE_WALK_LEFT",
+              "changed": "!(STATE_WALK_LEFT)",
+              "guard": "(areset)",
+              "lhs": "state",
+              "width": 1
+            }
+          ],
+          "id": "GX-56",
+          "screen_differences": [
+            400,
+            386,
+            380
+          ],
+          "retained": true
+        },
+        {
+          "edits": [
+            {
+              "rule": "removed_condition",
+              "line": 30,
+              "before": "        if (areset) begin",
+              "after": "        if (1'b0) begin",
+              "orig": "areset",
+              "changed": "1'b0",
+              "guard": "1'b1",
+              "lhs": "",
+              "width": 1
+            },
+            {
+              "rule": "arithmetic_or_bitwise",
+              "line": 31,
+              "before": "            state <= STATE_WALK_LEFT;",
+              "after": "            state <= (STATE_WALK_LEFT) - 1;",
+              "orig": "STATE_WALK_LEFT",
+              "changed": "(STATE_WALK_LEFT) - 1",
+              "guard": "(areset)",
+              "lhs": "state",
+              "width": 1
+            }
+          ],
+          "id": "GX-57",
+          "screen_differences": [
+            400,
+            386,
+            380
+          ],
+          "retained": true
+        },
+        {
+          "edits": [
+            {
+              "rule": "removed_condition",
+              "line": 30,
+              "before": "        if (areset) begin",
+              "after": "        if (1'b0) begin",
+              "orig": "areset",
+              "changed": "1'b0",
+              "guard": "1'b1",
+              "lhs": "",
+              "width": 1
+            },
+            {
+              "rule": "replaced_assignment",
+              "line": 31,
+              "before": "            state <= STATE_WALK_LEFT;",
+              "after": "            state <= 1'd1;",
+              "orig": "STATE_WALK_LEFT",
+              "changed": "1'd1",
+              "guard": "(areset)",
+              "lhs": "state",
+              "width": 1
+            }
+          ],
+          "id": "GX-58",
+          "screen_differences": [
+            400,
+            386,
+            380
+          ],
+          "retained": true
+        },
+        {
+          "edits": [
+            {
+              "rule": "removed_condition",
+              "line": 30,
+              "before": "        if (areset) begin",
+              "after": "        if (1'b0) begin",
+              "orig": "areset",
+              "changed": "1'b0",
+              "guard": "1'b1",
+              "lhs": "",
+              "width": 1
+            },
+            {
+              "rule": "arithmetic_or_bitwise",
+              "line": 31,
+              "before": "            state <= STATE_WALK_LEFT;",
+              "after": "            state <= (STATE_WALK_LEFT) ^ 1;",
+              "orig": "STATE_WALK_LEFT",
+              "changed": "(STATE_WALK_LEFT) ^ 1",
+              "guard": "(areset)",
+              "lhs": "state",
+              "width": 1
+            }
+          ],
+          "id": "GX-59",
+          "screen_differences": [
+            400,
+            386,
+            380
+          ],
+          "retained": true
+        },
+        {
+          "edits": [
+            {
+              "rule": "removed_condition",
+              "line": 30,
+              "before": "        if (areset) begin",
+              "after": "        if (1'b0) begin",
+              "orig": "areset",
+              "changed": "1'b0",
+              "guard": "1'b1",
+              "lhs": "",
+              "width": 1
+            },
+            {
+              "rule": "replaced_assignment",
+              "line": 31,
+              "before": "            state <= STATE_WALK_LEFT;",
+              "after": "            state <= areset;",
+              "orig": "STATE_WALK_LEFT",
+              "changed": "areset",
+              "guard": "(areset)",
+              "lhs": "state",
+              "width": 1
+            }
+          ],
+          "id": "GX-60",
+          "screen_differences": [
+            400,
+            386,
+            380
+          ],
+          "retained": true
+        },
+        {
+          "edits": [
+            {
+              "rule": "removed_condition",
+              "line": 30,
+              "before": "        if (areset) begin",
+              "after": "        if (1'b0) begin",
+              "orig": "areset",
+              "changed": "1'b0",
+              "guard": "1'b1",
+              "lhs": "",
+              "width": 1
+            },
+            {
+              "rule": "temporal_reset",
+              "line": 29,
+              "before": "    always_ff @(posedge clk or posedge areset) begin",
+              "after": "    always_ff @(posedge clk) begin",
+              "orig": "1'b1",
+              "changed": "1'b0",
+              "guard": "1'b1",
+              "lhs": "",
+              "width": 1
+            }
+          ],
+          "id": "GX-62",
+          "screen_differences": [
+            476,
+            336,
+            390
+          ],
+          "retained": true
+        }
+      ],
+      "retained": 12
+    },
+    {
+      "candidates": [
+        {
+          "edits": [
+            {
+              "rule": "arithmetic_or_bitwise",
+              "line": 31,
+              "before": "            state <= STATE_WALK_LEFT;",
+              "after": "            state <= (STATE_WALK_LEFT) + 1;",
+              "orig": "STATE_WALK_LEFT",
+              "changed": "(STATE_WALK_LEFT) + 1",
+              "guard": "(areset)",
+              "lhs": "state",
+              "width": 1
+            },
+            {
+              "rule": "bit_index_offset",
+              "line": 36,
+              "before": "                fall_count <= fall_count + 1;",
+              "after": "                fall_count <= (fall_count << 1) + 1;",
+              "orig": "fall_count + 1",
+              "changed": "(fall_count << 1) + 1",
+              "guard": "(next_state == STATE_FALL_LEFT || next_state == STATE_FALL_RIGHT)",
+              "lhs": "fall_count",
+              "width": 5
+            }
+          ],
+          "id": "GX-11",
+          "screen_differences": [
+            1206,
+            1188,
+            1095
+          ],
+          "retained": true
+        },
+        {
+          "edits": [
+            {
+              "rule": "bit_index_offset",
+              "line": 36,
+              "before": "                fall_count <= fall_count + 1;",
+              "after": "                fall_count <= (fall_count << 1) + 1;",
+              "orig": "fall_count + 1",
+              "changed": "(fall_count << 1) + 1",
+              "guard": "(next_state == STATE_FALL_LEFT || next_state == STATE_FALL_RIGHT)",
+              "lhs": "fall_count",
+              "width": 5
+            },
+            {
+              "rule": "unary_operator",
+              "line": 31,
+              "before": "            state <= STATE_WALK_LEFT;",
+              "after": "            state <= !(STATE_WALK_LEFT);",
+              "orig": "STATE_WALK_LEFT",
+              "changed": "!(STATE_WALK_LEFT)",
+              "guard": "(areset)",
+              "lhs": "state",
+              "width": 1
+            }
+          ],
+          "id": "GX-19",
+          "screen_differences": [
+            1206,
+            1188,
+            1095
+          ],
+          "retained": true
+        },
+        {
+          "edits": [
+            {
+              "rule": "bit_index_offset",
+              "line": 36,
+              "before": "                fall_count <= fall_count + 1;",
+              "after": "                fall_count <= (fall_count << 1) + 1;",
+              "orig": "fall_count + 1",
+              "changed": "(fall_count << 1) + 1",
+              "guard": "(next_state == STATE_FALL_LEFT || next_state == STATE_FALL_RIGHT)",
+              "lhs": "fall_count",
+              "width": 5
+            },
+            {
+              "rule": "replaced_assignment",
+              "line": 31,
+              "before": "            state <= STATE_WALK_LEFT;",
+              "after": "            state <= 1'd1;",
+              "orig": "STATE_WALK_LEFT",
+              "changed": "1'd1",
+              "guard": "(areset)",
+              "lhs": "state",
+              "width": 1
+            }
+          ],
+          "id": "GX-21",
+          "screen_differences": [
+            1206,
+            1188,
+            1095
+          ],
+          "retained": true
+        },
+        {
+          "edits": [
+            {
+              "rule": "bit_index_offset",
+              "line": 36,
+              "before": "                fall_count <= fall_count + 1;",
+              "after": "                fall_count <= (fall_count << 1) + 1;",
+              "orig": "fall_count + 1",
+              "changed": "(fall_count << 1) + 1",
+              "guard": "(next_state == STATE_FALL_LEFT || next_state == STATE_FALL_RIGHT)",
+              "lhs": "fall_count",
+              "width": 5
+            },
+            {
+              "rule": "arithmetic_or_bitwise",
+              "line": 31,
+              "before": "            state <= STATE_WALK_LEFT;",
+              "after": "            state <= (STATE_WALK_LEFT) ^ 1;",
+              "orig": "STATE_WALK_LEFT",
+              "changed": "(STATE_WALK_LEFT) ^ 1",
+              "guard": "(areset)",
+              "lhs": "state",
+              "width": 1
+            }
+          ],
+          "id": "GX-22",
+          "screen_differences": [
+            1206,
+            1188,
+            1095
+          ],
+          "retained": true
+        },
+        {
+          "edits": [
+            {
+              "rule": "bit_index_offset",
+              "line": 36,
+              "before": "                fall_count <= fall_count + 1;",
+              "after": "                fall_count <= (fall_count << 1) + 1;",
+              "orig": "fall_count + 1",
+              "changed": "(fall_count << 1) + 1",
+              "guard": "(next_state == STATE_FALL_LEFT || next_state == STATE_FALL_RIGHT)",
+              "lhs": "fall_count",
+              "width": 5
+            },
+            {
+              "rule": "replaced_assignment",
+              "line": 31,
+              "before": "            state <= STATE_WALK_LEFT;",
+              "after": "            state <= areset;",
+              "orig": "STATE_WALK_LEFT",
+              "changed": "areset",
+              "guard": "(areset)",
+              "lhs": "state",
+              "width": 1
+            }
+          ],
+          "id": "GX-23",
+          "screen_differences": [
+            1206,
+            1188,
+            1095
+          ],
+          "retained": true
+        },
+        {
+          "edits": [
+            {
+              "rule": "deleted_assignment",
+              "line": 31,
+              "before": "            state <= STATE_WALK_LEFT;",
+              "after": "            state <= state;",
+              "orig": "STATE_WALK_LEFT",
+              "changed": "state",
+              "guard": "(areset)",
+              "lhs": "state",
+              "width": 1
+            },
+            {
+              "rule": "bit_index_offset",
+              "line": 36,
+              "before": "                fall_count <= fall_count + 1;",
+              "after": "                fall_count <= (fall_count << 1) + 1;",
+              "orig": "fall_count + 1",
+              "changed": "(fall_count << 1) + 1",
+              "guard": "(next_state == STATE_FALL_LEFT || next_state == STATE_FALL_RIGHT)",
+              "lhs": "fall_count",
+              "width": 5
+            }
+          ],
+          "id": "GX-13",
+          "screen_differences": [
+            1953,
+            2000,
+            1854
+          ],
+          "retained": true
+        },
+        {
+          "edits": [
+            {
+              "rule": "arithmetic_or_bitwise",
+              "line": 31,
+              "before": "            state <= STATE_WALK_LEFT;",
+              "after": "            state <= (STATE_WALK_LEFT) + 1;",
+              "orig": "STATE_WALK_LEFT",
+              "changed": "(STATE_WALK_LEFT) + 1",
+              "guard": "(areset)",
+              "lhs": "state",
+              "width": 1
+            },
+            {
+              "rule": "operator_replacement",
+              "line": 36,
+              "before": "                fall_count <= fall_count + 1;",
+              "after": "                fall_count <= fall_count - 1;",
+              "orig": "fall_count + 1",
+              "changed": "fall_count - 1",
+              "guard": "(next_state == STATE_FALL_LEFT || next_state == STATE_FALL_RIGHT)",
+              "lhs": "fall_count",
+              "width": 5
+            }
+          ],
+          "id": "GX-10",
+          "screen_differences": [
+            1958,
+            1957,
+            1966
+          ],
+          "retained": true
+        },
+        {
+          "edits": [
+            {
+              "rule": "operator_replacement",
+              "line": 36,
+              "before": "                fall_count <= fall_count + 1;",
+              "after": "                fall_count <= fall_count - 1;",
+              "orig": "fall_count + 1",
+              "changed": "fall_count - 1",
+              "guard": "(next_state == STATE_FALL_LEFT || next_state == STATE_FALL_RIGHT)",
+              "lhs": "fall_count",
+              "width": 5
+            },
+            {
+              "rule": "unary_operator",
+              "line": 31,
+              "before": "            state <= STATE_WALK_LEFT;",
+              "after": "            state <= !(STATE_WALK_LEFT);",
+              "orig": "STATE_WALK_LEFT",
+              "changed": "!(STATE_WALK_LEFT)",
+              "guard": "(areset)",
+              "lhs": "state",
+              "width": 1
+            }
+          ],
+          "id": "GX-14",
+          "screen_differences": [
+            1958,
+            1957,
+            1966
+          ],
+          "retained": true
+        },
+        {
+          "edits": [
+            {
+              "rule": "operator_replacement",
+              "line": 36,
+              "before": "                fall_count <= fall_count + 1;",
+              "after": "                fall_count <= fall_count - 1;",
+              "orig": "fall_count + 1",
+              "changed": "fall_count - 1",
+              "guard": "(next_state == STATE_FALL_LEFT || next_state == STATE_FALL_RIGHT)",
+              "lhs": "fall_count",
+              "width": 5
+            },
+            {
+              "rule": "replaced_assignment",
+              "line": 31,
+              "before": "            state <= STATE_WALK_LEFT;",
+              "after": "            state <= 1'd1;",
+              "orig": "STATE_WALK_LEFT",
+              "changed": "1'd1",
+              "guard": "(areset)",
+              "lhs": "state",
+              "width": 1
+            }
+          ],
+          "id": "GX-16",
+          "screen_differences": [
+            1958,
+            1957,
+            1966
+          ],
+          "retained": true
+        },
+        {
+          "edits": [
+            {
+              "rule": "operator_replacement",
+              "line": 36,
+              "before": "                fall_count <= fall_count + 1;",
+              "after": "                fall_count <= fall_count - 1;",
+              "orig": "fall_count + 1",
+              "changed": "fall_count - 1",
+              "guard": "(next_state == STATE_FALL_LEFT || next_state == STATE_FALL_RIGHT)",
+              "lhs": "fall_count",
+              "width": 5
+            },
+            {
+              "rule": "arithmetic_or_bitwise",
+              "line": 31,
+              "before": "            state <= STATE_WALK_LEFT;",
+              "after": "            state <= (STATE_WALK_LEFT) ^ 1;",
+              "orig": "STATE_WALK_LEFT",
+              "changed": "(STATE_WALK_LEFT) ^ 1",
+              "guard": "(areset)",
+              "lhs": "state",
+              "width": 1
+            }
+          ],
+          "id": "GX-17",
+          "screen_differences": [
+            1958,
+            1957,
+            1966
+          ],
+          "retained": true
+        },
+        {
+          "edits": [
+            {
+              "rule": "operator_replacement",
+              "line": 36,
+              "before": "                fall_count <= fall_count + 1;",
+              "after": "                fall_count <= fall_count - 1;",
+              "orig": "fall_count + 1",
+              "changed": "fall_count - 1",
+              "guard": "(next_state == STATE_FALL_LEFT || next_state == STATE_FALL_RIGHT)",
+              "lhs": "fall_count",
+              "width": 5
+            },
+            {
+              "rule": "replaced_assignment",
+              "line": 31,
+              "before": "            state <= STATE_WALK_LEFT;",
+              "after": "            state <= areset;",
+              "orig": "STATE_WALK_LEFT",
+              "changed": "areset",
+              "guard": "(areset)",
+              "lhs": "state",
+              "width": 1
+            }
+          ],
+          "id": "GX-18",
+          "screen_differences": [
+            1958,
+            1957,
+            1966
+          ],
+          "retained": true
+        },
+        {
+          "edits": [
+            {
+              "rule": "unary_operator",
+              "line": 31,
+              "before": "            state <= STATE_WALK_LEFT;",
+              "after": "            state <= ~(STATE_WALK_LEFT);",
+              "orig": "STATE_WALK_LEFT",
+              "changed": "~(STATE_WALK_LEFT)",
+              "guard": "(areset)",
+              "lhs": "state",
+              "width": 1
+            },
+            {
+              "rule": "operator_replacement",
+              "line": 36,
+              "before": "                fall_count <= fall_count + 1;",
+              "after": "                fall_count <= fall_count - 1;",
+              "orig": "fall_count + 1",
+              "changed": "fall_count - 1",
+              "guard": "(next_state == STATE_FALL_LEFT || next_state == STATE_FALL_RIGHT)",
+              "lhs": "fall_count",
+              "width": 5
+            }
+          ],
+          "id": "GX-08",
+          "screen_differences": [
+            2000,
+            2000,
+            2000
+          ],
+          "retained": true
+        }
+      ],
+      "retained": 12
+    },
+    {
+      "candidates": [
+        {
+          "edits": [
+            {
+              "rule": "unary_operator",
+              "line": 31,
+              "before": "            state <= STATE_WALK_LEFT;",
+              "after": "            state <= ~(STATE_WALK_LEFT);",
+              "orig": "STATE_WALK_LEFT",
+              "changed": "~(STATE_WALK_LEFT)",
+              "guard": "(areset)",
+              "lhs": "state",
+              "width": 1
+            },
+            {
+              "rule": "bit_index_offset",
+              "line": 36,
+              "before": "                fall_count <= fall_count + 1;",
+              "after": "                fall_count <= (fall_count << 1) + 1;",
+              "orig": "fall_count + 1",
+              "changed": "(fall_count << 1) + 1",
+              "guard": "(next_state == STATE_FALL_LEFT || next_state == STATE_FALL_RIGHT)",
+              "lhs": "fall_count",
+              "width": 5
+            }
+          ],
+          "id": "GX-09",
+          "screen_differences": [
+            2000,
+            2000,
+            2000
+          ],
+          "retained": true
+        },
+        {
+          "edits": [
+            {
+              "rule": "operator_replacement",
+              "line": 36,
+              "before": "                fall_count <= fall_count + 1;",
+              "after": "                fall_count <= fall_count - 1;",
+              "orig": "fall_count + 1",
+              "changed": "fall_count - 1",
+              "guard": "(next_state == STATE_FALL_LEFT || next_state == STATE_FALL_RIGHT)",
+              "lhs": "fall_count",
+              "width": 5
+            },
+            {
+              "rule": "arithmetic_or_bitwise",
+              "line": 31,
+              "before": "            state <= STATE_WALK_LEFT;",
+              "after": "            state <= (STATE_WALK_LEFT) - 1;",
+              "orig": "STATE_WALK_LEFT",
+              "changed": "(STATE_WALK_LEFT) - 1",
+              "guard": "(areset)",
+              "lhs": "state",
+              "width": 1
+            }
+          ],
+          "id": "GX-15",
+          "screen_differences": [
+            2000,
+            2000,
+            2000
+          ],
+          "retained": true
+        },
+        {
+          "edits": [
+            {
+              "rule": "bit_index_offset",
+              "line": 36,
+              "before": "                fall_count <= fall_count + 1;",
+              "after": "                fall_count <= (fall_count << 1) + 1;",
+              "orig": "fall_count + 1",
+              "changed": "(fall_count << 1) + 1",
+              "guard": "(next_state == STATE_FALL_LEFT || next_state == STATE_FALL_RIGHT)",
+              "lhs": "fall_count",
+              "width": 5
+            },
+            {
+              "rule": "arithmetic_or_bitwise",
+              "line": 31,
+              "before": "            state <= STATE_WALK_LEFT;",
+              "after": "            state <= (STATE_WALK_LEFT) - 1;",
+              "orig": "STATE_WALK_LEFT",
+              "changed": "(STATE_WALK_LEFT) - 1",
+              "guard": "(areset)",
+              "lhs": "state",
+              "width": 1
+            }
+          ],
+          "id": "GX-20",
+          "screen_differences": [
+            2000,
+            2000,
+            2000
+          ],
+          "retained": true
+        },
+        {
+          "edits": [
+            {
+              "rule": "deleted_assignment",
+              "line": 34,
+              "before": "            state <= next_state;",
+              "after": "            state <= state;",
+              "orig": "next_state",
+              "changed": "state",
+              "guard": "!(areset)",
+              "lhs": "state",
+              "width": 1
+            },
+            {
+              "rule": "operator_replacement",
+              "line": 110,
+              "before": "    assign walk_left = (state == STATE_WALK_LEFT);",
+              "after": "    assign walk_left = (state != STATE_WALK_LEFT);",
+              "orig": "(state == STATE_WALK_LEFT)",
+              "changed": "(state != STATE_WALK_LEFT)",
+              "guard": "!(!ground)",
+              "lhs": "walk_left",
+              "width": 1
+            }
+          ],
+          "id": "GX-26",
+          "screen_differences": [
+            2000,
+            2000,
+            2000
+          ],
+          "retained": true
+        },
+        {
+          "edits": [
+            {
+              "rule": "arithmetic_or_bitwise",
+              "line": 31,
+              "before": "            state <= STATE_WALK_LEFT;",
+              "after": "            state <= (STATE_WALK_LEFT) + 1;",
+              "orig": "STATE_WALK_LEFT",
+              "changed": "(STATE_WALK_LEFT) + 1",
+              "guard": "(areset)",
+              "lhs": "state",
+              "width": 1
+            },
+            {
+              "rule": "operator_replacement",
+              "line": 110,
+              "before": "    assign walk_left = (state == STATE_WALK_LEFT);",
+              "after": "    assign walk_left = (state != STATE_WALK_LEFT);",
+              "orig": "(state == STATE_WALK_LEFT)",
+              "changed": "(state != STATE_WALK_LEFT)",
+              "guard": "!(!ground)",
+              "lhs": "walk_left",
+              "width": 1
+            }
+          ],
+          "id": "GX-28",
+          "screen_differences": [
+            2000,
+            2000,
+            2000
+          ],
+          "retained": true
+        },
+        {
+          "edits": [
+            {
+              "rule": "unary_operator",
+              "line": 31,
+              "before": "            state <= STATE_WALK_LEFT;",
+              "after": "            state <= !(STATE_WALK_LEFT);",
+              "orig": "STATE_WALK_LEFT",
+              "changed": "!(STATE_WALK_LEFT)",
+              "guard": "(areset)",
+              "lhs": "state",
+              "width": 1
+            },
+            {
+              "rule": "operator_replacement",
+              "line": 110,
+              "before": "    assign walk_left = (state == STATE_WALK_LEFT);",
+              "after": "    assign walk_left = (state != STATE_WALK_LEFT);",
+              "orig": "(state == STATE_WALK_LEFT)",
+              "changed": "(state != STATE_WALK_LEFT)",
+              "guard": "!(!ground)",
+              "lhs": "walk_left",
+              "width": 1
+            }
+          ],
+          "id": "GX-30",
+          "screen_differences": [
+            2000,
+            2000,
+            2000
+          ],
+          "retained": true
+        },
+        {
+          "edits": [
+            {
+              "rule": "replaced_assignment",
+              "line": 31,
+              "before": "            state <= STATE_WALK_LEFT;",
+              "after": "            state <= 1'd1;",
+              "orig": "STATE_WALK_LEFT",
+              "changed": "1'd1",
+              "guard": "(areset)",
+              "lhs": "state",
+              "width": 1
+            },
+            {
+              "rule": "operator_replacement",
+              "line": 110,
+              "before": "    assign walk_left = (state == STATE_WALK_LEFT);",
+              "after": "    assign walk_left = (state != STATE_WALK_LEFT);",
+              "orig": "(state == STATE_WALK_LEFT)",
+              "changed": "(state != STATE_WALK_LEFT)",
+              "guard": "!(!ground)",
+              "lhs": "walk_left",
+              "width": 1
+            }
+          ],
+          "id": "GX-32",
+          "screen_differences": [
+            2000,
+            2000,
+            2000
+          ],
+          "retained": true
+        },
+        {
+          "edits": [
+            {
+              "rule": "arithmetic_or_bitwise",
+              "line": 31,
+              "before": "            state <= STATE_WALK_LEFT;",
+              "after": "            state <= (STATE_WALK_LEFT) ^ 1;",
+              "orig": "STATE_WALK_LEFT",
+              "changed": "(STATE_WALK_LEFT) ^ 1",
+              "guard": "(areset)",
+              "lhs": "state",
+              "width": 1
+            },
+            {
+              "rule": "operator_replacement",
+              "line": 110,
+              "before": "    assign walk_left = (state == STATE_WALK_LEFT);",
+              "after": "    assign walk_left = (state != STATE_WALK_LEFT);",
+              "orig": "(state == STATE_WALK_LEFT)",
+              "changed": "(state != STATE_WALK_LEFT)",
+              "guard": "!(!ground)",
+              "lhs": "walk_left",
+              "width": 1
+            }
+          ],
+          "id": "GX-33",
+          "screen_differences": [
+            2000,
+            2000,
+            2000
+          ],
+          "retained": true
+        },
+        {
+          "edits": [
+            {
+              "rule": "replaced_assignment",
+              "line": 31,
+              "before": "            state <= STATE_WALK_LEFT;",
+              "after": "            state <= areset;",
+              "orig": "STATE_WALK_LEFT",
+              "changed": "areset",
+              "guard": "(areset)",
+              "lhs": "state",
+              "width": 1
+            },
+            {
+              "rule": "operator_replacement",
+              "line": 110,
+              "before": "    assign walk_left = (state == STATE_WALK_LEFT);",
+              "after": "    assign walk_left = (state != STATE_WALK_LEFT);",
+              "orig": "(state == STATE_WALK_LEFT)",
+              "changed": "(state != STATE_WALK_LEFT)",
+              "guard": "!(!ground)",
+              "lhs": "walk_left",
+              "width": 1
+            }
+          ],
+          "id": "GX-34",
+          "screen_differences": [
+            2000,
+            2000,
+            2000
+          ],
+          "retained": true
+        },
+        {
+          "edits": [
+            {
+              "rule": "negated_condition",
+              "line": 30,
+              "before": "        if (areset) begin",
+              "after": "        if (!(areset)) begin",
+              "orig": "areset",
+              "changed": "!(areset)",
+              "guard": "1'b1",
+              "lhs": "",
+              "width": 1
+            },
+            {
+              "rule": "unary_operator",
+              "line": 31,
+              "before": "            state <= STATE_WALK_LEFT;",
+              "after": "            state <= ~(STATE_WALK_LEFT);",
+              "orig": "STATE_WALK_LEFT",
+              "changed": "~(STATE_WALK_LEFT)",
+              "guard": "(areset)",
+              "lhs": "state",
+              "width": 1
+            }
+          ],
+          "id": "GX-43",
+          "screen_differences": [
+            2001,
+            1999,
+            2001
+          ],
+          "retained": true
+        },
+        {
+          "edits": [
+            {
+              "rule": "negated_condition",
+              "line": 30,
+              "before": "        if (areset) begin",
+              "after": "        if (!(areset)) begin",
+              "orig": "areset",
+              "changed": "!(areset)",
+              "guard": "1'b1",
+              "lhs": "",
+              "width": 1
+            },
+            {
+              "rule": "arithmetic_or_bitwise",
+              "line": 31,
+              "before": "            state <= STATE_WALK_LEFT;",
+              "after": "            state <= (STATE_WALK_LEFT) - 1;",
+              "orig": "STATE_WALK_LEFT",
+              "changed": "(STATE_WALK_LEFT) - 1",
+              "guard": "(areset)",
+              "lhs": "state",
+              "width": 1
+            }
+          ],
+          "id": "GX-47",
+          "screen_differences": [
+            2001,
+            1999,
+            2001
+          ],
+          "retained": true
+        },
+        {
+          "edits": [
+            {
+              "rule": "deleted_assignment",
+              "line": 31,
+              "before": "            state <= STATE_WALK_LEFT;",
+              "after": "            state <= state;",
+              "orig": "STATE_WALK_LEFT",
+              "changed": "state",
+              "guard": "(areset)",
+              "lhs": "state",
+              "width": 1
+            },
+            {
+              "rule": "operator_replacement",
+              "line": 36,
+              "before": "                fall_count <= fall_count + 1;",
+              "after": "                fall_count <= fall_count - 1;",
+              "orig": "fall_count + 1",
+              "changed": "fall_count - 1",
+              "guard": "(next_state == STATE_FALL_LEFT || next_state == STATE_FALL_RIGHT)",
+              "lhs": "fall_count",
+              "width": 5
+            }
+          ],
+          "id": "GX-12",
+          "screen_differences": [
+            2003,
+            2004,
+            2002
+          ],
+          "retained": true
+        }
+      ],
+      "retained": 12
+    },
+    {
+      "candidates": [
+        {
+          "edits": [
+            {
+              "rule": "deleted_assignment",
+              "line": 31,
+              "before": "            state <= STATE_WALK_LEFT;",
+              "after": "            state <= state;",
+              "orig": "STATE_WALK_LEFT",
+              "changed": "state",
+              "guard": "(areset)",
+              "lhs": "state",
+              "width": 1
+            },
+            {
+              "rule": "operator_replacement",
+              "line": 110,
+              "before": "    assign walk_left = (state == STATE_WALK_LEFT);",
+              "after": "    assign walk_left = (state != STATE_WALK_LEFT);",
+              "orig": "(state == STATE_WALK_LEFT)",
+              "changed": "(state != STATE_WALK_LEFT)",
+              "guard": "!(!ground)",
+              "lhs": "walk_left",
+              "width": 1
+            }
+          ],
+          "id": "GX-29",
+          "screen_differences": [
+            2019,
+            2027,
+            2009
+          ],
+          "retained": true
+        },
+        {
+          "edits": [
+            {
+              "rule": "bit_index_offset",
+              "line": 36,
+              "before": "                fall_count <= fall_count + 1;",
+              "after": "                fall_count <= (fall_count << 1) + 1;",
+              "orig": "fall_count + 1",
+              "changed": "(fall_count << 1) + 1",
+              "guard": "(next_state == STATE_FALL_LEFT || next_state == STATE_FALL_RIGHT)",
+              "lhs": "fall_count",
+              "width": 5
+            },
+            {
+              "rule": "operator_replacement",
+              "line": 110,
+              "before": "    assign walk_left = (state == STATE_WALK_LEFT);",
+              "after": "    assign walk_left = (state != STATE_WALK_LEFT);",
+              "orig": "(state == STATE_WALK_LEFT)",
+              "changed": "(state != STATE_WALK_LEFT)",
+              "guard": "!(!ground)",
+              "lhs": "walk_left",
+              "width": 1
+            }
+          ],
+          "id": "GX-25",
+          "screen_differences": [
+            2364,
+            2454,
+            2349
+          ],
+          "retained": true
+        },
+        {
+          "edits": [
+            {
+              "rule": "clock_edge",
+              "line": 29,
+              "before": "    always_ff @(posedge clk or posedge areset) begin",
+              "after": "    always_ff @(negedge clk or posedge areset) begin",
+              "orig": "posedge",
+              "changed": "negedge",
+              "guard": "1'b1",
+              "lhs": "",
+              "width": 1
+            },
+            {
+              "rule": "condition_operator",
+              "line": 30,
+              "before": "        if (areset) begin",
+              "after": "        if ((areset) && bump_right) begin",
+              "orig": "areset",
+              "changed": "(areset) && bump_right",
+              "guard": "1'b1",
+              "lhs": "",
+              "width": 1
+            }
+          ],
+          "id": "GX-42",
+          "screen_differences": [
+            2490,
+            2438,
+            2532
+          ],
+          "retained": true
+        },
+        {
+          "edits": [
+            {
+              "rule": "clock_edge",
+              "line": 29,
+              "before": "    always_ff @(posedge clk or posedge areset) begin",
+              "after": "    always_ff @(negedge clk or posedge areset) begin",
+              "orig": "posedge",
+              "changed": "negedge",
+              "guard": "1'b1",
+              "lhs": "",
+              "width": 1
+            },
+            {
+              "rule": "condition_operator",
+              "line": 30,
+              "before": "        if (areset) begin",
+              "after": "        if ((areset) && bump_left) begin",
+              "orig": "areset",
+              "changed": "(areset) && bump_left",
+              "guard": "1'b1",
+              "lhs": "",
+              "width": 1
+            }
+          ],
+          "id": "GX-38",
+          "screen_differences": [
+            2514,
+            2442,
+            2524
+          ],
+          "retained": true
+        },
+        {
+          "edits": [
+            {
+              "rule": "clock_edge",
+              "line": 29,
+              "before": "    always_ff @(posedge clk or posedge areset) begin",
+              "after": "    always_ff @(negedge clk or posedge areset) begin",
+              "orig": "posedge",
+              "changed": "negedge",
+              "guard": "1'b1",
+              "lhs": "",
+              "width": 1
+            },
+            {
+              "rule": "removed_condition",
+              "line": 30,
+              "before": "        if (areset) begin",
+              "after": "        if (1'b0) begin",
+              "orig": "areset",
+              "changed": "1'b0",
+              "guard": "1'b1",
+              "lhs": "",
+              "width": 1
+            }
+          ],
+          "id": "GX-36",
+          "screen_differences": [
+            2530,
+            2498,
+            2562
+          ],
+          "retained": true
+        },
+        {
+          "edits": [
+            {
+              "rule": "negated_condition",
+              "line": 30,
+              "before": "        if (areset) begin",
+              "after": "        if (!(areset)) begin",
+              "orig": "areset",
+              "changed": "!(areset)",
+              "guard": "1'b1",
+              "lhs": "",
+              "width": 1
+            },
+            {
+              "rule": "deleted_assignment",
+              "line": 31,
+              "before": "            state <= STATE_WALK_LEFT;",
+              "after": "            state <= state;",
+              "orig": "STATE_WALK_LEFT",
+              "changed": "state",
+              "guard": "(areset)",
+              "lhs": "state",
+              "width": 1
+            }
+          ],
+          "id": "GX-45",
+          "screen_differences": [
+            2736,
+            2436,
+            2498
+          ],
+          "retained": true
+        },
+        {
+          "edits": [
+            {
+              "rule": "clock_edge",
+              "line": 29,
+              "before": "    always_ff @(posedge clk or posedge areset) begin",
+              "after": "    always_ff @(negedge clk or posedge areset) begin",
+              "orig": "posedge",
+              "changed": "negedge",
+              "guard": "1'b1",
+              "lhs": "",
+              "width": 1
+            },
+            {
+              "rule": "condition_operator",
+              "line": 30,
+              "before": "        if (areset) begin",
+              "after": "        if ((areset) || bump_left) begin",
+              "orig": "areset",
+              "changed": "(areset) || bump_left",
+              "guard": "1'b1",
+              "lhs": "",
+              "width": 1
+            }
+          ],
+          "id": "GX-40",
+          "screen_differences": [
+            2780,
+            2830,
+            2740
+          ],
+          "retained": true
+        },
+        {
+          "edits": [
+            {
+              "rule": "clock_edge",
+              "line": 29,
+              "before": "    always_ff @(posedge clk or posedge areset) begin",
+              "after": "    always_ff @(negedge clk or posedge areset) begin",
+              "orig": "posedge",
+              "changed": "negedge",
+              "guard": "1'b1",
+              "lhs": "",
+              "width": 1
+            },
+            {
+              "rule": "condition_operator",
+              "line": 30,
+              "before": "        if (areset) begin",
+              "after": "        if ((areset) ^ bump_left) begin",
+              "orig": "areset",
+              "changed": "(areset) ^ bump_left",
+              "guard": "1'b1",
+              "lhs": "",
+              "width": 1
+            }
+          ],
+          "id": "GX-41",
+          "screen_differences": [
+            2804,
+            2864,
+            2778
+          ],
+          "retained": true
+        },
+        {
+          "edits": [
+            {
+              "rule": "operator_replacement",
+              "line": 36,
+              "before": "                fall_count <= fall_count + 1;",
+              "after": "                fall_count <= fall_count - 1;",
+              "orig": "fall_count + 1",
+              "changed": "fall_count - 1",
+              "guard": "(next_state == STATE_FALL_LEFT || next_state == STATE_FALL_RIGHT)",
+              "lhs": "fall_count",
+              "width": 5
+            },
+            {
+              "rule": "operator_replacement",
+              "line": 110,
+              "before": "    assign walk_left = (state == STATE_WALK_LEFT);",
+              "after": "    assign walk_left = (state != STATE_WALK_LEFT);",
+              "orig": "(state == STATE_WALK_LEFT)",
+              "changed": "(state != STATE_WALK_LEFT)",
+              "guard": "!(!ground)",
+              "lhs": "walk_left",
+              "width": 1
+            }
+          ],
+          "id": "GX-24",
+          "screen_differences": [
+            3060,
+            3121,
+            3076
+          ],
+          "retained": true
+        },
+        {
+          "edits": [
+            {
+              "rule": "temporal_control",
+              "line": 30,
+              "before": "        if (areset) begin",
+              "after": "        if (1'b1) begin",
+              "orig": "areset",
+              "changed": "1'b1",
+              "guard": "1'b1",
+              "lhs": "",
+              "width": 1
+            }
+          ],
+          "id": "GX-05",
+          "screen_differences": [
+            3112,
+            3164,
+            3100
+          ],
+          "retained": true
+        },
+        {
+          "edits": [
+            {
+              "rule": "operator_replacement",
+              "line": 36,
+              "before": "                fall_count <= fall_count + 1;",
+              "after": "                fall_count <= fall_count - 1;",
+              "orig": "fall_count + 1",
+              "changed": "fall_count - 1",
+              "guard": "(next_state == STATE_FALL_LEFT || next_state == STATE_FALL_RIGHT)",
+              "lhs": "fall_count",
+              "width": 5
+            },
+            {
+              "rule": "deleted_assignment",
+              "line": 34,
+              "before": "            state <= next_state;",
+              "after": "            state <= state;",
+              "orig": "next_state",
+              "changed": "state",
+              "guard": "!(areset)",
+              "lhs": "state",
+              "width": 1
+            }
+          ],
+          "id": "GX-06",
+          "screen_differences": [
+            3112,
+            3164,
+            3100
+          ],
+          "retained": true
+        },
+        {
+          "edits": [
+            {
+              "rule": "bit_index_offset",
+              "line": 36,
+              "before": "                fall_count <= fall_count + 1;",
+              "after": "                fall_count <= (fall_count << 1) + 1;",
+              "orig": "fall_count + 1",
+              "changed": "(fall_count << 1) + 1",
+              "guard": "(next_state == STATE_FALL_LEFT || next_state == STATE_FALL_RIGHT)",
+              "lhs": "fall_count",
+              "width": 5
+            },
+            {
+              "rule": "deleted_assignment",
+              "line": 34,
+              "before": "            state <= next_state;",
+              "after": "            state <= state;",
+              "orig": "next_state",
+              "changed": "state",
+              "guard": "!(areset)",
+              "lhs": "state",
+              "width": 1
+            }
+          ],
+          "id": "GX-07",
+          "screen_differences": [
+            3112,
+            3164,
+            3100
+          ],
+          "retained": true
+        }
+      ],
+      "retained": 12
+    }
+  ],
+  "advanced_screen": {
+    "candidates": [
+      {
+        "edits": [
+          {
+            "rule": "clock_edge",
+            "line": 29,
+            "before": "    always_ff @(posedge clk or posedge areset) begin",
+            "after": "    always_ff @(posedge clk or negedge areset) begin",
+            "orig": "posedge",
+            "changed": "negedge",
+            "guard": "1'b1",
+            "lhs": "",
+            "width": 1
+          }
+        ],
+        "id": "GX-01",
+        "screen_differences": [
+          76,
+          42,
+          4
+        ],
+        "retained": true
+      },
+      {
+        "edits": [
+          {
+            "rule": "temporal_reset",
+            "line": 29,
+            "before": "    always_ff @(posedge clk or posedge areset) begin",
+            "after": "    always_ff @(posedge clk) begin",
+            "orig": "1'b1",
+            "changed": "1'b0",
+            "guard": "1'b1",
+            "lhs": "",
+            "width": 1
+          }
+        ],
+        "id": "GX-02",
+        "screen_differences": [
+          0,
+          0,
+          0
+        ],
+        "retained": false
+      },
+      {
+        "edits": [
+          {
+            "rule": "temporal_control",
+            "line": 30,
+            "before": "        if (areset) begin",
+            "after": "        if (!(areset)) begin",
+            "orig": "areset",
+            "changed": "!(areset)",
+            "guard": "1'b1",
+            "lhs": "",
+            "width": 1
+          }
+        ],
+        "id": "GX-03",
+        "screen_differences": [
+          3204,
+          3270,
+          3208
+        ],
+        "retained": true
+      },
+      {
+        "edits": [
+          {
+            "rule": "temporal_control",
+            "line": 30,
+            "before": "        if (areset) begin",
+            "after": "        if (1'b0) begin",
+            "orig": "areset",
+            "changed": "1'b0",
+            "guard": "1'b1",
+            "lhs": "",
+            "width": 1
+          }
+        ],
+        "id": "GX-04",
+        "screen_differences": [
+          400,
+          386,
+          380
+        ],
+        "retained": true
+      },
+      {
+        "edits": [
+          {
+            "rule": "temporal_control",
+            "line": 30,
+            "before": "        if (areset) begin",
+            "after": "        if (1'b1) begin",
+            "orig": "areset",
+            "changed": "1'b1",
+            "guard": "1'b1",
+            "lhs": "",
+            "width": 1
+          }
+        ],
+        "id": "GX-05",
+        "screen_differences": [
+          3112,
+          3164,
+          3100
+        ],
+        "retained": true
+      },
+      {
+        "edits": [
+          {
+            "rule": "operator_replacement",
+            "line": 36,
+            "before": "                fall_count <= fall_count + 1;",
+            "after": "                fall_count <= fall_count - 1;",
+            "orig": "fall_count + 1",
+            "changed": "fall_count - 1",
+            "guard": "(next_state == STATE_FALL_LEFT || next_state == STATE_FALL_RIGHT)",
+            "lhs": "fall_count",
+            "width": 5
+          },
+          {
+            "rule": "deleted_assignment",
+            "line": 34,
+            "before": "            state <= next_state;",
+            "after": "            state <= state;",
+            "orig": "next_state",
+            "changed": "state",
+            "guard": "!(areset)",
+            "lhs": "state",
+            "width": 1
+          }
+        ],
+        "id": "GX-06",
+        "screen_differences": [
+          3112,
+          3164,
+          3100
+        ],
+        "retained": true
+      },
+      {
+        "edits": [
+          {
+            "rule": "bit_index_offset",
+            "line": 36,
+            "before": "                fall_count <= fall_count + 1;",
+            "after": "                fall_count <= (fall_count << 1) + 1;",
+            "orig": "fall_count + 1",
+            "changed": "(fall_count << 1) + 1",
+            "guard": "(next_state == STATE_FALL_LEFT || next_state == STATE_FALL_RIGHT)",
+            "lhs": "fall_count",
+            "width": 5
+          },
+          {
+            "rule": "deleted_assignment",
+            "line": 34,
+            "before": "            state <= next_state;",
+            "after": "            state <= state;",
+            "orig": "next_state",
+            "changed": "state",
+            "guard": "!(areset)",
+            "lhs": "state",
+            "width": 1
+          }
+        ],
+        "id": "GX-07",
+        "screen_differences": [
+          3112,
+          3164,
+          3100
+        ],
+        "retained": true
+      },
+      {
+        "edits": [
+          {
+            "rule": "unary_operator",
+            "line": 31,
+            "before": "            state <= STATE_WALK_LEFT;",
+            "after": "            state <= ~(STATE_WALK_LEFT);",
+            "orig": "STATE_WALK_LEFT",
+            "changed": "~(STATE_WALK_LEFT)",
+            "guard": "(areset)",
+            "lhs": "state",
+            "width": 1
+          },
+          {
+            "rule": "operator_replacement",
+            "line": 36,
+            "before": "                fall_count <= fall_count + 1;",
+            "after": "                fall_count <= fall_count - 1;",
+            "orig": "fall_count + 1",
+            "changed": "fall_count - 1",
+            "guard": "(next_state == STATE_FALL_LEFT || next_state == STATE_FALL_RIGHT)",
+            "lhs": "fall_count",
+            "width": 5
+          }
+        ],
+        "id": "GX-08",
+        "screen_differences": [
+          2000,
+          2000,
+          2000
+        ],
+        "retained": true
+      },
+      {
+        "edits": [
+          {
+            "rule": "unary_operator",
+            "line": 31,
+            "before": "            state <= STATE_WALK_LEFT;",
+            "after": "            state <= ~(STATE_WALK_LEFT);",
+            "orig": "STATE_WALK_LEFT",
+            "changed": "~(STATE_WALK_LEFT)",
+            "guard": "(areset)",
+            "lhs": "state",
+            "width": 1
+          },
+          {
+            "rule": "bit_index_offset",
+            "line": 36,
+            "before": "                fall_count <= fall_count + 1;",
+            "after": "                fall_count <= (fall_count << 1) + 1;",
+            "orig": "fall_count + 1",
+            "changed": "(fall_count << 1) + 1",
+            "guard": "(next_state == STATE_FALL_LEFT || next_state == STATE_FALL_RIGHT)",
+            "lhs": "fall_count",
+            "width": 5
+          }
+        ],
+        "id": "GX-09",
+        "screen_differences": [
+          2000,
+          2000,
+          2000
+        ],
+        "retained": true
+      },
+      {
+        "edits": [
+          {
+            "rule": "arithmetic_or_bitwise",
+            "line": 31,
+            "before": "            state <= STATE_WALK_LEFT;",
+            "after": "            state <= (STATE_WALK_LEFT) + 1;",
+            "orig": "STATE_WALK_LEFT",
+            "changed": "(STATE_WALK_LEFT) + 1",
+            "guard": "(areset)",
+            "lhs": "state",
+            "width": 1
+          },
+          {
+            "rule": "operator_replacement",
+            "line": 36,
+            "before": "                fall_count <= fall_count + 1;",
+            "after": "                fall_count <= fall_count - 1;",
+            "orig": "fall_count + 1",
+            "changed": "fall_count - 1",
+            "guard": "(next_state == STATE_FALL_LEFT || next_state == STATE_FALL_RIGHT)",
+            "lhs": "fall_count",
+            "width": 5
+          }
+        ],
+        "id": "GX-10",
+        "screen_differences": [
+          1958,
+          1957,
+          1966
+        ],
+        "retained": true
+      },
+      {
+        "edits": [
+          {
+            "rule": "arithmetic_or_bitwise",
+            "line": 31,
+            "before": "            state <= STATE_WALK_LEFT;",
+            "after": "            state <= (STATE_WALK_LEFT) + 1;",
+            "orig": "STATE_WALK_LEFT",
+            "changed": "(STATE_WALK_LEFT) + 1",
+            "guard": "(areset)",
+            "lhs": "state",
+            "width": 1
+          },
+          {
+            "rule": "bit_index_offset",
+            "line": 36,
+            "before": "                fall_count <= fall_count + 1;",
+            "after": "                fall_count <= (fall_count << 1) + 1;",
+            "orig": "fall_count + 1",
+            "changed": "(fall_count << 1) + 1",
+            "guard": "(next_state == STATE_FALL_LEFT || next_state == STATE_FALL_RIGHT)",
+            "lhs": "fall_count",
+            "width": 5
+          }
+        ],
+        "id": "GX-11",
+        "screen_differences": [
+          1206,
+          1188,
+          1095
+        ],
+        "retained": true
+      },
+      {
+        "edits": [
+          {
+            "rule": "deleted_assignment",
+            "line": 31,
+            "before": "            state <= STATE_WALK_LEFT;",
+            "after": "            state <= state;",
+            "orig": "STATE_WALK_LEFT",
+            "changed": "state",
+            "guard": "(areset)",
+            "lhs": "state",
+            "width": 1
+          },
+          {
+            "rule": "operator_replacement",
+            "line": 36,
+            "before": "                fall_count <= fall_count + 1;",
+            "after": "                fall_count <= fall_count - 1;",
+            "orig": "fall_count + 1",
+            "changed": "fall_count - 1",
+            "guard": "(next_state == STATE_FALL_LEFT || next_state == STATE_FALL_RIGHT)",
+            "lhs": "fall_count",
+            "width": 5
+          }
+        ],
+        "id": "GX-12",
+        "screen_differences": [
+          2003,
+          2004,
+          2002
+        ],
+        "retained": true
+      },
+      {
+        "edits": [
+          {
+            "rule": "deleted_assignment",
+            "line": 31,
+            "before": "            state <= STATE_WALK_LEFT;",
+            "after": "            state <= state;",
+            "orig": "STATE_WALK_LEFT",
+            "changed": "state",
+            "guard": "(areset)",
+            "lhs": "state",
+            "width": 1
+          },
+          {
+            "rule": "bit_index_offset",
+            "line": 36,
+            "before": "                fall_count <= fall_count + 1;",
+            "after": "                fall_count <= (fall_count << 1) + 1;",
+            "orig": "fall_count + 1",
+            "changed": "(fall_count << 1) + 1",
+            "guard": "(next_state == STATE_FALL_LEFT || next_state == STATE_FALL_RIGHT)",
+            "lhs": "fall_count",
+            "width": 5
+          }
+        ],
+        "id": "GX-13",
+        "screen_differences": [
+          1953,
+          2000,
+          1854
+        ],
+        "retained": true
+      },
+      {
+        "edits": [
+          {
+            "rule": "operator_replacement",
+            "line": 36,
+            "before": "                fall_count <= fall_count + 1;",
+            "after": "                fall_count <= fall_count - 1;",
+            "orig": "fall_count + 1",
+            "changed": "fall_count - 1",
+            "guard": "(next_state == STATE_FALL_LEFT || next_state == STATE_FALL_RIGHT)",
+            "lhs": "fall_count",
+            "width": 5
+          },
+          {
+            "rule": "unary_operator",
+            "line": 31,
+            "before": "            state <= STATE_WALK_LEFT;",
+            "after": "            state <= !(STATE_WALK_LEFT);",
+            "orig": "STATE_WALK_LEFT",
+            "changed": "!(STATE_WALK_LEFT)",
+            "guard": "(areset)",
+            "lhs": "state",
+            "width": 1
+          }
+        ],
+        "id": "GX-14",
+        "screen_differences": [
+          1958,
+          1957,
+          1966
+        ],
+        "retained": true
+      },
+      {
+        "edits": [
+          {
+            "rule": "operator_replacement",
+            "line": 36,
+            "before": "                fall_count <= fall_count + 1;",
+            "after": "                fall_count <= fall_count - 1;",
+            "orig": "fall_count + 1",
+            "changed": "fall_count - 1",
+            "guard": "(next_state == STATE_FALL_LEFT || next_state == STATE_FALL_RIGHT)",
+            "lhs": "fall_count",
+            "width": 5
+          },
+          {
+            "rule": "arithmetic_or_bitwise",
+            "line": 31,
+            "before": "            state <= STATE_WALK_LEFT;",
+            "after": "            state <= (STATE_WALK_LEFT) - 1;",
+            "orig": "STATE_WALK_LEFT",
+            "changed": "(STATE_WALK_LEFT) - 1",
+            "guard": "(areset)",
+            "lhs": "state",
+            "width": 1
+          }
+        ],
+        "id": "GX-15",
+        "screen_differences": [
+          2000,
+          2000,
+          2000
+        ],
+        "retained": true
+      },
+      {
+        "edits": [
+          {
+            "rule": "operator_replacement",
+            "line": 36,
+            "before": "                fall_count <= fall_count + 1;",
+            "after": "                fall_count <= fall_count - 1;",
+            "orig": "fall_count + 1",
+            "changed": "fall_count - 1",
+            "guard": "(next_state == STATE_FALL_LEFT || next_state == STATE_FALL_RIGHT)",
+            "lhs": "fall_count",
+            "width": 5
+          },
+          {
+            "rule": "replaced_assignment",
+            "line": 31,
+            "before": "            state <= STATE_WALK_LEFT;",
+            "after": "            state <= 1'd1;",
+            "orig": "STATE_WALK_LEFT",
+            "changed": "1'd1",
+            "guard": "(areset)",
+            "lhs": "state",
+            "width": 1
+          }
+        ],
+        "id": "GX-16",
+        "screen_differences": [
+          1958,
+          1957,
+          1966
+        ],
+        "retained": true
+      },
+      {
+        "edits": [
+          {
+            "rule": "operator_replacement",
+            "line": 36,
+            "before": "                fall_count <= fall_count + 1;",
+            "after": "                fall_count <= fall_count - 1;",
+            "orig": "fall_count + 1",
+            "changed": "fall_count - 1",
+            "guard": "(next_state == STATE_FALL_LEFT || next_state == STATE_FALL_RIGHT)",
+            "lhs": "fall_count",
+            "width": 5
+          },
+          {
+            "rule": "arithmetic_or_bitwise",
+            "line": 31,
+            "before": "            state <= STATE_WALK_LEFT;",
+            "after": "            state <= (STATE_WALK_LEFT) ^ 1;",
+            "orig": "STATE_WALK_LEFT",
+            "changed": "(STATE_WALK_LEFT) ^ 1",
+            "guard": "(areset)",
+            "lhs": "state",
+            "width": 1
+          }
+        ],
+        "id": "GX-17",
+        "screen_differences": [
+          1958,
+          1957,
+          1966
+        ],
+        "retained": true
+      },
+      {
+        "edits": [
+          {
+            "rule": "operator_replacement",
+            "line": 36,
+            "before": "                fall_count <= fall_count + 1;",
+            "after": "                fall_count <= fall_count - 1;",
+            "orig": "fall_count + 1",
+            "changed": "fall_count - 1",
+            "guard": "(next_state == STATE_FALL_LEFT || next_state == STATE_FALL_RIGHT)",
+            "lhs": "fall_count",
+            "width": 5
+          },
+          {
+            "rule": "replaced_assignment",
+            "line": 31,
+            "before": "            state <= STATE_WALK_LEFT;",
+            "after": "            state <= areset;",
+            "orig": "STATE_WALK_LEFT",
+            "changed": "areset",
+            "guard": "(areset)",
+            "lhs": "state",
+            "width": 1
+          }
+        ],
+        "id": "GX-18",
+        "screen_differences": [
+          1958,
+          1957,
+          1966
+        ],
+        "retained": true
+      },
+      {
+        "edits": [
+          {
+            "rule": "bit_index_offset",
+            "line": 36,
+            "before": "                fall_count <= fall_count + 1;",
+            "after": "                fall_count <= (fall_count << 1) + 1;",
+            "orig": "fall_count + 1",
+            "changed": "(fall_count << 1) + 1",
+            "guard": "(next_state == STATE_FALL_LEFT || next_state == STATE_FALL_RIGHT)",
+            "lhs": "fall_count",
+            "width": 5
+          },
+          {
+            "rule": "unary_operator",
+            "line": 31,
+            "before": "            state <= STATE_WALK_LEFT;",
+            "after": "            state <= !(STATE_WALK_LEFT);",
+            "orig": "STATE_WALK_LEFT",
+            "changed": "!(STATE_WALK_LEFT)",
+            "guard": "(areset)",
+            "lhs": "state",
+            "width": 1
+          }
+        ],
+        "id": "GX-19",
+        "screen_differences": [
+          1206,
+          1188,
+          1095
+        ],
+        "retained": true
+      },
+      {
+        "edits": [
+          {
+            "rule": "bit_index_offset",
+            "line": 36,
+            "before": "                fall_count <= fall_count + 1;",
+            "after": "                fall_count <= (fall_count << 1) + 1;",
+            "orig": "fall_count + 1",
+            "changed": "(fall_count << 1) + 1",
+            "guard": "(next_state == STATE_FALL_LEFT || next_state == STATE_FALL_RIGHT)",
+            "lhs": "fall_count",
+            "width": 5
+          },
+          {
+            "rule": "arithmetic_or_bitwise",
+            "line": 31,
+            "before": "            state <= STATE_WALK_LEFT;",
+            "after": "            state <= (STATE_WALK_LEFT) - 1;",
+            "orig": "STATE_WALK_LEFT",
+            "changed": "(STATE_WALK_LEFT) - 1",
+            "guard": "(areset)",
+            "lhs": "state",
+            "width": 1
+          }
+        ],
+        "id": "GX-20",
+        "screen_differences": [
+          2000,
+          2000,
+          2000
+        ],
+        "retained": true
+      },
+      {
+        "edits": [
+          {
+            "rule": "bit_index_offset",
+            "line": 36,
+            "before": "                fall_count <= fall_count + 1;",
+            "after": "                fall_count <= (fall_count << 1) + 1;",
+            "orig": "fall_count + 1",
+            "changed": "(fall_count << 1) + 1",
+            "guard": "(next_state == STATE_FALL_LEFT || next_state == STATE_FALL_RIGHT)",
+            "lhs": "fall_count",
+            "width": 5
+          },
+          {
+            "rule": "replaced_assignment",
+            "line": 31,
+            "before": "            state <= STATE_WALK_LEFT;",
+            "after": "            state <= 1'd1;",
+            "orig": "STATE_WALK_LEFT",
+            "changed": "1'd1",
+            "guard": "(areset)",
+            "lhs": "state",
+            "width": 1
+          }
+        ],
+        "id": "GX-21",
+        "screen_differences": [
+          1206,
+          1188,
+          1095
+        ],
+        "retained": true
+      },
+      {
+        "edits": [
+          {
+            "rule": "bit_index_offset",
+            "line": 36,
+            "before": "                fall_count <= fall_count + 1;",
+            "after": "                fall_count <= (fall_count << 1) + 1;",
+            "orig": "fall_count + 1",
+            "changed": "(fall_count << 1) + 1",
+            "guard": "(next_state == STATE_FALL_LEFT || next_state == STATE_FALL_RIGHT)",
+            "lhs": "fall_count",
+            "width": 5
+          },
+          {
+            "rule": "arithmetic_or_bitwise",
+            "line": 31,
+            "before": "            state <= STATE_WALK_LEFT;",
+            "after": "            state <= (STATE_WALK_LEFT) ^ 1;",
+            "orig": "STATE_WALK_LEFT",
+            "changed": "(STATE_WALK_LEFT) ^ 1",
+            "guard": "(areset)",
+            "lhs": "state",
+            "width": 1
+          }
+        ],
+        "id": "GX-22",
+        "screen_differences": [
+          1206,
+          1188,
+          1095
+        ],
+        "retained": true
+      },
+      {
+        "edits": [
+          {
+            "rule": "bit_index_offset",
+            "line": 36,
+            "before": "                fall_count <= fall_count + 1;",
+            "after": "                fall_count <= (fall_count << 1) + 1;",
+            "orig": "fall_count + 1",
+            "changed": "(fall_count << 1) + 1",
+            "guard": "(next_state == STATE_FALL_LEFT || next_state == STATE_FALL_RIGHT)",
+            "lhs": "fall_count",
+            "width": 5
+          },
+          {
+            "rule": "replaced_assignment",
+            "line": 31,
+            "before": "            state <= STATE_WALK_LEFT;",
+            "after": "            state <= areset;",
+            "orig": "STATE_WALK_LEFT",
+            "changed": "areset",
+            "guard": "(areset)",
+            "lhs": "state",
+            "width": 1
+          }
+        ],
+        "id": "GX-23",
+        "screen_differences": [
+          1206,
+          1188,
+          1095
+        ],
+        "retained": true
+      },
+      {
+        "edits": [
+          {
+            "rule": "operator_replacement",
+            "line": 36,
+            "before": "                fall_count <= fall_count + 1;",
+            "after": "                fall_count <= fall_count - 1;",
+            "orig": "fall_count + 1",
+            "changed": "fall_count - 1",
+            "guard": "(next_state == STATE_FALL_LEFT || next_state == STATE_FALL_RIGHT)",
+            "lhs": "fall_count",
+            "width": 5
+          },
+          {
+            "rule": "operator_replacement",
+            "line": 110,
+            "before": "    assign walk_left = (state == STATE_WALK_LEFT);",
+            "after": "    assign walk_left = (state != STATE_WALK_LEFT);",
+            "orig": "(state == STATE_WALK_LEFT)",
+            "changed": "(state != STATE_WALK_LEFT)",
+            "guard": "!(!ground)",
+            "lhs": "walk_left",
+            "width": 1
+          }
+        ],
+        "id": "GX-24",
+        "screen_differences": [
+          3060,
+          3121,
+          3076
+        ],
+        "retained": true
+      },
+      {
+        "edits": [
+          {
+            "rule": "bit_index_offset",
+            "line": 36,
+            "before": "                fall_count <= fall_count + 1;",
+            "after": "                fall_count <= (fall_count << 1) + 1;",
+            "orig": "fall_count + 1",
+            "changed": "(fall_count << 1) + 1",
+            "guard": "(next_state == STATE_FALL_LEFT || next_state == STATE_FALL_RIGHT)",
+            "lhs": "fall_count",
+            "width": 5
+          },
+          {
+            "rule": "operator_replacement",
+            "line": 110,
+            "before": "    assign walk_left = (state == STATE_WALK_LEFT);",
+            "after": "    assign walk_left = (state != STATE_WALK_LEFT);",
+            "orig": "(state == STATE_WALK_LEFT)",
+            "changed": "(state != STATE_WALK_LEFT)",
+            "guard": "!(!ground)",
+            "lhs": "walk_left",
+            "width": 1
+          }
+        ],
+        "id": "GX-25",
+        "screen_differences": [
+          2364,
+          2454,
+          2349
+        ],
+        "retained": true
+      },
+      {
+        "edits": [
+          {
+            "rule": "deleted_assignment",
+            "line": 34,
+            "before": "            state <= next_state;",
+            "after": "            state <= state;",
+            "orig": "next_state",
+            "changed": "state",
+            "guard": "!(areset)",
+            "lhs": "state",
+            "width": 1
+          },
+          {
+            "rule": "operator_replacement",
+            "line": 110,
+            "before": "    assign walk_left = (state == STATE_WALK_LEFT);",
+            "after": "    assign walk_left = (state != STATE_WALK_LEFT);",
+            "orig": "(state == STATE_WALK_LEFT)",
+            "changed": "(state != STATE_WALK_LEFT)",
+            "guard": "!(!ground)",
+            "lhs": "walk_left",
+            "width": 1
+          }
+        ],
+        "id": "GX-26",
+        "screen_differences": [
+          2000,
+          2000,
+          2000
+        ],
+        "retained": true
+      },
+      {
+        "edits": [
+          {
+            "rule": "unary_operator",
+            "line": 31,
+            "before": "            state <= STATE_WALK_LEFT;",
+            "after": "            state <= ~(STATE_WALK_LEFT);",
+            "orig": "STATE_WALK_LEFT",
+            "changed": "~(STATE_WALK_LEFT)",
+            "guard": "(areset)",
+            "lhs": "state",
+            "width": 1
+          },
+          {
+            "rule": "operator_replacement",
+            "line": 110,
+            "before": "    assign walk_left = (state == STATE_WALK_LEFT);",
+            "after": "    assign walk_left = (state != STATE_WALK_LEFT);",
+            "orig": "(state == STATE_WALK_LEFT)",
+            "changed": "(state != STATE_WALK_LEFT)",
+            "guard": "!(!ground)",
+            "lhs": "walk_left",
+            "width": 1
+          }
+        ],
+        "id": "GX-27",
+        "screen_differences": [
+          3112,
+          3164,
+          3100
+        ],
+        "retained": true
+      },
+      {
+        "edits": [
+          {
+            "rule": "arithmetic_or_bitwise",
+            "line": 31,
+            "before": "            state <= STATE_WALK_LEFT;",
+            "after": "            state <= (STATE_WALK_LEFT) + 1;",
+            "orig": "STATE_WALK_LEFT",
+            "changed": "(STATE_WALK_LEFT) + 1",
+            "guard": "(areset)",
+            "lhs": "state",
+            "width": 1
+          },
+          {
+            "rule": "operator_replacement",
+            "line": 110,
+            "before": "    assign walk_left = (state == STATE_WALK_LEFT);",
+            "after": "    assign walk_left = (state != STATE_WALK_LEFT);",
+            "orig": "(state == STATE_WALK_LEFT)",
+            "changed": "(state != STATE_WALK_LEFT)",
+            "guard": "!(!ground)",
+            "lhs": "walk_left",
+            "width": 1
+          }
+        ],
+        "id": "GX-28",
+        "screen_differences": [
+          2000,
+          2000,
+          2000
+        ],
+        "retained": true
+      },
+      {
+        "edits": [
+          {
+            "rule": "deleted_assignment",
+            "line": 31,
+            "before": "            state <= STATE_WALK_LEFT;",
+            "after": "            state <= state;",
+            "orig": "STATE_WALK_LEFT",
+            "changed": "state",
+            "guard": "(areset)",
+            "lhs": "state",
+            "width": 1
+          },
+          {
+            "rule": "operator_replacement",
+            "line": 110,
+            "before": "    assign walk_left = (state == STATE_WALK_LEFT);",
+            "after": "    assign walk_left = (state != STATE_WALK_LEFT);",
+            "orig": "(state == STATE_WALK_LEFT)",
+            "changed": "(state != STATE_WALK_LEFT)",
+            "guard": "!(!ground)",
+            "lhs": "walk_left",
+            "width": 1
+          }
+        ],
+        "id": "GX-29",
+        "screen_differences": [
+          2019,
+          2027,
+          2009
+        ],
+        "retained": true
+      },
+      {
+        "edits": [
+          {
+            "rule": "unary_operator",
+            "line": 31,
+            "before": "            state <= STATE_WALK_LEFT;",
+            "after": "            state <= !(STATE_WALK_LEFT);",
+            "orig": "STATE_WALK_LEFT",
+            "changed": "!(STATE_WALK_LEFT)",
+            "guard": "(areset)",
+            "lhs": "state",
+            "width": 1
+          },
+          {
+            "rule": "operator_replacement",
+            "line": 110,
+            "before": "    assign walk_left = (state == STATE_WALK_LEFT);",
+            "after": "    assign walk_left = (state != STATE_WALK_LEFT);",
+            "orig": "(state == STATE_WALK_LEFT)",
+            "changed": "(state != STATE_WALK_LEFT)",
+            "guard": "!(!ground)",
+            "lhs": "walk_left",
+            "width": 1
+          }
+        ],
+        "id": "GX-30",
+        "screen_differences": [
+          2000,
+          2000,
+          2000
+        ],
+        "retained": true
+      },
+      {
+        "edits": [
+          {
+            "rule": "arithmetic_or_bitwise",
+            "line": 31,
+            "before": "            state <= STATE_WALK_LEFT;",
+            "after": "            state <= (STATE_WALK_LEFT) - 1;",
+            "orig": "STATE_WALK_LEFT",
+            "changed": "(STATE_WALK_LEFT) - 1",
+            "guard": "(areset)",
+            "lhs": "state",
+            "width": 1
+          },
+          {
+            "rule": "operator_replacement",
+            "line": 110,
+            "before": "    assign walk_left = (state == STATE_WALK_LEFT);",
+            "after": "    assign walk_left = (state != STATE_WALK_LEFT);",
+            "orig": "(state == STATE_WALK_LEFT)",
+            "changed": "(state != STATE_WALK_LEFT)",
+            "guard": "!(!ground)",
+            "lhs": "walk_left",
+            "width": 1
+          }
+        ],
+        "id": "GX-31",
+        "screen_differences": [
+          3112,
+          3164,
+          3100
+        ],
+        "retained": true
+      },
+      {
+        "edits": [
+          {
+            "rule": "replaced_assignment",
+            "line": 31,
+            "before": "            state <= STATE_WALK_LEFT;",
+            "after": "            state <= 1'd1;",
+            "orig": "STATE_WALK_LEFT",
+            "changed": "1'd1",
+            "guard": "(areset)",
+            "lhs": "state",
+            "width": 1
+          },
+          {
+            "rule": "operator_replacement",
+            "line": 110,
+            "before": "    assign walk_left = (state == STATE_WALK_LEFT);",
+            "after": "    assign walk_left = (state != STATE_WALK_LEFT);",
+            "orig": "(state == STATE_WALK_LEFT)",
+            "changed": "(state != STATE_WALK_LEFT)",
+            "guard": "!(!ground)",
+            "lhs": "walk_left",
+            "width": 1
+          }
+        ],
+        "id": "GX-32",
+        "screen_differences": [
+          2000,
+          2000,
+          2000
+        ],
+        "retained": true
+      },
+      {
+        "edits": [
+          {
+            "rule": "arithmetic_or_bitwise",
+            "line": 31,
+            "before": "            state <= STATE_WALK_LEFT;",
+            "after": "            state <= (STATE_WALK_LEFT) ^ 1;",
+            "orig": "STATE_WALK_LEFT",
+            "changed": "(STATE_WALK_LEFT) ^ 1",
+            "guard": "(areset)",
+            "lhs": "state",
+            "width": 1
+          },
+          {
+            "rule": "operator_replacement",
+            "line": 110,
+            "before": "    assign walk_left = (state == STATE_WALK_LEFT);",
+            "after": "    assign walk_left = (state != STATE_WALK_LEFT);",
+            "orig": "(state == STATE_WALK_LEFT)",
+            "changed": "(state != STATE_WALK_LEFT)",
+            "guard": "!(!ground)",
+            "lhs": "walk_left",
+            "width": 1
+          }
+        ],
+        "id": "GX-33",
+        "screen_differences": [
+          2000,
+          2000,
+          2000
+        ],
+        "retained": true
+      },
+      {
+        "edits": [
+          {
+            "rule": "replaced_assignment",
+            "line": 31,
+            "before": "            state <= STATE_WALK_LEFT;",
+            "after": "            state <= areset;",
+            "orig": "STATE_WALK_LEFT",
+            "changed": "areset",
+            "guard": "(areset)",
+            "lhs": "state",
+            "width": 1
+          },
+          {
+            "rule": "operator_replacement",
+            "line": 110,
+            "before": "    assign walk_left = (state == STATE_WALK_LEFT);",
+            "after": "    assign walk_left = (state != STATE_WALK_LEFT);",
+            "orig": "(state == STATE_WALK_LEFT)",
+            "changed": "(state != STATE_WALK_LEFT)",
+            "guard": "!(!ground)",
+            "lhs": "walk_left",
+            "width": 1
+          }
+        ],
+        "id": "GX-34",
+        "screen_differences": [
+          2000,
+          2000,
+          2000
+        ],
+        "retained": true
+      },
+      {
+        "edits": [
+          {
+            "rule": "clock_edge",
+            "line": 29,
+            "before": "    always_ff @(posedge clk or posedge areset) begin",
+            "after": "    always_ff @(negedge clk or posedge areset) begin",
+            "orig": "posedge",
+            "changed": "negedge",
+            "guard": "1'b1",
+            "lhs": "",
+            "width": 1
+          },
+          {
+            "rule": "negated_condition",
+            "line": 30,
+            "before": "        if (areset) begin",
+            "after": "        if (!(areset)) begin",
+            "orig": "areset",
+            "changed": "!(areset)",
+            "guard": "1'b1",
+            "lhs": "",
+            "width": 1
+          }
+        ],
+        "id": "GX-35",
+        "screen_differences": [
+          3176,
+          3240,
+          3180
+        ],
+        "retained": true
+      },
+      {
+        "edits": [
+          {
+            "rule": "clock_edge",
+            "line": 29,
+            "before": "    always_ff @(posedge clk or posedge areset) begin",
+            "after": "    always_ff @(negedge clk or posedge areset) begin",
+            "orig": "posedge",
+            "changed": "negedge",
+            "guard": "1'b1",
+            "lhs": "",
+            "width": 1
+          },
+          {
+            "rule": "removed_condition",
+            "line": 30,
+            "before": "        if (areset) begin",
+            "after": "        if (1'b0) begin",
+            "orig": "areset",
+            "changed": "1'b0",
+            "guard": "1'b1",
+            "lhs": "",
+            "width": 1
+          }
+        ],
+        "id": "GX-36",
+        "screen_differences": [
+          2530,
+          2498,
+          2562
+        ],
+        "retained": true
+      },
+      {
+        "edits": [
+          {
+            "rule": "clock_edge",
+            "line": 29,
+            "before": "    always_ff @(posedge clk or posedge areset) begin",
+            "after": "    always_ff @(negedge clk or posedge areset) begin",
+            "orig": "posedge",
+            "changed": "negedge",
+            "guard": "1'b1",
+            "lhs": "",
+            "width": 1
+          },
+          {
+            "rule": "relation",
+            "line": 30,
+            "before": "        if (areset) begin",
+            "after": "        if ((areset) == 1'b0) begin",
+            "orig": "areset",
+            "changed": "(areset) == 1'b0",
+            "guard": "1'b1",
+            "lhs": "",
+            "width": 1
+          }
+        ],
+        "id": "GX-37",
+        "screen_differences": [
+          3176,
+          3240,
+          3180
+        ],
+        "retained": true
+      },
+      {
+        "edits": [
+          {
+            "rule": "clock_edge",
+            "line": 29,
+            "before": "    always_ff @(posedge clk or posedge areset) begin",
+            "after": "    always_ff @(negedge clk or posedge areset) begin",
+            "orig": "posedge",
+            "changed": "negedge",
+            "guard": "1'b1",
+            "lhs": "",
+            "width": 1
+          },
+          {
+            "rule": "condition_operator",
+            "line": 30,
+            "before": "        if (areset) begin",
+            "after": "        if ((areset) && bump_left) begin",
+            "orig": "areset",
+            "changed": "(areset) && bump_left",
+            "guard": "1'b1",
+            "lhs": "",
+            "width": 1
+          }
+        ],
+        "id": "GX-38",
+        "screen_differences": [
+          2514,
+          2442,
+          2524
+        ],
+        "retained": true
+      },
+      {
+        "edits": [
+          {
+            "rule": "clock_edge",
+            "line": 29,
+            "before": "    always_ff @(posedge clk or posedge areset) begin",
+            "after": "    always_ff @(negedge clk or posedge areset) begin",
+            "orig": "posedge",
+            "changed": "negedge",
+            "guard": "1'b1",
+            "lhs": "",
+            "width": 1
+          },
+          {
+            "rule": "removed_condition",
+            "line": 30,
+            "before": "        if (areset) begin",
+            "after": "        if (1'b1) begin",
+            "orig": "areset",
+            "changed": "1'b1",
+            "guard": "1'b1",
+            "lhs": "",
+            "width": 1
+          }
+        ],
+        "id": "GX-39",
+        "screen_differences": [
+          3112,
+          3164,
+          3100
+        ],
+        "retained": true
+      },
+      {
+        "edits": [
+          {
+            "rule": "clock_edge",
+            "line": 29,
+            "before": "    always_ff @(posedge clk or posedge areset) begin",
+            "after": "    always_ff @(negedge clk or posedge areset) begin",
+            "orig": "posedge",
+            "changed": "negedge",
+            "guard": "1'b1",
+            "lhs": "",
+            "width": 1
+          },
+          {
+            "rule": "condition_operator",
+            "line": 30,
+            "before": "        if (areset) begin",
+            "after": "        if ((areset) || bump_left) begin",
+            "orig": "areset",
+            "changed": "(areset) || bump_left",
+            "guard": "1'b1",
+            "lhs": "",
+            "width": 1
+          }
+        ],
+        "id": "GX-40",
+        "screen_differences": [
+          2780,
+          2830,
+          2740
+        ],
+        "retained": true
+      },
+      {
+        "edits": [
+          {
+            "rule": "clock_edge",
+            "line": 29,
+            "before": "    always_ff @(posedge clk or posedge areset) begin",
+            "after": "    always_ff @(negedge clk or posedge areset) begin",
+            "orig": "posedge",
+            "changed": "negedge",
+            "guard": "1'b1",
+            "lhs": "",
+            "width": 1
+          },
+          {
+            "rule": "condition_operator",
+            "line": 30,
+            "before": "        if (areset) begin",
+            "after": "        if ((areset) ^ bump_left) begin",
+            "orig": "areset",
+            "changed": "(areset) ^ bump_left",
+            "guard": "1'b1",
+            "lhs": "",
+            "width": 1
+          }
+        ],
+        "id": "GX-41",
+        "screen_differences": [
+          2804,
+          2864,
+          2778
+        ],
+        "retained": true
+      },
+      {
+        "edits": [
+          {
+            "rule": "clock_edge",
+            "line": 29,
+            "before": "    always_ff @(posedge clk or posedge areset) begin",
+            "after": "    always_ff @(negedge clk or posedge areset) begin",
+            "orig": "posedge",
+            "changed": "negedge",
+            "guard": "1'b1",
+            "lhs": "",
+            "width": 1
+          },
+          {
+            "rule": "condition_operator",
+            "line": 30,
+            "before": "        if (areset) begin",
+            "after": "        if ((areset) && bump_right) begin",
+            "orig": "areset",
+            "changed": "(areset) && bump_right",
+            "guard": "1'b1",
+            "lhs": "",
+            "width": 1
+          }
+        ],
+        "id": "GX-42",
+        "screen_differences": [
+          2490,
+          2438,
+          2532
+        ],
+        "retained": true
+      },
+      {
+        "edits": [
+          {
+            "rule": "negated_condition",
+            "line": 30,
+            "before": "        if (areset) begin",
+            "after": "        if (!(areset)) begin",
+            "orig": "areset",
+            "changed": "!(areset)",
+            "guard": "1'b1",
+            "lhs": "",
+            "width": 1
+          },
+          {
+            "rule": "unary_operator",
+            "line": 31,
+            "before": "            state <= STATE_WALK_LEFT;",
+            "after": "            state <= ~(STATE_WALK_LEFT);",
+            "orig": "STATE_WALK_LEFT",
+            "changed": "~(STATE_WALK_LEFT)",
+            "guard": "(areset)",
+            "lhs": "state",
+            "width": 1
+          }
+        ],
+        "id": "GX-43",
+        "screen_differences": [
+          2001,
+          1999,
+          2001
+        ],
+        "retained": true
+      },
+      {
+        "edits": [
+          {
+            "rule": "negated_condition",
+            "line": 30,
+            "before": "        if (areset) begin",
+            "after": "        if (!(areset)) begin",
+            "orig": "areset",
+            "changed": "!(areset)",
+            "guard": "1'b1",
+            "lhs": "",
+            "width": 1
+          },
+          {
+            "rule": "arithmetic_or_bitwise",
+            "line": 31,
+            "before": "            state <= STATE_WALK_LEFT;",
+            "after": "            state <= (STATE_WALK_LEFT) + 1;",
+            "orig": "STATE_WALK_LEFT",
+            "changed": "(STATE_WALK_LEFT) + 1",
+            "guard": "(areset)",
+            "lhs": "state",
+            "width": 1
+          }
+        ],
+        "id": "GX-44",
+        "screen_differences": [
+          3482,
+          3418,
+          3488
+        ],
+        "retained": true
+      },
+      {
+        "edits": [
+          {
+            "rule": "negated_condition",
+            "line": 30,
+            "before": "        if (areset) begin",
+            "after": "        if (!(areset)) begin",
+            "orig": "areset",
+            "changed": "!(areset)",
+            "guard": "1'b1",
+            "lhs": "",
+            "width": 1
+          },
+          {
+            "rule": "deleted_assignment",
+            "line": 31,
+            "before": "            state <= STATE_WALK_LEFT;",
+            "after": "            state <= state;",
+            "orig": "STATE_WALK_LEFT",
+            "changed": "state",
+            "guard": "(areset)",
+            "lhs": "state",
+            "width": 1
+          }
+        ],
+        "id": "GX-45",
+        "screen_differences": [
+          2736,
+          2436,
+          2498
+        ],
+        "retained": true
+      },
+      {
+        "edits": [
+          {
+            "rule": "negated_condition",
+            "line": 30,
+            "before": "        if (areset) begin",
+            "after": "        if (!(areset)) begin",
+            "orig": "areset",
+            "changed": "!(areset)",
+            "guard": "1'b1",
+            "lhs": "",
+            "width": 1
+          },
+          {
+            "rule": "unary_operator",
+            "line": 31,
+            "before": "            state <= STATE_WALK_LEFT;",
+            "after": "            state <= !(STATE_WALK_LEFT);",
+            "orig": "STATE_WALK_LEFT",
+            "changed": "!(STATE_WALK_LEFT)",
+            "guard": "(areset)",
+            "lhs": "state",
+            "width": 1
+          }
+        ],
+        "id": "GX-46",
+        "screen_differences": [
+          3482,
+          3418,
+          3488
+        ],
+        "retained": true
+      },
+      {
+        "edits": [
+          {
+            "rule": "negated_condition",
+            "line": 30,
+            "before": "        if (areset) begin",
+            "after": "        if (!(areset)) begin",
+            "orig": "areset",
+            "changed": "!(areset)",
+            "guard": "1'b1",
+            "lhs": "",
+            "width": 1
+          },
+          {
+            "rule": "arithmetic_or_bitwise",
+            "line": 31,
+            "before": "            state <= STATE_WALK_LEFT;",
+            "after": "            state <= (STATE_WALK_LEFT) - 1;",
+            "orig": "STATE_WALK_LEFT",
+            "changed": "(STATE_WALK_LEFT) - 1",
+            "guard": "(areset)",
+            "lhs": "state",
+            "width": 1
+          }
+        ],
+        "id": "GX-47",
+        "screen_differences": [
+          2001,
+          1999,
+          2001
+        ],
+        "retained": true
+      },
+      {
+        "edits": [
+          {
+            "rule": "negated_condition",
+            "line": 30,
+            "before": "        if (areset) begin",
+            "after": "        if (!(areset)) begin",
+            "orig": "areset",
+            "changed": "!(areset)",
+            "guard": "1'b1",
+            "lhs": "",
+            "width": 1
+          },
+          {
+            "rule": "replaced_assignment",
+            "line": 31,
+            "before": "            state <= STATE_WALK_LEFT;",
+            "after": "            state <= 1'd1;",
+            "orig": "STATE_WALK_LEFT",
+            "changed": "1'd1",
+            "guard": "(areset)",
+            "lhs": "state",
+            "width": 1
+          }
+        ],
+        "id": "GX-48",
+        "screen_differences": [
+          3482,
+          3418,
+          3488
+        ],
+        "retained": true
+      },
+      {
+        "edits": [
+          {
+            "rule": "negated_condition",
+            "line": 30,
+            "before": "        if (areset) begin",
+            "after": "        if (!(areset)) begin",
+            "orig": "areset",
+            "changed": "!(areset)",
+            "guard": "1'b1",
+            "lhs": "",
+            "width": 1
+          },
+          {
+            "rule": "arithmetic_or_bitwise",
+            "line": 31,
+            "before": "            state <= STATE_WALK_LEFT;",
+            "after": "            state <= (STATE_WALK_LEFT) ^ 1;",
+            "orig": "STATE_WALK_LEFT",
+            "changed": "(STATE_WALK_LEFT) ^ 1",
+            "guard": "(areset)",
+            "lhs": "state",
+            "width": 1
+          }
+        ],
+        "id": "GX-49",
+        "screen_differences": [
+          3482,
+          3418,
+          3488
+        ],
+        "retained": true
+      },
+      {
+        "edits": [
+          {
+            "rule": "negated_condition",
+            "line": 30,
+            "before": "        if (areset) begin",
+            "after": "        if (!(areset)) begin",
+            "orig": "areset",
+            "changed": "!(areset)",
+            "guard": "1'b1",
+            "lhs": "",
+            "width": 1
+          },
+          {
+            "rule": "replaced_assignment",
+            "line": 31,
+            "before": "            state <= STATE_WALK_LEFT;",
+            "after": "            state <= areset;",
+            "orig": "STATE_WALK_LEFT",
+            "changed": "areset",
+            "guard": "(areset)",
+            "lhs": "state",
+            "width": 1
+          }
+        ],
+        "id": "GX-50",
+        "screen_differences": [
+          3204,
+          3270,
+          3208
+        ],
+        "retained": true
+      },
+      {
+        "edits": [
+          {
+            "rule": "negated_condition",
+            "line": 30,
+            "before": "        if (areset) begin",
+            "after": "        if (!(areset)) begin",
+            "orig": "areset",
+            "changed": "!(areset)",
+            "guard": "1'b1",
+            "lhs": "",
+            "width": 1
+          },
+          {
+            "rule": "clock_edge",
+            "line": 29,
+            "before": "    always_ff @(posedge clk or posedge areset) begin",
+            "after": "    always_ff @(posedge clk or negedge areset) begin",
+            "orig": "posedge",
+            "changed": "negedge",
+            "guard": "1'b1",
+            "lhs": "",
+            "width": 1
+          }
+        ],
+        "id": "GX-51",
+        "screen_differences": [
+          3214,
+          3274,
+          3212
+        ],
+        "retained": true
+      },
+      {
+        "edits": [
+          {
+            "rule": "negated_condition",
+            "line": 30,
+            "before": "        if (areset) begin",
+            "after": "        if (!(areset)) begin",
+            "orig": "areset",
+            "changed": "!(areset)",
+            "guard": "1'b1",
+            "lhs": "",
+            "width": 1
+          },
+          {
+            "rule": "temporal_reset",
+            "line": 29,
+            "before": "    always_ff @(posedge clk or posedge areset) begin",
+            "after": "    always_ff @(posedge clk) begin",
+            "orig": "1'b1",
+            "changed": "1'b0",
+            "guard": "1'b1",
+            "lhs": "",
+            "width": 1
+          }
+        ],
+        "id": "GX-52",
+        "screen_differences": [
+          3214,
+          3274,
+          3212
+        ],
+        "retained": true
+      },
+      {
+        "edits": [
+          {
+            "rule": "removed_condition",
+            "line": 30,
+            "before": "        if (areset) begin",
+            "after": "        if (1'b0) begin",
+            "orig": "areset",
+            "changed": "1'b0",
+            "guard": "1'b1",
+            "lhs": "",
+            "width": 1
+          },
+          {
+            "rule": "unary_operator",
+            "line": 31,
+            "before": "            state <= STATE_WALK_LEFT;",
+            "after": "            state <= ~(STATE_WALK_LEFT);",
+            "orig": "STATE_WALK_LEFT",
+            "changed": "~(STATE_WALK_LEFT)",
+            "guard": "(areset)",
+            "lhs": "state",
+            "width": 1
+          }
+        ],
+        "id": "GX-53",
+        "screen_differences": [
+          400,
+          386,
+          380
+        ],
+        "retained": true
+      },
+      {
+        "edits": [
+          {
+            "rule": "removed_condition",
+            "line": 30,
+            "before": "        if (areset) begin",
+            "after": "        if (1'b0) begin",
+            "orig": "areset",
+            "changed": "1'b0",
+            "guard": "1'b1",
+            "lhs": "",
+            "width": 1
+          },
+          {
+            "rule": "arithmetic_or_bitwise",
+            "line": 31,
+            "before": "            state <= STATE_WALK_LEFT;",
+            "after": "            state <= (STATE_WALK_LEFT) + 1;",
+            "orig": "STATE_WALK_LEFT",
+            "changed": "(STATE_WALK_LEFT) + 1",
+            "guard": "(areset)",
+            "lhs": "state",
+            "width": 1
+          }
+        ],
+        "id": "GX-54",
+        "screen_differences": [
+          400,
+          386,
+          380
+        ],
+        "retained": true
+      },
+      {
+        "edits": [
+          {
+            "rule": "removed_condition",
+            "line": 30,
+            "before": "        if (areset) begin",
+            "after": "        if (1'b0) begin",
+            "orig": "areset",
+            "changed": "1'b0",
+            "guard": "1'b1",
+            "lhs": "",
+            "width": 1
+          },
+          {
+            "rule": "deleted_assignment",
+            "line": 31,
+            "before": "            state <= STATE_WALK_LEFT;",
+            "after": "            state <= state;",
+            "orig": "STATE_WALK_LEFT",
+            "changed": "state",
+            "guard": "(areset)",
+            "lhs": "state",
+            "width": 1
+          }
+        ],
+        "id": "GX-55",
+        "screen_differences": [
+          400,
+          386,
+          380
+        ],
+        "retained": true
+      },
+      {
+        "edits": [
+          {
+            "rule": "removed_condition",
+            "line": 30,
+            "before": "        if (areset) begin",
+            "after": "        if (1'b0) begin",
+            "orig": "areset",
+            "changed": "1'b0",
+            "guard": "1'b1",
+            "lhs": "",
+            "width": 1
+          },
+          {
+            "rule": "unary_operator",
+            "line": 31,
+            "before": "            state <= STATE_WALK_LEFT;",
+            "after": "            state <= !(STATE_WALK_LEFT);",
+            "orig": "STATE_WALK_LEFT",
+            "changed": "!(STATE_WALK_LEFT)",
+            "guard": "(areset)",
+            "lhs": "state",
+            "width": 1
+          }
+        ],
+        "id": "GX-56",
+        "screen_differences": [
+          400,
+          386,
+          380
+        ],
+        "retained": true
+      },
+      {
+        "edits": [
+          {
+            "rule": "removed_condition",
+            "line": 30,
+            "before": "        if (areset) begin",
+            "after": "        if (1'b0) begin",
+            "orig": "areset",
+            "changed": "1'b0",
+            "guard": "1'b1",
+            "lhs": "",
+            "width": 1
+          },
+          {
+            "rule": "arithmetic_or_bitwise",
+            "line": 31,
+            "before": "            state <= STATE_WALK_LEFT;",
+            "after": "            state <= (STATE_WALK_LEFT) - 1;",
+            "orig": "STATE_WALK_LEFT",
+            "changed": "(STATE_WALK_LEFT) - 1",
+            "guard": "(areset)",
+            "lhs": "state",
+            "width": 1
+          }
+        ],
+        "id": "GX-57",
+        "screen_differences": [
+          400,
+          386,
+          380
+        ],
+        "retained": true
+      },
+      {
+        "edits": [
+          {
+            "rule": "removed_condition",
+            "line": 30,
+            "before": "        if (areset) begin",
+            "after": "        if (1'b0) begin",
+            "orig": "areset",
+            "changed": "1'b0",
+            "guard": "1'b1",
+            "lhs": "",
+            "width": 1
+          },
+          {
+            "rule": "replaced_assignment",
+            "line": 31,
+            "before": "            state <= STATE_WALK_LEFT;",
+            "after": "            state <= 1'd1;",
+            "orig": "STATE_WALK_LEFT",
+            "changed": "1'd1",
+            "guard": "(areset)",
+            "lhs": "state",
+            "width": 1
+          }
+        ],
+        "id": "GX-58",
+        "screen_differences": [
+          400,
+          386,
+          380
+        ],
+        "retained": true
+      },
+      {
+        "edits": [
+          {
+            "rule": "removed_condition",
+            "line": 30,
+            "before": "        if (areset) begin",
+            "after": "        if (1'b0) begin",
+            "orig": "areset",
+            "changed": "1'b0",
+            "guard": "1'b1",
+            "lhs": "",
+            "width": 1
+          },
+          {
+            "rule": "arithmetic_or_bitwise",
+            "line": 31,
+            "before": "            state <= STATE_WALK_LEFT;",
+            "after": "            state <= (STATE_WALK_LEFT) ^ 1;",
+            "orig": "STATE_WALK_LEFT",
+            "changed": "(STATE_WALK_LEFT) ^ 1",
+            "guard": "(areset)",
+            "lhs": "state",
+            "width": 1
+          }
+        ],
+        "id": "GX-59",
+        "screen_differences": [
+          400,
+          386,
+          380
+        ],
+        "retained": true
+      },
+      {
+        "edits": [
+          {
+            "rule": "removed_condition",
+            "line": 30,
+            "before": "        if (areset) begin",
+            "after": "        if (1'b0) begin",
+            "orig": "areset",
+            "changed": "1'b0",
+            "guard": "1'b1",
+            "lhs": "",
+            "width": 1
+          },
+          {
+            "rule": "replaced_assignment",
+            "line": 31,
+            "before": "            state <= STATE_WALK_LEFT;",
+            "after": "            state <= areset;",
+            "orig": "STATE_WALK_LEFT",
+            "changed": "areset",
+            "guard": "(areset)",
+            "lhs": "state",
+            "width": 1
+          }
+        ],
+        "id": "GX-60",
+        "screen_differences": [
+          400,
+          386,
+          380
+        ],
+        "retained": true
+      },
+      {
+        "edits": [
+          {
+            "rule": "removed_condition",
+            "line": 30,
+            "before": "        if (areset) begin",
+            "after": "        if (1'b0) begin",
+            "orig": "areset",
+            "changed": "1'b0",
+            "guard": "1'b1",
+            "lhs": "",
+            "width": 1
+          },
+          {
+            "rule": "clock_edge",
+            "line": 29,
+            "before": "    always_ff @(posedge clk or posedge areset) begin",
+            "after": "    always_ff @(posedge clk or negedge areset) begin",
+            "orig": "posedge",
+            "changed": "negedge",
+            "guard": "1'b1",
+            "lhs": "",
+            "width": 1
+          }
+        ],
+        "id": "GX-61",
+        "screen_differences": [
+          414,
+          268,
+          384
+        ],
+        "retained": true
+      },
+      {
+        "edits": [
+          {
+            "rule": "removed_condition",
+            "line": 30,
+            "before": "        if (areset) begin",
+            "after": "        if (1'b0) begin",
+            "orig": "areset",
+            "changed": "1'b0",
+            "guard": "1'b1",
+            "lhs": "",
+            "width": 1
+          },
+          {
+            "rule": "temporal_reset",
+            "line": 29,
+            "before": "    always_ff @(posedge clk or posedge areset) begin",
+            "after": "    always_ff @(posedge clk) begin",
+            "orig": "1'b1",
+            "changed": "1'b0",
+            "guard": "1'b1",
+            "lhs": "",
+            "width": 1
+          }
+        ],
+        "id": "GX-62",
+        "screen_differences": [
+          476,
+          336,
+          390
+        ],
+        "retained": true
+      },
+      {
+        "edits": [
+          {
+            "rule": "relation",
+            "line": 30,
+            "before": "        if (areset) begin",
+            "after": "        if ((areset) == 1'b0) begin",
+            "orig": "areset",
+            "changed": "(areset) == 1'b0",
+            "guard": "1'b1",
+            "lhs": "",
+            "width": 1
+          },
+          {
+            "rule": "clock_edge",
+            "line": 29,
+            "before": "    always_ff @(posedge clk or posedge areset) begin",
+            "after": "    always_ff @(posedge clk or negedge areset) begin",
+            "orig": "posedge",
+            "changed": "negedge",
+            "guard": "1'b1",
+            "lhs": "",
+            "width": 1
+          }
+        ],
+        "id": "GX-63",
+        "screen_differences": [
+          3214,
+          3274,
+          3212
+        ],
+        "retained": true
+      },
+      {
+        "edits": [
+          {
+            "rule": "relation",
+            "line": 30,
+            "before": "        if (areset) begin",
+            "after": "        if ((areset) == 1'b0) begin",
+            "orig": "areset",
+            "changed": "(areset) == 1'b0",
+            "guard": "1'b1",
+            "lhs": "",
+            "width": 1
+          },
+          {
+            "rule": "temporal_reset",
+            "line": 29,
+            "before": "    always_ff @(posedge clk or posedge areset) begin",
+            "after": "    always_ff @(posedge clk) begin",
+            "orig": "1'b1",
+            "changed": "1'b0",
+            "guard": "1'b1",
+            "lhs": "",
+            "width": 1
+          }
+        ],
+        "id": "GX-64",
+        "screen_differences": [
+          3214,
+          3274,
+          3212
+        ],
+        "retained": true
+      }
+    ],
+    "invalid": [],
+    "attempted": 64,
+    "retained": 63
+  },
+  "initial_proposal_count": 916,
+  "policy": "rarer differences first among harder edits",
+  "proxy_enum_policy": "strict Icarus first, then width-preserving enum lowering"
+}

@@ -67,8 +67,8 @@ def screen(items, original, screening, baseline, *, take, prefix, attempt_limit)
             "retained": sum(m["retained"] for m in variants)}
 
 
-def build_catalog(task, problem, interface, original, stimulus, plan):
-    location = BASE / "guidance" / task / "catalog.json"
+def build_catalog(task, problem, interface, original, stimulus, plan, *, destination=None):
+    location = destination or (BASE / "guidance" / task / "catalog.json")
     if location.is_file():
         return load(location)
     inputs, outputs, _, _ = interface

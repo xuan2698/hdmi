@@ -108,12 +108,21 @@ class VectorReplay:
         display = f'$display("TRACE{format_string}", {values});'
         drive = ""
         vector_mem = ""
+        mid_mem = ""
+        mid_step = "#4;"
+        read_mid = ""
         if inputs:
             width = sum(inputs.values())
             declarations.append(f"reg [{width - 1}:0] samples [0:{len(self.vectors) - 1}];")
             drive = "{" + ", ".join(inputs) + "} = samples[cycle];"
             vector_mem = "\n".join("".join(f"{row[n]:0{w}b}" for n, w in inputs.items())
                                    for row in self.vectors) + "\n"
+            if any(row.get("mid") for row in self.vectors):
+                declarations.append(f"reg [{width - 1}:0] middle [0:{len(self.vectors) - 1}];")
+                mid_mem = "\n".join("".join(f"{row.get('mid', {}).get(n, row[n]):0{w}b}"
+                                             for n, w in inputs.items()) for row in self.vectors) + "\n"
+                read_mid = '$readmemb("middle.mem", middle);'
+                mid_step = "#2; {" + ", ".join(inputs) + "} = middle[cycle]; #2;"
         read_vectors = '$readmemb("vectors.mem", samples);' if inputs else ""
         dump = '$dumpfile("trace.vcd"); $dumpvars(0, replay);' if observe else ""
         before = f"#1; {display} #4;" if self.all_edges else "#5;"
@@ -127,12 +136,13 @@ top_module dut ({", ".join(binding)});
 initial begin
     {dump}
     {read_vectors}
+    {read_mid}
     for (cycle = 0; cycle < {len(self.vectors)}; cycle = cycle + 1) begin
         {drive}
         {before}
         phase = {1 - initial};
         #1; {display}
-        #4; phase = {initial};
+        {mid_step} phase = {initial};
         {after}
     end
     $finish;
@@ -142,6 +152,8 @@ endmodule
         with tempfile.TemporaryDirectory(prefix="autobench-v2-") as temp:
             where = Path(temp)
             (where / "vectors.mem").write_text(vector_mem)
+            if mid_mem:
+                (where / "middle.mem").write_text(mid_mem)
             try:
                 executable = compiled(code, rtl)
             except RunError as exc:
