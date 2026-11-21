@@ -21,6 +21,7 @@ MODELS = {
     "deepseek-v4.1-flash": "deepseek-v4.1-flash",
     "Gemini 4 Hydrogen": "gemini-4-hydrogen",
     "gemini-4-hydrogen": "gemini-4-hydrogen",
+    "hy4": "hy4",
     "hy4-flash-free": "hy4-flash-free",
 }
 LOG = Path(__file__).resolve().parent / "output" / "llm_calls.jsonl"

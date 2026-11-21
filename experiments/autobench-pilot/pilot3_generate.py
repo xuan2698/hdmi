@@ -79,7 +79,7 @@ rows. Keep the function under 45 lines and fill remaining rows with a loop. No D
                           + history[-1] + "\n") if history else ""
                 prior_attempt = "\nSource from the last attempt:\n" + last_code if last_code else ""
                 code = request(where / "calls.jsonl",
-                               prefix + instruction + (evidence if not attempt else "") + prior_attempt + repair,
+                               prefix + instruction + evidence + prior_attempt + repair,
                                plan)
                 atomic(file, code)
             last_code = code
