@@ -1,0 +1,54 @@
+def stimulus(rng, cycles):
+    rows = []
+    def u(v, w):
+        return v & ((1 << w) - 1)
+    # reset sequence
+    for _ in range(4):
+        rows.append({'reset': 1, 'in_1': 0, 'in_2': 0, 'in_3': 0, 'filter_select': 0})
+    # post-reset: exercise all filter modes with varied inputs
+    modes = [0, 1, 2, 3]
+    mode_idx = 0
+    run_len = 0
+    cur_mode = 0
+    while len(rows) < cycles:
+        if run_len <= 0:
+            cur_mode = modes[mode_idx % 4]
+            mode_idx += 1
+            run_len = rng.randint(8, 40)
+        run_len -= 1
+        r = rng.random()
+        if r < 0.15:
+            v1 = 0
+            v2 = 0
+            v3 = 0
+        elif r < 0.30:
+            v1 = u(0x7FFF, 16)
+            v2 = u(0x8000, 16)
+            v3 = u(0xFFFF, 16)
+        elif r < 0.45:
+            v1 = u(rng.randint(0, 0xFF), 16)
+            v2 = u(rng.randint(0, 0xFF), 16)
+            v3 = u(rng.randint(0, 0xFF), 16)
+        elif r < 0.60:
+            v1 = u(rng.randint(0, 0xFFFF), 16)
+            v2 = u(rng.randint(0, 0xFFFF), 16)
+            v3 = u(rng.randint(0, 0xFFFF), 16)
+        elif r < 0.75:
+            v1 = u(rng.randint(0x7F00, 0x80FF), 16)
+            v2 = u(rng.randint(0x7F00, 0x80FF), 16)
+            v3 = u(rng.randint(0x7F00, 0x80FF), 16)
+        else:
+            v1 = u(rng.randint(0, 0xFFFF), 16)
+            v2 = u(rng.randint(0, 0xFFFF), 16)
+            v3 = u(rng.randint(0, 0xFFFF), 16)
+        row = {'reset': 0, 'in_1': v1, 'in_2': v2, 'in_3': v3, 'filter_select': cur_mode}
+        # occasionally add mid overrides
+        if rng.random() < 0.10:
+            row['mid'] = {
+                'in_1': u(rng.randint(0, 0xFFFF), 16),
+                'in_2': u(rng.randint(0, 0xFFFF), 16),
+                'in_3': u(rng.randint(0, 0xFFFF), 16),
+                'filter_select': rng.randint(0, 3),
+            }
+        rows.append(row)
+    return rows[:cycles]

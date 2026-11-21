@@ -1,0 +1,342 @@
+{
+  "task": "cvdp_agentic_byte_enable_ram_0004",
+  "candidates": [
+    {
+      "id": "G01",
+      "edit": {
+        "rule": "AssignN2B",
+        "line": 46,
+        "before": "    addr_b_reg    <= addr_b;",
+        "after": "    addr_b_reg    = addr_b;",
+        "orig": "<=",
+        "changed": "=",
+        "guard": "1'b1",
+        "lhs": "addr_b_reg",
+        "width": 1
+      }
+    },
+    {
+      "id": "G02",
+      "edit": {
+        "rule": "ExprInsert",
+        "line": 100,
+        "before": "    data_out_b <= ram[addr_b_reg];",
+        "after": "    data_out_b <= (ram[addr_b_reg]) ^ 1;",
+        "orig": "ram[addr_b_reg]",
+        "changed": "(ram[addr_b_reg]) ^ 1",
+        "guard": "1'b1",
+        "lhs": "data_out_b",
+        "width": 32
+      }
+    },
+    {
+      "id": "G03",
+      "edit": {
+        "rule": "IOFlip1",
+        "line": 49,
+        "before": "    data_in_b_reg <= data_in_b;",
+        "after": "    data_in_b_reg <= (~data_in_b);",
+        "orig": "data_in_b",
+        "changed": "(~data_in_b)",
+        "guard": "1'b1",
+        "lhs": "data_in_b_reg",
+        "width": 1
+      }
+    },
+    {
+      "id": "G04",
+      "edit": {
+        "rule": "IOFlip2",
+        "line": 99,
+        "before": "    data_out_a <= ram[addr_a_reg];",
+        "after": "    data_out_a <= ~(ram[addr_a_reg]);",
+        "orig": "ram[addr_a_reg]",
+        "changed": "~(ram[addr_a_reg])",
+        "guard": "1'b1",
+        "lhs": "data_out_a",
+        "width": 32
+      }
+    },
+    {
+      "id": "G05",
+      "edit": {
+        "rule": "NSubDelete",
+        "line": 43,
+        "before": "    be_a_reg      <= be_a;",
+        "after": "    ;",
+        "orig": "be_a_reg      <= be_a;",
+        "changed": ";",
+        "guard": "1'b1",
+        "lhs": "be_a_reg",
+        "width": 1
+      }
+    },
+    {
+      "id": "G06",
+      "edit": {
+        "rule": "NSubInsert",
+        "line": 44,
+        "before": "    data_in_a_reg <= data_in_a;",
+        "after": "    begin data_in_a_reg <= data_in_a; data_in_a_reg <= 0; end",
+        "orig": "data_in_a_reg <= data_in_a;",
+        "changed": "begin data_in_a_reg <= data_in_a; data_in_a_reg <= 0; end",
+        "guard": "1'b1",
+        "lhs": "data_in_a_reg",
+        "width": 1
+      }
+    },
+    {
+      "id": "G07",
+      "edit": {
+        "rule": "NSubInsert_IF",
+        "line": 100,
+        "before": "    data_out_b <= ram[addr_b_reg];",
+        "after": "    begin data_out_b <= ram[addr_b_reg]; data_out_b <= 0; end",
+        "orig": "data_out_b <= ram[addr_b_reg];",
+        "changed": "begin data_out_b <= ram[addr_b_reg]; data_out_b <= 0; end",
+        "guard": "1'b1",
+        "lhs": "data_out_b",
+        "width": 32
+      }
+    },
+    {
+      "id": "G08",
+      "edit": {
+        "rule": "NSubUpdate",
+        "line": 42,
+        "before": "    en_a_reg      <= en_a;",
+        "after": "    en_a_reg      <= (en_a) + 1;",
+        "orig": "en_a",
+        "changed": "(en_a) + 1",
+        "guard": "1'b1",
+        "lhs": "en_a_reg",
+        "width": 1
+      }
+    },
+    {
+      "id": "G09",
+      "edit": {
+        "rule": "PartselectInsert",
+        "line": 44,
+        "before": "    data_in_a_reg <= data_in_a;",
+        "after": "    data_in_a_reg <= data_in_a[30:0];",
+        "orig": "data_in_a",
+        "changed": "data_in_a[30:0]",
+        "guard": "1'b1",
+        "lhs": "data_in_a_reg",
+        "width": 1
+      }
+    },
+    {
+      "id": "G10",
+      "edit": {
+        "rule": "PointerDelete",
+        "line": 77,
+        "before": "        if (be_a_reg[0])",
+        "after": "        if (be_a_reg)",
+        "orig": "be_a_reg[0]",
+        "changed": "be_a_reg",
+        "guard": "1'b1",
+        "lhs": "",
+        "width": 1
+      }
+    },
+    {
+      "id": "G11",
+      "edit": {
+        "rule": "PointerInsert",
+        "line": 41,
+        "before": "    addr_a_reg    <= addr_a;",
+        "after": "    addr_a_reg    <= addr_a[0];",
+        "orig": "addr_a",
+        "changed": "addr_a[0]",
+        "guard": "1'b1",
+        "lhs": "addr_a_reg",
+        "width": 1
+      }
+    },
+    {
+      "id": "G12",
+      "edit": {
+        "rule": "PointerUpdate",
+        "line": 62,
+        "before": "      else if (be_b_reg[1])",
+        "after": "      else if (be_b_reg[2])",
+        "orig": "be_b_reg[1]",
+        "changed": "be_b_reg[2]",
+        "guard": "1'b1",
+        "lhs": "",
+        "width": 1
+      }
+    },
+    {
+      "id": "G13",
+      "edit": {
+        "rule": "arithmetic_or_bitwise",
+        "line": 99,
+        "before": "    data_out_a <= ram[addr_a_reg];",
+        "after": "    data_out_a <= (ram[addr_a_reg]) >> 1;",
+        "orig": "ram[addr_a_reg]",
+        "changed": "(ram[addr_a_reg]) >> 1",
+        "guard": "(be_b_reg[3])",
+        "lhs": "data_out_a",
+        "width": 32
+      }
+    },
+    {
+      "id": "G14",
+      "edit": {
+        "rule": "bit_index_offset",
+        "line": 43,
+        "before": "    be_a_reg      <= be_a;",
+        "after": "    be_a_reg      <= (be_a >> 1);",
+        "orig": "be_a",
+        "changed": "(be_a >> 1)",
+        "guard": "1'b1",
+        "lhs": "be_a_reg",
+        "width": 1
+      }
+    },
+    {
+      "id": "G15",
+      "edit": {
+        "rule": "clock_edge",
+        "line": 40,
+        "before": "  always_ff @(posedge clk) begin",
+        "after": "  always_ff @(negedge clk) begin",
+        "orig": "posedge",
+        "changed": "negedge",
+        "guard": "1'b1",
+        "lhs": "",
+        "width": 1
+      }
+    },
+    {
+      "id": "G16",
+      "edit": {
+        "rule": "condition_operator",
+        "line": 81,
+        "before": "        if (be_a_reg[2])",
+        "after": "        if ((be_a_reg[2]) && data_in_a[31])",
+        "orig": "be_a_reg[2]",
+        "changed": "(be_a_reg[2]) && data_in_a[31]",
+        "guard": "1'b1",
+        "lhs": "",
+        "width": 1
+      }
+    },
+    {
+      "id": "G17",
+      "edit": {
+        "rule": "deleted_assignment",
+        "line": 41,
+        "before": "    addr_a_reg    <= addr_a;",
+        "after": "    addr_a_reg    <= addr_a_reg;",
+        "orig": "addr_a",
+        "changed": "addr_a_reg",
+        "guard": "1'b1",
+        "lhs": "addr_a_reg",
+        "width": 1
+      }
+    },
+    {
+      "id": "G18",
+      "edit": {
+        "rule": "negated_condition",
+        "line": 81,
+        "before": "        if (be_a_reg[2])",
+        "after": "        if (!(be_a_reg[2]))",
+        "orig": "be_a_reg[2]",
+        "changed": "!(be_a_reg[2])",
+        "guard": "1'b1",
+        "lhs": "",
+        "width": 1
+      }
+    },
+    {
+      "id": "G19",
+      "edit": {
+        "rule": "relation",
+        "line": 92,
+        "before": "        if (be_b_reg[2])",
+        "after": "        if ((be_b_reg[2]) != 1'b0)",
+        "orig": "be_b_reg[2]",
+        "changed": "(be_b_reg[2]) != 1'b0",
+        "guard": "1'b1",
+        "lhs": "",
+        "width": 1
+      }
+    },
+    {
+      "id": "G20",
+      "edit": {
+        "rule": "removed_condition",
+        "line": 83,
+        "before": "        if (be_a_reg[3])",
+        "after": "        if (1'b1)",
+        "orig": "be_a_reg[3]",
+        "changed": "1'b1",
+        "guard": "1'b1",
+        "lhs": "",
+        "width": 1
+      }
+    },
+    {
+      "id": "G21",
+      "edit": {
+        "rule": "replaced_assignment",
+        "line": 100,
+        "before": "    data_out_b <= ram[addr_b_reg];",
+        "after": "    data_out_b <= 32'd0;",
+        "orig": "ram[addr_b_reg]",
+        "changed": "32'd0",
+        "guard": "(be_b_reg[3])",
+        "lhs": "data_out_b",
+        "width": 32
+      }
+    },
+    {
+      "id": "G22",
+      "edit": {
+        "rule": "unary_operator",
+        "line": 48,
+        "before": "    be_b_reg      <= be_b;",
+        "after": "    be_b_reg      <= +(be_b);",
+        "orig": "be_b",
+        "changed": "+(be_b)",
+        "guard": "1'b1",
+        "lhs": "be_b_reg",
+        "width": 1
+      }
+    },
+    {
+      "id": "G23",
+      "edit": {
+        "rule": "AssignN2B",
+        "line": 41,
+        "before": "    addr_a_reg    <= addr_a;",
+        "after": "    addr_a_reg    = addr_a;",
+        "orig": "<=",
+        "changed": "=",
+        "guard": "1'b1",
+        "lhs": "addr_a_reg",
+        "width": 1
+      }
+    },
+    {
+      "id": "G24",
+      "edit": {
+        "rule": "ExprInsert",
+        "line": 48,
+        "before": "    be_b_reg      <= be_b;",
+        "after": "    be_b_reg      <= (be_b) ^ 1;",
+        "orig": "be_b",
+        "changed": "(be_b) ^ 1",
+        "guard": "1'b1",
+        "lhs": "be_b_reg",
+        "width": 1
+      }
+    }
+  ],
+  "excluded": []
+}

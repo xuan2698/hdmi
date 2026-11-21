@@ -1,0 +1,340 @@
+[
+  {
+    "config": "O",
+    "task": "cvdp_copilot_ring_token_0004",
+    "seed": 20261122,
+    "round": 2,
+    "mutant": "G15",
+    "G_exposed_by_append": true,
+    "source_edit": {
+      "line": 54,
+      "before": "            data_out <= data_in;",
+      "after": "            data_out <= (data_in >> 1);"
+    },
+    "feedback": {
+      "diagnosis": {
+        "label": "未到达",
+        "executions": 0
+      }
+    },
+    "script": "trial/cvdp_copilot_ring_token_0004/20261122/O/round2/try1.py",
+    "appended_source": "def stimulus(rng, cycles):\n    rows = []\n    for i in range(cycles):\n        if i < 4:\n            rst = 1\n            data_in = 0\n            has_data = 0\n        else:\n            rst = 0\n            phase = (i - 4) % 16\n            if phase < 4:\n                has_data = 1\n                data_in = rng.randint(0, 15)\n            elif phase < 8:\n                has_data = 0\n                data_in = rng.randint(0, 15)\n            elif phase < 12:\n                has_data = 1\n                data_in = (i * 3 + 5) & 0xF\n            else:\n                has_data = 0\n                data_in = 0\n            if rng.random() < 0.05:\n                rst = 1\n                data_in = 0\n                has_data = 0\n        row = {\n            'rst': rst & 0x1,\n            'data_in': data_in & 0xF,\n            'has_data_to_send': has_data & 0x1,\n        }\n        rows.append(row)\n    return rows\n",
+    "G_before": 15,
+    "G_after": 21,
+    "H_before": {
+      "original_plus": [
+        "H01",
+        "H02",
+        "H03",
+        "H04",
+        "H05",
+        "H07"
+      ],
+      "rare": [
+        "R01",
+        "R03",
+        "R04",
+        "R05",
+        "R07",
+        "R09"
+      ]
+    },
+    "H_after": {
+      "original_plus": [
+        "H01",
+        "H02",
+        "H03",
+        "H04",
+        "H05",
+        "H06",
+        "H07",
+        "H08",
+        "H09",
+        "H10"
+      ],
+      "rare": [
+        "R01",
+        "R02",
+        "R03",
+        "R04",
+        "R05",
+        "R06",
+        "R07",
+        "R09"
+      ]
+    }
+  },
+  {
+    "config": "O",
+    "task": "cvdp_copilot_simple_spi_0003",
+    "seed": 20261123,
+    "round": 2,
+    "mutant": "G06",
+    "G_exposed_by_append": true,
+    "source_edit": {
+      "line": 102,
+      "before": "                    o_fsm_state    = ST_IDLE; // Reflect the current FSM state",
+      "after": "                    o_fsm_state    = ~(ST_IDLE); // Reflect the current FSM state"
+    },
+    "feedback": {
+      "diagnosis": {
+        "label": "未到达",
+        "executions": 0
+      }
+    },
+    "script": "trial/cvdp_copilot_simple_spi_0003/20261123/O/round2/try1.py",
+    "appended_source": "def stimulus(rng, cycles):\n    rows = []\n    data = 0\n    enable = 0\n    fault = 0\n    clear = 0\n    rst = 0\n    for i in range(cycles):\n        if i < 3:\n            rst = 0\n            enable = 0\n            fault = 0\n            clear = 0\n            data = 0\n        elif i < 6:\n            rst = 1\n            enable = 0\n            fault = 0\n            clear = 0\n            data = 0\n        else:\n            rst = 1\n            r = rng.random()\n            if r < 0.04:\n                enable = 0\n                fault = 0\n                clear = 0\n            elif r < 0.08:\n                enable = 1\n                fault = 1\n                clear = 0\n            elif r < 0.12:\n                enable = 1\n                fault = 0\n                clear = 1\n            elif r < 0.16:\n                enable = 0\n                fault = 0\n                clear = 1\n            elif r < 0.20:\n                enable = 1\n                fault = 1\n                clear = 1\n            else:\n                enable = 1\n                fault = 0\n                clear = 0\n            if rng.random() < 0.35:\n                data = rng.randrange(0, 65536)\n        row = {\n            'i_rst_b': rst,\n            'i_data_in': data & 0xFFFF,\n            'i_enable': enable,\n            'i_fault': fault,\n            'i_clear': clear,\n        }\n        rows.append(row)\n    return rows\n",
+    "G_before": 16,
+    "G_after": 17,
+    "H_before": {
+      "original_plus": [
+        "H01",
+        "H02",
+        "H03",
+        "H04",
+        "H06",
+        "H07",
+        "H08",
+        "H09",
+        "H10"
+      ],
+      "rare": [
+        "R01",
+        "R05",
+        "R06",
+        "R08",
+        "R09",
+        "R10"
+      ]
+    },
+    "H_after": {
+      "original_plus": [
+        "H01",
+        "H02",
+        "H03",
+        "H04",
+        "H05",
+        "H06",
+        "H07",
+        "H08",
+        "H09",
+        "H10"
+      ],
+      "rare": [
+        "R01",
+        "R02",
+        "R05",
+        "R06",
+        "R08",
+        "R09",
+        "R10"
+      ]
+    }
+  },
+  {
+    "config": "O+F",
+    "task": "cvdp_copilot_ring_token_0004",
+    "seed": 20261123,
+    "round": 2,
+    "mutant": "G17",
+    "G_exposed_by_append": true,
+    "source_edit": {
+      "line": 53,
+      "before": "        if (token_received[current_state] && has_data_to_send) begin",
+      "after": "        if ((token_received[current_state] && has_data_to_send) && rst) begin"
+    },
+    "feedback": {
+      "diagnosis": {
+        "label": "诊断不可用",
+        "reason": "结构或边沿变异没有可单独求值的原/变异表达式"
+      },
+      "formal_status": "witness",
+      "formal": {
+        "cycles": 2,
+        "compressed": [
+          {
+            "from": 1,
+            "through": 1,
+            "input": {
+              "rst": 1,
+              "data_in": 0,
+              "has_data_to_send": 0
+            }
+          },
+          {
+            "from": 2,
+            "through": 2,
+            "input": {
+              "rst": 0,
+              "data_in": 2,
+              "has_data_to_send": 1
+            }
+          }
+        ],
+        "state": {
+          "golden_outputs_binary": "001000010010",
+          "unknown_mask": "000000000000",
+          "witness_phase": "10",
+          "G_site": "if (token_received[current_state] && has_data_to_send) begin"
+        }
+      }
+    },
+    "script": "trial/cvdp_copilot_ring_token_0004/20261123/O+F/round2/try1.py",
+    "appended_source": "def stimulus(rng, cycles):\n    rows = []\n    rst = 1\n    data_in = 0\n    has_data_to_send = 0\n    for i in range(cycles):\n        if i < 2:\n            rst = 1\n            data_in = 0\n            has_data_to_send = 0\n        elif i == 2:\n            rst = 0\n            data_in = 8\n            has_data_to_send = 1\n        elif i == 3:\n            rst = 0\n            data_in = 4\n            has_data_to_send = 1\n        elif i == 4:\n            rst = 0\n            data_in = 12\n            has_data_to_send = 1\n        elif i == 5:\n            rst = 0\n            data_in = 2\n            has_data_to_send = 1\n        else:\n            rst = 0\n            r = rng.random()\n            if r < 0.12:\n                data_in = rng.randrange(16)\n            elif r < 0.22:\n                data_in = (data_in + 1) & 0xF\n            elif r < 0.30:\n                data_in = (data_in << 1) & 0xF\n            if rng.random() < 0.30:\n                has_data_to_send = 1 - has_data_to_send\n            if rng.random() < 0.10:\n                has_data_to_send = 1\n            if rng.random() < 0.06:\n                has_data_to_send = 0\n            if rng.random() < 0.03:\n                rst = 1\n                data_in = 0\n                has_data_to_send = 0\n        row = {\n            'rst': rst & 0x1,\n            'data_in': data_in & 0xF,\n            'has_data_to_send': has_data_to_send & 0x1,\n        }\n        if rng.random() < 0.25:\n            mid_data = data_in\n            mid_send = has_data_to_send\n            if rng.random() < 0.5:\n                mid_data = rng.randrange(16)\n            if rng.random() < 0.5:\n                mid_send = rng.randrange(2)\n            row['mid'] = {'data_in': mid_data & 0xF, 'has_data_to_send': mid_send & 0x1}\n        rows.append(row)\n    return rows\n",
+    "G_before": 16,
+    "G_after": 21,
+    "H_before": {
+      "original_plus": [
+        "H01",
+        "H02",
+        "H03",
+        "H04",
+        "H05",
+        "H07",
+        "H10"
+      ],
+      "rare": [
+        "R01",
+        "R03",
+        "R04",
+        "R05",
+        "R07",
+        "R09"
+      ]
+    },
+    "H_after": {
+      "original_plus": [
+        "H01",
+        "H02",
+        "H03",
+        "H04",
+        "H05",
+        "H06",
+        "H07",
+        "H08",
+        "H09",
+        "H10"
+      ],
+      "rare": [
+        "R01",
+        "R02",
+        "R03",
+        "R04",
+        "R05",
+        "R07",
+        "R09"
+      ]
+    }
+  },
+  {
+    "config": "O+F",
+    "task": "cvdp_copilot_manchester_enc_0009",
+    "seed": 20261121,
+    "round": 2,
+    "mutant": "G23",
+    "G_exposed_by_append": true,
+    "source_edit": {
+      "line": 20,
+      "before": "    always_ff @(posedge clk_in) begin",
+      "after": "    always_ff @(posedge clk_in or posedge rst_in) begin"
+    },
+    "feedback": {
+      "diagnosis": {
+        "label": "诊断不可用",
+        "reason": "结构或边沿变异没有可单独求值的原/变异表达式"
+      },
+      "formal_status": "witness",
+      "formal": {
+        "cycles": 2,
+        "compressed": [
+          {
+            "from": 1,
+            "through": 1,
+            "input": {
+              "rst_in": 1,
+              "enc_valid_in": 0,
+              "enc_data_in": 0,
+              "dec_valid_in": 0,
+              "dec_data_in": 0
+            }
+          },
+          {
+            "from": 2,
+            "through": 2,
+            "input": {
+              "rst_in": 0,
+              "enc_valid_in": 1,
+              "enc_data_in": 254,
+              "dec_valid_in": 0,
+              "dec_data_in": 0,
+              "mid": {
+                "rst_in": 1,
+                "enc_valid_in": 0,
+                "enc_data_in": 0
+              }
+            }
+          }
+        ],
+        "state": {
+          "golden_outputs_binary": "10101010101010110000000000",
+          "unknown_mask": "00000000000000000000000000",
+          "witness_phase": "11",
+          "G_site": "always_ff @(posedge clk_in) begin"
+        }
+      }
+    },
+    "script": "trial/cvdp_copilot_manchester_enc_0009/20261121/O+F/round2/try1.py",
+    "appended_source": "def stimulus(rng, cycles):\n    rows = []\n    rst_remaining = 3\n    enc_run = 0\n    dec_run = 0\n    enc_data = 0\n    dec_data = 0\n    for i in range(cycles):\n        rst = 1 if rst_remaining > 0 else 0\n        if rst_remaining > 0:\n            rst_remaining -= 1\n        enc_valid = 0\n        dec_valid = 0\n        if rst == 0:\n            if enc_run > 0:\n                enc_valid = 1\n                enc_run -= 1\n            elif rng.random() < 0.4:\n                enc_valid = 1\n                enc_data = rng.randrange(256)\n                enc_run = rng.randrange(1, 8)\n            if dec_run > 0:\n                dec_valid = 1\n                dec_run -= 1\n            elif rng.random() < 0.4:\n                dec_valid = 1\n                dec_data = rng.randrange(65536)\n                dec_run = rng.randrange(1, 8)\n        row = {\n            'rst_in': rst,\n            'enc_valid_in': enc_valid,\n            'enc_data_in': enc_data if enc_valid else 0,\n            'dec_valid_in': dec_valid,\n            'dec_data_in': dec_data if dec_valid else 0,\n        }\n        if rst == 0 and rng.random() < 0.05:\n            row['mid'] = {'rst_in': 1, 'enc_valid_in': 0, 'enc_data_in': 0,\n                          'dec_valid_in': 0, 'dec_data_in': 0}\n        rows.append(row)\n    return rows\n",
+    "G_before": 12,
+    "G_after": 14,
+    "H_before": {
+      "original_plus": [
+        "H01",
+        "H02",
+        "H03",
+        "H04",
+        "H05",
+        "H06",
+        "H07",
+        "H08",
+        "H09",
+        "H10"
+      ],
+      "rare": [
+        "R01",
+        "R02",
+        "R03",
+        "R04",
+        "R07",
+        "R08",
+        "R09",
+        "R10"
+      ]
+    },
+    "H_after": {
+      "original_plus": [
+        "H01",
+        "H02",
+        "H03",
+        "H04",
+        "H05",
+        "H06",
+        "H07",
+        "H08",
+        "H09",
+        "H10"
+      ],
+      "rare": [
+        "R01",
+        "R02",
+        "R03",
+        "R04",
+        "R05",
+        "R07",
+        "R08",
+        "R09",
+        "R10"
+      ]
+    }
+  }
+]

@@ -1,0 +1,28 @@
+def stimulus(rng, cycles):
+    rows = []
+    reset = 1
+    start_stop = 0
+    for i in range(cycles):
+        if i < 3:
+            reset = 1
+            start_stop = 0
+        elif i < 5:
+            reset = 0
+            start_stop = 0
+        else:
+            reset = 0
+            r = rng.random()
+            if r < 0.05:
+                start_stop = 1 - start_stop
+            elif r < 0.10:
+                start_stop = 1
+            elif r < 0.15:
+                start_stop = 0
+        row = {'reset': reset, 'start_stop': start_stop}
+        mid = {}
+        if i >= 5 and rng.random() < 0.03:
+            mid['start_stop'] = 1 - start_stop
+        if mid:
+            row['mid'] = mid
+        rows.append(row)
+    return rows
