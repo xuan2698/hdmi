@@ -1,0 +1,61 @@
+{
+  "task": "cvdp_copilot_asyc_reset_0004",
+  "tag": "R01",
+  "sources": [
+    "cvdp_new/R01"
+  ],
+  "metadata": {
+    "bug": "The zero-count hold assignment decrements instead, causing the 5-bit counter to wrap.",
+    "trigger": "After reset and 31 rising clock edges with reset deasserted, cnt_q reaches 0. On the next rising edge, the zero-state branch executes.",
+    "effect": "cnt_q wraps to 31 rather than holding at 0; release_reset_o deasserts and the countdown begins again.",
+    "model": "gpt-6-luna"
+  },
+  "rtl_pair_sha256": "a53c2730fcc80ed87a69b72139e12d00bc2f22725f2e1cd394dab52dd2131b07",
+  "required_cycles": 52,
+  "attempts": [
+    {
+      "mode": "bmc",
+      "engine": "abc bmc3",
+      "requested_cycles": 52,
+      "status": "FAIL"
+    },
+    {
+      "mode": "witness",
+      "engine": "smtbmc z3",
+      "formal_steps": 132,
+      "status": "TIMEOUT"
+    },
+    {
+      "mode": "witness_translation",
+      "engine": "ABC + Boolector",
+      "status": "FAIL"
+    }
+  ],
+  "bounded_cycles": null,
+  "address_subset": false,
+  "latch_compatibility": false,
+  "status": "non_equivalent",
+  "concrete_rtl_replay": {
+    "replayed_formal_step": 130,
+    "golden_bits": "1000000",
+    "mutant_bits": "0011111",
+    "address_subset_zero_extended": false
+  },
+  "counterexample_cycles": 33,
+  "formal_step": 130,
+  "terminal_inputs_binary": {
+    "reset": "0"
+  },
+  "different_outputs": {
+    "release_reset_o": {
+      "golden": "1",
+      "mutant": "0"
+    },
+    "cnt_q": {
+      "golden": "00000",
+      "mutant": "11111"
+    }
+  },
+  "trace": "reports/new_cases/cvdp_copilot_asyc_reset_0004/R01/witness.vcd",
+  "phase_binary": "10"
+}

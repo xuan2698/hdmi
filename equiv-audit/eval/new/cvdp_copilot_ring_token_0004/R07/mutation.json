@@ -1,0 +1,13 @@
+{
+  "bug": "Clears the NODE2 token output whenever data is ready to send.",
+  "trigger": "On a rising clock edge with current_state=NODE2 and has_data_to_send=1; data_in may be any value.",
+  "effect": "token is 4'b0000 for that cycle instead of 4'b1000.",
+  "edits": [
+    {
+      "old": "                token <= 4'b1000;",
+      "new": "                token <= has_data_to_send ? 4'b0000 : 4'b1000;"
+    }
+  ],
+  "model": "gpt-6-luna",
+  "batch": 2
+}

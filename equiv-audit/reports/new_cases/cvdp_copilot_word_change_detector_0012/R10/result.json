@@ -1,0 +1,71 @@
+{
+  "task": "cvdp_copilot_word_change_detector_0012",
+  "tag": "R10",
+  "sources": [
+    "cvdp_new/R10"
+  ],
+  "metadata": {
+    "bug": "Selects the live match_pattern for comparison on the cycle latch_pattern is asserted, instead of comparing only against the previously latched pattern.",
+    "trigger": "On an enabled clock edge with latch_pattern=1, the registered masked_data_in equals match_pattern & mask but differs from latched_pattern & mask. For example, with mask=8'hFF, masked_data_in=8'hA5, match_pattern=8'hA5, and latched_pattern=8'h00, the mutant sets match_detected; the original does not.",
+    "effect": "Creates a false match indication for the old latched pattern; pattern_match_pulse can assert on the following enabled cycle even though the new pattern was only being latched on the triggering edge.",
+    "model": "gpt-6-luna"
+  },
+  "rtl_pair_sha256": "ca9092e72d7aa03212dec7132022d4c8656735a80e7f7ac73c4e9b4a372e94b0",
+  "required_cycles": 52,
+  "attempts": [
+    {
+      "mode": "bmc",
+      "engine": "abc bmc3",
+      "requested_cycles": 52,
+      "status": "ERROR"
+    },
+    {
+      "mode": "bmc",
+      "engine": "smtbmc boolector",
+      "formal_steps": 209,
+      "ram_addresses": null,
+      "status": "ERROR"
+    },
+    {
+      "mode": "mixed-driver search normalization",
+      "engine": "abc bmc3",
+      "status": "FAIL",
+      "requested_cycles": 52
+    },
+    {
+      "mode": "witness_translation",
+      "engine": "ABC + Boolector",
+      "status": "FAIL"
+    }
+  ],
+  "bounded_cycles": null,
+  "address_subset": false,
+  "latch_compatibility": false,
+  "status": "non_equivalent",
+  "supplemental_reason": "Assert `!enc.driven' failed in passes/cmds/xprop.cc:237.",
+  "concrete_rtl_replay": {
+    "replayed_formal_step": 10,
+    "golden_bits": "0100000001",
+    "mutant_bits": "0000000001",
+    "address_subset_zero_extended": false
+  },
+  "counterexample_cycles": 3,
+  "formal_step": 10,
+  "terminal_inputs_binary": {
+    "reset": "0",
+    "data_in": "00000000",
+    "mask": "00000000",
+    "match_pattern": "00000000",
+    "enable": "1",
+    "latch_pattern": "0"
+  },
+  "different_outputs": {
+    "pattern_match_pulse": {
+      "golden": "1",
+      "mutant": "0"
+    }
+  },
+  "trace": "reports/new_cases/cvdp_copilot_word_change_detector_0012/R10/witness.vcd",
+  "phase_binary": "10",
+  "witness_method": "mixed-driver search normalization, confirmed on unchanged Icarus RTL"
+}

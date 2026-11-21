@@ -1,0 +1,49 @@
+{
+  "task": "cvdp_copilot_hill_cipher_0012",
+  "tag": "R10",
+  "sources": [
+    "cvdp_new/R10"
+  ],
+  "metadata": {
+    "bug": "A start sampled during COMPUTE_MOD incorrectly sends the FSM back to COMPUTE instead of proceeding to DONE.",
+    "trigger": "Accept a start in IDLE, then assert start for one cycle while current_state is COMPUTE_MOD. That pulse sends the FSM back to COMPUTE; deasserting start afterward allows the operation to finish.",
+    "effect": "The done pulse is delayed by two cycles, and the repeated COMPUTE can use inputs that changed after the original computation.",
+    "model": "gpt-6-luna"
+  },
+  "rtl_pair_sha256": "a6e55175e44c63ab33e0f9c9fce605218e560cc3e97f6ed3a152b13ad6fad192",
+  "required_cycles": 52,
+  "attempts": [
+    {
+      "mode": "bmc",
+      "engine": "smtbmc boolector",
+      "requested_cycles": 52,
+      "status": "FAIL"
+    }
+  ],
+  "bounded_cycles": null,
+  "address_subset": false,
+  "latch_compatibility": false,
+  "status": "non_equivalent",
+  "concrete_rtl_replay": {
+    "replayed_formal_step": 14,
+    "golden_bits": "0011010001010101",
+    "mutant_bits": "0011010001010100",
+    "address_subset_zero_extended": false
+  },
+  "counterexample_cycles": 4,
+  "formal_step": 14,
+  "terminal_inputs_binary": {
+    "reset": "0",
+    "start": "1",
+    "plaintext": "000000000000000",
+    "key": "000000000000000000000000000000000000000000000"
+  },
+  "different_outputs": {
+    "done": {
+      "golden": "1",
+      "mutant": "0"
+    }
+  },
+  "trace": "reports/new_cases/cvdp_copilot_hill_cipher_0012/R10/witness.vcd",
+  "phase_binary": "10"
+}

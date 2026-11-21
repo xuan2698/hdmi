@@ -1,0 +1,48 @@
+{
+  "task": "cvdp_copilot_digital_stopwatch_0017",
+  "tag": "R07",
+  "sources": [
+    "cvdp_new/R07"
+  ],
+  "metadata": {
+    "bug": "The seconds rollover comparison is one count too low.",
+    "trigger": "With hour=0, seconds=58, and a one_sec_pulse edge while start_stop is high, the seconds branch rolls over early.",
+    "effect": "Seconds resets to 0 and minutes advances when seconds was 58, shortening each minute by one second.",
+    "model": "gpt-6-luna"
+  },
+  "rtl_pair_sha256": "b9d571c130d99372aadf60bb3a0b7158c0774d61e4349e6f83a15cc66877ca7c",
+  "required_cycles": 180000000000,
+  "attempts": [
+    {
+      "mode": "bmc",
+      "engine": "abc bmc3",
+      "requested_cycles": 52,
+      "status": "PASS"
+    },
+    {
+      "mode": "prove",
+      "engine": "smtbmc z3 k-induction",
+      "status": "TIMEOUT"
+    },
+    {
+      "mode": "shared-divider reachable transition",
+      "engine": "Yosys sequential SAT",
+      "reached_tick": 59,
+      "period_default_cycles": 50000000,
+      "status": "FAIL"
+    }
+  ],
+  "bounded_cycles": 52,
+  "address_subset": false,
+  "latch_compatibility": false,
+  "status": "non_equivalent",
+  "counterexample_cycles": 2950000001,
+  "witness_method": "shared-divider SAT plus 1-Hz Icarus replay",
+  "concrete_rtl_replay": {
+    "scope": "unchanged downstream RTL at certified pulse edges",
+    "first_tick": 59,
+    "golden_bits": "0000000111011",
+    "mutant_bits": "0000001000000"
+  },
+  "trace": "reports/new_cases/cvdp_copilot_digital_stopwatch_0017/R07/compressed_witness.json"
+}

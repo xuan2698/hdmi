@@ -1,0 +1,53 @@
+{
+  "task": "cvdp_copilot_ring_token_0004",
+  "tag": "R07",
+  "sources": [
+    "cvdp_new/R07"
+  ],
+  "metadata": {
+    "bug": "Clears the NODE2 token output whenever data is ready to send.",
+    "trigger": "On a rising clock edge with current_state=NODE2 and has_data_to_send=1; data_in may be any value.",
+    "effect": "token is 4'b0000 for that cycle instead of 4'b1000.",
+    "model": "gpt-6-luna"
+  },
+  "rtl_pair_sha256": "7cc91d47d0fd74aaa055336100737b7b0bd314ec7c89a53aea97ac179ab9d7f7",
+  "required_cycles": 52,
+  "attempts": [
+    {
+      "mode": "bmc",
+      "engine": "abc bmc3",
+      "requested_cycles": 52,
+      "status": "FAIL"
+    },
+    {
+      "mode": "witness_translation",
+      "engine": "ABC + Boolector",
+      "status": "FAIL"
+    }
+  ],
+  "bounded_cycles": null,
+  "address_subset": false,
+  "latch_compatibility": false,
+  "status": "non_equivalent",
+  "concrete_rtl_replay": {
+    "replayed_formal_step": 14,
+    "golden_bits": "000001001000",
+    "mutant_bits": "000001000000",
+    "address_subset_zero_extended": false
+  },
+  "counterexample_cycles": 4,
+  "formal_step": 14,
+  "terminal_inputs_binary": {
+    "rst": "0",
+    "data_in": "0000",
+    "has_data_to_send": "1"
+  },
+  "different_outputs": {
+    "token": {
+      "golden": "1000",
+      "mutant": "0000"
+    }
+  },
+  "trace": "reports/new_cases/cvdp_copilot_ring_token_0004/R07/witness.vcd",
+  "phase_binary": "10"
+}

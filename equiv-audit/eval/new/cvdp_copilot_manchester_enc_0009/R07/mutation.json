@@ -1,0 +1,13 @@
+{
+  "bug": "The decoder loop stops before updating the most-significant output bit.",
+  "trigger": "For N=8, after a valid decoded word with bit 7=0 (or after reset/idle), a subsequent valid word whose bit 7 should be 1 leaves bit 7 at its previous value; the other seven bits are decoded normally.",
+  "effect": "The decoder reports valid data with a stale most-significant bit.",
+  "edits": [
+    {
+      "old": "            for (int i = 0; i < N; i++) begin\n                if (dec_data_in[2*i] == 1'b1 && dec_data_in[2*i+1] == 1'b0) begin",
+      "new": "            for (int i = 0; i < N-1; i++) begin\n                if (dec_data_in[2*i] == 1'b1 && dec_data_in[2*i+1] == 1'b0) begin"
+    }
+  ],
+  "model": "gpt-6-luna",
+  "batch": 2
+}

@@ -1,0 +1,57 @@
+{
+  "task": "cvdp_copilot_signed_adder_0003",
+  "tag": "R09",
+  "sources": [
+    "cvdp_new/R09"
+  ],
+  "metadata": {
+    "bug": "An all-ones computed result is mistakenly replaced with zero at output.",
+    "trigger": "Complete an enabled operation whose DATA_WIDTH-bit result is all ones. With DATA_WIDTH=8, adding 8'hFE and 8'h01 yields 8'hFF and triggers the bug.",
+    "effect": "o_resultant_sum is zero instead of the computed all-ones result.",
+    "model": "gpt-6-luna"
+  },
+  "rtl_pair_sha256": "a082d99477970497c5c415a821351832bcb6d7d3b5c84515f9e0b8c367d81723",
+  "required_cycles": 52,
+  "attempts": [
+    {
+      "mode": "bmc",
+      "engine": "abc bmc3",
+      "requested_cycles": 52,
+      "status": "FAIL"
+    },
+    {
+      "mode": "witness_translation",
+      "engine": "ABC + Boolector",
+      "status": "FAIL"
+    }
+  ],
+  "bounded_cycles": null,
+  "address_subset": false,
+  "latch_compatibility": false,
+  "status": "non_equivalent",
+  "concrete_rtl_replay": {
+    "replayed_formal_step": 18,
+    "golden_bits": "111111110100",
+    "mutant_bits": "000000000100",
+    "address_subset_zero_extended": false
+  },
+  "counterexample_cycles": 5,
+  "formal_step": 18,
+  "terminal_inputs_binary": {
+    "i_rst_n": "1",
+    "i_start": "0",
+    "i_enable": "1",
+    "i_mode": "0",
+    "i_clear": "0",
+    "i_operand_a": "00000000",
+    "i_operand_b": "00000000"
+  },
+  "different_outputs": {
+    "o_resultant_sum": {
+      "golden": "11111111",
+      "mutant": "00000000"
+    }
+  },
+  "trace": "reports/new_cases/cvdp_copilot_signed_adder_0003/R09/witness.vcd",
+  "phase_binary": "10"
+}

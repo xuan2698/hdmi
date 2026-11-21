@@ -1,0 +1,55 @@
+{
+  "task": "cvdp_agentic_byte_enable_ram_0004",
+  "tag": "R06",
+  "sources": [
+    "cvdp_new/R06"
+  ],
+  "metadata": {
+    "bug": "Port B lane 0 suppresses writes of a zero byte.",
+    "trigger": "Port B is enabled, its lane-0 byte enable is set, and its registered write data is 8'h00; for example, a non-colliding write of 32'h00000000 to an address.",
+    "effect": "The previous value in that byte remains in RAM instead of being overwritten with zero.",
+    "model": "gpt-6-luna"
+  },
+  "rtl_pair_sha256": "9f30759b5e52e1a47ab79f9b084c257faff530bd91388031d333c1990d95a63c",
+  "required_cycles": 52,
+  "attempts": [
+    {
+      "mode": "bmc",
+      "engine": "abc bmc3",
+      "requested_cycles": 52,
+      "status": "TIMEOUT"
+    },
+    {
+      "mode": "bmc",
+      "engine": "smtbmc boolector",
+      "formal_steps": 209,
+      "ram_addresses": 2,
+      "status": "FAIL"
+    }
+  ],
+  "bounded_cycles": null,
+  "address_subset": true,
+  "latch_compatibility": false,
+  "status": "unknown",
+  "reason": "Formal witness failed concrete RTL replay",
+  "counterexample_cycles": 3,
+  "formal_step": 10,
+  "terminal_inputs_binary": {
+    "addr_a": "0000000000000",
+    "en_a": "1",
+    "be_a": "0000",
+    "data_in_a": "00000000000000000000000000000000",
+    "addr_b": "0000000000000",
+    "en_b": "1",
+    "be_b": "0000",
+    "data_in_b": "00000000000000000000000000000000"
+  },
+  "different_outputs": {
+    "data_out_b": {
+      "golden": "11111110111111111111111100000000",
+      "mutant": "111111101111111111111111xxxxxxxx"
+    }
+  },
+  "trace": "reports/new_cases/cvdp_agentic_byte_enable_ram_0004/R06/witness.vcd",
+  "phase_binary": "10"
+}

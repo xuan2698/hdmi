@@ -1,0 +1,13 @@
+{
+  "bug": "Encoder acceptance is accidentally gated by decoder input-valid.",
+  "trigger": "With rst_in=0, enc_valid_in=1, and dec_valid_in=1 on the same rising edge, the encoder takes its idle branch; for example, simultaneous valid transactions cause enc_valid_out=0.",
+  "effect": "An encoder frame is dropped only when the independent decoder channel is also valid.",
+  "edits": [
+    {
+      "old": "        end else if (enc_valid_in) begin",
+      "new": "        end else if (enc_valid_in && !dec_valid_in) begin"
+    }
+  ],
+  "model": "gpt-6-luna",
+  "batch": 2
+}

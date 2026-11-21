@@ -1,0 +1,13 @@
+{
+  "bug": "The Chebyshev b_1 coefficient assignment holds its prior value rather than loading the Chebyshev coefficient.",
+  "trigger": "Select Butterworth (2'b00), then switch to Chebyshev (2'b01) and provide nonzero channel input history; the held b_1 value is then 2 instead of 5.",
+  "effect": "Chebyshev channel results use the coefficient retained from the prior selector, producing incorrect output after that mode transition.",
+  "edits": [
+    {
+      "old": "chebyshev_b_1 = 16'h0005;",
+      "new": "chebyshev_b_1 = chebyshev_b_1;"
+    }
+  ],
+  "model": "gpt-6-luna",
+  "batch": 2
+}

@@ -1,0 +1,71 @@
+{
+  "task": "cvdp_copilot_word_change_detector_0012",
+  "tag": "R04",
+  "sources": [
+    "cvdp_new/R04"
+  ],
+  "metadata": {
+    "bug": "Uses unmasked per-bit change pulses to generate the word-level pulse.",
+    "trigger": "With enable=1 and at least one mask bit 0, toggle only a data_in bit whose mask is 0. For example, with the default width, mask=8'hFE and data_in[0] toggling causes the spurious pulse.",
+    "effect": "word_change_pulse asserts for a change that the mask should suppress.",
+    "model": "gpt-6-luna"
+  },
+  "rtl_pair_sha256": "d1b68b4e2ad97bfc35e1bfc9ce0d5479717155829cb4adbfffcd79def079f902",
+  "required_cycles": 52,
+  "attempts": [
+    {
+      "mode": "bmc",
+      "engine": "abc bmc3",
+      "requested_cycles": 52,
+      "status": "ERROR"
+    },
+    {
+      "mode": "bmc",
+      "engine": "smtbmc boolector",
+      "formal_steps": 209,
+      "ram_addresses": null,
+      "status": "ERROR"
+    },
+    {
+      "mode": "mixed-driver search normalization",
+      "engine": "abc bmc3",
+      "status": "FAIL",
+      "requested_cycles": 52
+    },
+    {
+      "mode": "witness_translation",
+      "engine": "ABC + Boolector",
+      "status": "FAIL"
+    }
+  ],
+  "bounded_cycles": null,
+  "address_subset": false,
+  "latch_compatibility": false,
+  "status": "non_equivalent",
+  "supplemental_reason": "Assert `!enc.driven' failed in passes/cmds/xprop.cc:237.",
+  "concrete_rtl_replay": {
+    "replayed_formal_step": 6,
+    "golden_bits": "0000000000",
+    "mutant_bits": "1000000000",
+    "address_subset_zero_extended": false
+  },
+  "counterexample_cycles": 2,
+  "formal_step": 6,
+  "terminal_inputs_binary": {
+    "reset": "0",
+    "data_in": "01000000",
+    "mask": "00000000",
+    "match_pattern": "00000000",
+    "enable": "1",
+    "latch_pattern": "0"
+  },
+  "different_outputs": {
+    "word_change_pulse": {
+      "golden": "0",
+      "mutant": "1"
+    }
+  },
+  "trace": "reports/new_cases/cvdp_copilot_word_change_detector_0012/R04/witness.vcd",
+  "phase_binary": "10",
+  "witness_method": "mixed-driver search normalization, confirmed on unchanged Icarus RTL"
+}

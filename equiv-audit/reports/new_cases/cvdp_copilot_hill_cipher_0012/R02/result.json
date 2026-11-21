@@ -1,0 +1,49 @@
+{
+  "task": "cvdp_copilot_hill_cipher_0012",
+  "tag": "R02",
+  "sources": [
+    "cvdp_new/R02"
+  ],
+  "metadata": {
+    "bug": "The second intermediate sum is stored in five bits rather than six.",
+    "trigger": "On a transaction where the second-row sum has bit 5 set, the mutant drops that bit. For example, K10=16, P0=2, and all other key elements and plaintext symbols zero gives a second-row sum of 32: the original stores 32 and produces C1=6, while the mutant stores 0 and produces C1=0.",
+    "effect": "The second ciphertext symbol can be wrong when the second-row sum is in the upper half of the original six-bit range.",
+    "model": "gpt-6-luna"
+  },
+  "rtl_pair_sha256": "df3e394ad14f59a28147a6b7d25a8d358694092936d5a7192496b0bc43225c61",
+  "required_cycles": 52,
+  "attempts": [
+    {
+      "mode": "bmc",
+      "engine": "smtbmc boolector",
+      "requested_cycles": 52,
+      "status": "FAIL"
+    }
+  ],
+  "bounded_cycles": null,
+  "address_subset": false,
+  "latch_compatibility": false,
+  "status": "non_equivalent",
+  "concrete_rtl_replay": {
+    "replayed_formal_step": 14,
+    "golden_bits": "1100000111000001",
+    "mutant_bits": "1100000001000001",
+    "address_subset_zero_extended": false
+  },
+  "counterexample_cycles": 4,
+  "formal_step": 14,
+  "terminal_inputs_binary": {
+    "reset": "0",
+    "start": "0",
+    "plaintext": "000000000000000",
+    "key": "000000000000000000000000000000000000000000000"
+  },
+  "different_outputs": {
+    "ciphertext": {
+      "golden": "110000011100000",
+      "mutant": "110000000100000"
+    }
+  },
+  "trace": "reports/new_cases/cvdp_copilot_hill_cipher_0012/R02/witness.vcd",
+  "phase_binary": "10"
+}

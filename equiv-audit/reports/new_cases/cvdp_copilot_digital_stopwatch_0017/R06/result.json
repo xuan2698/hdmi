@@ -1,0 +1,36 @@
+{
+  "task": "cvdp_copilot_digital_stopwatch_0017",
+  "tag": "R06",
+  "sources": [
+    "cvdp_new/R06"
+  ],
+  "metadata": {
+    "bug": "Reset is incorrectly qualified by the pulse state in the divider.",
+    "trigger": "With start_stop high, assert reset asynchronously after the terminal-count clock has raised one_sec_pulse and cleared counter, then deassert reset before the next clk edge.",
+    "effect": "The reset event takes the normal counting branch, leaving counter at 1 rather than 0; the next one_sec_pulse occurs one clock early relative to a clean reset.",
+    "model": "gpt-6-luna"
+  },
+  "rtl_pair_sha256": "98f00fed8ea1836c35fc041d6a8ba8f7e2bdb93556532272563b9da375d15d4d",
+  "required_cycles": 180000000000,
+  "attempts": [
+    {
+      "mode": "bmc",
+      "engine": "abc bmc3",
+      "requested_cycles": 52,
+      "status": "ERROR"
+    },
+    {
+      "mode": "prove",
+      "engine": "smtbmc boolector",
+      "formal_steps": 32,
+      "ram_addresses": null,
+      "status": "ERROR"
+    }
+  ],
+  "bounded_cycles": null,
+  "address_subset": false,
+  "latch_compatibility": false,
+  "status": "unknown",
+  "reason": "Multiple edge sensitive events found for this signal!",
+  "supplemental_reason": "Multiple edge sensitive events found for this signal!"
+}

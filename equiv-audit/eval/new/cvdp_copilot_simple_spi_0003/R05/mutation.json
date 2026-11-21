@@ -1,0 +1,13 @@
+{
+  "bug": "The asynchronous reset initializes o_bits_left to zero rather than the full-transfer count.",
+  "trigger": "Assert i_rst_b low, including during an active transfer; the erroneous value is visible throughout reset and remains after release while the FSM stays idle.",
+  "effect": "o_bits_left reports zero instead of 16, and a subsequent transfer begins with an invalid count.",
+  "edits": [
+    {
+      "old": "            o_bits_left  <= 5'h10;",
+      "new": "            o_bits_left  <= 5'h00;"
+    }
+  ],
+  "model": "gpt-6-luna",
+  "batch": 2
+}

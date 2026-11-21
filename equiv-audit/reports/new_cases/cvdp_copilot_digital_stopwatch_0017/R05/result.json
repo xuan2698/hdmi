@@ -1,0 +1,47 @@
+{
+  "task": "cvdp_copilot_digital_stopwatch_0017",
+  "tag": "R05",
+  "sources": [
+    "cvdp_new/R05"
+  ],
+  "metadata": {
+    "bug": "Removes asynchronous reset sensitivity from the stopwatch logic.",
+    "trigger": "Assert and deassert reset between one_sec_pulse rising edges, without a pulse while reset is asserted.",
+    "effect": "seconds, minutes, and hour retain their pre-reset values instead of clearing when reset is asserted.",
+    "model": "gpt-6-luna"
+  },
+  "rtl_pair_sha256": "96ae3b0e8848a9f7d88eb22525ab66e451c4100708d639fcf59f778682d36f7e",
+  "required_cycles": 180000000000,
+  "attempts": [
+    {
+      "mode": "bmc",
+      "engine": "abc bmc3",
+      "requested_cycles": 52,
+      "status": "FAIL"
+    },
+    {
+      "mode": "witness_translation",
+      "engine": "ABC + Boolector",
+      "status": "FAIL"
+    }
+  ],
+  "bounded_cycles": null,
+  "address_subset": false,
+  "latch_compatibility": false,
+  "status": "non_equivalent",
+  "concrete_rtl_replay": {
+    "replayed_formal_step": 0,
+    "golden_bits": "0000000000000",
+    "mutant_bits": "xxxxxxxxxxxxx",
+    "address_subset_zero_extended": false
+  },
+  "counterexample_cycles": 0,
+  "formal_step": 0,
+  "terminal_inputs_binary": {
+    "reset": "1",
+    "start_stop": "0"
+  },
+  "different_outputs": {},
+  "trace": "reports/new_cases/cvdp_copilot_digital_stopwatch_0017/R05/witness.vcd",
+  "phase_binary": "00"
+}

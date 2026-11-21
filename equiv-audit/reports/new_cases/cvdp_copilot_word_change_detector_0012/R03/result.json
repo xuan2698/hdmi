@@ -1,0 +1,71 @@
+{
+  "task": "cvdp_copilot_word_change_detector_0012",
+  "tag": "R03",
+  "sources": [
+    "cvdp_new/R03"
+  ],
+  "metadata": {
+    "bug": "Holds pattern_match_pulse when enable is low rather than clearing it.",
+    "trigger": "Make pattern_match_pulse high while enabled, then deassert enable before the next rising edge and keep it low for another clock. A prior match_detected=1 makes the pulse high; the following disabled edge triggers the bug.",
+    "effect": "pattern_match_pulse remains asserted during disable instead of being cleared.",
+    "model": "gpt-6-luna"
+  },
+  "rtl_pair_sha256": "d617e58a6b1f1845576c9ce8d9e5d246adc75a2eb64330e372baed9257b0f5e4",
+  "required_cycles": 52,
+  "attempts": [
+    {
+      "mode": "bmc",
+      "engine": "abc bmc3",
+      "requested_cycles": 52,
+      "status": "ERROR"
+    },
+    {
+      "mode": "bmc",
+      "engine": "smtbmc boolector",
+      "formal_steps": 209,
+      "ram_addresses": null,
+      "status": "ERROR"
+    },
+    {
+      "mode": "mixed-driver search normalization",
+      "engine": "abc bmc3",
+      "status": "FAIL",
+      "requested_cycles": 52
+    },
+    {
+      "mode": "witness_translation",
+      "engine": "ABC + Boolector",
+      "status": "FAIL"
+    }
+  ],
+  "bounded_cycles": null,
+  "address_subset": false,
+  "latch_compatibility": false,
+  "status": "non_equivalent",
+  "supplemental_reason": "Assert `!enc.driven' failed in passes/cmds/xprop.cc:237.",
+  "concrete_rtl_replay": {
+    "replayed_formal_step": 14,
+    "golden_bits": "0000000000",
+    "mutant_bits": "0100000000",
+    "address_subset_zero_extended": false
+  },
+  "counterexample_cycles": 4,
+  "formal_step": 14,
+  "terminal_inputs_binary": {
+    "reset": "0",
+    "data_in": "00000000",
+    "mask": "00000000",
+    "match_pattern": "00000000",
+    "enable": "0",
+    "latch_pattern": "0"
+  },
+  "different_outputs": {
+    "pattern_match_pulse": {
+      "golden": "0",
+      "mutant": "1"
+    }
+  },
+  "trace": "reports/new_cases/cvdp_copilot_word_change_detector_0012/R03/witness.vcd",
+  "phase_binary": "10",
+  "witness_method": "mixed-driver search normalization, confirmed on unchanged Icarus RTL"
+}

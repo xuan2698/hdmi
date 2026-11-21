@@ -1,0 +1,13 @@
+{
+  "bug": "The decoder's invalid-input branch clears only the most-significant output bit, leaving lower bits unchanged.",
+  "trigger": "For N=8, first decode a valid word with any of dec_data_out[6:0] set, then deassert dec_valid_in for a clock edge. Those lower output bits retain their prior values while dec_valid_out clears.",
+  "effect": "Decoded data from an earlier transaction remains visible in lower bits during an invalid cycle instead of the output being zeroed.",
+  "edits": [
+    {
+      "old": "        end else begin\n            dec_data_out  <= '0;\n            dec_valid_out <= 1'b0;\n        end",
+      "new": "        end else begin\n            dec_data_out[N-1] <= 1'b0;\n            dec_valid_out <= 1'b0;\n        end"
+    }
+  ],
+  "model": "gpt-6-luna",
+  "batch": 1
+}

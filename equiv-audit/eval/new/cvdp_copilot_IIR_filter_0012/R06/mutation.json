@@ -1,0 +1,13 @@
+{
+  "bug": "The asynchronous reset path loads channel 3's output from its data register instead of clearing it.",
+  "trigger": "Assert reset between clock edges after channel 3 has a nonzero y_3_0; observe out_3 before the next rising clock edge.",
+  "effect": "out_3 briefly retains the stale channel 3 value during reset instead of clearing immediately.",
+  "edits": [
+    {
+      "old": "out_3 <= 0;",
+      "new": "out_3 <= y_3_0;"
+    }
+  ],
+  "model": "gpt-6-luna",
+  "batch": 2
+}

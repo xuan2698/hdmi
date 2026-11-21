@@ -1,0 +1,13 @@
+{
+  "bug": "The release-reset comparison uses only the counter's low four bits, aliasing counts 16 through 23 to counts 0 through 7.",
+  "trigger": "After reset, when the countdown reaches cnt_q == 23, the low nibble is 7; the mutant asserts release_reset_o for counts 23 through 16, then deasserts it for counts 15 through 8.",
+  "effect": "release_reset_o pulses high early, goes low again, and later asserts as intended once the count falls below 8.",
+  "edits": [
+    {
+      "old": "assign release_reset_o = (cnt_q < 5'h8);                  // (cnt_q < 8)",
+      "new": "assign release_reset_o = (cnt_q[3:0] < 5'h8);           // (cnt_q < 8)"
+    }
+  ],
+  "model": "gpt-6-luna",
+  "batch": 3
+}

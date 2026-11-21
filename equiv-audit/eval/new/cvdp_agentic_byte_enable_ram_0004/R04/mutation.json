@@ -1,0 +1,13 @@
+{
+  "bug": "Port A's non-collision lane-2 write is controlled by byte-enable bit 3 instead of bit 2.",
+  "trigger": "The collision path is not selected, port A is enabled, and its lane-2 and lane-3 enables differ; for example, lane 2 enabled and lane 3 disabled causes a lane-2 write to be missed.",
+  "effect": "Lane 2 can be spuriously written or left unchanged, depending on the lane-3 enable, despite its own byte-enable value.",
+  "edits": [
+    {
+      "old": "        if (be_a_reg[2])\n          ram[addr_a_reg][23:16] <= data_in_a_reg[23:16];",
+      "new": "        if (be_a_reg[3])\n          ram[addr_a_reg][23:16] <= data_in_a_reg[23:16];"
+    }
+  ],
+  "model": "gpt-6-luna",
+  "batch": 1
+}

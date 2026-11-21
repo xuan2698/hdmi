@@ -1,0 +1,13 @@
+{
+  "bug": "The second ciphertext register is not cleared in the default state.",
+  "trigger": "Complete a transaction that produces a nonzero C1, then observe ciphertext after the DONE state transitions back to IDLE. The original clears C1 on that edge; the mutant retains the previous value.",
+  "effect": "Ciphertext[9:5] exposes stale data while the design is idle after a completed transaction.",
+  "edits": [
+    {
+      "old": "                    C0_reg <= 5'b0;\n                    C1_reg <= 5'b0;\n                    C2_reg <= 5'b0;",
+      "new": "                    C0_reg <= 5'b0;\n                    C1_reg <= C1_reg;\n                    C2_reg <= 5'b0;"
+    }
+  ],
+  "model": "gpt-6-luna",
+  "batch": 1
+}

@@ -1,0 +1,13 @@
+{
+  "bug": "Reset initializes `token_received` to NODE1 instead of NODE0.",
+  "trigger": "After reset is deasserted, on the first rising edge with `has_data_to_send=1`, `current_state` is NODE0 but the reset `token_received` value has bit 0 clear.",
+  "effect": "The first data word is not captured into `data_out`; the original captures `data_in` on that edge.",
+  "edits": [
+    {
+      "old": "current_state <= NODE0;\n        token <= 4'b0001;\n        token_received <= 4'b0001;\n        data_out <= 4'b0000;",
+      "new": "current_state <= NODE0;\n        token <= 4'b0001;\n        token_received <= 4'b0010;\n        data_out <= 4'b0000;"
+    }
+  ],
+  "model": "gpt-6-luna",
+  "batch": 1
+}

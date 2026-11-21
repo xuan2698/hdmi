@@ -1,0 +1,13 @@
+{
+  "bug": "The DONE pulse is incorrectly gated by the third ciphertext symbol being nonzero.",
+  "trigger": "On a transaction whose third-row sum is divisible by 26, C2_reg is zero in DONE. For example, an all-zero key produces this condition.",
+  "effect": "done is not asserted for that transaction, even though the FSM leaves DONE normally.",
+  "edits": [
+    {
+      "old": "done = 1'b1;",
+      "new": "done = (C2_reg != 5'b0);"
+    }
+  ],
+  "model": "gpt-6-luna",
+  "batch": 2
+}

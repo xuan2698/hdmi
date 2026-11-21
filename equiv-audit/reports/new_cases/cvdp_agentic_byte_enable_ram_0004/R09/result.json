@@ -1,0 +1,55 @@
+{
+  "task": "cvdp_agentic_byte_enable_ram_0004",
+  "tag": "R09",
+  "sources": [
+    "cvdp_new/R09"
+  ],
+  "metadata": {
+    "bug": "Port A's registered read output holds its previous value when reading address zero.",
+    "trigger": "After port A has produced an output from a nonzero address, a later clock samples address zero into addr_a_reg; on the following clock the output update is suppressed.",
+    "effect": "data_out_a retains the earlier read value instead of returning ram[0].",
+    "model": "gpt-6-luna"
+  },
+  "rtl_pair_sha256": "26ac84d4012cb3ccf71655cb86ef9d5b5998c6530853667caecf88af919831a3",
+  "required_cycles": 52,
+  "attempts": [
+    {
+      "mode": "bmc",
+      "engine": "abc bmc3",
+      "requested_cycles": 52,
+      "status": "TIMEOUT"
+    },
+    {
+      "mode": "bmc",
+      "engine": "smtbmc boolector",
+      "formal_steps": 209,
+      "ram_addresses": 2,
+      "status": "FAIL"
+    }
+  ],
+  "bounded_cycles": null,
+  "address_subset": true,
+  "latch_compatibility": false,
+  "status": "unknown",
+  "reason": "Formal witness failed concrete RTL replay",
+  "counterexample_cycles": 1,
+  "formal_step": 2,
+  "terminal_inputs_binary": {
+    "addr_a": "0000000000000",
+    "en_a": "1",
+    "be_a": "0000",
+    "data_in_a": "00000000000000000000000000000000",
+    "addr_b": "0000000000000",
+    "en_b": "1",
+    "be_b": "0000",
+    "data_in_b": "00000000000000000000000000000000"
+  },
+  "different_outputs": {
+    "data_out_a": {
+      "golden": "00000000000000000000000000000000",
+      "mutant": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+    }
+  },
+  "trace": "reports/new_cases/cvdp_agentic_byte_enable_ram_0004/R09/witness.vcd",
+  "phase_binary": "10"
+}

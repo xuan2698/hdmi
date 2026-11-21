@@ -1,0 +1,36 @@
+{
+  "task": "cvdp_copilot_IIR_filter_0012",
+  "tag": "R06",
+  "sources": [
+    "cvdp_new/R06"
+  ],
+  "metadata": {
+    "bug": "The asynchronous reset path loads channel 3's output from its data register instead of clearing it.",
+    "trigger": "Assert reset between clock edges after channel 3 has a nonzero y_3_0; observe out_3 before the next rising clock edge.",
+    "effect": "out_3 briefly retains the stale channel 3 value during reset instead of clearing immediately.",
+    "model": "gpt-6-luna"
+  },
+  "rtl_pair_sha256": "794b5a9219c752d89c8046a42139434c699f599af94dd6878c77689153870157",
+  "required_cycles": 52,
+  "attempts": [
+    {
+      "mode": "bmc",
+      "engine": "abc bmc3",
+      "requested_cycles": 52,
+      "status": "TIMEOUT"
+    },
+    {
+      "mode": "bmc",
+      "engine": "smtbmc boolector",
+      "formal_steps": 209,
+      "ram_addresses": null,
+      "status": "TIMEOUT"
+    }
+  ],
+  "bounded_cycles": null,
+  "address_subset": false,
+  "latch_compatibility": false,
+  "status": "unknown",
+  "reason": "SBY  5:13:02 [bmc] summary: Elapsed process time [H:MM:SS (secs)]: 0:00:01 (1)\nSBY  5:13:02 [bmc] summary: engine_0 (abc bmc3) did not return a status\nSBY  5:13:02 [bmc] summary: engine_0 did not produce any traces\nSBY  5:13:02 [bmc] DONE (TIMEOUT, rc=8)",
+  "supplemental_reason": "SBY  5:18:47 [smt_retry] summary: Elapsed process time [H:MM:SS (secs)]: 0:00:01 (1)\nSBY  5:18:47 [smt_retry] summary: engine_0 (smtbmc boolector) did not return a status\nSBY  5:18:47 [smt_retry] summary: engine_0 did not produce any traces\nSBY  5:18:47 [smt_retry] DONE (TIMEOUT, rc=8)"
+}

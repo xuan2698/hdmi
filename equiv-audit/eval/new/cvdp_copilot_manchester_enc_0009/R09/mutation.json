@@ -1,0 +1,13 @@
+{
+  "bug": "Decoder output-valid is incorrectly qualified by the validity of the final Manchester symbol pair.",
+  "trigger": "With rst_in=0 and dec_valid_in=1, if the final pair dec_data_in[2*N-2:2*N-1] is 00 or 11, dec_valid_out is deasserted even if the rest of the word is valid. For N=8, this is the pair at bits [14:15].",
+  "effect": "A supplied decoder transaction is not reported valid whenever its final symbol pair is malformed.",
+  "edits": [
+    {
+      "old": "            dec_valid_out <= 1'b1;",
+      "new": "            dec_valid_out <= (dec_data_in[2*N-2] != dec_data_in[2*N-1]);"
+    }
+  ],
+  "model": "gpt-6-luna",
+  "batch": 2
+}

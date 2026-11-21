@@ -1,0 +1,13 @@
+{
+  "bug": "The NODE3 token-received status is cleared instead of identifying NODE3.",
+  "trigger": "At the rising edge where `current_state` is NODE3; in the unmodified sequence this occurs on the fourth active edge after reset deassertion and once per four-edge ring cycle.",
+  "effect": "`token_received` becomes zero instead of `4'b1000` for that cycle, so the NODE3 status is lost.",
+  "edits": [
+    {
+      "old": "token_received <= 4'b1000;",
+      "new": "token_received <= 4'b0000;"
+    }
+  ],
+  "model": "gpt-6-luna",
+  "batch": 1
+}

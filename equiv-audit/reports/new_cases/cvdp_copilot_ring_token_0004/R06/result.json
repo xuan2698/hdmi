@@ -1,0 +1,53 @@
+{
+  "task": "cvdp_copilot_ring_token_0004",
+  "tag": "R06",
+  "sources": [
+    "cvdp_new/R06"
+  ],
+  "metadata": {
+    "bug": "Suppresses an all-ones payload in the data capture path.",
+    "trigger": "After reset is deasserted, on the first rising clock edge with current_state=NODE0, token_received[0]=1, has_data_to_send=1, and data_in=4'b1111.",
+    "effect": "data_out becomes 4'b0000 instead of forwarding 4'b1111.",
+    "model": "gpt-6-luna"
+  },
+  "rtl_pair_sha256": "2eb441ec738158923581b15edc3ee7a89cff0936b698234d60e4cc48fbbfb736",
+  "required_cycles": 52,
+  "attempts": [
+    {
+      "mode": "bmc",
+      "engine": "abc bmc3",
+      "requested_cycles": 52,
+      "status": "FAIL"
+    },
+    {
+      "mode": "witness_translation",
+      "engine": "ABC + Boolector",
+      "status": "FAIL"
+    }
+  ],
+  "bounded_cycles": null,
+  "address_subset": false,
+  "latch_compatibility": false,
+  "status": "non_equivalent",
+  "concrete_rtl_replay": {
+    "replayed_formal_step": 6,
+    "golden_bits": "111100010010",
+    "mutant_bits": "000000010010",
+    "address_subset_zero_extended": false
+  },
+  "counterexample_cycles": 2,
+  "formal_step": 6,
+  "terminal_inputs_binary": {
+    "rst": "0",
+    "data_in": "1111",
+    "has_data_to_send": "1"
+  },
+  "different_outputs": {
+    "data_out": {
+      "golden": "1111",
+      "mutant": "0000"
+    }
+  },
+  "trace": "reports/new_cases/cvdp_copilot_ring_token_0004/R06/witness.vcd",
+  "phase_binary": "10"
+}

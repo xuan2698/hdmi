@@ -1,0 +1,13 @@
+{
+  "bug": "The state block samples reset synchronously instead of asynchronously.",
+  "trigger": "Assert and deassert reset entirely between rising edges of clk; for example, pulse reset high midway between two rising edges while a delay line contains nonzero data.",
+  "effect": "The pulse is missed, so outputs and filter history are not cleared and can affect subsequent normal traffic.",
+  "edits": [
+    {
+      "old": "always @(posedge clk or posedge reset) begin",
+      "new": "always @(posedge clk) begin"
+    }
+  ],
+  "model": "gpt-6-luna",
+  "batch": 2
+}

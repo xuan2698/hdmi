@@ -1,0 +1,52 @@
+{
+  "task": "cvdp_copilot_asyc_reset_0004",
+  "tag": "R02",
+  "sources": [
+    "cvdp_new/R02"
+  ],
+  "metadata": {
+    "bug": "The gate-clock upper threshold is one count too low.",
+    "trigger": "During the normal countdown, when cnt_q is exactly 13 (5'h0D), after 18 decrements from 31.",
+    "effect": "gate_clk_o is low for that count, omitting the first cycle of its intended active interval.",
+    "model": "gpt-6-luna"
+  },
+  "rtl_pair_sha256": "38d863a5a25a0ebfb4fa6f6b5b6acbc62699fbac85de7c421c069ede3a33dd40",
+  "required_cycles": 52,
+  "attempts": [
+    {
+      "mode": "bmc",
+      "engine": "abc bmc3",
+      "requested_cycles": 52,
+      "status": "FAIL"
+    },
+    {
+      "mode": "witness",
+      "engine": "smtbmc z3",
+      "formal_steps": 76,
+      "status": "FAIL"
+    }
+  ],
+  "bounded_cycles": null,
+  "address_subset": false,
+  "latch_compatibility": false,
+  "status": "non_equivalent",
+  "concrete_rtl_replay": {
+    "replayed_formal_step": 74,
+    "golden_bits": "0101101",
+    "mutant_bits": "0001101",
+    "address_subset_zero_extended": false
+  },
+  "counterexample_cycles": 19,
+  "formal_step": 74,
+  "terminal_inputs_binary": {
+    "reset": "0"
+  },
+  "different_outputs": {
+    "gate_clk_o": {
+      "golden": "1",
+      "mutant": "0"
+    }
+  },
+  "trace": "reports/new_cases/cvdp_copilot_asyc_reset_0004/R02/witness.vcd",
+  "phase_binary": "10"
+}

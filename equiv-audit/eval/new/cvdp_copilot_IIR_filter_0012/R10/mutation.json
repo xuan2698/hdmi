@@ -1,0 +1,13 @@
+{
+  "bug": "Channel 3 holds its current output-delay value instead of clearing it when filter_select is 2'b11.",
+  "trigger": "After reset, set filter_select to 2'b10 and in_3 to 1 for two consecutive rising edges; y_3_0 becomes 7. Set filter_select to 2'b11 on the next rising edge. On the following edge, out_3 is 7 in the mutant but 0 in the original.",
+  "effect": "A stale channel 3 result leaks through the output after the reserved filter-select encoding; valid filter-select operation is unchanged.",
+  "edits": [
+    {
+      "old": "                    y_3_0 <= 0;",
+      "new": "                    y_3_0 <= y_3_0;"
+    }
+  ],
+  "model": "gpt-6-luna",
+  "batch": 5
+}

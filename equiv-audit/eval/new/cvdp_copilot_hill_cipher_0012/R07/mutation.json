@@ -1,0 +1,13 @@
+{
+  "bug": "The datapath reset is synchronous while the state-machine reset remains asynchronous.",
+  "trigger": "After a completed transaction leaves nonzero ciphertext, assert reset and deassert it entirely between rising clock edges. The state resets asynchronously, but the datapath does not see a clock edge while reset is high.",
+  "effect": "The old ciphertext remains visible during the reset pulse instead of clearing immediately.",
+  "edits": [
+    {
+      "old": "always_ff @(posedge clk or posedge reset) begin\n        if (reset) begin\n            temp0",
+      "new": "always_ff @(posedge clk) begin\n        if (reset) begin\n            temp0"
+    }
+  ],
+  "model": "gpt-6-luna",
+  "batch": 2
+}

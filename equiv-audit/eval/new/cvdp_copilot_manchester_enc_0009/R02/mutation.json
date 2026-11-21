@@ -1,0 +1,13 @@
+{
+  "bug": "The decoder's invalid-pair fallback copies the first symbol instead of forcing the decoded bit to zero.",
+  "trigger": "Assert dec_valid_in with a 2'b11 pair in any bit position; for example, dec_data_in[1:0]=2'b11. The corresponding decoded bit is set to 1.",
+  "effect": "The invalid 11 pair is silently decoded as data 1 instead of the original fallback value 0.",
+  "edits": [
+    {
+      "old": "                end else begin\n                    dec_data_out[i] <= 1'b0;\n                end",
+      "new": "                end else begin\n                    dec_data_out[i] <= dec_data_in[2*i];\n                end"
+    }
+  ],
+  "model": "gpt-6-luna",
+  "batch": 1
+}

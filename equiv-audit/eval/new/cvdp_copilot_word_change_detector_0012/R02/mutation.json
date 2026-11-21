@@ -1,0 +1,13 @@
+{
+  "bug": "Suppresses pattern capture whenever the registered match-detected flag is high.",
+  "trigger": "With enable=1, arrange for match_detected to be 1, then assert latch_pattern for the next clock while presenting a different match_pattern. For example, after a matching comparison has set match_detected, assert latch_pattern on the following cycle.",
+  "effect": "The requested new pattern is ignored, so later comparisons continue using the old pattern.",
+  "edits": [
+    {
+      "old": "            if (latch_pattern) begin",
+      "new": "            if (latch_pattern && !match_detected) begin"
+    }
+  ],
+  "model": "gpt-6-luna",
+  "batch": 1
+}

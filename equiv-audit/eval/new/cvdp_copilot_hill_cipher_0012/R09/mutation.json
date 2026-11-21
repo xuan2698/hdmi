@@ -1,0 +1,13 @@
+{
+  "bug": "The first ciphertext reduction uses a strict greater-than at the 52 boundary, leaving an intermediate value of 52 unreduced.",
+  "trigger": "After reset, use P0=P1=P2=1 and K00=18, K01=17, K02=17. In COMPUTE, temp0 becomes 52; in the following COMPUTE_MOD cycle, the mutant produces C0=26 instead of 0.",
+  "effect": "The first ciphertext symbol is incorrect for this boundary value.",
+  "edits": [
+    {
+      "old": "C0_reg <= temp0%26;",
+      "new": "C0_reg <= (temp0 > 6'd52) ? (temp0 % 26) : ((temp0 >= 6'd26) ? (temp0 - 6'd26) : temp0);"
+    }
+  ],
+  "model": "gpt-6-luna",
+  "batch": 3
+}

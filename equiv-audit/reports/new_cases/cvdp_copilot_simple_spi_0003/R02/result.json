@@ -1,0 +1,59 @@
+{
+  "task": "cvdp_copilot_simple_spi_0003",
+  "tag": "R02",
+  "sources": [
+    "cvdp_new/R02"
+  ],
+  "metadata": {
+    "bug": "A simultaneous clear masks fault handling during an active transfer.",
+    "trigger": "Assert i_fault and i_clear together while curr_state is ST_TRANSMIT or ST_CLOCK_TOGGLE and i_enable is high.",
+    "effect": "The FSM bypasses the fault branch and continues normal transfer-state processing rather than entering the fault-clear recovery path.",
+    "model": "gpt-6-luna"
+  },
+  "rtl_pair_sha256": "083826759000c1055fcb45bdfa9ba4146d6986e9aa7662625d9faee3d68c96f4",
+  "required_cycles": 52,
+  "attempts": [
+    {
+      "mode": "bmc",
+      "engine": "abc bmc3",
+      "requested_cycles": 52,
+      "status": "FAIL"
+    },
+    {
+      "mode": "witness_translation",
+      "engine": "ABC + Boolector",
+      "status": "FAIL"
+    }
+  ],
+  "bounded_cycles": null,
+  "address_subset": false,
+  "latch_compatibility": false,
+  "status": "non_equivalent",
+  "concrete_rtl_replay": {
+    "replayed_formal_step": 7,
+    "golden_bits": "10010000000",
+    "mutant_bits": "00010000001",
+    "address_subset_zero_extended": false
+  },
+  "counterexample_cycles": 2,
+  "formal_step": 7,
+  "terminal_inputs_binary": {
+    "i_rst_b": "1",
+    "i_data_in": "0000000000000000",
+    "i_enable": "1",
+    "i_fault": "1",
+    "i_clear": "1"
+  },
+  "different_outputs": {
+    "o_spi_cs_b": {
+      "golden": "1",
+      "mutant": "0"
+    },
+    "o_fsm_state": {
+      "golden": "00",
+      "mutant": "01"
+    }
+  },
+  "trace": "reports/new_cases/cvdp_copilot_simple_spi_0003/R02/witness.vcd",
+  "phase_binary": "11"
+}

@@ -1,0 +1,49 @@
+{
+  "task": "cvdp_copilot_hill_cipher_0012",
+  "tag": "R04",
+  "sources": [
+    "cvdp_new/R04"
+  ],
+  "metadata": {
+    "bug": "The second ciphertext register is not cleared in the default state.",
+    "trigger": "Complete a transaction that produces a nonzero C1, then observe ciphertext after the DONE state transitions back to IDLE. The original clears C1 on that edge; the mutant retains the previous value.",
+    "effect": "Ciphertext[9:5] exposes stale data while the design is idle after a completed transaction.",
+    "model": "gpt-6-luna"
+  },
+  "rtl_pair_sha256": "571b4f70dec200255c355bfcc1d0e20aa8bc2a51f6e9372269a8cd77f1f3c3fe",
+  "required_cycles": 52,
+  "attempts": [
+    {
+      "mode": "bmc",
+      "engine": "smtbmc boolector",
+      "requested_cycles": 52,
+      "status": "FAIL"
+    }
+  ],
+  "bounded_cycles": null,
+  "address_subset": false,
+  "latch_compatibility": false,
+  "status": "non_equivalent",
+  "concrete_rtl_replay": {
+    "replayed_formal_step": 18,
+    "golden_bits": "0000000000000000",
+    "mutant_bits": "0000001000000000",
+    "address_subset_zero_extended": false
+  },
+  "counterexample_cycles": 5,
+  "formal_step": 18,
+  "terminal_inputs_binary": {
+    "reset": "0",
+    "start": "1",
+    "plaintext": "000000000000000",
+    "key": "000000000000000000000000000000000000000000000"
+  },
+  "different_outputs": {
+    "ciphertext": {
+      "golden": "000000000000000",
+      "mutant": "000000100000000"
+    }
+  },
+  "trace": "reports/new_cases/cvdp_copilot_hill_cipher_0012/R04/witness.vcd",
+  "phase_binary": "10"
+}

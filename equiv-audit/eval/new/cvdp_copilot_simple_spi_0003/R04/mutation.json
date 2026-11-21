@@ -1,0 +1,13 @@
+{
+  "bug": "The idle data-load guard mistakenly rejects the all-ones input word.",
+  "trigger": "In IDLE with i_enable == 1 and i_data_in == 16'hFFFF; for example, immediately after reset, when shift_reg still contains zero.",
+  "effect": "The FSM starts a transfer but transmits the stale shift-register contents instead of 16'hFFFF.",
+  "edits": [
+    {
+      "old": "else if ((curr_state==ST_IDLE) && i_enable) begin",
+      "new": "else if ((curr_state==ST_IDLE) && i_enable && (i_data_in != 16'hFFFF)) begin"
+    }
+  ],
+  "model": "gpt-6-luna",
+  "batch": 2
+}

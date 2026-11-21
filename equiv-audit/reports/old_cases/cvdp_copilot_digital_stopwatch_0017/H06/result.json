@@ -1,0 +1,45 @@
+{
+  "task": "cvdp_copilot_digital_stopwatch_0017",
+  "tag": "H06",
+  "sources": [
+    "cvdp_old/H06"
+  ],
+  "metadata": {
+    "bug": "The divider increments by two, shortening the interval between stopwatch ticks."
+  },
+  "rtl_pair_sha256": "387d1e0b57407f3f9b64ebc8b244c343e52f0ef590ab239d175150975a72f7a6",
+  "required_cycles": 180000000000,
+  "attempts": [
+    {
+      "mode": "bmc",
+      "engine": "abc bmc3",
+      "requested_cycles": 52,
+      "status": "PASS"
+    },
+    {
+      "mode": "prove",
+      "engine": "smtbmc z3 k-induction",
+      "status": "TIMEOUT"
+    },
+    {
+      "mode": "prove",
+      "engine": "smtbmc boolector",
+      "formal_steps": 32,
+      "ram_addresses": null,
+      "status": "TIMEOUT"
+    },
+    {
+      "mode": "combinational transition certificate",
+      "engine": "Yosys SAT",
+      "status": "PASS"
+    }
+  ],
+  "bounded_cycles": 52,
+  "address_subset": false,
+  "latch_compatibility": false,
+  "status": "non_equivalent",
+  "supplemental_reason": "SBY  5:18:50 [smt_retry] summary: Elapsed process time [H:MM:SS (secs)]: 0:00:03 (3)\nSBY  5:18:50 [smt_retry] summary: engine_0 (smtbmc boolector) returned pass for basecase\nSBY  5:18:50 [smt_retry] summary: engine_0 did not produce any traces\nSBY  5:18:50 [smt_retry] DONE (TIMEOUT, rc=8)",
+  "counterexample_cycles": 50000001,
+  "witness_method": "SAT-checked transition invariant and compressed default-clock schedule",
+  "trace": "reports/old_cases/cvdp_copilot_digital_stopwatch_0017/H06/compressed_witness.json"
+}

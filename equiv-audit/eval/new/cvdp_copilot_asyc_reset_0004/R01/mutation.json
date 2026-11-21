@@ -1,0 +1,13 @@
+{
+  "bug": "The zero-count hold assignment decrements instead, causing the 5-bit counter to wrap.",
+  "trigger": "After reset and 31 rising clock edges with reset deasserted, cnt_q reaches 0. On the next rising edge, the zero-state branch executes.",
+  "effect": "cnt_q wraps to 31 rather than holding at 0; release_reset_o deasserts and the countdown begins again.",
+  "edits": [
+    {
+      "old": "cnt_q <= cnt_q; // Hold at 0",
+      "new": "cnt_q <= cnt_q - 1; // Hold at 0"
+    }
+  ],
+  "model": "gpt-6-luna",
+  "batch": 1
+}

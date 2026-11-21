@@ -1,0 +1,13 @@
+{
+  "bug": "Removes asynchronous reset sensitivity from the stopwatch logic.",
+  "trigger": "Assert and deassert reset between one_sec_pulse rising edges, without a pulse while reset is asserted.",
+  "effect": "seconds, minutes, and hour retain their pre-reset values instead of clearing when reset is asserted.",
+  "edits": [
+    {
+      "old": "    always @(posedge one_sec_pulse or posedge reset) begin",
+      "new": "    always @(posedge one_sec_pulse) begin"
+    }
+  ],
+  "model": "gpt-6-luna",
+  "batch": 3
+}

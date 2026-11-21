@@ -1,0 +1,13 @@
+{
+  "bug": "Suppress the overflow flag whenever the computed result is zero.",
+  "trigger": "With DATA_WIDTH=8, reset, then perform an enabled addition of 8'h80 and 8'h80: assert i_start in IDLE, keep i_enable high through LOAD, COMPUTE, and OUTPUT, select addition with i_mode=0, and keep i_clear low. The wrapped result is zero and signed overflow should be asserted.",
+  "effect": "The sum is correctly reported as zero, but o_overflow is incorrectly reported as 0 instead of 1.",
+  "edits": [
+    {
+      "old": "                            o_overflow <= signed_overflow;",
+      "new": "                            o_overflow <= signed_overflow && (result != 0);"
+    }
+  ],
+  "model": "gpt-6-luna",
+  "batch": 3
+}

@@ -1,0 +1,13 @@
+{
+  "bug": "The release-reset threshold is one count too low, excluding count 7.",
+  "trigger": "During the countdown, when cnt_q is exactly 5'h7.",
+  "effect": "release_reset_o remains low for one extra cycle and asserts when cnt_q reaches 6.",
+  "edits": [
+    {
+      "old": "assign release_reset_o = (cnt_q < 5'h8);",
+      "new": "assign release_reset_o = (cnt_q < 5'h7);"
+    }
+  ],
+  "model": "gpt-6-luna",
+  "batch": 4
+}

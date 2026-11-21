@@ -1,0 +1,13 @@
+{
+  "bug": "Encoder data is not cleared by reset; the reset branch feeds the output register back to itself.",
+  "trigger": "First present enc_valid_in with a nonzero enc_data_in, then assert rst_in on a clock edge. For example, encode 8'h01 and then reset; enc_valid_out clears but enc_data_out retains the encoded word.",
+  "effect": "During reset, enc_data_out remains stale rather than clearing to zero.",
+  "edits": [
+    {
+      "old": "            enc_data_out  <= '0;",
+      "new": "            enc_data_out  <= enc_data_out;"
+    }
+  ],
+  "model": "gpt-6-luna",
+  "batch": 1
+}

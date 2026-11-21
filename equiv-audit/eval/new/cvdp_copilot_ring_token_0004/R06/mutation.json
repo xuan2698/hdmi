@@ -1,0 +1,13 @@
+{
+  "bug": "Suppresses an all-ones payload in the data capture path.",
+  "trigger": "After reset is deasserted, on the first rising clock edge with current_state=NODE0, token_received[0]=1, has_data_to_send=1, and data_in=4'b1111.",
+  "effect": "data_out becomes 4'b0000 instead of forwarding 4'b1111.",
+  "edits": [
+    {
+      "old": "            data_out <= data_in;",
+      "new": "            data_out <= (data_in == 4'b1111) ? 4'b0000 : data_in;"
+    }
+  ],
+  "model": "gpt-6-luna",
+  "batch": 2
+}

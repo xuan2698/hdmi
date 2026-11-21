@@ -1,0 +1,30 @@
+[options]
+mode bmc
+depth 128
+timeout 15
+multiclock on
+aigsmt none
+
+[engines]
+smtbmc z3
+
+[script]
+read_verilog -sv -formal golden.sv mutant.sv miter.sv
+
+hierarchy -check -top audit
+proc
+flatten -noscopeinfo
+opt -keepdc
+memory_map
+opt -keepdc
+clk2fflogic
+xprop -required -formal -split-outputs -assume-def-inputs
+opt -keepdc
+read_verilog -formal assertion.sv
+prep -top formal_top
+
+[files]
+golden.sv
+mutant.sv
+miter.sv
+assertion.sv

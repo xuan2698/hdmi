@@ -1,0 +1,13 @@
+{
+  "bug": "Uses unmasked per-bit change pulses to generate the word-level pulse.",
+  "trigger": "With enable=1 and at least one mask bit 0, toggle only a data_in bit whose mask is 0. For example, with the default width, mask=8'hFE and data_in[0] toggling causes the spurious pulse.",
+  "effect": "word_change_pulse asserts for a change that the mask should suppress.",
+  "edits": [
+    {
+      "old": "            word_change_pulse <= |masked_change_pulses;",
+      "new": "            word_change_pulse <= |change_pulses;"
+    }
+  ],
+  "model": "gpt-6-luna",
+  "batch": 2
+}

@@ -1,0 +1,13 @@
+{
+  "bug": "Port B's non-collision lane-3 write sources its data from lane 2.",
+  "trigger": "The collision path is not selected, port B is enabled, and byte-enable bit 3 is high; the error is observable when data_in_b_reg[23:16] differs from data_in_b_reg[31:24].",
+  "effect": "The high byte is written with port B's lane-2 data rather than its lane-3 data.",
+  "edits": [
+    {
+      "old": "        if (be_b_reg[3])\n          ram[addr_b_reg][31:24] <= data_in_b_reg[31:24];",
+      "new": "        if (be_b_reg[3])\n          ram[addr_b_reg][31:24] <= data_in_b_reg[23:16];"
+    }
+  ],
+  "model": "gpt-6-luna",
+  "batch": 1
+}

@@ -1,0 +1,13 @@
+{
+  "bug": "The release-reset condition mistakenly requires the counter to be nonzero, excluding the terminal count.",
+  "trigger": "After reset is deasserted, 31 rising clock edges bring cnt_q from 31 to 0.",
+  "effect": "release_reset_o is low at cnt_q == 0 instead of high, so reset release is lost at the terminal count.",
+  "edits": [
+    {
+      "old": "assign release_reset_o = (cnt_q < 5'h8);                  // (cnt_q < 8)",
+      "new": "assign release_reset_o = (cnt_q > 0) && (cnt_q < 5'h8);  // (cnt_q < 8)"
+    }
+  ],
+  "model": "gpt-6-luna",
+  "batch": 5
+}

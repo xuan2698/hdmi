@@ -1,0 +1,83 @@
+{
+  "task": "cvdp_copilot_simple_spi_0003",
+  "tag": "H03",
+  "sources": [
+    "cvdp_old/H03"
+  ],
+  "metadata": {
+    "bug": "Ends transmission when two bits remain, causing the final bits to be omitted."
+  },
+  "rtl_pair_sha256": "0861822f48cd2f8c9e335800b4138ed254f92080050b48fb3b6049c97d87adc0",
+  "required_cycles": 52,
+  "attempts": [
+    {
+      "mode": "bmc",
+      "engine": "abc bmc3",
+      "requested_cycles": 52,
+      "status": "TIMEOUT"
+    },
+    {
+      "mode": "bmc",
+      "engine": "smtbmc boolector",
+      "formal_steps": 209,
+      "ram_addresses": null,
+      "status": "TIMEOUT"
+    },
+    {
+      "mode": "bmc",
+      "engine": "smtbmc boolector",
+      "formal_steps": 209,
+      "ram_addresses": null,
+      "status": "TIMEOUT"
+    },
+    {
+      "mode": "reset then fixed SPI transfer",
+      "engine": "smtbmc boolector",
+      "status": "ERROR",
+      "requested_cycles": 52
+    },
+    {
+      "mode": "reset then fixed SPI transfer",
+      "engine": "smtbmc boolector",
+      "status": "FAIL",
+      "requested_cycles": 52
+    }
+  ],
+  "bounded_cycles": null,
+  "address_subset": false,
+  "latch_compatibility": false,
+  "status": "non_equivalent",
+  "supplemental_reason": "SBY  5:19:08 [smt_retry] summary: Elapsed process time [H:MM:SS (secs)]: 0:00:00 (0)\nSBY  5:19:08 [smt_retry] summary: engine_0 (smtbmc boolector) did not return a status\nSBY  5:19:08 [smt_retry] summary: engine_0 did not produce any traces\nSBY  5:19:08 [smt_retry] DONE (TIMEOUT, rc=8)",
+  "concrete_rtl_replay": {
+    "replayed_formal_step": 118,
+    "golden_bits": "00000010001",
+    "mutant_bits": "10000010100",
+    "address_subset_zero_extended": false
+  },
+  "counterexample_cycles": 30,
+  "formal_step": 118,
+  "terminal_inputs_binary": {
+    "i_rst_b": "1",
+    "i_data_in": "1101111010101101",
+    "i_enable": "1",
+    "i_fault": "0",
+    "i_clear": "0"
+  },
+  "different_outputs": {
+    "o_spi_cs_b": {
+      "golden": "0",
+      "mutant": "1"
+    },
+    "o_done": {
+      "golden": "0",
+      "mutant": "1"
+    },
+    "o_fsm_state": {
+      "golden": "01",
+      "mutant": "00"
+    }
+  },
+  "trace": "reports/old_cases/cvdp_copilot_simple_spi_0003/H03/witness.vcd",
+  "phase_binary": "10",
+  "witness_method": "reset then fixed SPI transfer, confirmed on unchanged Icarus RTL"
+}

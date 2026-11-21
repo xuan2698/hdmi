@@ -1,0 +1,13 @@
+{
+  "bug": "The asynchronous reset sensitivity uses the falling edge of reset instead of its rising edge.",
+  "trigger": "Reset is asserted while clk is low and remains asserted until at least one clock edge; the assertion itself does not trigger the block.",
+  "effect": "cnt_q is not asynchronously loaded on reset assertion; it loads only on a later clock edge while reset is high.",
+  "edits": [
+    {
+      "old": "always_ff @(posedge clk or posedge reset) begin",
+      "new": "always_ff @(posedge clk or negedge reset) begin"
+    }
+  ],
+  "model": "gpt-6-luna",
+  "batch": 4
+}

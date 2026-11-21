@@ -1,0 +1,48 @@
+{
+  "task": "cvdp_copilot_digital_stopwatch_0017",
+  "tag": "R04",
+  "sources": [
+    "cvdp_new/R04"
+  ],
+  "metadata": {
+    "bug": "The paused divider can assert a pulse when its held counter is at the terminal count.",
+    "trigger": "While running, let the counter reach COUNTER_MAX, then deassert start_stop before the next clock edge and keep it low for at least one edge. Resume afterward; the pulse asserted while paused is ignored, so the resumed terminal count produces no new rising edge.",
+    "effect": "The second associated with that terminal count is lost, delaying the stopwatch update until a later pulse.",
+    "model": "gpt-6-luna"
+  },
+  "rtl_pair_sha256": "b36f6c513c3bd1234cdf4aef7b54fb1bb6abb09afae38e6a381c3885bf35d62a",
+  "required_cycles": 180000000000,
+  "attempts": [
+    {
+      "mode": "bmc",
+      "engine": "abc bmc3",
+      "requested_cycles": 52,
+      "status": "PASS"
+    },
+    {
+      "mode": "prove",
+      "engine": "smtbmc z3 k-induction",
+      "status": "TIMEOUT"
+    },
+    {
+      "mode": "prove",
+      "engine": "smtbmc boolector",
+      "formal_steps": 32,
+      "ram_addresses": null,
+      "status": "TIMEOUT"
+    },
+    {
+      "engine": "Yosys SAT",
+      "mode": "reachable invariant transition",
+      "status": "PASS"
+    }
+  ],
+  "bounded_cycles": 52,
+  "address_subset": false,
+  "latch_compatibility": false,
+  "status": "non_equivalent",
+  "supplemental_reason": "SBY  5:19:02 [smt_retry] summary: Elapsed process time [H:MM:SS (secs)]: 0:00:02 (2)\nSBY  5:19:02 [smt_retry] summary: engine_0 (smtbmc boolector) returned pass for basecase\nSBY  5:19:02 [smt_retry] summary: engine_0 did not produce any traces\nSBY  5:19:02 [smt_retry] DONE (TIMEOUT, rc=8)",
+  "counterexample_cycles": 50000002,
+  "witness_method": "SAT-checked transition invariant and compressed default-clock schedule",
+  "trace": "reports/new_cases/cvdp_copilot_digital_stopwatch_0017/R04/compressed_witness.json"
+}

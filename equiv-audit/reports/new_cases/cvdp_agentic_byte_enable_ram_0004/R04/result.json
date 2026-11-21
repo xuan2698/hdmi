@@ -1,0 +1,60 @@
+{
+  "task": "cvdp_agentic_byte_enable_ram_0004",
+  "tag": "R04",
+  "sources": [
+    "cvdp_new/R04"
+  ],
+  "metadata": {
+    "bug": "Port A's non-collision lane-2 write is controlled by byte-enable bit 3 instead of bit 2.",
+    "trigger": "The collision path is not selected, port A is enabled, and its lane-2 and lane-3 enables differ; for example, lane 2 enabled and lane 3 disabled causes a lane-2 write to be missed.",
+    "effect": "Lane 2 can be spuriously written or left unchanged, depending on the lane-3 enable, despite its own byte-enable value.",
+    "model": "gpt-6-luna"
+  },
+  "rtl_pair_sha256": "57d60970978b7256bb1f16c756a44a2bf3c056610e96457c20276d80fcc4dc03",
+  "required_cycles": 52,
+  "attempts": [
+    {
+      "mode": "bmc",
+      "engine": "abc bmc3",
+      "requested_cycles": 52,
+      "status": "TIMEOUT"
+    },
+    {
+      "mode": "bmc",
+      "engine": "smtbmc boolector",
+      "formal_steps": 209,
+      "ram_addresses": 2,
+      "status": "FAIL"
+    }
+  ],
+  "bounded_cycles": null,
+  "address_subset": true,
+  "latch_compatibility": false,
+  "status": "non_equivalent",
+  "concrete_rtl_replay": {
+    "replayed_formal_step": 10,
+    "golden_bits": "0000000000000000000000000000000000000000111111110011111100000000",
+    "mutant_bits": "0000000000000000000000000000000000000000000000000011111100000000",
+    "address_subset_zero_extended": true
+  },
+  "counterexample_cycles": 3,
+  "formal_step": 10,
+  "terminal_inputs_binary": {
+    "addr_a": "0000000000000",
+    "en_a": "1",
+    "be_a": "0000",
+    "data_in_a": "00000000000000000000000000000000",
+    "addr_b": "0000000000000",
+    "en_b": "1",
+    "be_b": "0000",
+    "data_in_b": "00000000000000000000000000000000"
+  },
+  "different_outputs": {
+    "data_out_b": {
+      "golden": "xxxxxxxx1111111100111111xxxxxxxx",
+      "mutant": "xxxxxxxxxxxxxxxx00111111xxxxxxxx"
+    }
+  },
+  "trace": "reports/new_cases/cvdp_agentic_byte_enable_ram_0004/R04/witness.vcd",
+  "phase_binary": "10"
+}

@@ -1,0 +1,13 @@
+{
+  "bug": "Resets the bit-history register to the current input instead of to zero.",
+  "trigger": "Assert reset while a monitored bit_in is 1, then release reset with that bit still 1. The mutant records 1 during reset, so it does not report the post-reset transition that the original detects.",
+  "effect": "The change pulse for a bit held high across reset is missed, potentially suppressing the corresponding word_change_pulse.",
+  "edits": [
+    {
+      "old": "            bit_in_d <= 1'b0;",
+      "new": "            bit_in_d <= bit_in;"
+    }
+  ],
+  "model": "gpt-6-luna",
+  "batch": 2
+}

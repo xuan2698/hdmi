@@ -1,0 +1,57 @@
+{
+  "task": "cvdp_copilot_ring_token_0004",
+  "tag": "R05",
+  "sources": [
+    "cvdp_new/R05"
+  ],
+  "metadata": {
+    "bug": "The NODE3 wrap transition targets NODE1, skipping NODE0.",
+    "trigger": "At the rising edge where `current_state` is NODE3; in the unmodified sequence this is the fourth active edge after reset deassertion.",
+    "effect": "`current_state` advances to NODE1 instead of NODE0. Subsequent cycles follow NODE1→NODE2→NODE3→NODE1, permanently omitting NODE0 until reset.",
+    "model": "gpt-6-luna"
+  },
+  "rtl_pair_sha256": "758e02f723e780177d6ac004d0e55425919e83b7ec377efb49e2efc715f97a09",
+  "required_cycles": 52,
+  "attempts": [
+    {
+      "mode": "bmc",
+      "engine": "abc bmc3",
+      "requested_cycles": 52,
+      "status": "FAIL"
+    },
+    {
+      "mode": "witness_translation",
+      "engine": "ABC + Boolector",
+      "status": "FAIL"
+    }
+  ],
+  "bounded_cycles": null,
+  "address_subset": false,
+  "latch_compatibility": false,
+  "status": "non_equivalent",
+  "concrete_rtl_replay": {
+    "replayed_formal_step": 22,
+    "golden_bits": "000000010010",
+    "mutant_bits": "000000100100",
+    "address_subset_zero_extended": false
+  },
+  "counterexample_cycles": 6,
+  "formal_step": 22,
+  "terminal_inputs_binary": {
+    "rst": "0",
+    "data_in": "0000",
+    "has_data_to_send": "0"
+  },
+  "different_outputs": {
+    "token_received": {
+      "golden": "0001",
+      "mutant": "0010"
+    },
+    "token": {
+      "golden": "0010",
+      "mutant": "0100"
+    }
+  },
+  "trace": "reports/new_cases/cvdp_copilot_ring_token_0004/R05/witness.vcd",
+  "phase_binary": "10"
+}

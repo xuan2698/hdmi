@@ -1,0 +1,13 @@
+{
+  "bug": "Channel 3's older input delay advances only when the current input is nonzero.",
+  "trigger": "A zero in_3 sample occurs when the prior x_3_0 differs from x_3_1—for example, after a nonzero sample followed by zero—and a later valid filter computation uses the input history.",
+  "effect": "The stale x_3_1 value changes the channel 3 feed-forward result relative to the correctly shifted history.",
+  "edits": [
+    {
+      "old": "x_3_1 <= x_3_0;",
+      "new": "if (in_3 != 0) x_3_1 <= x_3_0;"
+    }
+  ],
+  "model": "gpt-6-luna",
+  "batch": 3
+}

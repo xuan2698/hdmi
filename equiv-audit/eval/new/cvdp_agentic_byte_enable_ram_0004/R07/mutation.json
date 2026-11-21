@@ -1,0 +1,13 @@
+{
+  "bug": "Port A lane 1 suppresses writes of an all-ones byte.",
+  "trigger": "Port A is enabled, its lane-1 byte enable is set, and its registered lane-1 data is 8'hFF; for example, a non-colliding write containing 8'hFF in bits [15:8].",
+  "effect": "The previous value in bits [15:8] is retained instead of being overwritten with 8'hFF.",
+  "edits": [
+    {
+      "old": "if (be_a_reg[1])\n          ram[addr_a_reg][15:8] <= data_in_a_reg[15:8];",
+      "new": "if (be_a_reg[1] && (data_in_a_reg[15:8] != 8'hFF))\n          ram[addr_a_reg][15:8] <= data_in_a_reg[15:8];"
+    }
+  ],
+  "model": "gpt-6-luna",
+  "batch": 2
+}

@@ -1,0 +1,13 @@
+{
+  "bug": "The decoder's one-symbol recognition condition also accepts the invalid 00 pair as a decoded one.",
+  "trigger": "Assert dec_valid_in with any bit pair equal to 2'b00; for example, with N=8, dec_data_in=16'h0000. The affected decoded bit becomes 1.",
+  "effect": "An invalid Manchester pair is reported as data 1, although valid 10 and 01 pairs retain their original decoding.",
+  "edits": [
+    {
+      "old": "if (dec_data_in[2*i] == 1'b1 && dec_data_in[2*i+1] == 1'b0) begin",
+      "new": "if ((dec_data_in[2*i] == 1'b1 && dec_data_in[2*i+1] == 1'b0) || (dec_data_in[2*i] == 1'b0 && dec_data_in[2*i+1] == 1'b0)) begin"
+    }
+  ],
+  "model": "gpt-6-luna",
+  "batch": 1
+}

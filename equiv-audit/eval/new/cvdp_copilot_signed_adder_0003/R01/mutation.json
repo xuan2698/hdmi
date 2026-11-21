@@ -1,0 +1,13 @@
+{
+  "bug": "Addition overflow detection checks the next-to-sign bit of the result in the positive-plus-positive case.",
+  "trigger": "With DATA_WIDTH=8, start an addition of 0x40 and 0x40 and keep i_enable asserted through LOAD, COMPUTE, and OUTPUT. The correct sum is 0x80 with signed overflow, but the mutant checks result[6] instead of result[7].",
+  "effect": "o_resultant_sum is still 0x80, but o_overflow is incorrectly 0.",
+  "edits": [
+    {
+      "old": "(~reg_operand_a[DATA_WIDTH-1] & ~reg_operand_b[DATA_WIDTH-1] & result[DATA_WIDTH-1]) |",
+      "new": "(~reg_operand_a[DATA_WIDTH-1] & ~reg_operand_b[DATA_WIDTH-1] & result[DATA_WIDTH-2]) |"
+    }
+  ],
+  "model": "gpt-6-luna",
+  "batch": 1
+}

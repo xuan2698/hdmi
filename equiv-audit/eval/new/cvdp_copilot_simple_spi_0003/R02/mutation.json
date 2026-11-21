@@ -1,0 +1,13 @@
+{
+  "bug": "A simultaneous clear masks fault handling during an active transfer.",
+  "trigger": "Assert i_fault and i_clear together while curr_state is ST_TRANSMIT or ST_CLOCK_TOGGLE and i_enable is high.",
+  "effect": "The FSM bypasses the fault branch and continues normal transfer-state processing rather than entering the fault-clear recovery path.",
+  "edits": [
+    {
+      "old": "else if (i_fault) begin",
+      "new": "else if (i_fault && !i_clear) begin"
+    }
+  ],
+  "model": "gpt-6-luna",
+  "batch": 1
+}

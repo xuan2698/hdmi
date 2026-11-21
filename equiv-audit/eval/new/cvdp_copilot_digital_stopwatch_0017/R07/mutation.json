@@ -1,0 +1,13 @@
+{
+  "bug": "The seconds rollover comparison is one count too low.",
+  "trigger": "With hour=0, seconds=58, and a one_sec_pulse edge while start_stop is high, the seconds branch rolls over early.",
+  "effect": "Seconds resets to 0 and minutes advances when seconds was 58, shortening each minute by one second.",
+  "edits": [
+    {
+      "old": "if (seconds < 59) begin",
+      "new": "if (seconds < 58) begin"
+    }
+  ],
+  "model": "gpt-6-luna",
+  "batch": 5
+}

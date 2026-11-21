@@ -1,0 +1,13 @@
+{
+  "bug": "Disable only forces idle when the FSM is already idle.",
+  "trigger": "Deassert i_enable while curr_state is ST_TRANSMIT or ST_CLOCK_TOGGLE, with i_fault low; for example, disable during a transfer when o_bits_left is 5'd8.",
+  "effect": "The FSM continues advancing and shifting data while disabled instead of aborting to idle.",
+  "edits": [
+    {
+      "old": "if (!i_enable) begin",
+      "new": "if (!i_enable && (curr_state == ST_IDLE)) begin"
+    }
+  ],
+  "model": "gpt-6-luna",
+  "batch": 1
+}

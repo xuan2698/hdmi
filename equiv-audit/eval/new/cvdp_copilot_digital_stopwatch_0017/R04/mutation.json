@@ -1,0 +1,13 @@
+{
+  "bug": "The paused divider can assert a pulse when its held counter is at the terminal count.",
+  "trigger": "While running, let the counter reach COUNTER_MAX, then deassert start_stop before the next clock edge and keep it low for at least one edge. Resume afterward; the pulse asserted while paused is ignored, so the resumed terminal count produces no new rising edge.",
+  "effect": "The second associated with that terminal count is lost, delaying the stopwatch update until a later pulse.",
+  "edits": [
+    {
+      "old": "one_sec_pulse <= 1'b0;           // Ensure one_sec_pulse is cleared if paused",
+      "new": "one_sec_pulse <= (counter == COUNTER_MAX);"
+    }
+  ],
+  "model": "gpt-6-luna",
+  "batch": 2
+}

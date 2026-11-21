@@ -1,0 +1,13 @@
+{
+  "bug": "The paused divider branch holds the pulse output instead of clearing it.",
+  "trigger": "While running, counter reaches COUNTER_MAX and raises one_sec_pulse; before the next posedge clk, start_stop goes low, so the pause branch executes while one_sec_pulse is still high.",
+  "effect": "The pulse remains high. After resuming, later terminal-count assignments cannot create another rising edge, so the stopwatch stops receiving one-second ticks until reset.",
+  "edits": [
+    {
+      "old": "one_sec_pulse <= 1'b0;           // Ensure one_sec_pulse is cleared if paused",
+      "new": "one_sec_pulse <= one_sec_pulse; // Ensure one_sec_pulse is cleared if paused"
+    }
+  ],
+  "model": "gpt-6-luna",
+  "batch": 6
+}

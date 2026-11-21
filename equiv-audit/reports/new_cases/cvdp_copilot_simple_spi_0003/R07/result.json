@@ -1,0 +1,55 @@
+{
+  "task": "cvdp_copilot_simple_spi_0003",
+  "tag": "R07",
+  "sources": [
+    "cvdp_new/R07"
+  ],
+  "metadata": {
+    "bug": "The enable-priority guard also excludes fault, so a fault takes priority over disable.",
+    "trigger": "Assert i_fault while i_enable is low and i_clear is low.",
+    "effect": "Instead of forcing IDLE, the FSM enters ST_ERROR and asserts the error-state outputs.",
+    "model": "gpt-6-luna"
+  },
+  "rtl_pair_sha256": "7639144129eb8626043ef9359e2f1f92c048a76d4a3e6dcfc70ddeabdc790f62",
+  "required_cycles": 52,
+  "attempts": [
+    {
+      "mode": "bmc",
+      "engine": "abc bmc3",
+      "requested_cycles": 52,
+      "status": "FAIL"
+    },
+    {
+      "mode": "witness_translation",
+      "engine": "ABC + Boolector",
+      "status": "FAIL"
+    }
+  ],
+  "bounded_cycles": null,
+  "address_subset": false,
+  "latch_compatibility": false,
+  "status": "non_equivalent",
+  "concrete_rtl_replay": {
+    "replayed_formal_step": 5,
+    "golden_bits": "10010000000",
+    "mutant_bits": "10010000011",
+    "address_subset_zero_extended": false
+  },
+  "counterexample_cycles": 2,
+  "formal_step": 5,
+  "terminal_inputs_binary": {
+    "i_rst_b": "1",
+    "i_data_in": "0000000000000000",
+    "i_enable": "0",
+    "i_fault": "1",
+    "i_clear": "0"
+  },
+  "different_outputs": {
+    "o_fsm_state": {
+      "golden": "00",
+      "mutant": "11"
+    }
+  },
+  "trace": "reports/new_cases/cvdp_copilot_simple_spi_0003/R07/witness.vcd",
+  "phase_binary": "01"
+}

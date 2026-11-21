@@ -1,0 +1,49 @@
+{
+  "task": "cvdp_copilot_hill_cipher_0012",
+  "tag": "R06",
+  "sources": [
+    "cvdp_new/R06"
+  ],
+  "metadata": {
+    "bug": "The first addition in the third row uses XOR instead of arithmetic addition.",
+    "trigger": "In COMPUTE, set K20=1,P0=1 and K21=1,P1=1, with K22=0; the two nonzero residues overlap at bit 0.",
+    "effect": "The third ciphertext symbol is 0 instead of 2.",
+    "model": "gpt-6-luna"
+  },
+  "rtl_pair_sha256": "3096d9066ae93a464a0ffc9e4d620979021b4055fa7ee8d734d64a21c27c8af7",
+  "required_cycles": 52,
+  "attempts": [
+    {
+      "mode": "bmc",
+      "engine": "smtbmc boolector",
+      "requested_cycles": 52,
+      "status": "FAIL"
+    }
+  ],
+  "bounded_cycles": null,
+  "address_subset": false,
+  "latch_compatibility": false,
+  "status": "non_equivalent",
+  "concrete_rtl_replay": {
+    "replayed_formal_step": 14,
+    "golden_bits": "0010001110101101",
+    "mutant_bits": "0010001110100001",
+    "address_subset_zero_extended": false
+  },
+  "counterexample_cycles": 4,
+  "formal_step": 14,
+  "terminal_inputs_binary": {
+    "reset": "0",
+    "start": "1",
+    "plaintext": "000000000000000",
+    "key": "000000000000000000000000000000000000000000000"
+  },
+  "different_outputs": {
+    "ciphertext": {
+      "golden": "001000111010110",
+      "mutant": "001000111010000"
+    }
+  },
+  "trace": "reports/new_cases/cvdp_copilot_hill_cipher_0012/R06/witness.vcd",
+  "phase_binary": "10"
+}

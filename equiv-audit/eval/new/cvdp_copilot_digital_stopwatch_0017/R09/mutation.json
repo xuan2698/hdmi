@@ -1,0 +1,13 @@
+{
+  "bug": "Divider counter is one bit too narrow for some parameter values.",
+  "trigger": "With CLK_FREQ=17, COUNTER_MAX is 16, but the replacement declaration makes counter 4 bits wide. While running, it cycles from 0 through 15 and wraps to 0, so it never reaches the terminal count.",
+  "effect": "The divider never generates a one-second pulse, and the stopwatch counters do not advance.",
+  "edits": [
+    {
+      "old": "reg [$clog2(COUNTER_MAX):0] counter;    // Clock divider counter width based on CLK_FREQ",
+      "new": "reg [$clog2(COUNTER_MAX)-1:0] counter;    // Clock divider counter width based on CLK_FREQ"
+    }
+  ],
+  "model": "gpt-6-luna",
+  "batch": 7
+}

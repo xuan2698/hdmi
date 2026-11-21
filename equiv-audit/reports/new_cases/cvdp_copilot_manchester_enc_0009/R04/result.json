@@ -1,0 +1,55 @@
+{
+  "task": "cvdp_copilot_manchester_enc_0009",
+  "tag": "R04",
+  "sources": [
+    "cvdp_new/R04"
+  ],
+  "metadata": {
+    "bug": "The decoder's invalid-input branch clears only the most-significant output bit, leaving lower bits unchanged.",
+    "trigger": "For N=8, first decode a valid word with any of dec_data_out[6:0] set, then deassert dec_valid_in for a clock edge. Those lower output bits retain their prior values while dec_valid_out clears.",
+    "effect": "Decoded data from an earlier transaction remains visible in lower bits during an invalid cycle instead of the output being zeroed.",
+    "model": "gpt-6-luna"
+  },
+  "rtl_pair_sha256": "52750250a028bee9f4262909ffe9d37300ee8b40a919e2fc5f3e678991ab1716",
+  "required_cycles": 52,
+  "attempts": [
+    {
+      "mode": "bmc",
+      "engine": "abc bmc3",
+      "requested_cycles": 52,
+      "status": "FAIL"
+    },
+    {
+      "mode": "witness_translation",
+      "engine": "ABC + Boolector",
+      "status": "FAIL"
+    }
+  ],
+  "bounded_cycles": null,
+  "address_subset": false,
+  "latch_compatibility": false,
+  "status": "non_equivalent",
+  "concrete_rtl_replay": {
+    "replayed_formal_step": 10,
+    "golden_bits": "00000000000000000000000000",
+    "mutant_bits": "00000000000000000000001111",
+    "address_subset_zero_extended": false
+  },
+  "counterexample_cycles": 3,
+  "formal_step": 10,
+  "terminal_inputs_binary": {
+    "rst_in": "0",
+    "enc_valid_in": "0",
+    "enc_data_in": "00000000",
+    "dec_valid_in": "0",
+    "dec_data_in": "0000000000000000"
+  },
+  "different_outputs": {
+    "dec_data_out": {
+      "golden": "00000000",
+      "mutant": "00001111"
+    }
+  },
+  "trace": "reports/new_cases/cvdp_copilot_manchester_enc_0009/R04/witness.vcd",
+  "phase_binary": "10"
+}

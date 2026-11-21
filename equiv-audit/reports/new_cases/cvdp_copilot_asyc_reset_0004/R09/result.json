@@ -1,0 +1,52 @@
+{
+  "task": "cvdp_copilot_asyc_reset_0004",
+  "tag": "R09",
+  "sources": [
+    "cvdp_new/R09"
+  ],
+  "metadata": {
+    "bug": "The decrement updates the low nibble without propagating its borrow into the high bit.",
+    "trigger": "After reset is deasserted, 15 rising clock edges bring cnt_q to 16; on the next edge, decrementing the low nibble wraps it from 0 to 15 while the high bit remains set.",
+    "effect": "cnt_q jumps from 16 to 31 instead of 15, causing the counter to repeat the upper portion of its sequence and never reach the low counts.",
+    "model": "gpt-6-luna"
+  },
+  "rtl_pair_sha256": "ac927fdcce63523b30e53078bd94d77d38134e17ce3145d3c23a15d1cb11bd10",
+  "required_cycles": 52,
+  "attempts": [
+    {
+      "mode": "bmc",
+      "engine": "abc bmc3",
+      "requested_cycles": 52,
+      "status": "FAIL"
+    },
+    {
+      "mode": "witness",
+      "engine": "smtbmc z3",
+      "formal_steps": 68,
+      "status": "FAIL"
+    }
+  ],
+  "bounded_cycles": null,
+  "address_subset": false,
+  "latch_compatibility": false,
+  "status": "non_equivalent",
+  "concrete_rtl_replay": {
+    "replayed_formal_step": 66,
+    "golden_bits": "0001111",
+    "mutant_bits": "0011111",
+    "address_subset_zero_extended": false
+  },
+  "counterexample_cycles": 17,
+  "formal_step": 66,
+  "terminal_inputs_binary": {
+    "reset": "0"
+  },
+  "different_outputs": {
+    "cnt_q": {
+      "golden": "01111",
+      "mutant": "11111"
+    }
+  },
+  "trace": "reports/new_cases/cvdp_copilot_asyc_reset_0004/R09/witness.vcd",
+  "phase_binary": "10"
+}

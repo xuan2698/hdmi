@@ -1,0 +1,57 @@
+{
+  "task": "cvdp_copilot_IIR_filter_0012",
+  "tag": "R08",
+  "sources": [
+    "cvdp_new/R08"
+  ],
+  "metadata": {
+    "bug": "Channel 3's older input delay advances only when the current input is nonzero.",
+    "trigger": "A zero in_3 sample occurs when the prior x_3_0 differs from x_3_1—for example, after a nonzero sample followed by zero—and a later valid filter computation uses the input history.",
+    "effect": "The stale x_3_1 value changes the channel 3 feed-forward result relative to the correctly shifted history.",
+    "model": "gpt-6-luna"
+  },
+  "rtl_pair_sha256": "6cbd331983c4062b01a616215959b1804e93b574ca18b93c04eacc2a5a818c98",
+  "required_cycles": 52,
+  "attempts": [
+    {
+      "mode": "bmc",
+      "engine": "abc bmc3",
+      "requested_cycles": 52,
+      "status": "TIMEOUT"
+    },
+    {
+      "mode": "bmc",
+      "engine": "smtbmc boolector",
+      "formal_steps": 209,
+      "ram_addresses": null,
+      "status": "FAIL"
+    }
+  ],
+  "bounded_cycles": null,
+  "address_subset": false,
+  "latch_compatibility": false,
+  "status": "non_equivalent",
+  "concrete_rtl_replay": {
+    "replayed_formal_step": 18,
+    "golden_bits": "101100010011110000101011000111000000000000010010",
+    "mutant_bits": "101100010011110000101011000111000000000000000000",
+    "address_subset_zero_extended": false
+  },
+  "counterexample_cycles": 5,
+  "formal_step": 18,
+  "terminal_inputs_binary": {
+    "reset": "0",
+    "in_1": "0000000000000000",
+    "in_2": "0000000000000000",
+    "in_3": "0000000000000000",
+    "filter_select": "11"
+  },
+  "different_outputs": {
+    "out_3": {
+      "golden": "0000000000010010",
+      "mutant": "0000000000000000"
+    }
+  },
+  "trace": "reports/new_cases/cvdp_copilot_IIR_filter_0012/R08/witness.vcd",
+  "phase_binary": "10"
+}

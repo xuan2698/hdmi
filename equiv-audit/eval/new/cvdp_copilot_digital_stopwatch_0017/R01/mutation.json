@@ -1,0 +1,13 @@
+{
+  "bug": "The terminal hour transition assigns hour low instead of high.",
+  "trigger": "Starting from reset and counting continuously, the terminal transition occurs when a pulse arrives with minutes=59 and seconds=59, after 3600 one_sec_pulses.",
+  "effect": "Hour remains 0 and the stopwatch continues through subsequent minute and hour cycles without ever asserting the hour output.",
+  "edits": [
+    {
+      "old": "hour <= 1'b1;",
+      "new": "hour <= 1'b0;"
+    }
+  ],
+  "model": "gpt-6-luna",
+  "batch": 1
+}

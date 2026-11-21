@@ -1,0 +1,49 @@
+{
+  "task": "cvdp_copilot_hill_cipher_0012",
+  "tag": "R08",
+  "sources": [
+    "cvdp_new/R08"
+  ],
+  "metadata": {
+    "bug": "The DONE pulse is incorrectly gated by the third ciphertext symbol being nonzero.",
+    "trigger": "On a transaction whose third-row sum is divisible by 26, C2_reg is zero in DONE. For example, an all-zero key produces this condition.",
+    "effect": "done is not asserted for that transaction, even though the FSM leaves DONE normally.",
+    "model": "gpt-6-luna"
+  },
+  "rtl_pair_sha256": "a2630e6cf902b7d5051ee55adc3504ec7879f18dceeeb660fe5422c957ea8aa1",
+  "required_cycles": 52,
+  "attempts": [
+    {
+      "mode": "bmc",
+      "engine": "smtbmc boolector",
+      "requested_cycles": 52,
+      "status": "FAIL"
+    }
+  ],
+  "bounded_cycles": null,
+  "address_subset": false,
+  "latch_compatibility": false,
+  "status": "non_equivalent",
+  "concrete_rtl_replay": {
+    "replayed_formal_step": 14,
+    "golden_bits": "0111100000000001",
+    "mutant_bits": "0111100000000000",
+    "address_subset_zero_extended": false
+  },
+  "counterexample_cycles": 4,
+  "formal_step": 14,
+  "terminal_inputs_binary": {
+    "reset": "0",
+    "start": "0",
+    "plaintext": "000000000000000",
+    "key": "000000000000000000000000000000000000000000000"
+  },
+  "different_outputs": {
+    "done": {
+      "golden": "1",
+      "mutant": "0"
+    }
+  },
+  "trace": "reports/new_cases/cvdp_copilot_hill_cipher_0012/R08/witness.vcd",
+  "phase_binary": "10"
+}

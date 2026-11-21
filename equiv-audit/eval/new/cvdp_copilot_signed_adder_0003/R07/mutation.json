@@ -1,0 +1,13 @@
+{
+  "bug": "A zero-valued result suppresses the ready pulse.",
+  "trigger": "Complete an enabled operation whose result is exactly zero, such as addition of 8'h05 and 8'hFB, or subtraction of an operand from itself.",
+  "effect": "The sum is updated, but o_ready is not asserted for that completed operation.",
+  "edits": [
+    {
+      "old": "o_ready <= 1;",
+      "new": "o_ready <= (result != 0);"
+    }
+  ],
+  "model": "gpt-6-luna",
+  "batch": 2
+}

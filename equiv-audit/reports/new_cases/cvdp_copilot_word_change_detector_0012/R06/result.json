@@ -1,0 +1,71 @@
+{
+  "task": "cvdp_copilot_word_change_detector_0012",
+  "tag": "R06",
+  "sources": [
+    "cvdp_new/R06"
+  ],
+  "metadata": {
+    "bug": "Suppresses pattern-match pulse generation whenever latch_pattern is asserted.",
+    "trigger": "With enable=1, arrange for match_detected to be 1, then assert latch_pattern on the cycle that would otherwise raise pattern_match_pulse.",
+    "effect": "The expected pattern_match_pulse is cleared instead of asserted on the coincident latch cycle.",
+    "model": "gpt-6-luna"
+  },
+  "rtl_pair_sha256": "0a369ab4f1271c636523512d8c77c7c4b2ac874d8ced0419fcf255511013d443",
+  "required_cycles": 52,
+  "attempts": [
+    {
+      "mode": "bmc",
+      "engine": "abc bmc3",
+      "requested_cycles": 52,
+      "status": "ERROR"
+    },
+    {
+      "mode": "bmc",
+      "engine": "smtbmc boolector",
+      "formal_steps": 209,
+      "ram_addresses": null,
+      "status": "ERROR"
+    },
+    {
+      "mode": "mixed-driver search normalization",
+      "engine": "abc bmc3",
+      "status": "FAIL",
+      "requested_cycles": 52
+    },
+    {
+      "mode": "witness_translation",
+      "engine": "ABC + Boolector",
+      "status": "FAIL"
+    }
+  ],
+  "bounded_cycles": null,
+  "address_subset": false,
+  "latch_compatibility": false,
+  "status": "non_equivalent",
+  "supplemental_reason": "Assert `!enc.driven' failed in passes/cmds/xprop.cc:237.",
+  "concrete_rtl_replay": {
+    "replayed_formal_step": 10,
+    "golden_bits": "0100000000",
+    "mutant_bits": "0000000000",
+    "address_subset_zero_extended": false
+  },
+  "counterexample_cycles": 3,
+  "formal_step": 10,
+  "terminal_inputs_binary": {
+    "reset": "0",
+    "data_in": "00000000",
+    "mask": "00000000",
+    "match_pattern": "00000000",
+    "enable": "1",
+    "latch_pattern": "1"
+  },
+  "different_outputs": {
+    "pattern_match_pulse": {
+      "golden": "1",
+      "mutant": "0"
+    }
+  },
+  "trace": "reports/new_cases/cvdp_copilot_word_change_detector_0012/R06/witness.vcd",
+  "phase_binary": "10",
+  "witness_method": "mixed-driver search normalization, confirmed on unchanged Icarus RTL"
+}

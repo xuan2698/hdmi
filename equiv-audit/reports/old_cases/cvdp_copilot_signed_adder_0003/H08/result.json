@@ -1,0 +1,54 @@
+{
+  "task": "cvdp_copilot_signed_adder_0003",
+  "tag": "H08",
+  "sources": [
+    "cvdp_old/H08"
+  ],
+  "metadata": {
+    "bug": "Uses the wrong sign condition for the second operand in the subtraction overflow calculation."
+  },
+  "rtl_pair_sha256": "874d2d7e8b235e89fd07853d4d87d0d907ab6dad7f2dd576d87760cd8f38ad9e",
+  "required_cycles": 52,
+  "attempts": [
+    {
+      "mode": "bmc",
+      "engine": "abc bmc3",
+      "requested_cycles": 52,
+      "status": "FAIL"
+    },
+    {
+      "mode": "witness_translation",
+      "engine": "ABC + Boolector",
+      "status": "FAIL"
+    }
+  ],
+  "bounded_cycles": null,
+  "address_subset": false,
+  "latch_compatibility": false,
+  "status": "non_equivalent",
+  "concrete_rtl_replay": {
+    "replayed_formal_step": 18,
+    "golden_bits": "111111100100",
+    "mutant_bits": "111111101100",
+    "address_subset_zero_extended": false
+  },
+  "counterexample_cycles": 5,
+  "formal_step": 18,
+  "terminal_inputs_binary": {
+    "i_rst_n": "1",
+    "i_start": "0",
+    "i_enable": "1",
+    "i_mode": "0",
+    "i_clear": "0",
+    "i_operand_a": "00000000",
+    "i_operand_b": "00000000"
+  },
+  "different_outputs": {
+    "o_overflow": {
+      "golden": "0",
+      "mutant": "1"
+    }
+  },
+  "trace": "reports/old_cases/cvdp_copilot_signed_adder_0003/H08/witness.vcd",
+  "phase_binary": "10"
+}

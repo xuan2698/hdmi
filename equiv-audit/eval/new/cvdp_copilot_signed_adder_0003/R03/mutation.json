@@ -1,0 +1,13 @@
+{
+  "bug": "The LOAD state transitions to COMPUTE instead of aborting to IDLE when enable is deasserted.",
+  "trigger": "First complete an operation so the operand registers contain known values, such as 0x12 and 0x34. Then accept a new start, deassert i_enable for the cycle in LOAD, and reassert it on the following cycle. The mutant enters COMPUTE without loading the new operands.",
+  "effect": "The subsequent transaction computes and can publish the previous transaction's operands instead of aborting the new request.",
+  "edits": [
+    {
+      "old": "                        end else begin\n                            state <= IDLE;\n                        end\n                    end\n\n                    COMPUTE: begin",
+      "new": "                        end else begin\n                            state <= COMPUTE;\n                        end\n                    end\n\n                    COMPUTE: begin"
+    }
+  ],
+  "model": "gpt-6-luna",
+  "batch": 1
+}

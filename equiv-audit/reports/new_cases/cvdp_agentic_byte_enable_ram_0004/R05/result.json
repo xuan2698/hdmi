@@ -1,0 +1,60 @@
+{
+  "task": "cvdp_agentic_byte_enable_ram_0004",
+  "tag": "R05",
+  "sources": [
+    "cvdp_new/R05"
+  ],
+  "metadata": {
+    "bug": "Port B's non-collision lane-3 write sources its data from lane 2.",
+    "trigger": "The collision path is not selected, port B is enabled, and byte-enable bit 3 is high; the error is observable when data_in_b_reg[23:16] differs from data_in_b_reg[31:24].",
+    "effect": "The high byte is written with port B's lane-2 data rather than its lane-3 data.",
+    "model": "gpt-6-luna"
+  },
+  "rtl_pair_sha256": "53ae9db58a54a2793b15b2a350678d473fa26684f352bcb1d0f57dd852753c79",
+  "required_cycles": 52,
+  "attempts": [
+    {
+      "mode": "bmc",
+      "engine": "abc bmc3",
+      "requested_cycles": 52,
+      "status": "TIMEOUT"
+    },
+    {
+      "mode": "bmc",
+      "engine": "smtbmc boolector",
+      "formal_steps": 209,
+      "ram_addresses": 2,
+      "status": "FAIL"
+    }
+  ],
+  "bounded_cycles": null,
+  "address_subset": true,
+  "latch_compatibility": false,
+  "status": "non_equivalent",
+  "concrete_rtl_replay": {
+    "replayed_formal_step": 10,
+    "golden_bits": "0000000111011101000011011100110011111101000000110000000000000000",
+    "mutant_bits": "0000000111011101000011011100110000000011000000110000000000000000",
+    "address_subset_zero_extended": true
+  },
+  "counterexample_cycles": 3,
+  "formal_step": 10,
+  "terminal_inputs_binary": {
+    "addr_a": "0000000000000",
+    "en_a": "1",
+    "be_a": "0000",
+    "data_in_a": "00000000000000000000000000000000",
+    "addr_b": "0000000000000",
+    "en_b": "1",
+    "be_b": "0000",
+    "data_in_b": "00000000000000000000000000000000"
+  },
+  "different_outputs": {
+    "data_out_b": {
+      "golden": "1111110100000011xxxxxxxxxxxxxxxx",
+      "mutant": "0000001100000011xxxxxxxxxxxxxxxx"
+    }
+  },
+  "trace": "reports/new_cases/cvdp_agentic_byte_enable_ram_0004/R05/witness.vcd",
+  "phase_binary": "10"
+}

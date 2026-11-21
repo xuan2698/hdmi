@@ -1,0 +1,55 @@
+{
+  "task": "cvdp_copilot_simple_spi_0003",
+  "tag": "R05",
+  "sources": [
+    "cvdp_new/R05"
+  ],
+  "metadata": {
+    "bug": "The asynchronous reset initializes o_bits_left to zero rather than the full-transfer count.",
+    "trigger": "Assert i_rst_b low, including during an active transfer; the erroneous value is visible throughout reset and remains after release while the FSM stays idle.",
+    "effect": "o_bits_left reports zero instead of 16, and a subsequent transfer begins with an invalid count.",
+    "model": "gpt-6-luna"
+  },
+  "rtl_pair_sha256": "055b32ac66981fc0ae1c9b8f0d6b01ff2abb2ddaf88f3b9cc445140bc50e39dd",
+  "required_cycles": 52,
+  "attempts": [
+    {
+      "mode": "bmc",
+      "engine": "abc bmc3",
+      "requested_cycles": 52,
+      "status": "FAIL"
+    },
+    {
+      "mode": "witness_translation",
+      "engine": "ABC + Boolector",
+      "status": "FAIL"
+    }
+  ],
+  "bounded_cycles": null,
+  "address_subset": false,
+  "latch_compatibility": false,
+  "status": "non_equivalent",
+  "concrete_rtl_replay": {
+    "replayed_formal_step": 0,
+    "golden_bits": "10010000000",
+    "mutant_bits": "10000000000",
+    "address_subset_zero_extended": false
+  },
+  "counterexample_cycles": 0,
+  "formal_step": 0,
+  "terminal_inputs_binary": {
+    "i_rst_b": "0",
+    "i_data_in": "0000000000000000",
+    "i_enable": "0",
+    "i_fault": "0",
+    "i_clear": "0"
+  },
+  "different_outputs": {
+    "o_bits_left": {
+      "golden": "10000",
+      "mutant": "00000"
+    }
+  },
+  "trace": "reports/new_cases/cvdp_copilot_simple_spi_0003/R05/witness.vcd",
+  "phase_binary": "00"
+}

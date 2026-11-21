@@ -1,0 +1,41 @@
+{
+  "task": "cvdp_copilot_digital_stopwatch_0017",
+  "tag": "H10",
+  "sources": [
+    "cvdp_old/H10"
+  ],
+  "metadata": {
+    "bug": "Allows seconds to reach 60 before rolling over, delaying the minute increment by one tick."
+  },
+  "rtl_pair_sha256": "2ce9bb8173c21d784f78188a911987451702600c39a7f16877d3dae37fe1049e",
+  "required_cycles": 180000000000,
+  "attempts": [
+    {
+      "mode": "bmc",
+      "engine": "abc bmc3",
+      "requested_cycles": 52,
+      "status": "TIMEOUT"
+    },
+    {
+      "mode": "shared-divider reachable transition",
+      "engine": "Yosys sequential SAT",
+      "reached_tick": 60,
+      "period_default_cycles": 50000000,
+      "status": "FAIL"
+    }
+  ],
+  "bounded_cycles": null,
+  "address_subset": false,
+  "latch_compatibility": false,
+  "status": "non_equivalent",
+  "pulse_certificate_error": "yosys exited 1: ERROR: Found -set-init bits that are not part of the initial_state: { \\gate_seconds \\gate_minutes \\gate_hour \\gold_seconds \\gold_minutes \\gold_hour }\n",
+  "counterexample_cycles": 3000000001,
+  "witness_method": "shared-divider SAT plus 1-Hz Icarus replay",
+  "concrete_rtl_replay": {
+    "scope": "unchanged downstream RTL at certified pulse edges",
+    "first_tick": 60,
+    "golden_bits": "0000001000000",
+    "mutant_bits": "0000000111100"
+  },
+  "trace": "reports/old_cases/cvdp_copilot_digital_stopwatch_0017/H10/compressed_witness.json"
+}

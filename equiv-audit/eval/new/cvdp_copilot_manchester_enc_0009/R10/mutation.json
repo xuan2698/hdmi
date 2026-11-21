@@ -1,0 +1,13 @@
+{
+  "bug": "The decoder’s one-symbol test accepts the invalid `11` pair as a decoded one.",
+  "trigger": "On a cycle with `dec_valid_in=1`, any symbol pair `dec_data_in[2*i+1:2*i]` equal to `2'b11` triggers the bug. For example, `dec_data_in[1:0]=2'b11` incorrectly sets `dec_data_out[0]` to 1.",
+  "effect": "A pair that should take the invalid-pair fallback and decode to zero instead decodes to one; other pairs retain their existing behavior.",
+  "edits": [
+    {
+      "old": "if (dec_data_in[2*i] == 1'b1 && dec_data_in[2*i+1] == 1'b0) begin",
+      "new": "if (dec_data_in[2*i] == 1'b1 && dec_data_in[2*i+1] != 1'b0) begin"
+    }
+  ],
+  "model": "gpt-6-luna",
+  "batch": 4
+}

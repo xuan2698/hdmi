@@ -1,0 +1,13 @@
+{
+  "bug": "Initialization loop omits the final RAM entry.",
+  "trigger": "Before address LINES-1 has been written, read that address; with the default parameter, this is address 8191.",
+  "effect": "The final entry is not initialized to zero, so its read value is unknown until written.",
+  "edits": [
+    {
+      "old": "for(int i = 0 ; i < LINES ; i++) begin",
+      "new": "for(int i = 0 ; i < LINES-1 ; i++) begin"
+    }
+  ],
+  "model": "gpt-6-luna",
+  "batch": 1
+}

@@ -1,0 +1,13 @@
+{
+  "bug": "The input load forces the least-significant data bit to zero.",
+  "trigger": "Start a transfer with i_data_in[0] == 1; all other input values load normally, but this input’s final serialized bit is corrupted.",
+  "effect": "The transmitted least-significant bit is zero instead of the supplied value.",
+  "edits": [
+    {
+      "old": "shift_reg <= i_data_in;",
+      "new": "shift_reg <= {i_data_in[15:1], 1'b0};"
+    }
+  ],
+  "model": "gpt-6-luna",
+  "batch": 1
+}

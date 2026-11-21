@@ -1,0 +1,57 @@
+{
+  "task": "cvdp_copilot_asyc_reset_0004",
+  "tag": "R03",
+  "sources": [
+    "cvdp_new/R03"
+  ],
+  "metadata": {
+    "bug": "The reset-release comparison includes count 8 instead of excluding it.",
+    "trigger": "During the normal countdown, when cnt_q is exactly 8 (5'h08), after 23 decrements from 31.",
+    "effect": "release_reset_o asserts one cycle early, while cnt_q is 8.",
+    "model": "gpt-6-luna"
+  },
+  "rtl_pair_sha256": "83a3d0817fafc9af32cdbc5dfff9acbd70fc55c4ad6ac86729e935d79c0c4add",
+  "required_cycles": 52,
+  "attempts": [
+    {
+      "mode": "bmc",
+      "engine": "abc bmc3",
+      "requested_cycles": 52,
+      "status": "FAIL"
+    },
+    {
+      "mode": "witness",
+      "engine": "smtbmc z3",
+      "formal_steps": 96,
+      "status": "TIMEOUT"
+    },
+    {
+      "mode": "witness_translation",
+      "engine": "ABC + Boolector",
+      "status": "FAIL"
+    }
+  ],
+  "bounded_cycles": null,
+  "address_subset": false,
+  "latch_compatibility": false,
+  "status": "non_equivalent",
+  "concrete_rtl_replay": {
+    "replayed_formal_step": 94,
+    "golden_bits": "0101000",
+    "mutant_bits": "1101000",
+    "address_subset_zero_extended": false
+  },
+  "counterexample_cycles": 24,
+  "formal_step": 94,
+  "terminal_inputs_binary": {
+    "reset": "0"
+  },
+  "different_outputs": {
+    "release_reset_o": {
+      "golden": "0",
+      "mutant": "1"
+    }
+  },
+  "trace": "reports/new_cases/cvdp_copilot_asyc_reset_0004/R03/witness.vcd",
+  "phase_binary": "10"
+}

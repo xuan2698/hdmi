@@ -1,0 +1,13 @@
+{
+  "bug": "The transmit-state register update is incorrectly gated by enable.",
+  "trigger": "During a transfer, after at least one bit has been sent, deassert i_enable while curr_state is ST_TRANSMIT; then reassert it and start another transfer.",
+  "effect": "The disabled cycle does not update the partial bit count. The restarted transfer uses that stale count and ends before sending all 16 bits.",
+  "edits": [
+    {
+      "old": "if (curr_state == ST_TRANSMIT ) begin",
+      "new": "if ((curr_state == ST_TRANSMIT ) && i_enable) begin"
+    }
+  ],
+  "model": "gpt-6-luna",
+  "batch": 3
+}

@@ -1,0 +1,55 @@
+{
+  "task": "cvdp_copilot_manchester_enc_0009",
+  "tag": "R07",
+  "sources": [
+    "cvdp_new/R07"
+  ],
+  "metadata": {
+    "bug": "The decoder loop stops before updating the most-significant output bit.",
+    "trigger": "For N=8, after a valid decoded word with bit 7=0 (or after reset/idle), a subsequent valid word whose bit 7 should be 1 leaves bit 7 at its previous value; the other seven bits are decoded normally.",
+    "effect": "The decoder reports valid data with a stale most-significant bit.",
+    "model": "gpt-6-luna"
+  },
+  "rtl_pair_sha256": "5524407034b76e1bc4bde5ef6f6c2db36fa514f9b059b6b81bc3396f0f58c9a1",
+  "required_cycles": 52,
+  "attempts": [
+    {
+      "mode": "bmc",
+      "engine": "abc bmc3",
+      "requested_cycles": 52,
+      "status": "FAIL"
+    },
+    {
+      "mode": "witness_translation",
+      "engine": "ABC + Boolector",
+      "status": "FAIL"
+    }
+  ],
+  "bounded_cycles": null,
+  "address_subset": false,
+  "latch_compatibility": false,
+  "status": "non_equivalent",
+  "concrete_rtl_replay": {
+    "replayed_formal_step": 6,
+    "golden_bits": "00000000000000000110000000",
+    "mutant_bits": "00000000000000000100000000",
+    "address_subset_zero_extended": false
+  },
+  "counterexample_cycles": 2,
+  "formal_step": 6,
+  "terminal_inputs_binary": {
+    "rst_in": "0",
+    "enc_valid_in": "0",
+    "enc_data_in": "00000000",
+    "dec_valid_in": "1",
+    "dec_data_in": "0100000000000000"
+  },
+  "different_outputs": {
+    "dec_data_out": {
+      "golden": "10000000",
+      "mutant": "00000000"
+    }
+  },
+  "trace": "reports/new_cases/cvdp_copilot_manchester_enc_0009/R07/witness.vcd",
+  "phase_binary": "10"
+}

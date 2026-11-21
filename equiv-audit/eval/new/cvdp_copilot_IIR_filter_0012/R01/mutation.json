@@ -1,0 +1,13 @@
+{
+  "bug": "Butterworth second feed-forward coefficient is one too large.",
+  "trigger": "At a computation edge with filter_select=00, x_1_1 must be nonzero; for example, apply a nonzero in_1 sample, then wait two clock edges and select 00. The altered term uses the input history from two edges earlier.",
+  "effect": "Channel 1’s computed value differs by x_1_1 modulo WIDTH, becoming visible at out_1 through the output pipeline.",
+  "edits": [
+    {
+      "old": "butterworth_b_0 = 16'h0001; butterworth_b_1 = 16'h0002;",
+      "new": "butterworth_b_0 = 16'h0001; butterworth_b_1 = 16'h0003;"
+    }
+  ],
+  "model": "gpt-6-luna",
+  "batch": 1
+}

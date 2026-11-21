@@ -1,0 +1,63 @@
+{
+  "task": "cvdp_copilot_simple_spi_0003",
+  "tag": "R01",
+  "sources": [
+    "cvdp_new/R01"
+  ],
+  "metadata": {
+    "bug": "Disable only forces idle when the FSM is already idle.",
+    "trigger": "Deassert i_enable while curr_state is ST_TRANSMIT or ST_CLOCK_TOGGLE, with i_fault low; for example, disable during a transfer when o_bits_left is 5'd8.",
+    "effect": "The FSM continues advancing and shifting data while disabled instead of aborting to idle.",
+    "model": "gpt-6-luna"
+  },
+  "rtl_pair_sha256": "3a52c2b68df2b425802335df02c13be89594d08aec7709c41662fbb0ea75fad2",
+  "required_cycles": 52,
+  "attempts": [
+    {
+      "mode": "bmc",
+      "engine": "abc bmc3",
+      "requested_cycles": 52,
+      "status": "FAIL"
+    },
+    {
+      "mode": "witness_translation",
+      "engine": "ABC + Boolector",
+      "status": "FAIL"
+    }
+  ],
+  "bounded_cycles": null,
+  "address_subset": false,
+  "latch_compatibility": false,
+  "status": "non_equivalent",
+  "concrete_rtl_replay": {
+    "replayed_formal_step": 7,
+    "golden_bits": "10010000000",
+    "mutant_bits": "00110000001",
+    "address_subset_zero_extended": false
+  },
+  "counterexample_cycles": 2,
+  "formal_step": 7,
+  "terminal_inputs_binary": {
+    "i_rst_b": "1",
+    "i_data_in": "0000000000000000",
+    "i_enable": "0",
+    "i_fault": "0",
+    "i_clear": "0"
+  },
+  "different_outputs": {
+    "o_spi_cs_b": {
+      "golden": "1",
+      "mutant": "0"
+    },
+    "o_spi_data": {
+      "golden": "0",
+      "mutant": "1"
+    },
+    "o_fsm_state": {
+      "golden": "00",
+      "mutant": "01"
+    }
+  },
+  "trace": "reports/new_cases/cvdp_copilot_simple_spi_0003/R01/witness.vcd",
+  "phase_binary": "11"
+}

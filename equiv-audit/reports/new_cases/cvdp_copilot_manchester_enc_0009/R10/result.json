@@ -1,0 +1,55 @@
+{
+  "task": "cvdp_copilot_manchester_enc_0009",
+  "tag": "R10",
+  "sources": [
+    "cvdp_new/R10"
+  ],
+  "metadata": {
+    "bug": "The decoder’s one-symbol test accepts the invalid `11` pair as a decoded one.",
+    "trigger": "On a cycle with `dec_valid_in=1`, any symbol pair `dec_data_in[2*i+1:2*i]` equal to `2'b11` triggers the bug. For example, `dec_data_in[1:0]=2'b11` incorrectly sets `dec_data_out[0]` to 1.",
+    "effect": "A pair that should take the invalid-pair fallback and decode to zero instead decodes to one; other pairs retain their existing behavior.",
+    "model": "gpt-6-luna"
+  },
+  "rtl_pair_sha256": "b49be3c0d07f05fa7931d6d69e43b83744d0e9421e2d186a90cc1a5ad189fa9f",
+  "required_cycles": 52,
+  "attempts": [
+    {
+      "mode": "bmc",
+      "engine": "abc bmc3",
+      "requested_cycles": 52,
+      "status": "FAIL"
+    },
+    {
+      "mode": "witness_translation",
+      "engine": "ABC + Boolector",
+      "status": "FAIL"
+    }
+  ],
+  "bounded_cycles": null,
+  "address_subset": false,
+  "latch_compatibility": false,
+  "status": "non_equivalent",
+  "concrete_rtl_replay": {
+    "replayed_formal_step": 6,
+    "golden_bits": "11010010101101001100001000",
+    "mutant_bits": "11010010101101001100000000",
+    "address_subset_zero_extended": false
+  },
+  "counterexample_cycles": 2,
+  "formal_step": 6,
+  "terminal_inputs_binary": {
+    "rst_in": "0",
+    "enc_valid_in": "1",
+    "enc_data_in": "00111001",
+    "dec_valid_in": "1",
+    "dec_data_in": "0000000001000000"
+  },
+  "different_outputs": {
+    "dec_data_out": {
+      "golden": "00001000",
+      "mutant": "00000000"
+    }
+  },
+  "trace": "reports/new_cases/cvdp_copilot_manchester_enc_0009/R10/witness.vcd",
+  "phase_binary": "10"
+}

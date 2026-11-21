@@ -1,0 +1,13 @@
+{
+  "bug": "The data capture path drops the most significant input bit.",
+  "trigger": "On the first rising edge after reset deassertion, `has_data_to_send=1` and `data_in[3]=1`; the original design's capture condition is true on this edge.",
+  "effect": "`data_out` receives `{1'b0, data_in[2:0]}` rather than the full `data_in` value.",
+  "edits": [
+    {
+      "old": "data_out <= data_in;",
+      "new": "data_out <= {1'b0, data_in[2:0]};"
+    }
+  ],
+  "model": "gpt-6-luna",
+  "batch": 1
+}

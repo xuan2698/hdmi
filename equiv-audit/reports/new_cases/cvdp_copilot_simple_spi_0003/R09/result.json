@@ -1,0 +1,55 @@
+{
+  "task": "cvdp_copilot_simple_spi_0003",
+  "tag": "R09",
+  "sources": [
+    "cvdp_new/R09"
+  ],
+  "metadata": {
+    "bug": "The SPI clock is suppressed during the final bit's toggle phase.",
+    "trigger": "During an otherwise uninterrupted transfer, reach ST_CLOCK_TOGGLE with o_bits_left == 1.",
+    "effect": "The final data bit is presented without its high clock phase, even though the FSM completes the transfer and pulses done.",
+    "model": "gpt-6-luna"
+  },
+  "rtl_pair_sha256": "95ad1416eca7efb990e193165faeadf3d4e0fe3736842113c521491efe6165d6",
+  "required_cycles": 52,
+  "attempts": [
+    {
+      "mode": "bmc",
+      "engine": "abc bmc3",
+      "requested_cycles": 52,
+      "status": "FAIL"
+    },
+    {
+      "mode": "witness_translation",
+      "engine": "ABC + Boolector",
+      "status": "FAIL"
+    }
+  ],
+  "bounded_cycles": null,
+  "address_subset": false,
+  "latch_compatibility": false,
+  "status": "non_equivalent",
+  "concrete_rtl_replay": {
+    "replayed_formal_step": 122,
+    "golden_bits": "01100001010",
+    "mutant_bits": "00100001010",
+    "address_subset_zero_extended": false
+  },
+  "counterexample_cycles": 31,
+  "formal_step": 122,
+  "terminal_inputs_binary": {
+    "i_rst_b": "1",
+    "i_data_in": "0000000000000000",
+    "i_enable": "1",
+    "i_fault": "0",
+    "i_clear": "0"
+  },
+  "different_outputs": {
+    "o_spi_clk": {
+      "golden": "1",
+      "mutant": "0"
+    }
+  },
+  "trace": "reports/new_cases/cvdp_copilot_simple_spi_0003/R09/witness.vcd",
+  "phase_binary": "10"
+}

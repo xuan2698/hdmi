@@ -1,0 +1,13 @@
+{
+  "bug": "Accidentally excludes bit 0 from the mask used for change detection.",
+  "trigger": "With the default 8-bit width, keep enable=1 and mask[0]=1, then change data_in[0] while all other bits remain unchanged. For example, transition from 8'h00 to 8'h01.",
+  "effect": "A change on bit 0 never contributes to word_change_pulse, even though that bit is enabled by the mask.",
+  "edits": [
+    {
+      "old": "masked_change_pulses <= change_pulses & mask;",
+      "new": "masked_change_pulses <= change_pulses & mask & {{(DATA_WIDTH-1){1'b1}},1'b0};"
+    }
+  ],
+  "model": "gpt-6-luna",
+  "batch": 1
+}

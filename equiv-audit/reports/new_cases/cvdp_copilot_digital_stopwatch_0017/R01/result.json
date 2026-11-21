@@ -1,0 +1,48 @@
+{
+  "task": "cvdp_copilot_digital_stopwatch_0017",
+  "tag": "R01",
+  "sources": [
+    "cvdp_new/R01"
+  ],
+  "metadata": {
+    "bug": "The terminal hour transition assigns hour low instead of high.",
+    "trigger": "Starting from reset and counting continuously, the terminal transition occurs when a pulse arrives with minutes=59 and seconds=59, after 3600 one_sec_pulses.",
+    "effect": "Hour remains 0 and the stopwatch continues through subsequent minute and hour cycles without ever asserting the hour output.",
+    "model": "gpt-6-luna"
+  },
+  "rtl_pair_sha256": "2550d8f227c3f8f905a491a31e80b34bb1a3e7113c5b0ba79dc3d791eb319a46",
+  "required_cycles": 180000000000,
+  "attempts": [
+    {
+      "mode": "bmc",
+      "engine": "abc bmc3",
+      "requested_cycles": 52,
+      "status": "PASS"
+    },
+    {
+      "mode": "prove",
+      "engine": "smtbmc z3 k-induction",
+      "status": "TIMEOUT"
+    },
+    {
+      "mode": "shared-divider reachable transition",
+      "engine": "Yosys sequential SAT",
+      "reached_tick": 3600,
+      "period_default_cycles": 50000000,
+      "status": "FAIL"
+    }
+  ],
+  "bounded_cycles": 52,
+  "address_subset": false,
+  "latch_compatibility": false,
+  "status": "non_equivalent",
+  "counterexample_cycles": 180000000001,
+  "witness_method": "shared-divider SAT plus 1-Hz Icarus replay",
+  "concrete_rtl_replay": {
+    "scope": "unchanged downstream RTL at certified pulse edges",
+    "first_tick": 3600,
+    "golden_bits": "1000000000000",
+    "mutant_bits": "0000000000000"
+  },
+  "trace": "reports/new_cases/cvdp_copilot_digital_stopwatch_0017/R01/compressed_witness.json"
+}

@@ -1,0 +1,65 @@
+{
+  "task": "cvdp_agentic_byte_enable_ram_0004",
+  "tag": "H08",
+  "sources": [
+    "cvdp_old/H08"
+  ],
+  "metadata": {
+    "bug": "Same-address handling activates even when neither port is enabled."
+  },
+  "rtl_pair_sha256": "f291917fcec30acff7ad32e8f055de8b187a96cdd0f31bc8826d463f2bc17dc0",
+  "required_cycles": 52,
+  "attempts": [
+    {
+      "mode": "bmc",
+      "engine": "abc bmc3",
+      "requested_cycles": 52,
+      "status": "TIMEOUT"
+    },
+    {
+      "mode": "bmc",
+      "engine": "smtbmc bitwuzla",
+      "formal_steps": 209,
+      "ram_addresses": 2,
+      "status": "ERROR"
+    },
+    {
+      "mode": "bmc",
+      "engine": "smtbmc boolector",
+      "formal_steps": 209,
+      "ram_addresses": 2,
+      "status": "FAIL"
+    }
+  ],
+  "bounded_cycles": null,
+  "address_subset": true,
+  "latch_compatibility": false,
+  "status": "non_equivalent",
+  "supplemental_reason": "engine_0: Engine terminated without status.",
+  "concrete_rtl_replay": {
+    "replayed_formal_step": 10,
+    "golden_bits": "0000000000000000000000000000000011110010000000111111101111111101",
+    "mutant_bits": "0000000000000000000000000000000001110010000000111111100111111111",
+    "address_subset_zero_extended": true
+  },
+  "counterexample_cycles": 3,
+  "formal_step": 10,
+  "terminal_inputs_binary": {
+    "addr_a": "0000000000000",
+    "en_a": "1",
+    "be_a": "0000",
+    "data_in_a": "00000000000000000000000000000000",
+    "addr_b": "0000000000000",
+    "en_b": "1",
+    "be_b": "0000",
+    "data_in_b": "00000000000000000000000000000000"
+  },
+  "different_outputs": {
+    "data_out_b": {
+      "golden": "11110010000000111111101111111101",
+      "mutant": "01110010000000111111100111111111"
+    }
+  },
+  "trace": "reports/old_cases/cvdp_agentic_byte_enable_ram_0004/H08/witness.vcd",
+  "phase_binary": "10"
+}

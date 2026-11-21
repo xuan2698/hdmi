@@ -1,0 +1,13 @@
+{
+  "bug": "The clear path copies the internal computation result to the output instead of clearing the output sum.",
+  "trigger": "Complete an operation, return to IDLE, then assert i_clear for a cycle. For example, after computing 0x12 + 0x34, the internal result remains 0x46 when clear is asserted.",
+  "effect": "Instead of clearing o_resultant_sum to zero, the clear cycle writes the stale value 0x46 to it.",
+  "edits": [
+    {
+      "old": "            if (i_clear) begin\n                o_resultant_sum <= 0;\n                state <= IDLE;",
+      "new": "            if (i_clear) begin\n                o_resultant_sum <= result;\n                state <= IDLE;"
+    }
+  ],
+  "model": "gpt-6-luna",
+  "batch": 1
+}

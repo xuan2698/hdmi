@@ -1,0 +1,13 @@
+{
+  "bug": "The sequential block uses a synchronous reset instead of the specified asynchronous reset.",
+  "trigger": "While the FSM is active, assert and deassert i_rst_b entirely between two rising edges of i_clk—for example, during a CLOCK_TOGGLE cycle. The reset pulse never overlaps a clock edge.",
+  "effect": "The reset does not clear the state or data registers. While reset is low, combinational outputs show reset values, but after deassertion the FSM resumes from its pre-reset state instead of restarting in IDLE.",
+  "edits": [
+    {
+      "old": "always @(posedge i_clk or negedge i_rst_b) begin",
+      "new": "always @(posedge i_clk) begin"
+    }
+  ],
+  "model": "gpt-6-luna",
+  "batch": 4
+}

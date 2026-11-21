@@ -1,0 +1,13 @@
+{
+  "bug": "Port B's registered read output is held during a same-address dual-enable access when port A has any byte enabled.",
+  "trigger": "On the output-update edge, en_a_reg and en_b_reg are both high, the registered addresses match, and be_a_reg is nonzero. The stale output is observable if data_out_b differs from the current RAM word at that address.",
+  "effect": "data_out_b does not update to the addressed RAM word for that access, even though the original design updates it every clock.",
+  "edits": [
+    {
+      "old": "data_out_b <= ram[addr_b_reg];",
+      "new": "if (en_a_reg && en_b_reg && (addr_a_reg == addr_b_reg) && (|be_a_reg)) begin\n    end else begin\n      data_out_b <= ram[addr_b_reg];\n    end"
+    }
+  ],
+  "model": "gpt-6-luna",
+  "batch": 2
+}

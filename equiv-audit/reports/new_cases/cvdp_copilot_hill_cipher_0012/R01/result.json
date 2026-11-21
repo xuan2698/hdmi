@@ -1,0 +1,49 @@
+{
+  "task": "cvdp_copilot_hill_cipher_0012",
+  "tag": "R01",
+  "sources": [
+    "cvdp_new/R01"
+  ],
+  "metadata": {
+    "bug": "The most significant bit of the first plaintext symbol is dropped.",
+    "trigger": "On a transaction where plaintext[14:10] is at least 16, the first-row result can differ if K00 is nonzero. For example, P0=16, K00=1, and all other key elements zero produces C0=16 in the original but C0=0 in the mutant.",
+    "effect": "The first plaintext symbol is treated as its low four bits, changing ciphertext values for affected inputs.",
+    "model": "gpt-6-luna"
+  },
+  "rtl_pair_sha256": "c0de954faa2f77204126f1b0f6afd5045e5f5cfceff411957c67faadd616cfc6",
+  "required_cycles": 52,
+  "attempts": [
+    {
+      "mode": "bmc",
+      "engine": "smtbmc boolector",
+      "requested_cycles": 52,
+      "status": "FAIL"
+    }
+  ],
+  "bounded_cycles": null,
+  "address_subset": false,
+  "latch_compatibility": false,
+  "status": "non_equivalent",
+  "concrete_rtl_replay": {
+    "replayed_formal_step": 14,
+    "golden_bits": "1011001110001001",
+    "mutant_bits": "1001010010110001",
+    "address_subset_zero_extended": false
+  },
+  "counterexample_cycles": 4,
+  "formal_step": 14,
+  "terminal_inputs_binary": {
+    "reset": "0",
+    "start": "0",
+    "plaintext": "000000000000000",
+    "key": "000000000000000000000000000000000000000000000"
+  },
+  "different_outputs": {
+    "ciphertext": {
+      "golden": "101100111000100",
+      "mutant": "100101001011000"
+    }
+  },
+  "trace": "reports/new_cases/cvdp_copilot_hill_cipher_0012/R01/witness.vcd",
+  "phase_binary": "10"
+}

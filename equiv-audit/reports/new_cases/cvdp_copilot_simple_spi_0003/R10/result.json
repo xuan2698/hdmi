@@ -1,0 +1,59 @@
+{
+  "task": "cvdp_copilot_simple_spi_0003",
+  "tag": "R10",
+  "sources": [
+    "cvdp_new/R10"
+  ],
+  "metadata": {
+    "bug": "The sequential block uses a synchronous reset instead of the specified asynchronous reset.",
+    "trigger": "While the FSM is active, assert and deassert i_rst_b entirely between two rising edges of i_clk—for example, during a CLOCK_TOGGLE cycle. The reset pulse never overlaps a clock edge.",
+    "effect": "The reset does not clear the state or data registers. While reset is low, combinational outputs show reset values, but after deassertion the FSM resumes from its pre-reset state instead of restarting in IDLE.",
+    "model": "gpt-6-luna"
+  },
+  "rtl_pair_sha256": "34d306c2f21b1e6e8dd07bbf43d4074957c787a94b837865c7584b5ef154161b",
+  "required_cycles": 52,
+  "attempts": [
+    {
+      "mode": "bmc",
+      "engine": "abc bmc3",
+      "requested_cycles": 52,
+      "status": "FAIL"
+    },
+    {
+      "mode": "witness_translation",
+      "engine": "ABC + Boolector",
+      "status": "FAIL"
+    }
+  ],
+  "bounded_cycles": null,
+  "address_subset": false,
+  "latch_compatibility": false,
+  "status": "non_equivalent",
+  "concrete_rtl_replay": {
+    "replayed_formal_step": 0,
+    "golden_bits": "10010000000",
+    "mutant_bits": "100xxxxxx00",
+    "address_subset_zero_extended": false
+  },
+  "counterexample_cycles": 0,
+  "formal_step": 0,
+  "terminal_inputs_binary": {
+    "i_rst_b": "0",
+    "i_data_in": "0000000000000000",
+    "i_enable": "0",
+    "i_fault": "0",
+    "i_clear": "0"
+  },
+  "different_outputs": {
+    "o_bits_left": {
+      "golden": "10000",
+      "mutant": "xxxxx"
+    },
+    "o_done": {
+      "golden": "0",
+      "mutant": "x"
+    }
+  },
+  "trace": "reports/new_cases/cvdp_copilot_simple_spi_0003/R10/witness.vcd",
+  "phase_binary": "00"
+}

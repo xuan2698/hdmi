@@ -1,0 +1,60 @@
+{
+  "task": "cvdp_agentic_byte_enable_ram_0004",
+  "tag": "R03",
+  "sources": [
+    "cvdp_new/R03"
+  ],
+  "metadata": {
+    "bug": "The same-address collision path is skipped when both ports have identical byte-enable masks.",
+    "trigger": "Both registered enables are high, the registered addresses match, and the byte-enable masks are equal and nonzero; for example, both write only lane 0 at the same address with different data.",
+    "effect": "The operation falls through to the separate-port write path, where port B's overlapping write wins instead of port A's collision priority.",
+    "model": "gpt-6-luna"
+  },
+  "rtl_pair_sha256": "4b2c1b9d948fe56493b5e64b1f6a48d7da6a3a3671e928c3ddc10003fdaa8db7",
+  "required_cycles": 52,
+  "attempts": [
+    {
+      "mode": "bmc",
+      "engine": "abc bmc3",
+      "requested_cycles": 52,
+      "status": "TIMEOUT"
+    },
+    {
+      "mode": "bmc",
+      "engine": "smtbmc boolector",
+      "formal_steps": 209,
+      "ram_addresses": 2,
+      "status": "FAIL"
+    }
+  ],
+  "bounded_cycles": null,
+  "address_subset": true,
+  "latch_compatibility": false,
+  "status": "non_equivalent",
+  "concrete_rtl_replay": {
+    "replayed_formal_step": 10,
+    "golden_bits": "0000000000000000000000000000000000000000000000000001000000000000",
+    "mutant_bits": "0000000000000000000000000000000000000000000000000000000000000000",
+    "address_subset_zero_extended": true
+  },
+  "counterexample_cycles": 3,
+  "formal_step": 10,
+  "terminal_inputs_binary": {
+    "addr_a": "0000000000000",
+    "en_a": "1",
+    "be_a": "0000",
+    "data_in_a": "00000000000000000000000000000000",
+    "addr_b": "0000000000000",
+    "en_b": "1",
+    "be_b": "0000",
+    "data_in_b": "00000000000000000000000000000000"
+  },
+  "different_outputs": {
+    "data_out_b": {
+      "golden": "xxxxxxxxxxxxxxxx00010000xxxxxxxx",
+      "mutant": "xxxxxxxxxxxxxxxx00000000xxxxxxxx"
+    }
+  },
+  "trace": "reports/new_cases/cvdp_agentic_byte_enable_ram_0004/R03/witness.vcd",
+  "phase_binary": "10"
+}

@@ -1,0 +1,13 @@
+{
+  "bug": "Applies the current mask a second time to the already registered change pulses.",
+  "trigger": "A bit changes while its mask bit is high, causing masked_change_pulses to capture that change; before the following clock edge, lower that mask bit. The original would report the pending change at that edge.",
+  "effect": "A mask deasserted during the pulse pipeline suppresses a change that was enabled when detected.",
+  "edits": [
+    {
+      "old": "word_change_pulse <= |masked_change_pulses;",
+      "new": "word_change_pulse <= |(masked_change_pulses & mask);"
+    }
+  ],
+  "model": "gpt-6-luna",
+  "batch": 3
+}

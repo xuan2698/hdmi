@@ -1,0 +1,13 @@
+{
+  "bug": "The NODE3 wrap transition targets NODE1, skipping NODE0.",
+  "trigger": "At the rising edge where `current_state` is NODE3; in the unmodified sequence this is the fourth active edge after reset deassertion.",
+  "effect": "`current_state` advances to NODE1 instead of NODE0. Subsequent cycles follow NODE1→NODE2→NODE3→NODE1, permanently omitting NODE0 until reset.",
+  "edits": [
+    {
+      "old": "NODE3: begin\n                token_received <= 4'b1000;\n                token <= 4'b0001;\n                next_state = NODE0;\n            end",
+      "new": "NODE3: begin\n                token_received <= 4'b1000;\n                token <= 4'b0001;\n                next_state = NODE1;\n            end"
+    }
+  ],
+  "model": "gpt-6-luna",
+  "batch": 1
+}

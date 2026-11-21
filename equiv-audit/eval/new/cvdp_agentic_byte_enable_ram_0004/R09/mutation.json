@@ -1,0 +1,13 @@
+{
+  "bug": "Port A's registered read output holds its previous value when reading address zero.",
+  "trigger": "After port A has produced an output from a nonzero address, a later clock samples address zero into addr_a_reg; on the following clock the output update is suppressed.",
+  "effect": "data_out_a retains the earlier read value instead of returning ram[0].",
+  "edits": [
+    {
+      "old": "data_out_a <= ram[addr_a_reg];",
+      "new": "data_out_a <= (addr_a_reg != '0) ? ram[addr_a_reg] : data_out_a;"
+    }
+  ],
+  "model": "gpt-6-luna",
+  "batch": 2
+}

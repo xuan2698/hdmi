@@ -1,0 +1,13 @@
+{
+  "bug": "Suppresses pattern-match pulse generation whenever latch_pattern is asserted.",
+  "trigger": "With enable=1, arrange for match_detected to be 1, then assert latch_pattern on the cycle that would otherwise raise pattern_match_pulse.",
+  "effect": "The expected pattern_match_pulse is cleared instead of asserted on the coincident latch cycle.",
+  "edits": [
+    {
+      "old": "            if (match_detected) begin",
+      "new": "            if (match_detected && !latch_pattern) begin"
+    }
+  ],
+  "model": "gpt-6-luna",
+  "batch": 2
+}

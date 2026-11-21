@@ -1,0 +1,57 @@
+{
+  "task": "cvdp_copilot_asyc_reset_0004",
+  "tag": "R07",
+  "sources": [
+    "cvdp_new/R07"
+  ],
+  "metadata": {
+    "bug": "The gate-clock nonzero check mistakenly excludes count 1 instead of count 0.",
+    "trigger": "After reset is deasserted, 30 rising clock edges bring cnt_q from 31 to 1. At that count, gate_clk_o is incorrectly low for one cycle.",
+    "effect": "The gate-clock output has a one-cycle dropout at cnt_q == 1.",
+    "model": "gpt-6-luna"
+  },
+  "rtl_pair_sha256": "739b6c7a4a8e46b19e5d817356720d1c4992f2b83b72547da89ef009f39d2b1a",
+  "required_cycles": 52,
+  "attempts": [
+    {
+      "mode": "bmc",
+      "engine": "abc bmc3",
+      "requested_cycles": 52,
+      "status": "FAIL"
+    },
+    {
+      "mode": "witness",
+      "engine": "smtbmc z3",
+      "formal_steps": 124,
+      "status": "TIMEOUT"
+    },
+    {
+      "mode": "witness_translation",
+      "engine": "ABC + Boolector",
+      "status": "FAIL"
+    }
+  ],
+  "bounded_cycles": null,
+  "address_subset": false,
+  "latch_compatibility": false,
+  "status": "non_equivalent",
+  "concrete_rtl_replay": {
+    "replayed_formal_step": 122,
+    "golden_bits": "1100001",
+    "mutant_bits": "1000001",
+    "address_subset_zero_extended": false
+  },
+  "counterexample_cycles": 31,
+  "formal_step": 122,
+  "terminal_inputs_binary": {
+    "reset": "0"
+  },
+  "different_outputs": {
+    "gate_clk_o": {
+      "golden": "1",
+      "mutant": "0"
+    }
+  },
+  "trace": "reports/new_cases/cvdp_copilot_asyc_reset_0004/R07/witness.vcd",
+  "phase_binary": "10"
+}

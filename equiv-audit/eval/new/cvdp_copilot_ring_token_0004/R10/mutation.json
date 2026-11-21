@@ -1,0 +1,13 @@
+{
+  "bug": "Loads data_in into data_out in the reset branch instead of clearing data_out.",
+  "trigger": "Assert rst while data_in is nonzero, for example data_in=4'b1010 at the rising edge of rst.",
+  "effect": "data_out captures 4'b1010 rather than being cleared to 4'b0000.",
+  "edits": [
+    {
+      "old": "        token_received <= 4'b0001;\n        data_out <= 4'b0000;",
+      "new": "        token_received <= 4'b0001;\n        data_out <= data_in;"
+    }
+  ],
+  "model": "gpt-6-luna",
+  "batch": 2
+}

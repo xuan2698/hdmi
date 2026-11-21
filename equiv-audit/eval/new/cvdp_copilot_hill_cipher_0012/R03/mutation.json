@@ -1,0 +1,13 @@
+{
+  "bug": "A start held during DONE bypasses the IDLE state and immediately launches another computation.",
+  "trigger": "Keep start high through the cycle in which current_state is DONE. At the next clock edge the mutant enters COMPUTE directly; the original enters IDLE and does not enter COMPUTE until a later edge.",
+  "effect": "A continuously asserted start causes transactions to restart sooner than the original protocol allows, changing the timing of done and ciphertext updates.",
+  "edits": [
+    {
+      "old": "            DONE: begin\n                done = 1'b1;\n                next_state = IDLE;\n            end",
+      "new": "            DONE: begin\n                done = 1'b1;\n                next_state = start ? COMPUTE : IDLE;\n            end"
+    }
+  ],
+  "model": "gpt-6-luna",
+  "batch": 1
+}

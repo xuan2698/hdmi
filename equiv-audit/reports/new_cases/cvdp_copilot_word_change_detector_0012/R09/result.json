@@ -1,0 +1,71 @@
+{
+  "task": "cvdp_copilot_word_change_detector_0012",
+  "tag": "R09",
+  "sources": [
+    "cvdp_new/R09"
+  ],
+  "metadata": {
+    "bug": "Requires at least one mask bit to be enabled before declaring a pattern match.",
+    "trigger": "Keep enable high with mask=0. The original comparison is then true regardless of data_in and latched_pattern, so pattern_match_pulse asserts after the registered match-detection latency; this mutant never detects that match.",
+    "effect": "Pattern matches under an all-zero mask are suppressed.",
+    "model": "gpt-6-luna"
+  },
+  "rtl_pair_sha256": "505d5f3b96a80c0902de9c33be5ba256dc515b1bd53f649fcf714254b8455dc5",
+  "required_cycles": 52,
+  "attempts": [
+    {
+      "mode": "bmc",
+      "engine": "abc bmc3",
+      "requested_cycles": 52,
+      "status": "ERROR"
+    },
+    {
+      "mode": "bmc",
+      "engine": "smtbmc boolector",
+      "formal_steps": 209,
+      "ram_addresses": null,
+      "status": "ERROR"
+    },
+    {
+      "mode": "mixed-driver search normalization",
+      "engine": "abc bmc3",
+      "status": "FAIL",
+      "requested_cycles": 52
+    },
+    {
+      "mode": "witness_translation",
+      "engine": "ABC + Boolector",
+      "status": "FAIL"
+    }
+  ],
+  "bounded_cycles": null,
+  "address_subset": false,
+  "latch_compatibility": false,
+  "status": "non_equivalent",
+  "supplemental_reason": "Assert `!enc.driven' failed in passes/cmds/xprop.cc:237.",
+  "concrete_rtl_replay": {
+    "replayed_formal_step": 10,
+    "golden_bits": "0100000000",
+    "mutant_bits": "0000000000",
+    "address_subset_zero_extended": false
+  },
+  "counterexample_cycles": 3,
+  "formal_step": 10,
+  "terminal_inputs_binary": {
+    "reset": "0",
+    "data_in": "00000000",
+    "mask": "00000000",
+    "match_pattern": "00000000",
+    "enable": "1",
+    "latch_pattern": "0"
+  },
+  "different_outputs": {
+    "pattern_match_pulse": {
+      "golden": "1",
+      "mutant": "0"
+    }
+  },
+  "trace": "reports/new_cases/cvdp_copilot_word_change_detector_0012/R09/witness.vcd",
+  "phase_binary": "10",
+  "witness_method": "mixed-driver search normalization, confirmed on unchanged Icarus RTL"
+}

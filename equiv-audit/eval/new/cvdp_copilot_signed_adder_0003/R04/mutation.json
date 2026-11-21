@@ -1,0 +1,13 @@
+{
+  "bug": "The COMPUTE state transitions to OUTPUT instead of aborting to IDLE when enable is deasserted.",
+  "trigger": "Complete one operation to leave a known value in the internal result register. Start another operation, reach COMPUTE, deassert i_enable for that cycle, then reassert it in the next cycle. The mutant moves directly to OUTPUT without computing the second operation.",
+  "effect": "The output stage publishes the stale result and overflow flag from the previous computation as if they belonged to the second operation.",
+  "edits": [
+    {
+      "old": "                        end else begin\n                            state <= IDLE;\n                        end\n                    end\n\n                    OUTPUT: begin",
+      "new": "                        end else begin\n                            state <= OUTPUT;\n                        end\n                    end\n\n                    OUTPUT: begin"
+    }
+  ],
+  "model": "gpt-6-luna",
+  "batch": 1
+}

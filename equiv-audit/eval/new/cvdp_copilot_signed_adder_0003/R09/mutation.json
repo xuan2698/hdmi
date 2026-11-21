@@ -1,0 +1,13 @@
+{
+  "bug": "An all-ones computed result is mistakenly replaced with zero at output.",
+  "trigger": "Complete an enabled operation whose DATA_WIDTH-bit result is all ones. With DATA_WIDTH=8, adding 8'hFE and 8'h01 yields 8'hFF and triggers the bug.",
+  "effect": "o_resultant_sum is zero instead of the computed all-ones result.",
+  "edits": [
+    {
+      "old": "o_resultant_sum <= result;",
+      "new": "o_resultant_sum <= (result == {DATA_WIDTH{1'b1}}) ? {DATA_WIDTH{1'b0}} : result;"
+    }
+  ],
+  "model": "gpt-6-luna",
+  "batch": 2
+}

@@ -1,0 +1,13 @@
+{
+  "bug": "The decrement updates the low nibble without propagating its borrow into the high bit.",
+  "trigger": "After reset is deasserted, 15 rising clock edges bring cnt_q to 16; on the next edge, decrementing the low nibble wraps it from 0 to 15 while the high bit remains set.",
+  "effect": "cnt_q jumps from 16 to 31 instead of 15, causing the counter to repeat the upper portion of its sequence and never reach the low counts.",
+  "edits": [
+    {
+      "old": "cnt_q <= cnt_q - 1;",
+      "new": "cnt_q <= {cnt_q[4], (cnt_q[3:0] - 1'b1)};"
+    }
+  ],
+  "model": "gpt-6-luna",
+  "batch": 5
+}

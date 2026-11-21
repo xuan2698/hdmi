@@ -1,0 +1,53 @@
+{
+  "task": "cvdp_copilot_ring_token_0004",
+  "tag": "R02",
+  "sources": [
+    "cvdp_new/R02"
+  ],
+  "metadata": {
+    "bug": "The data capture path drops the most significant input bit.",
+    "trigger": "On the first rising edge after reset deassertion, `has_data_to_send=1` and `data_in[3]=1`; the original design's capture condition is true on this edge.",
+    "effect": "`data_out` receives `{1'b0, data_in[2:0]}` rather than the full `data_in` value.",
+    "model": "gpt-6-luna"
+  },
+  "rtl_pair_sha256": "7b8a657afa85dca67f50db338cb618f47e2d862f5a0ac7219f51234e6c4cce46",
+  "required_cycles": 52,
+  "attempts": [
+    {
+      "mode": "bmc",
+      "engine": "abc bmc3",
+      "requested_cycles": 52,
+      "status": "FAIL"
+    },
+    {
+      "mode": "witness_translation",
+      "engine": "ABC + Boolector",
+      "status": "FAIL"
+    }
+  ],
+  "bounded_cycles": null,
+  "address_subset": false,
+  "latch_compatibility": false,
+  "status": "non_equivalent",
+  "concrete_rtl_replay": {
+    "replayed_formal_step": 6,
+    "golden_bits": "100000010010",
+    "mutant_bits": "000000010010",
+    "address_subset_zero_extended": false
+  },
+  "counterexample_cycles": 2,
+  "formal_step": 6,
+  "terminal_inputs_binary": {
+    "rst": "0",
+    "data_in": "1000",
+    "has_data_to_send": "1"
+  },
+  "different_outputs": {
+    "data_out": {
+      "golden": "1000",
+      "mutant": "0000"
+    }
+  },
+  "trace": "reports/new_cases/cvdp_copilot_ring_token_0004/R02/witness.vcd",
+  "phase_binary": "10"
+}

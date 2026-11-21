@@ -1,0 +1,55 @@
+{
+  "task": "cvdp_copilot_manchester_enc_0009",
+  "tag": "R06",
+  "sources": [
+    "cvdp_new/R06"
+  ],
+  "metadata": {
+    "bug": "Decoder reset handling is incorrectly disabled when decoder input-valid is asserted.",
+    "trigger": "At a rising edge with rst_in=1 and dec_valid_in=1, the decoder processes dec_data_in instead of resetting; for example, dec_data_in containing a valid encoded word produces decoded data and dec_valid_out=1 during reset.",
+    "effect": "A coincident valid input overrides the expected synchronous decoder reset.",
+    "model": "gpt-6-luna"
+  },
+  "rtl_pair_sha256": "f5d9ae4477155b698f00c9913c341f208163211ab9fd1201c7988ccbe48025e5",
+  "required_cycles": 52,
+  "attempts": [
+    {
+      "mode": "bmc",
+      "engine": "abc bmc3",
+      "requested_cycles": 52,
+      "status": "FAIL"
+    },
+    {
+      "mode": "witness_translation",
+      "engine": "ABC + Boolector",
+      "status": "FAIL"
+    }
+  ],
+  "bounded_cycles": null,
+  "address_subset": false,
+  "latch_compatibility": false,
+  "status": "non_equivalent",
+  "concrete_rtl_replay": {
+    "replayed_formal_step": 2,
+    "golden_bits": "00000000000000000000000000",
+    "mutant_bits": "00000000000000000100000000",
+    "address_subset_zero_extended": false
+  },
+  "counterexample_cycles": 1,
+  "formal_step": 2,
+  "terminal_inputs_binary": {
+    "rst_in": "1",
+    "enc_valid_in": "0",
+    "enc_data_in": "00000000",
+    "dec_valid_in": "1",
+    "dec_data_in": "0000000000000000"
+  },
+  "different_outputs": {
+    "dec_valid_out": {
+      "golden": "0",
+      "mutant": "1"
+    }
+  },
+  "trace": "reports/new_cases/cvdp_copilot_manchester_enc_0009/R06/witness.vcd",
+  "phase_binary": "10"
+}

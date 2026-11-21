@@ -1,0 +1,53 @@
+{
+  "task": "cvdp_copilot_ring_token_0004",
+  "tag": "R04",
+  "sources": [
+    "cvdp_new/R04"
+  ],
+  "metadata": {
+    "bug": "The NODE3 token-received status is cleared instead of identifying NODE3.",
+    "trigger": "At the rising edge where `current_state` is NODE3; in the unmodified sequence this occurs on the fourth active edge after reset deassertion and once per four-edge ring cycle.",
+    "effect": "`token_received` becomes zero instead of `4'b1000` for that cycle, so the NODE3 status is lost.",
+    "model": "gpt-6-luna"
+  },
+  "rtl_pair_sha256": "b0ef121dc150f9e691689300cc08303dbb633d72fa0da51c9e70a2e35f4eaf5a",
+  "required_cycles": 52,
+  "attempts": [
+    {
+      "mode": "bmc",
+      "engine": "abc bmc3",
+      "requested_cycles": 52,
+      "status": "FAIL"
+    },
+    {
+      "mode": "witness_translation",
+      "engine": "ABC + Boolector",
+      "status": "FAIL"
+    }
+  ],
+  "bounded_cycles": null,
+  "address_subset": false,
+  "latch_compatibility": false,
+  "status": "non_equivalent",
+  "concrete_rtl_replay": {
+    "replayed_formal_step": 18,
+    "golden_bits": "000010000001",
+    "mutant_bits": "000000000001",
+    "address_subset_zero_extended": false
+  },
+  "counterexample_cycles": 5,
+  "formal_step": 18,
+  "terminal_inputs_binary": {
+    "rst": "0",
+    "data_in": "0000",
+    "has_data_to_send": "0"
+  },
+  "different_outputs": {
+    "token_received": {
+      "golden": "1000",
+      "mutant": "0000"
+    }
+  },
+  "trace": "reports/new_cases/cvdp_copilot_ring_token_0004/R04/witness.vcd",
+  "phase_binary": "10"
+}

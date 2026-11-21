@@ -1,0 +1,55 @@
+{
+  "task": "cvdp_copilot_manchester_enc_0009",
+  "tag": "R09",
+  "sources": [
+    "cvdp_new/R09"
+  ],
+  "metadata": {
+    "bug": "Decoder output-valid is incorrectly qualified by the validity of the final Manchester symbol pair.",
+    "trigger": "With rst_in=0 and dec_valid_in=1, if the final pair dec_data_in[2*N-2:2*N-1] is 00 or 11, dec_valid_out is deasserted even if the rest of the word is valid. For N=8, this is the pair at bits [14:15].",
+    "effect": "A supplied decoder transaction is not reported valid whenever its final symbol pair is malformed.",
+    "model": "gpt-6-luna"
+  },
+  "rtl_pair_sha256": "c2da63a97cffa8031527b96ceb4d507dec5b25280cfa084cfcf86ca47053e851",
+  "required_cycles": 52,
+  "attempts": [
+    {
+      "mode": "bmc",
+      "engine": "abc bmc3",
+      "requested_cycles": 52,
+      "status": "FAIL"
+    },
+    {
+      "mode": "witness_translation",
+      "engine": "ABC + Boolector",
+      "status": "FAIL"
+    }
+  ],
+  "bounded_cycles": null,
+  "address_subset": false,
+  "latch_compatibility": false,
+  "status": "non_equivalent",
+  "concrete_rtl_replay": {
+    "replayed_formal_step": 6,
+    "golden_bits": "00000000000000000100000000",
+    "mutant_bits": "00000000000000000000000000",
+    "address_subset_zero_extended": false
+  },
+  "counterexample_cycles": 2,
+  "formal_step": 6,
+  "terminal_inputs_binary": {
+    "rst_in": "0",
+    "enc_valid_in": "0",
+    "enc_data_in": "00000000",
+    "dec_valid_in": "1",
+    "dec_data_in": "0000000000000000"
+  },
+  "different_outputs": {
+    "dec_valid_out": {
+      "golden": "1",
+      "mutant": "0"
+    }
+  },
+  "trace": "reports/new_cases/cvdp_copilot_manchester_enc_0009/R09/witness.vcd",
+  "phase_binary": "10"
+}

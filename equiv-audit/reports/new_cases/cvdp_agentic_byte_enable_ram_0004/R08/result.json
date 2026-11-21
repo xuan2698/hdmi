@@ -1,0 +1,59 @@
+{
+  "task": "cvdp_agentic_byte_enable_ram_0004",
+  "tag": "R08",
+  "sources": [
+    "cvdp_new/R08"
+  ],
+  "metadata": {
+    "bug": "Port B lane 2 cannot write the final RAM entry in the non-collision path.",
+    "trigger": "Port B is enabled with lane-2 byte enable set, its registered address is LINES-1, and the operation does not enter the same-address dual-enable collision path; for the default depth, this is address 8191 with port A disabled or targeting another address.",
+    "effect": "Bits [23:16] at the final entry remain unchanged, while other enabled lanes can still be written.",
+    "model": "gpt-6-luna"
+  },
+  "rtl_pair_sha256": "0fcdf23d3ad988632e31cebd2573390a8360ca9f1ea079c487699e65cd640378",
+  "required_cycles": 52,
+  "attempts": [
+    {
+      "mode": "bmc",
+      "engine": "abc bmc3",
+      "requested_cycles": 52,
+      "status": "TIMEOUT"
+    },
+    {
+      "mode": "bmc",
+      "engine": "smtbmc boolector",
+      "formal_steps": 209,
+      "ram_addresses": 2,
+      "status": "FAIL"
+    }
+  ],
+  "bounded_cycles": null,
+  "address_subset": true,
+  "latch_compatibility": false,
+  "status": "unknown",
+  "reason": "Formal witness failed concrete RTL replay",
+  "counterexample_cycles": 3,
+  "formal_step": 10,
+  "terminal_inputs_binary": {
+    "addr_a": "0000000000000",
+    "en_a": "1",
+    "be_a": "0000",
+    "data_in_a": "00000000000000000000000000000000",
+    "addr_b": "0000000000000",
+    "en_b": "1",
+    "be_b": "0000",
+    "data_in_b": "00000000000000000000000000000000"
+  },
+  "different_outputs": {
+    "data_out_a": {
+      "golden": "1100000110011100xxxxxxxxxxxxxxxx",
+      "mutant": "11000001xxxxxxxxxxxxxxxxxxxxxxxx"
+    },
+    "data_out_b": {
+      "golden": "1100000110011100xxxxxxxxxxxxxxxx",
+      "mutant": "11000001xxxxxxxxxxxxxxxxxxxxxxxx"
+    }
+  },
+  "trace": "reports/new_cases/cvdp_agentic_byte_enable_ram_0004/R08/witness.vcd",
+  "phase_binary": "10"
+}

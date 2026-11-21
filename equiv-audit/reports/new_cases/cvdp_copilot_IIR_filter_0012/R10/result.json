@@ -1,0 +1,57 @@
+{
+  "task": "cvdp_copilot_IIR_filter_0012",
+  "tag": "R10",
+  "sources": [
+    "cvdp_new/R10"
+  ],
+  "metadata": {
+    "bug": "Channel 3 holds its current output-delay value instead of clearing it when filter_select is 2'b11.",
+    "trigger": "After reset, set filter_select to 2'b10 and in_3 to 1 for two consecutive rising edges; y_3_0 becomes 7. Set filter_select to 2'b11 on the next rising edge. On the following edge, out_3 is 7 in the mutant but 0 in the original.",
+    "effect": "A stale channel 3 result leaks through the output after the reserved filter-select encoding; valid filter-select operation is unchanged.",
+    "model": "gpt-6-luna"
+  },
+  "rtl_pair_sha256": "77be9fc8936a2d350825c8bfef78324f907341bc681972874af778733ae41806",
+  "required_cycles": 52,
+  "attempts": [
+    {
+      "mode": "bmc",
+      "engine": "abc bmc3",
+      "requested_cycles": 52,
+      "status": "TIMEOUT"
+    },
+    {
+      "mode": "bmc",
+      "engine": "smtbmc boolector",
+      "formal_steps": 209,
+      "ram_addresses": null,
+      "status": "FAIL"
+    }
+  ],
+  "bounded_cycles": null,
+  "address_subset": false,
+  "latch_compatibility": false,
+  "status": "non_equivalent",
+  "concrete_rtl_replay": {
+    "replayed_formal_step": 18,
+    "golden_bits": "000000000000000000000000000000000000000000000000",
+    "mutant_bits": "000000000000000000000000000000000000000010000000",
+    "address_subset_zero_extended": false
+  },
+  "counterexample_cycles": 5,
+  "formal_step": 18,
+  "terminal_inputs_binary": {
+    "reset": "0",
+    "in_1": "0000000000000000",
+    "in_2": "0000000000000000",
+    "in_3": "0000000000000000",
+    "filter_select": "10"
+  },
+  "different_outputs": {
+    "out_3": {
+      "golden": "0000000000000000",
+      "mutant": "0000000010000000"
+    }
+  },
+  "trace": "reports/new_cases/cvdp_copilot_IIR_filter_0012/R10/witness.vcd",
+  "phase_binary": "10"
+}

@@ -1,0 +1,71 @@
+{
+  "task": "cvdp_copilot_word_change_detector_0012",
+  "tag": "R08",
+  "sources": [
+    "cvdp_new/R08"
+  ],
+  "metadata": {
+    "bug": "Updates only pattern bits enabled by the mask when latching, rather than capturing the entire pattern.",
+    "trigger": "Assert latch_pattern while enable is high with any mask bit low and a differing match_pattern bit there. Later enable that mask bit; for example, capture match_pattern=8'h01 with mask=8'h00, then use mask=8'h01.",
+    "effect": "Masked-off pattern bits retain their previous values, so later comparisons can miss the newly latched pattern or match the stale one.",
+    "model": "gpt-6-luna"
+  },
+  "rtl_pair_sha256": "ab285c33bccdc0a1a73381d92b36e2294bb89e080c6e932e7a167d382c915f53",
+  "required_cycles": 52,
+  "attempts": [
+    {
+      "mode": "bmc",
+      "engine": "abc bmc3",
+      "requested_cycles": 52,
+      "status": "ERROR"
+    },
+    {
+      "mode": "bmc",
+      "engine": "smtbmc boolector",
+      "formal_steps": 209,
+      "ram_addresses": null,
+      "status": "ERROR"
+    },
+    {
+      "mode": "mixed-driver search normalization",
+      "engine": "abc bmc3",
+      "status": "FAIL",
+      "requested_cycles": 52
+    },
+    {
+      "mode": "witness_translation",
+      "engine": "ABC + Boolector",
+      "status": "FAIL"
+    }
+  ],
+  "bounded_cycles": null,
+  "address_subset": false,
+  "latch_compatibility": false,
+  "status": "non_equivalent",
+  "supplemental_reason": "Assert `!enc.driven' failed in passes/cmds/xprop.cc:237.",
+  "concrete_rtl_replay": {
+    "replayed_formal_step": 6,
+    "golden_bits": "0000000001",
+    "mutant_bits": "0000000000",
+    "address_subset_zero_extended": false
+  },
+  "counterexample_cycles": 2,
+  "formal_step": 6,
+  "terminal_inputs_binary": {
+    "reset": "0",
+    "data_in": "00000000",
+    "mask": "00000000",
+    "match_pattern": "00000001",
+    "enable": "1",
+    "latch_pattern": "1"
+  },
+  "different_outputs": {
+    "latched_pattern": {
+      "golden": "00000001",
+      "mutant": "00000000"
+    }
+  },
+  "trace": "reports/new_cases/cvdp_copilot_word_change_detector_0012/R08/witness.vcd",
+  "phase_binary": "10",
+  "witness_method": "mixed-driver search normalization, confirmed on unchanged Icarus RTL"
+}

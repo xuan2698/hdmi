@@ -1,0 +1,65 @@
+{
+  "task": "cvdp_copilot_word_change_detector_0012",
+  "tag": "R05",
+  "sources": [
+    "cvdp_new/R05"
+  ],
+  "metadata": {
+    "bug": "Resets the bit-history register to the current input instead of to zero.",
+    "trigger": "Assert reset while a monitored bit_in is 1, then release reset with that bit still 1. The mutant records 1 during reset, so it does not report the post-reset transition that the original detects.",
+    "effect": "The change pulse for a bit held high across reset is missed, potentially suppressing the corresponding word_change_pulse.",
+    "model": "gpt-6-luna"
+  },
+  "rtl_pair_sha256": "8feafa29388225c6f2cb337e3410b90074e72266ae7a72c6c0bbeee33a12f75f",
+  "required_cycles": 52,
+  "attempts": [
+    {
+      "mode": "bmc",
+      "engine": "abc bmc3",
+      "requested_cycles": 52,
+      "status": "ERROR"
+    },
+    {
+      "mode": "bmc",
+      "engine": "smtbmc boolector",
+      "formal_steps": 209,
+      "ram_addresses": null,
+      "status": "ERROR"
+    },
+    {
+      "mode": "mixed-driver search normalization",
+      "engine": "abc bmc3",
+      "status": "FAIL",
+      "requested_cycles": 52
+    },
+    {
+      "mode": "witness_translation",
+      "engine": "ABC + Boolector",
+      "status": "FAIL"
+    }
+  ],
+  "bounded_cycles": null,
+  "address_subset": false,
+  "latch_compatibility": false,
+  "status": "unknown",
+  "reason": "Formal witness failed concrete RTL replay",
+  "supplemental_reason": "Assert `!enc.driven' failed in passes/cmds/xprop.cc:237.",
+  "counterexample_cycles": 3,
+  "formal_step": 10,
+  "terminal_inputs_binary": {
+    "reset": "0",
+    "data_in": "00000000",
+    "mask": "00000000",
+    "match_pattern": "00000000",
+    "enable": "1",
+    "latch_pattern": "1"
+  },
+  "different_outputs": {
+    "word_change_pulse": {
+      "golden": "0",
+      "mutant": "1"
+    }
+  },
+  "trace": "reports/new_cases/cvdp_copilot_word_change_detector_0012/R05/witness.vcd",
+  "phase_binary": "10"
+}

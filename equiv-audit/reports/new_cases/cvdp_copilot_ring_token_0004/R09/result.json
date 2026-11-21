@@ -1,0 +1,61 @@
+{
+  "task": "cvdp_copilot_ring_token_0004",
+  "tag": "R09",
+  "sources": [
+    "cvdp_new/R09"
+  ],
+  "metadata": {
+    "bug": "Makes reset synchronous instead of asynchronous.",
+    "trigger": "Assert rst and deassert it entirely between rising edges of clk, for example while current_state=NODE2; no clock edge occurs while rst is high.",
+    "effect": "The reset pulse is missed, so current_state and the outputs retain their pre-reset values instead of being reset immediately.",
+    "model": "gpt-6-luna"
+  },
+  "rtl_pair_sha256": "77508f104ebaa08b3e6b0fcc9ef8ef7b0829851db2d8bdb4514e7b672a33e7d8",
+  "required_cycles": 52,
+  "attempts": [
+    {
+      "mode": "bmc",
+      "engine": "abc bmc3",
+      "requested_cycles": 52,
+      "status": "FAIL"
+    },
+    {
+      "mode": "witness_translation",
+      "engine": "ABC + Boolector",
+      "status": "FAIL"
+    }
+  ],
+  "bounded_cycles": null,
+  "address_subset": false,
+  "latch_compatibility": false,
+  "status": "non_equivalent",
+  "concrete_rtl_replay": {
+    "replayed_formal_step": 0,
+    "golden_bits": "000000010001",
+    "mutant_bits": "xxxxxxxxxxxx",
+    "address_subset_zero_extended": false
+  },
+  "counterexample_cycles": 0,
+  "formal_step": 0,
+  "terminal_inputs_binary": {
+    "rst": "1",
+    "data_in": "0000",
+    "has_data_to_send": "0"
+  },
+  "different_outputs": {
+    "data_out": {
+      "golden": "0000",
+      "mutant": "xxxx"
+    },
+    "token_received": {
+      "golden": "0001",
+      "mutant": "xxxx"
+    },
+    "token": {
+      "golden": "0001",
+      "mutant": "xxxx"
+    }
+  },
+  "trace": "reports/new_cases/cvdp_copilot_ring_token_0004/R09/witness.vcd",
+  "phase_binary": "00"
+}

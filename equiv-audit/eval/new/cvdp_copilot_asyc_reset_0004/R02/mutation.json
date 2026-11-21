@@ -1,0 +1,13 @@
+{
+  "bug": "The gate-clock upper threshold is one count too low.",
+  "trigger": "During the normal countdown, when cnt_q is exactly 13 (5'h0D), after 18 decrements from 31.",
+  "effect": "gate_clk_o is low for that count, omitting the first cycle of its intended active interval.",
+  "edits": [
+    {
+      "old": "assign gate_clk_o      = (cnt_q < 5'hE) && (cnt_q != 0); // (cnt_q < 14) && (cnt_q != 0)",
+      "new": "assign gate_clk_o      = (cnt_q < 5'hD) && (cnt_q != 0); // (cnt_q < 13) && (cnt_q != 0)"
+    }
+  ],
+  "model": "gpt-6-luna",
+  "batch": 2
+}

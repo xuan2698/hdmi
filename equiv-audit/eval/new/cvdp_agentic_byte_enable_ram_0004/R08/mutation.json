@@ -1,0 +1,13 @@
+{
+  "bug": "Port B lane 2 cannot write the final RAM entry in the non-collision path.",
+  "trigger": "Port B is enabled with lane-2 byte enable set, its registered address is LINES-1, and the operation does not enter the same-address dual-enable collision path; for the default depth, this is address 8191 with port A disabled or targeting another address.",
+  "effect": "Bits [23:16] at the final entry remain unchanged, while other enabled lanes can still be written.",
+  "edits": [
+    {
+      "old": "if (be_b_reg[2])\n          ram[addr_b_reg][23:16] <= data_in_b_reg[23:16];",
+      "new": "if (be_b_reg[2] && (addr_b_reg != LINES-1))\n          ram[addr_b_reg][23:16] <= data_in_b_reg[23:16];"
+    }
+  ],
+  "model": "gpt-6-luna",
+  "batch": 2
+}

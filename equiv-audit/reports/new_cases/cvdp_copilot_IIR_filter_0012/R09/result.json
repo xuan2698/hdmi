@@ -1,0 +1,57 @@
+{
+  "task": "cvdp_copilot_IIR_filter_0012",
+  "tag": "R09",
+  "sources": [
+    "cvdp_new/R09"
+  ],
+  "metadata": {
+    "bug": "Channel 2's older output delay stops advancing in Chebyshev mode.",
+    "trigger": "Establish y_2_0 != y_2_1, then select filter_select=2'b01 for consecutive cycles. Once the Chebyshev feedback term uses the held y_2_1 instead of the prior y_2_0, the result diverges.",
+    "effect": "Channel 2's Chebyshev recurrence uses stale feedback history and produces a different output.",
+    "model": "gpt-6-luna"
+  },
+  "rtl_pair_sha256": "a9428efabe7c22a0aa65840743ce9a8c10bd7c66af0f79548d5aeb90c497ed97",
+  "required_cycles": 52,
+  "attempts": [
+    {
+      "mode": "bmc",
+      "engine": "abc bmc3",
+      "requested_cycles": 52,
+      "status": "TIMEOUT"
+    },
+    {
+      "mode": "bmc",
+      "engine": "smtbmc boolector",
+      "formal_steps": 209,
+      "ram_addresses": null,
+      "status": "FAIL"
+    }
+  ],
+  "bounded_cycles": null,
+  "address_subset": false,
+  "latch_compatibility": false,
+  "status": "non_equivalent",
+  "concrete_rtl_replay": {
+    "replayed_formal_step": 22,
+    "golden_bits": "000000000000000000000000000000000000000000000000",
+    "mutant_bits": "000000000000000000000000000000110000000000000000",
+    "address_subset_zero_extended": false
+  },
+  "counterexample_cycles": 6,
+  "formal_step": 22,
+  "terminal_inputs_binary": {
+    "reset": "0",
+    "in_1": "0000000000000000",
+    "in_2": "0000000000000000",
+    "in_3": "0000000000000000",
+    "filter_select": "00"
+  },
+  "different_outputs": {
+    "out_2": {
+      "golden": "0000000000000000",
+      "mutant": "0000000000000011"
+    }
+  },
+  "trace": "reports/new_cases/cvdp_copilot_IIR_filter_0012/R09/witness.vcd",
+  "phase_binary": "10"
+}

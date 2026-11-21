@@ -1,0 +1,93 @@
+{
+  "task": "cvdp_copilot_simple_spi_0003",
+  "tag": "H09",
+  "sources": [
+    "cvdp_old/H09"
+  ],
+  "metadata": {
+    "bug": "Checks for zero instead of one remaining bit, so the transfer fails to terminate after the final bit."
+  },
+  "rtl_pair_sha256": "be1000dd5d61fca3a996924d0f7b15cb3bd0f9a1a40ef1cc5b234fd45786f440",
+  "required_cycles": 52,
+  "attempts": [
+    {
+      "mode": "bmc",
+      "engine": "abc bmc3",
+      "requested_cycles": 52,
+      "status": "TIMEOUT"
+    },
+    {
+      "mode": "bmc",
+      "engine": "smtbmc boolector",
+      "formal_steps": 209,
+      "ram_addresses": null,
+      "status": "TIMEOUT"
+    },
+    {
+      "mode": "bmc",
+      "engine": "smtbmc boolector",
+      "formal_steps": 209,
+      "ram_addresses": null,
+      "status": "TIMEOUT"
+    },
+    {
+      "mode": "reset then fixed SPI transfer",
+      "engine": "smtbmc boolector",
+      "status": "ERROR",
+      "requested_cycles": 52
+    },
+    {
+      "mode": "reset then fixed SPI transfer",
+      "engine": "smtbmc boolector",
+      "status": "TIMEOUT",
+      "requested_cycles": 52
+    },
+    {
+      "mode": "reset then fixed SPI transfer",
+      "engine": "smtbmc boolector",
+      "status": "FAIL",
+      "requested_cycles": 52
+    }
+  ],
+  "bounded_cycles": null,
+  "address_subset": false,
+  "latch_compatibility": false,
+  "status": "non_equivalent",
+  "supplemental_reason": "SBY  5:19:19 [smt_retry] summary: Elapsed process time [H:MM:SS (secs)]: 0:00:00 (0)\nSBY  5:19:19 [smt_retry] summary: engine_0 (smtbmc boolector) did not return a status\nSBY  5:19:19 [smt_retry] summary: engine_0 did not produce any traces\nSBY  5:19:19 [smt_retry] DONE (TIMEOUT, rc=8)",
+  "concrete_rtl_replay": {
+    "replayed_formal_step": 126,
+    "golden_bits": "10000001100",
+    "mutant_bits": "00100001001",
+    "address_subset_zero_extended": false
+  },
+  "counterexample_cycles": 32,
+  "formal_step": 126,
+  "terminal_inputs_binary": {
+    "i_rst_b": "1",
+    "i_data_in": "1101111010101101",
+    "i_enable": "1",
+    "i_fault": "0",
+    "i_clear": "0"
+  },
+  "different_outputs": {
+    "o_spi_cs_b": {
+      "golden": "1",
+      "mutant": "0"
+    },
+    "o_spi_data": {
+      "golden": "0",
+      "mutant": "1"
+    },
+    "o_done": {
+      "golden": "1",
+      "mutant": "0"
+    },
+    "o_fsm_state": {
+      "golden": "00",
+      "mutant": "01"
+    }
+  },
+  "trace": "reports/old_cases/cvdp_copilot_simple_spi_0003/H09/witness.vcd",
+  "phase_binary": "10",
+  "witness_method": "reset then fixed SPI transfer, confirmed on unchanged Icarus RTL"
+}

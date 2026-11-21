@@ -1,0 +1,13 @@
+{
+  "bug": "Updates only pattern bits enabled by the mask when latching, rather than capturing the entire pattern.",
+  "trigger": "Assert latch_pattern while enable is high with any mask bit low and a differing match_pattern bit there. Later enable that mask bit; for example, capture match_pattern=8'h01 with mask=8'h00, then use mask=8'h01.",
+  "effect": "Masked-off pattern bits retain their previous values, so later comparisons can miss the newly latched pattern or match the stale one.",
+  "edits": [
+    {
+      "old": "latched_pattern <= match_pattern;",
+      "new": "latched_pattern <= (latched_pattern & ~mask) | (match_pattern & mask);"
+    }
+  ],
+  "model": "gpt-6-luna",
+  "batch": 3
+}

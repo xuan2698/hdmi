@@ -1,0 +1,13 @@
+{
+  "bug": "Holds pattern_match_pulse when enable is low rather than clearing it.",
+  "trigger": "Make pattern_match_pulse high while enabled, then deassert enable before the next rising edge and keep it low for another clock. A prior match_detected=1 makes the pulse high; the following disabled edge triggers the bug.",
+  "effect": "pattern_match_pulse remains asserted during disable instead of being cleared.",
+  "edits": [
+    {
+      "old": "        end else begin\n            masked_data_in <= {DATA_WIDTH{1'b0}};\n            masked_change_pulses <= {DATA_WIDTH{1'b0}};\n            word_change_pulse <= 1'b0;\n            match_detected <= 1'b0;\n            pattern_match_pulse <= 1'b0;",
+      "new": "        end else begin\n            masked_data_in <= {DATA_WIDTH{1'b0}};\n            masked_change_pulses <= {DATA_WIDTH{1'b0}};\n            word_change_pulse <= 1'b0;\n            match_detected <= 1'b0;\n            pattern_match_pulse <= pattern_match_pulse;"
+    }
+  ],
+  "model": "gpt-6-luna",
+  "batch": 1
+}

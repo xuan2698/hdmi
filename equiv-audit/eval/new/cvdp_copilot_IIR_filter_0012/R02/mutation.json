@@ -1,0 +1,13 @@
+{
+  "bug": "Chebyshev feedback coefficient is one too large.",
+  "trigger": "At a computation edge with filter_select=01, y_2_1 must be nonzero. For example, build nonzero channel-2 output history in Chebyshev mode, then keep selecting 01 until y_2_1 is nonzero.",
+  "effect": "The channel-2 recurrence subtracts an extra y_2_1 modulo WIDTH, changing out_2 after the pipeline delay.",
+  "edits": [
+    {
+      "old": "chebyshev_a_0 = 16'h0000; chebyshev_a_1 = 16'h0003;",
+      "new": "chebyshev_a_0 = 16'h0000; chebyshev_a_1 = 16'h0004;"
+    }
+  ],
+  "model": "gpt-6-luna",
+  "batch": 1
+}

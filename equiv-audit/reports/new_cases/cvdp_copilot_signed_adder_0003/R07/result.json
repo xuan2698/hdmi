@@ -1,0 +1,57 @@
+{
+  "task": "cvdp_copilot_signed_adder_0003",
+  "tag": "R07",
+  "sources": [
+    "cvdp_new/R07"
+  ],
+  "metadata": {
+    "bug": "A zero-valued result suppresses the ready pulse.",
+    "trigger": "Complete an enabled operation whose result is exactly zero, such as addition of 8'h05 and 8'hFB, or subtraction of an operand from itself.",
+    "effect": "The sum is updated, but o_ready is not asserted for that completed operation.",
+    "model": "gpt-6-luna"
+  },
+  "rtl_pair_sha256": "ed1804e8d581cade61f9cd679a32779cf75ec02051d01f9f68a90137ed3cc134",
+  "required_cycles": 52,
+  "attempts": [
+    {
+      "mode": "bmc",
+      "engine": "abc bmc3",
+      "requested_cycles": 52,
+      "status": "FAIL"
+    },
+    {
+      "mode": "witness_translation",
+      "engine": "ABC + Boolector",
+      "status": "FAIL"
+    }
+  ],
+  "bounded_cycles": null,
+  "address_subset": false,
+  "latch_compatibility": false,
+  "status": "non_equivalent",
+  "concrete_rtl_replay": {
+    "replayed_formal_step": 18,
+    "golden_bits": "000000000100",
+    "mutant_bits": "000000000000",
+    "address_subset_zero_extended": false
+  },
+  "counterexample_cycles": 5,
+  "formal_step": 18,
+  "terminal_inputs_binary": {
+    "i_rst_n": "1",
+    "i_start": "0",
+    "i_enable": "1",
+    "i_mode": "0",
+    "i_clear": "0",
+    "i_operand_a": "00000000",
+    "i_operand_b": "00000000"
+  },
+  "different_outputs": {
+    "o_ready": {
+      "golden": "1",
+      "mutant": "0"
+    }
+  },
+  "trace": "reports/new_cases/cvdp_copilot_signed_adder_0003/R07/witness.vcd",
+  "phase_binary": "10"
+}

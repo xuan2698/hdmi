@@ -1,0 +1,13 @@
+{
+  "bug": "Makes reset synchronous instead of asynchronous.",
+  "trigger": "Assert rst and deassert it entirely between rising edges of clk, for example while current_state=NODE2; no clock edge occurs while rst is high.",
+  "effect": "The reset pulse is missed, so current_state and the outputs retain their pre-reset values instead of being reset immediately.",
+  "edits": [
+    {
+      "old": "always_ff @(posedge clk or posedge rst) begin",
+      "new": "always_ff @(posedge clk) begin"
+    }
+  ],
+  "model": "gpt-6-luna",
+  "batch": 2
+}

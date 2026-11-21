@@ -1,0 +1,49 @@
+{
+  "task": "cvdp_copilot_hill_cipher_0012",
+  "tag": "R09",
+  "sources": [
+    "cvdp_new/R09"
+  ],
+  "metadata": {
+    "bug": "The first ciphertext reduction uses a strict greater-than at the 52 boundary, leaving an intermediate value of 52 unreduced.",
+    "trigger": "After reset, use P0=P1=P2=1 and K00=18, K01=17, K02=17. In COMPUTE, temp0 becomes 52; in the following COMPUTE_MOD cycle, the mutant produces C0=26 instead of 0.",
+    "effect": "The first ciphertext symbol is incorrect for this boundary value.",
+    "model": "gpt-6-luna"
+  },
+  "rtl_pair_sha256": "31b945ec19d19c4227219b911df4c5701d3c1339aff9a644a7b2ccab08ea5ace",
+  "required_cycles": 52,
+  "attempts": [
+    {
+      "mode": "bmc",
+      "engine": "smtbmc boolector",
+      "requested_cycles": 52,
+      "status": "FAIL"
+    }
+  ],
+  "bounded_cycles": null,
+  "address_subset": false,
+  "latch_compatibility": false,
+  "status": "non_equivalent",
+  "concrete_rtl_replay": {
+    "replayed_formal_step": 14,
+    "golden_bits": "0000000001110011",
+    "mutant_bits": "1101000001110011",
+    "address_subset_zero_extended": false
+  },
+  "counterexample_cycles": 4,
+  "formal_step": 14,
+  "terminal_inputs_binary": {
+    "reset": "0",
+    "start": "0",
+    "plaintext": "000000000000000",
+    "key": "000000000000000000000000000000000000000000000"
+  },
+  "different_outputs": {
+    "ciphertext": {
+      "golden": "000000000111001",
+      "mutant": "110100000111001"
+    }
+  },
+  "trace": "reports/new_cases/cvdp_copilot_hill_cipher_0012/R09/witness.vcd",
+  "phase_binary": "10"
+}

@@ -1,0 +1,13 @@
+{
+  "bug": "Encoder output-valid is incorrectly qualified by the input payload being nonzero.",
+  "trigger": "With rst_in=0 and enc_valid_in=1, enc_data_in='0 causes the encoded data to be produced but enc_valid_out to remain low.",
+  "effect": "A valid all-zero input frame is not reported as valid.",
+  "edits": [
+    {
+      "old": "            enc_valid_out <= 1'b1;",
+      "new": "            enc_valid_out <= (|enc_data_in);"
+    }
+  ],
+  "model": "gpt-6-luna",
+  "batch": 2
+}

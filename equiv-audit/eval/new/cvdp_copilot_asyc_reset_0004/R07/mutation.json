@@ -1,0 +1,13 @@
+{
+  "bug": "The gate-clock nonzero check mistakenly excludes count 1 instead of count 0.",
+  "trigger": "After reset is deasserted, 30 rising clock edges bring cnt_q from 31 to 1. At that count, gate_clk_o is incorrectly low for one cycle.",
+  "effect": "The gate-clock output has a one-cycle dropout at cnt_q == 1.",
+  "edits": [
+    {
+      "old": "assign gate_clk_o      = (cnt_q < 5'hE) && (cnt_q != 0); // (cnt_q < 14) && (cnt_q != 0)",
+      "new": "assign gate_clk_o      = (cnt_q < 5'hE) && (cnt_q != 1); // (cnt_q < 14) && (cnt_q != 0)"
+    }
+  ],
+  "model": "gpt-6-luna",
+  "batch": 5
+}

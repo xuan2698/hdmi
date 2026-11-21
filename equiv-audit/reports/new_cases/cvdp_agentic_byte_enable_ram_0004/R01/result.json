@@ -1,0 +1,59 @@
+{
+  "task": "cvdp_agentic_byte_enable_ram_0004",
+  "tag": "R01",
+  "sources": [
+    "cvdp_new/R01"
+  ],
+  "metadata": {
+    "bug": "Initialization loop omits the final RAM entry.",
+    "trigger": "Before address LINES-1 has been written, read that address; with the default parameter, this is address 8191.",
+    "effect": "The final entry is not initialized to zero, so its read value is unknown until written.",
+    "model": "gpt-6-luna"
+  },
+  "rtl_pair_sha256": "5d7aa14eddc01a49463b04ca7720700600eb55519c134f00ae60862c92e9cbe3",
+  "required_cycles": 52,
+  "attempts": [
+    {
+      "mode": "bmc",
+      "engine": "abc bmc3",
+      "requested_cycles": 52,
+      "status": "TIMEOUT"
+    },
+    {
+      "mode": "bmc",
+      "engine": "smtbmc boolector",
+      "formal_steps": 209,
+      "ram_addresses": 2,
+      "status": "FAIL"
+    }
+  ],
+  "bounded_cycles": null,
+  "address_subset": true,
+  "latch_compatibility": false,
+  "status": "unknown",
+  "reason": "Formal witness failed concrete RTL replay",
+  "counterexample_cycles": 1,
+  "formal_step": 2,
+  "terminal_inputs_binary": {
+    "addr_a": "0000000000000",
+    "en_a": "1",
+    "be_a": "0000",
+    "data_in_a": "00000000000000000000000000000000",
+    "addr_b": "0000000000000",
+    "en_b": "1",
+    "be_b": "0000",
+    "data_in_b": "00000000000000000000000000000000"
+  },
+  "different_outputs": {
+    "data_out_a": {
+      "golden": "00000000000000000000000000000000",
+      "mutant": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+    },
+    "data_out_b": {
+      "golden": "00000000000000000000000000000000",
+      "mutant": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+    }
+  },
+  "trace": "reports/new_cases/cvdp_agentic_byte_enable_ram_0004/R01/witness.vcd",
+  "phase_binary": "10"
+}

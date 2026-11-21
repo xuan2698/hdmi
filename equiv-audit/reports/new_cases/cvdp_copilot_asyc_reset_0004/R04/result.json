@@ -1,0 +1,52 @@
+{
+  "task": "cvdp_copilot_asyc_reset_0004",
+  "tag": "R04",
+  "sources": [
+    "cvdp_new/R04"
+  ],
+  "metadata": {
+    "bug": "The release-reset comparison uses only the counter's low four bits, aliasing counts 16 through 23 to counts 0 through 7.",
+    "trigger": "After reset, when the countdown reaches cnt_q == 23, the low nibble is 7; the mutant asserts release_reset_o for counts 23 through 16, then deasserts it for counts 15 through 8.",
+    "effect": "release_reset_o pulses high early, goes low again, and later asserts as intended once the count falls below 8.",
+    "model": "gpt-6-luna"
+  },
+  "rtl_pair_sha256": "81eff53133689d1e5cbc5ed1e6c8822c305d87836b98240717eb0cabd71f59f0",
+  "required_cycles": 52,
+  "attempts": [
+    {
+      "mode": "bmc",
+      "engine": "abc bmc3",
+      "requested_cycles": 52,
+      "status": "FAIL"
+    },
+    {
+      "mode": "witness",
+      "engine": "smtbmc z3",
+      "formal_steps": 36,
+      "status": "FAIL"
+    }
+  ],
+  "bounded_cycles": null,
+  "address_subset": false,
+  "latch_compatibility": false,
+  "status": "non_equivalent",
+  "concrete_rtl_replay": {
+    "replayed_formal_step": 34,
+    "golden_bits": "0010111",
+    "mutant_bits": "1010111",
+    "address_subset_zero_extended": false
+  },
+  "counterexample_cycles": 9,
+  "formal_step": 34,
+  "terminal_inputs_binary": {
+    "reset": "0"
+  },
+  "different_outputs": {
+    "release_reset_o": {
+      "golden": "0",
+      "mutant": "1"
+    }
+  },
+  "trace": "reports/new_cases/cvdp_copilot_asyc_reset_0004/R04/witness.vcd",
+  "phase_binary": "10"
+}

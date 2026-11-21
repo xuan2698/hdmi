@@ -1,0 +1,13 @@
+{
+  "bug": "The third product in the first row uses modulus 25 instead of 26.",
+  "trigger": "In COMPUTE, set K02=1 and P2=25, with K00=K01=P0=P1=0. The first-row sum becomes 0 instead of 25.",
+  "effect": "The first ciphertext symbol is 0 instead of 25.",
+  "edits": [
+    {
+      "old": "temp0 <= (K00 * P0)%26 + (K01 * P1)%26 + (K02 * P2)%26;",
+      "new": "temp0 <= (K00 * P0)%26 + (K01 * P1)%26 + (K02 * P2)%25;"
+    }
+  ],
+  "model": "gpt-6-luna",
+  "batch": 2
+}

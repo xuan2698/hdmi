@@ -1,0 +1,13 @@
+{
+  "bug": "The overflow output is spuriously asserted whenever the result equals the maximum positive signed value.",
+  "trigger": "Complete an operation yielding {1'b0, {(DATA_WIDTH-1){1'b1}}} without signed overflow. With DATA_WIDTH=8, adding 8'h7E and 8'h01 yields 8'h7F and triggers the bug.",
+  "effect": "o_overflow reports overflow for this exact result pattern even though signed_overflow is false.",
+  "edits": [
+    {
+      "old": "o_overflow <= signed_overflow;",
+      "new": "o_overflow <= signed_overflow | (result == {1'b0, {(DATA_WIDTH-1){1'b1}}});"
+    }
+  ],
+  "model": "gpt-6-luna",
+  "batch": 2
+}

@@ -1,0 +1,13 @@
+{
+  "bug": "The SPI clock is suppressed during the final bit's toggle phase.",
+  "trigger": "During an otherwise uninterrupted transfer, reach ST_CLOCK_TOGGLE with o_bits_left == 1.",
+  "effect": "The final data bit is presented without its high clock phase, even though the FSM completes the transfer and pulses done.",
+  "edits": [
+    {
+      "old": "                        o_spi_clk   = 1'b1;",
+      "new": "                        o_spi_clk   = (o_bits_left == 5'd1) ? 1'b0 : 1'b1;"
+    }
+  ],
+  "model": "gpt-6-luna",
+  "batch": 3
+}

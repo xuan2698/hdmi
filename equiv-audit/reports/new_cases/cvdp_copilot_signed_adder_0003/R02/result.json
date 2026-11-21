@@ -1,0 +1,57 @@
+{
+  "task": "cvdp_copilot_signed_adder_0003",
+  "tag": "R02",
+  "sources": [
+    "cvdp_new/R02"
+  ],
+  "metadata": {
+    "bug": "Subtraction overflow detection checks the next-to-sign bit of the result in the negative-minus-positive case.",
+    "trigger": "With DATA_WIDTH=8, subtract 0x01 from 0x80 and keep i_enable asserted through LOAD, COMPUTE, and OUTPUT. The correct result is 0x7f with signed overflow; result[6] is 1, so the mutant misses the overflow indicated by result[7].",
+    "effect": "o_resultant_sum is still 0x7f, but o_overflow is incorrectly 0.",
+    "model": "gpt-6-luna"
+  },
+  "rtl_pair_sha256": "a129f05c3abb795f55188bfacb4f9afc62d56f54474ca939fcabee34ed60e0ac",
+  "required_cycles": 52,
+  "attempts": [
+    {
+      "mode": "bmc",
+      "engine": "abc bmc3",
+      "requested_cycles": 52,
+      "status": "FAIL"
+    },
+    {
+      "mode": "witness_translation",
+      "engine": "ABC + Boolector",
+      "status": "FAIL"
+    }
+  ],
+  "bounded_cycles": null,
+  "address_subset": false,
+  "latch_compatibility": false,
+  "status": "non_equivalent",
+  "concrete_rtl_replay": {
+    "replayed_formal_step": 18,
+    "golden_bits": "011001011100",
+    "mutant_bits": "011001010100",
+    "address_subset_zero_extended": false
+  },
+  "counterexample_cycles": 5,
+  "formal_step": 18,
+  "terminal_inputs_binary": {
+    "i_rst_n": "1",
+    "i_start": "1",
+    "i_enable": "1",
+    "i_mode": "0",
+    "i_clear": "0",
+    "i_operand_a": "00000000",
+    "i_operand_b": "00000000"
+  },
+  "different_outputs": {
+    "o_overflow": {
+      "golden": "1",
+      "mutant": "0"
+    }
+  },
+  "trace": "reports/new_cases/cvdp_copilot_signed_adder_0003/R02/witness.vcd",
+  "phase_binary": "10"
+}

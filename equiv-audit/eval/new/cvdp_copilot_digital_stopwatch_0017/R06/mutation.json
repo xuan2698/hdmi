@@ -1,0 +1,13 @@
+{
+  "bug": "Reset is incorrectly qualified by the pulse state in the divider.",
+  "trigger": "With start_stop high, assert reset asynchronously after the terminal-count clock has raised one_sec_pulse and cleared counter, then deassert reset before the next clk edge.",
+  "effect": "The reset event takes the normal counting branch, leaving counter at 1 rather than 0; the next one_sec_pulse occurs one clock early relative to a clean reset.",
+  "edits": [
+    {
+      "old": "    always @(posedge clk or posedge reset) begin\n        if (reset) begin",
+      "new": "    always @(posedge clk or posedge reset) begin\n        if (reset && !one_sec_pulse) begin"
+    }
+  ],
+  "model": "gpt-6-luna",
+  "batch": 4
+}

@@ -1,0 +1,13 @@
+{
+  "bug": "The fault path loads 15 rather than 16 into the next bit count.",
+  "trigger": "Assert i_fault while i_enable is high and curr_state is ST_TRANSMIT.",
+  "effect": "That cycle updates o_bits_left to 15 as the FSM enters ST_ERROR, rather than restoring the full-transfer count.",
+  "edits": [
+    {
+      "old": "                next_state      = ST_ERROR;\n                next_done       = 1'b0;\n                o_fsm_state = ST_ERROR;\n                next_bits_left  = 5'h10;",
+      "new": "                next_state      = ST_ERROR;\n                next_done       = 1'b0;\n                o_fsm_state = ST_ERROR;\n                next_bits_left  = 5'h0F;"
+    }
+  ],
+  "model": "gpt-6-luna",
+  "batch": 3
+}

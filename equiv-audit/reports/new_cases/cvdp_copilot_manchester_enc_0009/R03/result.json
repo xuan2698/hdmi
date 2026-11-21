@@ -1,0 +1,55 @@
+{
+  "task": "cvdp_copilot_manchester_enc_0009",
+  "tag": "R03",
+  "sources": [
+    "cvdp_new/R03"
+  ],
+  "metadata": {
+    "bug": "Encoder data is not cleared by reset; the reset branch feeds the output register back to itself.",
+    "trigger": "First present enc_valid_in with a nonzero enc_data_in, then assert rst_in on a clock edge. For example, encode 8'h01 and then reset; enc_valid_out clears but enc_data_out retains the encoded word.",
+    "effect": "During reset, enc_data_out remains stale rather than clearing to zero.",
+    "model": "gpt-6-luna"
+  },
+  "rtl_pair_sha256": "c4df80b2befc00fd0469891b858489102ff1c3072301e273a35c697ee50bd8bb",
+  "required_cycles": 52,
+  "attempts": [
+    {
+      "mode": "bmc",
+      "engine": "abc bmc3",
+      "requested_cycles": 52,
+      "status": "FAIL"
+    },
+    {
+      "mode": "witness_translation",
+      "engine": "ABC + Boolector",
+      "status": "FAIL"
+    }
+  ],
+  "bounded_cycles": null,
+  "address_subset": false,
+  "latch_compatibility": false,
+  "status": "non_equivalent",
+  "concrete_rtl_replay": {
+    "replayed_formal_step": 2,
+    "golden_bits": "00000000000000000000000000",
+    "mutant_bits": "0xxxxxxxxxxxxxxxx000000000",
+    "address_subset_zero_extended": false
+  },
+  "counterexample_cycles": 1,
+  "formal_step": 2,
+  "terminal_inputs_binary": {
+    "rst_in": "1",
+    "enc_valid_in": "0",
+    "enc_data_in": "00000000",
+    "dec_valid_in": "0",
+    "dec_data_in": "0000000000000000"
+  },
+  "different_outputs": {
+    "enc_data_out": {
+      "golden": "0000000000000000",
+      "mutant": "xxxxxxxxxxxxxxxx"
+    }
+  },
+  "trace": "reports/new_cases/cvdp_copilot_manchester_enc_0009/R03/witness.vcd",
+  "phase_binary": "10"
+}

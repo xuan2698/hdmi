@@ -1,0 +1,18 @@
+{
+  "task": "cvdp_copilot_hill_cipher_0012",
+  "tag": "R03",
+  "sources": [
+    "cvdp_new/R03"
+  ],
+  "metadata": {
+    "bug": "A start held during DONE bypasses the IDLE state and immediately launches another computation.",
+    "trigger": "Keep start high through the cycle in which current_state is DONE. At the next clock edge the mutant enters COMPUTE directly; the original enters IDLE and does not enter COMPUTE until a later edge.",
+    "effect": "A continuously asserted start causes transactions to restart sooner than the original protocol allows, changing the timing of done and ciphertext updates.",
+    "model": "gpt-6-luna"
+  },
+  "rtl_pair_sha256": "e69dabd5d25da0f2a7d900bf4ae06bae7fc26a9f87ba2e260bb38d2189526089",
+  "required_cycles": 52,
+  "status": "compile_failure",
+  "reason": "iverilog exited 1: mut.sv:68: error: This assignment requires an explicit cast.\n1 error(s) during elaboration.\n",
+  "attempts": []
+}

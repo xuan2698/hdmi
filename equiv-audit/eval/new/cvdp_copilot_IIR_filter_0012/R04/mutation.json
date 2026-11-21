@@ -1,0 +1,13 @@
+{
+  "bug": "Reset loads channel 2’s older input delay from the current delay value instead of clearing it.",
+  "trigger": "Assert reset while x_2_0 is nonzero. On reset, x_2_1 captures that pre-reset value; after reset deassertion, select a filter with a nonzero b_1 coefficient to use the stale history.",
+  "effect": "A pre-reset channel-2 sample contributes to the post-reset recurrence and can produce a spurious out_2 value.",
+  "edits": [
+    {
+      "old": "x_2_0 <= 0; x_2_1 <= 0; y_2_0 <= 0; y_2_1 <= 0;",
+      "new": "x_2_0 <= 0; x_2_1 <= x_2_0; y_2_0 <= 0; y_2_1 <= 0;"
+    }
+  ],
+  "model": "gpt-6-luna",
+  "batch": 1
+}

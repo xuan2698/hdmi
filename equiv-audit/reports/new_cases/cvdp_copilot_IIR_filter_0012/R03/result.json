@@ -1,0 +1,57 @@
+{
+  "task": "cvdp_copilot_IIR_filter_0012",
+  "tag": "R03",
+  "sources": [
+    "cvdp_new/R03"
+  ],
+  "metadata": {
+    "bug": "Elliptic direct-path coefficient is one too large.",
+    "trigger": "At a computation edge with filter_select=10, x_3_0 must be nonzero; this is the channel-3 input history from the preceding clock edge.",
+    "effect": "The channel-3 computed value gains an extra x_3_0 modulo WIDTH and later appears at out_3.",
+    "model": "gpt-6-luna"
+  },
+  "rtl_pair_sha256": "fc9ed124f828f49b46c5adb63f58126958c96bf40a2cd370a73bcb104771a93b",
+  "required_cycles": 52,
+  "attempts": [
+    {
+      "mode": "bmc",
+      "engine": "abc bmc3",
+      "requested_cycles": 52,
+      "status": "TIMEOUT"
+    },
+    {
+      "mode": "bmc",
+      "engine": "smtbmc boolector",
+      "formal_steps": 209,
+      "ram_addresses": null,
+      "status": "FAIL"
+    }
+  ],
+  "bounded_cycles": null,
+  "address_subset": false,
+  "latch_compatibility": false,
+  "status": "non_equivalent",
+  "concrete_rtl_replay": {
+    "replayed_formal_step": 14,
+    "golden_bits": "000000000000000000000000000000000010000000000000",
+    "mutant_bits": "000000000000000000000000000000000000000000000000",
+    "address_subset_zero_extended": false
+  },
+  "counterexample_cycles": 4,
+  "formal_step": 14,
+  "terminal_inputs_binary": {
+    "reset": "0",
+    "in_1": "0000000000000000",
+    "in_2": "0000000000000000",
+    "in_3": "0000000000000000",
+    "filter_select": "00"
+  },
+  "different_outputs": {
+    "out_3": {
+      "golden": "0010000000000000",
+      "mutant": "0000000000000000"
+    }
+  },
+  "trace": "reports/new_cases/cvdp_copilot_IIR_filter_0012/R03/witness.vcd",
+  "phase_binary": "10"
+}

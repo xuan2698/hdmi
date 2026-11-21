@@ -1,0 +1,53 @@
+{
+  "task": "cvdp_copilot_ring_token_0004",
+  "tag": "R10",
+  "sources": [
+    "cvdp_new/R10"
+  ],
+  "metadata": {
+    "bug": "Loads data_in into data_out in the reset branch instead of clearing data_out.",
+    "trigger": "Assert rst while data_in is nonzero, for example data_in=4'b1010 at the rising edge of rst.",
+    "effect": "data_out captures 4'b1010 rather than being cleared to 4'b0000.",
+    "model": "gpt-6-luna"
+  },
+  "rtl_pair_sha256": "ceb8a4d37563f0b8ecd6452b9d9bfb49e1450730eaa642bdce5244fb36f7bb40",
+  "required_cycles": 52,
+  "attempts": [
+    {
+      "mode": "bmc",
+      "engine": "abc bmc3",
+      "requested_cycles": 52,
+      "status": "FAIL"
+    },
+    {
+      "mode": "witness_translation",
+      "engine": "ABC + Boolector",
+      "status": "FAIL"
+    }
+  ],
+  "bounded_cycles": null,
+  "address_subset": false,
+  "latch_compatibility": false,
+  "status": "non_equivalent",
+  "concrete_rtl_replay": {
+    "replayed_formal_step": 0,
+    "golden_bits": "000000010001",
+    "mutant_bits": "100000010001",
+    "address_subset_zero_extended": false
+  },
+  "counterexample_cycles": 0,
+  "formal_step": 0,
+  "terminal_inputs_binary": {
+    "rst": "1",
+    "data_in": "1000",
+    "has_data_to_send": "0"
+  },
+  "different_outputs": {
+    "data_out": {
+      "golden": "0000",
+      "mutant": "1000"
+    }
+  },
+  "trace": "reports/new_cases/cvdp_copilot_ring_token_0004/R10/witness.vcd",
+  "phase_binary": "00"
+}

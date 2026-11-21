@@ -1,0 +1,55 @@
+{
+  "task": "cvdp_agentic_byte_enable_ram_0004",
+  "tag": "R10",
+  "sources": [
+    "cvdp_new/R10"
+  ],
+  "metadata": {
+    "bug": "Port B's registered read output is held during a same-address dual-enable access when port A has any byte enabled.",
+    "trigger": "On the output-update edge, en_a_reg and en_b_reg are both high, the registered addresses match, and be_a_reg is nonzero. The stale output is observable if data_out_b differs from the current RAM word at that address.",
+    "effect": "data_out_b does not update to the addressed RAM word for that access, even though the original design updates it every clock.",
+    "model": "gpt-6-luna"
+  },
+  "rtl_pair_sha256": "e40910ddd0e08551a4bc9e41abad5e86b54ae0e1a11c2265f923de8c19fc93bf",
+  "required_cycles": 52,
+  "attempts": [
+    {
+      "mode": "bmc",
+      "engine": "abc bmc3",
+      "requested_cycles": 52,
+      "status": "TIMEOUT"
+    },
+    {
+      "mode": "bmc",
+      "engine": "smtbmc boolector",
+      "formal_steps": 209,
+      "ram_addresses": 2,
+      "status": "FAIL"
+    }
+  ],
+  "bounded_cycles": null,
+  "address_subset": true,
+  "latch_compatibility": false,
+  "status": "unknown",
+  "reason": "Formal witness failed concrete RTL replay",
+  "counterexample_cycles": 1,
+  "formal_step": 2,
+  "terminal_inputs_binary": {
+    "addr_a": "0000000000000",
+    "en_a": "1",
+    "be_a": "0000",
+    "data_in_a": "00000000000000000000000000000000",
+    "addr_b": "0000000000000",
+    "en_b": "1",
+    "be_b": "0000",
+    "data_in_b": "00000000000000000000000000000000"
+  },
+  "different_outputs": {
+    "data_out_b": {
+      "golden": "00000000000000000000000000000000",
+      "mutant": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+    }
+  },
+  "trace": "reports/new_cases/cvdp_agentic_byte_enable_ram_0004/R10/witness.vcd",
+  "phase_binary": "10"
+}

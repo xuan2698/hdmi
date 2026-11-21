@@ -1,0 +1,13 @@
+{
+  "bug": "The same-address collision path is skipped when both ports have identical byte-enable masks.",
+  "trigger": "Both registered enables are high, the registered addresses match, and the byte-enable masks are equal and nonzero; for example, both write only lane 0 at the same address with different data.",
+  "effect": "The operation falls through to the separate-port write path, where port B's overlapping write wins instead of port A's collision priority.",
+  "edits": [
+    {
+      "old": "    if (en_a_reg && en_b_reg && (addr_a_reg == addr_b_reg)) begin",
+      "new": "    if (en_a_reg && en_b_reg && (addr_a_reg == addr_b_reg) && (be_a_reg != be_b_reg)) begin"
+    }
+  ],
+  "model": "gpt-6-luna",
+  "batch": 1
+}

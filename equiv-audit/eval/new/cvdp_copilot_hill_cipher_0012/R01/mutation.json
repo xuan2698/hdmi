@@ -1,0 +1,13 @@
+{
+  "bug": "The most significant bit of the first plaintext symbol is dropped.",
+  "trigger": "On a transaction where plaintext[14:10] is at least 16, the first-row result can differ if K00 is nonzero. For example, P0=16, K00=1, and all other key elements zero produces C0=16 in the original but C0=0 in the mutant.",
+  "effect": "The first plaintext symbol is treated as its low four bits, changing ciphertext values for affected inputs.",
+  "edits": [
+    {
+      "old": "    assign P0 = plaintext[14:10];",
+      "new": "    assign P0 = plaintext[13:10];"
+    }
+  ],
+  "model": "gpt-6-luna",
+  "batch": 1
+}

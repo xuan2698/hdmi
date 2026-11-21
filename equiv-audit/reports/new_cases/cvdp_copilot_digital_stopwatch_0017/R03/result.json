@@ -1,0 +1,46 @@
+{
+  "task": "cvdp_copilot_digital_stopwatch_0017",
+  "tag": "R03",
+  "sources": [
+    "cvdp_new/R03"
+  ],
+  "metadata": {
+    "bug": "The stopwatch counts a pulse even if start_stop is low when the pulse arrives.",
+    "trigger": "Deassert start_stop on the same clock edge that makes the divider generate one_sec_pulse; the stopwatch event then observes start_stop low.",
+    "effect": "The stopwatch advances by one second despite being stopped.",
+    "model": "gpt-6-luna"
+  },
+  "rtl_pair_sha256": "4ad96a6c84be837bbbe8dda5cdb989d0b0e04998be2b0ceeb618c42cf06fbc4b",
+  "required_cycles": 180000000000,
+  "attempts": [
+    {
+      "mode": "bmc",
+      "engine": "abc bmc3",
+      "requested_cycles": 52,
+      "status": "TIMEOUT"
+    },
+    {
+      "mode": "shared-divider continuous-start trace",
+      "bounded_ticks": 3602,
+      "status": "no witness on this input schedule"
+    },
+    {
+      "mode": "prove",
+      "engine": "smtbmc boolector",
+      "formal_steps": 32,
+      "ram_addresses": null,
+      "status": "TIMEOUT"
+    },
+    {
+      "engine": "Yosys SAT",
+      "mode": "reachable invariant transition",
+      "status": "PASS"
+    }
+  ],
+  "bounded_cycles": null,
+  "address_subset": false,
+  "latch_compatibility": false,
+  "status": "fully_equivalent",
+  "supplemental_reason": "SBY  5:19:02 [smt_retry] summary: Elapsed process time [H:MM:SS (secs)]: 0:00:02 (2)\nSBY  5:19:02 [smt_retry] summary: engine_0 (smtbmc boolector) returned pass for basecase\nSBY  5:19:02 [smt_retry] summary: engine_0 did not produce any traces\nSBY  5:19:02 [smt_retry] DONE (TIMEOUT, rc=8)",
+  "proof": "With stable start_stop through each main edge, an actual divider pulse can rise only with start_stop=1. Removing that guard from the common 1-Hz state block has no effect."
+}

@@ -1,0 +1,49 @@
+{
+  "task": "cvdp_copilot_hill_cipher_0012",
+  "tag": "R05",
+  "sources": [
+    "cvdp_new/R05"
+  ],
+  "metadata": {
+    "bug": "The third product in the first row uses modulus 25 instead of 26.",
+    "trigger": "In COMPUTE, set K02=1 and P2=25, with K00=K01=P0=P1=0. The first-row sum becomes 0 instead of 25.",
+    "effect": "The first ciphertext symbol is 0 instead of 25.",
+    "model": "gpt-6-luna"
+  },
+  "rtl_pair_sha256": "04befcba8e43486e37c4a11d81fa50eb3898eebb12f658ed8178557c5e77c1d0",
+  "required_cycles": 52,
+  "attempts": [
+    {
+      "mode": "bmc",
+      "engine": "smtbmc boolector",
+      "requested_cycles": 52,
+      "status": "FAIL"
+    }
+  ],
+  "bounded_cycles": null,
+  "address_subset": false,
+  "latch_compatibility": false,
+  "status": "non_equivalent",
+  "concrete_rtl_replay": {
+    "replayed_formal_step": 14,
+    "golden_bits": "1010101001010011",
+    "mutant_bits": "0010001001010011",
+    "address_subset_zero_extended": false
+  },
+  "counterexample_cycles": 4,
+  "formal_step": 14,
+  "terminal_inputs_binary": {
+    "reset": "0",
+    "start": "1",
+    "plaintext": "000000000000000",
+    "key": "000000000000000000000000000000000000000000000"
+  },
+  "different_outputs": {
+    "ciphertext": {
+      "golden": "101010100101001",
+      "mutant": "001000100101001"
+    }
+  },
+  "trace": "reports/new_cases/cvdp_copilot_hill_cipher_0012/R05/witness.vcd",
+  "phase_binary": "10"
+}

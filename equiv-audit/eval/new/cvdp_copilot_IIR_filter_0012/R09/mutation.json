@@ -1,0 +1,13 @@
+{
+  "bug": "Channel 2's older output delay stops advancing in Chebyshev mode.",
+  "trigger": "Establish y_2_0 != y_2_1, then select filter_select=2'b01 for consecutive cycles. Once the Chebyshev feedback term uses the held y_2_1 instead of the prior y_2_0, the result diverges.",
+  "effect": "Channel 2's Chebyshev recurrence uses stale feedback history and produces a different output.",
+  "edits": [
+    {
+      "old": "y_2_1 <= y_2_0;",
+      "new": "if (filter_select != 2'b01) y_2_1 <= y_2_0;"
+    }
+  ],
+  "model": "gpt-6-luna",
+  "batch": 3
+}

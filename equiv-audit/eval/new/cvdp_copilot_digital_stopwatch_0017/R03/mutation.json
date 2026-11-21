@@ -1,0 +1,13 @@
+{
+  "bug": "The stopwatch counts a pulse even if start_stop is low when the pulse arrives.",
+  "trigger": "Deassert start_stop on the same clock edge that makes the divider generate one_sec_pulse; the stopwatch event then observes start_stop low.",
+  "effect": "The stopwatch advances by one second despite being stopped.",
+  "edits": [
+    {
+      "old": "else if (start_stop == 1 && hour == 0) begin",
+      "new": "else if (hour == 0) begin"
+    }
+  ],
+  "model": "gpt-6-luna",
+  "batch": 2
+}

@@ -1,0 +1,13 @@
+{
+  "bug": "The first addition in the third row uses XOR instead of arithmetic addition.",
+  "trigger": "In COMPUTE, set K20=1,P0=1 and K21=1,P1=1, with K22=0; the two nonzero residues overlap at bit 0.",
+  "effect": "The third ciphertext symbol is 0 instead of 2.",
+  "edits": [
+    {
+      "old": "temp2 <= (K20 * P0)%26 + (K21 * P1)%26 + (K22 * P2)%26;",
+      "new": "temp2 <= ((K20 * P0)%26 ^ (K21 * P1)%26) + (K22 * P2)%26;"
+    }
+  ],
+  "model": "gpt-6-luna",
+  "batch": 2
+}

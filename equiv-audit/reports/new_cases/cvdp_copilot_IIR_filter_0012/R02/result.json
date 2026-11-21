@@ -1,0 +1,57 @@
+{
+  "task": "cvdp_copilot_IIR_filter_0012",
+  "tag": "R02",
+  "sources": [
+    "cvdp_new/R02"
+  ],
+  "metadata": {
+    "bug": "Chebyshev feedback coefficient is one too large.",
+    "trigger": "At a computation edge with filter_select=01, y_2_1 must be nonzero. For example, build nonzero channel-2 output history in Chebyshev mode, then keep selecting 01 until y_2_1 is nonzero.",
+    "effect": "The channel-2 recurrence subtracts an extra y_2_1 modulo WIDTH, changing out_2 after the pipeline delay.",
+    "model": "gpt-6-luna"
+  },
+  "rtl_pair_sha256": "0ca9656937b719a321ccb67d7c4fb4f188601c60b2bb5a676d089e475dbb40f8",
+  "required_cycles": 52,
+  "attempts": [
+    {
+      "mode": "bmc",
+      "engine": "abc bmc3",
+      "requested_cycles": 52,
+      "status": "TIMEOUT"
+    },
+    {
+      "mode": "bmc",
+      "engine": "smtbmc boolector",
+      "formal_steps": 209,
+      "ram_addresses": null,
+      "status": "FAIL"
+    }
+  ],
+  "bounded_cycles": null,
+  "address_subset": false,
+  "latch_compatibility": false,
+  "status": "non_equivalent",
+  "concrete_rtl_replay": {
+    "replayed_formal_step": 22,
+    "golden_bits": "000000000000000000000000000000000000000000000000",
+    "mutant_bits": "000000000000000000000000000000000000000000000001",
+    "address_subset_zero_extended": false
+  },
+  "counterexample_cycles": 6,
+  "formal_step": 22,
+  "terminal_inputs_binary": {
+    "reset": "0",
+    "in_1": "0000000000000000",
+    "in_2": "0000000000000000",
+    "in_3": "0000000000000000",
+    "filter_select": "00"
+  },
+  "different_outputs": {
+    "out_3": {
+      "golden": "0000000000000000",
+      "mutant": "0000000000000001"
+    }
+  },
+  "trace": "reports/new_cases/cvdp_copilot_IIR_filter_0012/R02/witness.vcd",
+  "phase_binary": "10"
+}

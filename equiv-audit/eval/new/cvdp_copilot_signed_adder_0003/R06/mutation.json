@@ -1,0 +1,13 @@
+{
+  "bug": "Clear is ignored specifically while the controller is in OUTPUT.",
+  "trigger": "Reach OUTPUT after an enabled start, LOAD, and COMPUTE sequence; then assert i_clear on the OUTPUT edge. With i_enable also high, the mutant publishes the result instead of clearing the sum.",
+  "effect": "A clear coincident with OUTPUT does not clear o_resultant_sum and can allow a result to be reported.",
+  "edits": [
+    {
+      "old": "if (i_clear) begin",
+      "new": "if (i_clear && state != OUTPUT) begin"
+    }
+  ],
+  "model": "gpt-6-luna",
+  "batch": 2
+}

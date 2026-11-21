@@ -1,0 +1,13 @@
+{
+  "bug": "The NODE3 token output is set to the NODE1 one-hot value instead of wrapping to NODE0.",
+  "trigger": "At the rising edge where `current_state` is NODE3—for example, the fourth active edge after reset deassertion in the unmodified sequence.",
+  "effect": "`token` becomes `4'b0010` instead of `4'b0001`, misreporting the token destination at the ring wrap.",
+  "edits": [
+    {
+      "old": "NODE3: begin\n                token_received <= 4'b1000;\n                token <= 4'b0001;\n                next_state = NODE0;\n            end",
+      "new": "NODE3: begin\n                token_received <= 4'b1000;\n                token <= 4'b0010;\n                next_state = NODE0;\n            end"
+    }
+  ],
+  "model": "gpt-6-luna",
+  "batch": 1
+}

@@ -1,0 +1,57 @@
+{
+  "task": "cvdp_copilot_asyc_reset_0004",
+  "tag": "R10",
+  "sources": [
+    "cvdp_new/R10"
+  ],
+  "metadata": {
+    "bug": "The gate-clock zero exclusion compares against the reset value 31 instead of zero.",
+    "trigger": "After reset is deasserted, let the counter complete its countdown to 0 (for example, after 31 active clock edges from 31). The counter then holds at 0.",
+    "effect": "gate_clk_o asserts at count 0 and remains asserted indefinitely, instead of being low at the terminal count.",
+    "model": "gpt-6-luna"
+  },
+  "rtl_pair_sha256": "8684ab598ebd9175be5d63da6d78f509631302b825f4edaae9ef19f94e67c28e",
+  "required_cycles": 52,
+  "attempts": [
+    {
+      "mode": "bmc",
+      "engine": "abc bmc3",
+      "requested_cycles": 52,
+      "status": "FAIL"
+    },
+    {
+      "mode": "witness",
+      "engine": "smtbmc z3",
+      "formal_steps": 128,
+      "status": "TIMEOUT"
+    },
+    {
+      "mode": "witness_translation",
+      "engine": "ABC + Boolector",
+      "status": "FAIL"
+    }
+  ],
+  "bounded_cycles": null,
+  "address_subset": false,
+  "latch_compatibility": false,
+  "status": "non_equivalent",
+  "concrete_rtl_replay": {
+    "replayed_formal_step": 126,
+    "golden_bits": "1000000",
+    "mutant_bits": "1100000",
+    "address_subset_zero_extended": false
+  },
+  "counterexample_cycles": 32,
+  "formal_step": 126,
+  "terminal_inputs_binary": {
+    "reset": "0"
+  },
+  "different_outputs": {
+    "gate_clk_o": {
+      "golden": "0",
+      "mutant": "1"
+    }
+  },
+  "trace": "reports/new_cases/cvdp_copilot_asyc_reset_0004/R10/witness.vcd",
+  "phase_binary": "10"
+}

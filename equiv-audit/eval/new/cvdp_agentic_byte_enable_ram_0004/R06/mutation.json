@@ -1,0 +1,13 @@
+{
+  "bug": "Port B lane 0 suppresses writes of a zero byte.",
+  "trigger": "Port B is enabled, its lane-0 byte enable is set, and its registered write data is 8'h00; for example, a non-colliding write of 32'h00000000 to an address.",
+  "effect": "The previous value in that byte remains in RAM instead of being overwritten with zero.",
+  "edits": [
+    {
+      "old": "if (be_b_reg[0])\n          ram[addr_b_reg][7:0] <= data_in_b_reg[7:0];",
+      "new": "if (be_b_reg[0] && (data_in_b_reg[7:0] != 8'h00))\n          ram[addr_b_reg][7:0] <= data_in_b_reg[7:0];"
+    }
+  ],
+  "model": "gpt-6-luna",
+  "batch": 2
+}
