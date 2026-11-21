@@ -1,0 +1,10 @@
+{
+  "status": "materialized",
+  "bug": "Stays in OUTPUT when enable is low instead of returning to IDLE, delaying completion until enable is asserted.",
+  "edits": [
+    {
+      "old": "OUTPUT: begin\n                        if (i_enable) begin\n                            o_resultant_sum <= result;\n                            o_overflow <= signed_overflow;\n                            o_ready <= 1;\n                            state <= IDLE;\n                        end else begin\n                            state <= IDLE;",
+      "new": "OUTPUT: begin\n                        if (i_enable) begin\n                            o_resultant_sum <= result;\n                            o_overflow <= signed_overflow;\n                            o_ready <= 1;\n                            state <= IDLE;\n                        end else begin\n                            state <= OUTPUT;"
+    }
+  ]
+}

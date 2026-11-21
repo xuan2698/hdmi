@@ -1,28 +1,35 @@
-# CVDP-ECov 时序激励余量预检
+# CVDP-ECov 时序激励试运行
 
-修复了第三版重试的提示词拼装。检查器和激励两条路径的回归测试均证实，验证失败后的重试同时保留当轮诊断、上一份源码和验证错误。
+本次从用户提供的 25 道非饱和候选中抽样。按发布 RTL 中的边沿触发事件判断，25 道全部符合条件。将数据集中的实际 ID 排序后，使用种子 `20261121` 抽取 10 道。候选是否非饱和沿用用户此前复检结果，本次 **功能覆盖率待补**。[候选、边沿证据与选题](reports/selection.json) · [发布数据](https://huggingface.co/datasets/hez2024/CVDP-ECov-eval/tree/26a8b0012436b460c539ebe5f893fba6e1d601a4)
 
-## 数据来源核对
+## 模型与隔离
 
-检查了 LLM4Cov 论文链接的作者仓库 `main`、`slime_rl`、`gh-pages` 及其公开历史和发布附件。可找到的覆盖组只有 `tests/resources/tb_counter.sv` 的工具测试样例。CVDP-ECov 正式加载器读取题目说明、RTL 和数值目标，公开评测分支没有附带逐题功能覆盖 bin 或模型。README 说明 Xcelium/IMC 的服务器端工具调用和解析实现未随仓库公开。服务协议中的示例也允许 `Functional Average` 为空。[作者仓库](https://github.com/HejiaZ2023/llm4cov_oss/tree/1566cb00dd4901671160a393b8a53283fb185fac) · [工具测试覆盖组](https://github.com/HejiaZ2023/llm4cov_oss/blob/1566cb00dd4901671160a393b8a53283fb185fac/tests/resources/tb_counter.sv) · [EDA 协议](https://github.com/HejiaZ2023/llm4cov_oss/blob/1566cb00dd4901671160a393b8a53283fb185fac/src/llm4cov/eda_client/protocol.md)
+Hy4 最小请求返回 HTTP 403 `permission_error`。从 OpenCode Go 模型目录查询到 GPT 6 Luna 的 ID 为 `gpt-6-luna`，最小请求返回 HTTP 200、相同模型 ID 和完成标志。H 组生成调用均使用 `gpt-6-luna`，A0 均使用 `deepseek-v4.1-flash`。[模型预检](reports/model_preflight.json) · [OpenCode Go 模型文档](https://opencode.ai/docs/console/go/)
 
-直接扫描数据文件得到 83 道题，67 道的 RTL 包含边沿触发块，可作为时序候选清单。83 道都按题号匹配到原版 CVDP 的 v1.0.2 commercial harness。每道都有 IMC 报告命令，两个数据源均未找到每题的 coverage group、coverpoint 或 cover property/sequence 源码。数据目标中的 `Overall Average` 是阈值或汇总指标，不能当成长随机功能覆盖实测值。本环境的开源仿真器可用，Xcelium 和 IMC 未安装。[发布数据](https://huggingface.co/datasets/hez2024/CVDP-ECov-eval/tree/26a8b0012436b460c539ebe5f893fba6e1d601a4) · [原版 CVDP 数据](https://huggingface.co/datasets/nvidia/cvdp-benchmark-dataset/tree/5b807d945f6a99aa645f7e43a64a2115e281b4bf) · [逐题审计](reports/dataset_inventory.csv) · [数据集审计汇总](reports/dataset_audit.json)
+H 每题生成 10 个候选。对字节级重复 RTL 和一条无法准确应用的引用，仅根据生成稿和参考 RTL 重新生成候选。编译和仿真结果不参与这些重新生成。H 原始响应、变异体源码和筛选结果保存在 `eval/`。A0 只读取发布 spec、参考 RTL、沿和端口配置，各次仅采用一份生成响应，不生成检查器或根据评测反馈迭代。
 
-## 运行状态
+Manchester 的输入接口在首批提示词中将 `rst_in` 错标为低有效。核对 RTL 后，把这 5 份提示全部作废，在相同种子下重新一次性生成。它们未计入正式 50 次，单独记录了调用及提示哈希。正式样本中，截断和超出位宽的失败计为零暴露，代码覆盖率仅汇总有效运行。[协议更正与作废调用](reports/protocol_correction.json)
 
-- A0 使用 DeepSeek V4.1 Flash，H 组使用 OpenCode Go 的 Beam Free（`beam-free`）。Beam Free 拒绝 DeepSeek 使用的 `thinking` 参数，所以 H 的推理配置将其省略。最小请求返回 HTTP 200、实际模型 `beam-free` 和完整响应。[调用预检](reports/model_preflight.json) · [OpenCode Go 模型文档](https://opencode.ai/docs/console/go/)
-- 用公开的 SPI 时序题验证评测接线。3 个种子各跑 2,000 周期并在正负沿即时取样，每次取到 4,000 个样本。两个相同 RTL 实例零误报，注入已知输出差异后均能检出。Verilator 合并覆盖 10/11 个 DUT 行插桩点。结果仅用于验证工具链。[技术验证结果](reports/spi_smoke.json)
-- 正式样本目前为 0/10。正式选题需要既有功能覆盖模型及长随机覆盖测量，才能按 <95% 优先抽题。A0 和 H 的正式运行在样本冻结后开始。
+## 评测口径
 
-## 可复查的抽样规则
+- A0 每题 5 个种子，每次 2,000 周期。长随机基线按每个端口宽度均匀随机，复位在开头两拍有效，此后低概率触发，种子为 101、203、307，每个 2,000 周期。筛选 H 使用另三个固定种子 409、503、607，同样每个 2,000 周期。
+- 用 Icarus 在正负沿即时比较，同一仿真内运行 golden 和变异体，使用 AutoBench 的 `ref === (ref ^ dut ^ ref)` 比较式。每个激励均先用同一 golden 验证零差异。所有 golden 输出均无 Z，该试验中的评分差异即 golden 已知位的差异。
+- 编译失败单列。筛选的三个种子都未出现 golden 已知位差异时，有原始四态差异的标为按评分规则等价，其余标为疑似等价。
+- H 暴露率先按运行得到每题 5 次的均值和样本标准差，再对 10 道题等权平均。长随机报告 3 次均值，另存并集。九题的代码覆盖率来自 Verilator 对 golden 的行和分支插桩。Word Change 的发布 RTL 混用阻塞和非阻塞赋值，Verilator 兼容运行与 Icarus 输出不一致。该题改用 Icarus 对赋值行和分支臂做执行计数，逐个验证所有 8 个激励下插桩前后的双边沿稳定输出一致。H 评分均使用未经插桩的原始 RTL，即时比较。
 
-配置固定在 [protocol.json](protocol.json)。在候选时序题上使用种子 101、203、307，各运行 2,000 周期。选题用三个种子的功能覆盖率算术平均，优先抽取低于 95% 的题。同一档先按题号排序，再用 `20261121` 抽取。保留每种子的实测值和覆盖模型标识。后续 A0 每题五次，H 每题十个 Beam Free 变异体。H 的生成、筛选和评测数据与 A0 请求分开。
+## 结果
+
+H 的 100 个最终候选中，15 个疑似等价，编译失败和按评分规则等价均为 0 个，保留 85 个。A0 的 46 个有效运行都暴露了各自的全部 H。1 次输出截断和 3 次输入越界计为零，正式 50 次的 A0 宏平均为 **92.00%**。独立长随机基线的宏平均为 **99.26%**，三个种子的并集覆盖全部保留 H。按预设的 90% 门槛，本次样本和 2,000 周期预算下没有观察到明显的激励侧 H 暴露提升空间。时钟默认参数和有限筛选会限制保留的 H，例如 Digital Stopwatch 只保留了 1 个变异体。
+
+[逐题指标](reports/headroom_by_task.csv) · [逐次指标](reports/headroom_by_run.csv) · [宏平均、筛选与用量](reports/headroom_summary.json) · [逐变异体筛选及复放](eval/results/)
+
+## 复跑
+
+安装 Icarus Verilog、Verilator、C++ 构建工具、`bwrap`、`pyarrow` 和 `pyslang` 后，从仓库根目录运行。已归档的生成源码、响应和验证状态允许不调用模型地复放。A0 输入向量可以由归档源码和种子重建。
 
 ```bash
-python3 -m pip install pyarrow
-python3 cvdp-headroom/audit_sources.py dataset.parquet \
-  --original cvdp_v1.0.2_agentic_code_generation_commercial.jsonl cvdp_v1.0.2_nonagentic_code_generation_commercial.jsonl
-python3 cvdp-headroom/smoke_spi.py dataset.parquet
+python3 -m pip install pyarrow pyslang
+curl -fLo dataset.parquet https://huggingface.co/datasets/hez2024/CVDP-ECov-eval/resolve/26a8b0012436b460c539ebe5f893fba6e1d601a4/data/eval-00000-of-00001.parquet
+python3 cvdp-headroom/eval/run.py dataset.parquet
+python3 cvdp-headroom/eval/report.py
 ```
-
-已有覆盖模型的测量导出可通过 `--coverage-runs` 传给审计脚本。CSV 字段为 `task_id,coverage_model,seed,cycles,functional_percent`，百分数范围为 0 到 100。只有三种子测量完整的题参与抽样。功能覆盖的正式评测需要同一套模型能够对新激励测量覆盖率。

@@ -1,0 +1,49 @@
+{
+  "mutants": [
+    {
+      "bug": "Shifts the transmit register right instead of left, changing the serialized bit order.",
+      "edits": [
+        {
+          "old": "shift_reg <= { shift_reg[14:0], 1'b0 }; // shift left",
+          "new": "shift_reg <= { 1'b0, shift_reg[15:1] }; // shift right"
+        }
+      ]
+    },
+    {
+      "bug": "Advances the shift register and bit counter during CLOCK_TOGGLE rather than TRANSMIT, changing the data and count timing.",
+      "edits": [
+        {
+          "old": "if (curr_state == ST_TRANSMIT ) begin",
+          "new": "if (curr_state == ST_CLOCK_TOGGLE ) begin"
+        }
+      ]
+    },
+    {
+      "bug": "Ends transmission when two bits remain, causing the final bits to be omitted.",
+      "edits": [
+        {
+          "old": "if (o_bits_left == 5'd1) begin",
+          "new": "if (o_bits_left == 5'd2) begin"
+        }
+      ]
+    },
+    {
+      "bug": "Keeps the SPI clock low in CLOCK_TOGGLE instead of producing the high phase.",
+      "edits": [
+        {
+          "old": "o_spi_clk   = 1'b1;",
+          "new": "o_spi_clk   = 1'b0;"
+        }
+      ]
+    },
+    {
+      "bug": "Ignores a clear coincident with a fault, so that clear pulse does not return the FSM to IDLE.",
+      "edits": [
+        {
+          "old": "                if (i_clear) begin\n                    next_state     = ST_IDLE;\n                    o_fsm_state    = ST_IDLE; // Reflect the current FSM state",
+          "new": "                if (i_clear && !i_fault) begin\n                    next_state     = ST_IDLE;\n                    o_fsm_state    = ST_IDLE; // Reflect the current FSM state"
+        }
+      ]
+    }
+  ]
+}

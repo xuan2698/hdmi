@@ -1,0 +1,49 @@
+{
+  "mutants": [
+    {
+      "bug": "The first output row uses K02 for both its second and third plaintext products.",
+      "edits": [
+        {
+          "old": "temp0 <= (K00 * P0)%26 + (K01 * P1)%26 + (K02 * P2)%26;",
+          "new": "temp0 <= (K00 * P0)%26 + (K02 * P1)%26 + (K02 * P2)%26;"
+        }
+      ]
+    },
+    {
+      "bug": "The second output row multiplies its K11 coefficient by P2 instead of P1.",
+      "edits": [
+        {
+          "old": "temp1 <= (K10 * P0)%26 + (K11 * P1)%26 + (K12 * P2)%26;",
+          "new": "temp1 <= (K10 * P0)%26 + (K11 * P2)%26 + (K12 * P2)%26;"
+        }
+      ]
+    },
+    {
+      "bug": "The third ciphertext element uses modulus 25 instead of 26.",
+      "edits": [
+        {
+          "old": "C2_reg <= temp2%26;",
+          "new": "C2_reg <= temp2%25;"
+        }
+      ]
+    },
+    {
+      "bug": "The intermediate sums are one bit too narrow and can wrap before the final modulo operation.",
+      "edits": [
+        {
+          "old": "logic [5:0] temp0, temp1, temp2;",
+          "new": "logic [4:0] temp0, temp1, temp2;"
+        }
+      ]
+    },
+    {
+      "bug": "The controller skips the DONE state after computing the modulo results, so done is never asserted.",
+      "edits": [
+        {
+          "old": "next_state = DONE;",
+          "new": "next_state = IDLE;"
+        }
+      ]
+    }
+  ]
+}

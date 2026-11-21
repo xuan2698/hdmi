@@ -22,6 +22,7 @@ MODELS = {
     "Gemini 4 Hydrogen": "gemini-4-hydrogen",
     "gemini-4-hydrogen": "gemini-4-hydrogen",
     "beam-free": "beam-free",
+    "gpt-6-luna": "gpt-6-luna",
     "hy4": "hy4",
     "hy4-flash-free": "hy4-flash-free",
 }

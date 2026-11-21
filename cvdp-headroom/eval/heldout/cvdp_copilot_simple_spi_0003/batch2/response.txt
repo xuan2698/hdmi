@@ -1,0 +1,49 @@
+{
+  "mutants": [
+    {
+      "bug": "Shifts the transmit register right instead of left, reversing the serialized bit order.",
+      "edits": [
+        {
+          "old": "shift_reg <= { shift_reg[14:0], 1'b0 }; // shift left",
+          "new": "shift_reg <= { 1'b0, shift_reg[15:1] }; // shift left"
+        }
+      ]
+    },
+    {
+      "bug": "Loads the lower input byte into both halves of the shift register, corrupting transmitted data.",
+      "edits": [
+        {
+          "old": "shift_reg <= i_data_in;",
+          "new": "shift_reg <= {i_data_in[7:0], i_data_in[7:0]};"
+        }
+      ]
+    },
+    {
+      "bug": "Selects bit 14 rather than bit 15 for the TRANSMIT-state data output.",
+      "edits": [
+        {
+          "old": "o_spi_clk   = 1'b0;\n                        o_spi_data  = shift_reg[15];\n                        o_fsm_state = ST_TRANSMIT;",
+          "new": "o_spi_clk   = 1'b0;\n                        o_spi_data  = shift_reg[14];\n                        o_fsm_state = ST_TRANSMIT;"
+        }
+      ]
+    },
+    {
+      "bug": "Checks for zero instead of one remaining bit, so the transfer fails to terminate after the final bit.",
+      "edits": [
+        {
+          "old": "if (o_bits_left == 5'd1) begin",
+          "new": "if (o_bits_left == 5'd0) begin"
+        }
+      ]
+    },
+    {
+      "bug": "Allows a transfer to start while clear is asserted.",
+      "edits": [
+        {
+          "old": "if (i_enable && !i_fault && !i_clear) begin",
+          "new": "if (i_enable && !i_fault) begin"
+        }
+      ]
+    }
+  ]
+}

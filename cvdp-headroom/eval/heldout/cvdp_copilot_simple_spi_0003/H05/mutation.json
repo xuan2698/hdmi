@@ -1,0 +1,10 @@
+{
+  "status": "materialized",
+  "bug": "Ignores a clear coincident with a fault, so that clear pulse does not return the FSM to IDLE.",
+  "edits": [
+    {
+      "old": "                if (i_clear) begin\n                    next_state     = ST_IDLE;\n                    o_fsm_state    = ST_IDLE; // Reflect the current FSM state",
+      "new": "                if (i_clear && !i_fault) begin\n                    next_state     = ST_IDLE;\n                    o_fsm_state    = ST_IDLE; // Reflect the current FSM state"
+    }
+  ]
+}

@@ -1,0 +1,49 @@
+{
+  "mutants": [
+    {
+      "bug": "The FSM accepts start as active-low instead of active-high.",
+      "edits": [
+        {
+          "old": "                if (start)",
+          "new": "                if (!start)"
+        }
+      ]
+    },
+    {
+      "bug": "The FSM skips the modulo stage after computing the temporary sums.",
+      "edits": [
+        {
+          "old": "                next_state = COMPUTE_MOD;",
+          "new": "                next_state = DONE;"
+        }
+      ]
+    },
+    {
+      "bug": "The second output row uses P1 twice and omits P2 in its final product.",
+      "edits": [
+        {
+          "old": "                    temp1 <= (K10 * P0)%26 + (K11 * P1)%26 + (K12 * P2)%26;",
+          "new": "                    temp1 <= (K10 * P0)%26 + (K11 * P1)%26 + (K12 * P1)%26;"
+        }
+      ]
+    },
+    {
+      "bug": "The third ciphertext component is reduced modulo 25 instead of 26.",
+      "edits": [
+        {
+          "old": "                    C2_reg <= temp2%26;",
+          "new": "                    C2_reg <= temp2%25;"
+        }
+      ]
+    },
+    {
+      "bug": "The FSM remains in DONE after completion, preventing subsequent transactions.",
+      "edits": [
+        {
+          "old": "                next_state = IDLE;",
+          "new": "                next_state = DONE;"
+        }
+      ]
+    }
+  ]
+}

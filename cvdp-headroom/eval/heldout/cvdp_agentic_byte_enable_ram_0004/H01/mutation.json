@@ -1,0 +1,10 @@
+{
+  "status": "materialized",
+  "bug": "Zeroes port A output whenever its registered enable is low instead of updating it from memory.",
+  "edits": [
+    {
+      "old": "    data_out_a <= ram[addr_a_reg];",
+      "new": "    if (en_a_reg)\n      data_out_a <= ram[addr_a_reg];\n    else\n      data_out_a <= '0;"
+    }
+  ]
+}

@@ -1,0 +1,49 @@
+{
+  "mutants": [
+    {
+      "bug": "Encoder uses the opposite input polarity when selecting each Manchester symbol.",
+      "edits": [
+        {
+          "old": "if (enc_data_in[i] == 1'b1) begin",
+          "new": "if (enc_data_in[i] == 1'b0) begin"
+        }
+      ]
+    },
+    {
+      "bug": "Encoder valid remains asserted during an idle cycle if it was already high.",
+      "edits": [
+        {
+          "old": "        end else begin\n            enc_data_out  <= 'd0;\n            enc_valid_out <= 1'b0;\n        end",
+          "new": "        end else begin\n            enc_data_out  <= 'd0;\n            enc_valid_out <= enc_valid_out;\n        end"
+        }
+      ]
+    },
+    {
+      "bug": "Decoder maps an invalid Manchester symbol to data bit 1 instead of 0.",
+      "edits": [
+        {
+          "old": "                end else begin\n                    dec_data_out[i] <= 1'b0;\n                end\n            end\n            dec_valid_out <= 1'b1;",
+          "new": "                end else begin\n                    dec_data_out[i] <= 1'b1;\n                end\n            end\n            dec_valid_out <= 1'b1;"
+        }
+      ]
+    },
+    {
+      "bug": "Decoder reverses the decoded values for valid Manchester symbols.",
+      "edits": [
+        {
+          "old": "                if (dec_data_in[2*i] == 1'b1 && dec_data_in[2*i+1] == 1'b0) begin\n                    dec_data_out[i] <= 1'b1;\n                end else if (dec_data_in[2*i] == 1'b0 && dec_data_in[2*i+1] == 1'b1) begin\n                    dec_data_out[i] <= 1'b0;",
+          "new": "                if (dec_data_in[2*i] == 1'b1 && dec_data_in[2*i+1] == 1'b0) begin\n                    dec_data_out[i] <= 1'b0;\n                end else if (dec_data_in[2*i] == 1'b0 && dec_data_in[2*i+1] == 1'b1) begin\n                    dec_data_out[i] <= 1'b1;"
+        }
+      ]
+    },
+    {
+      "bug": "Decoder reset condition is active low instead of active high.",
+      "edits": [
+        {
+          "old": "        if (rst_in) begin\n            dec_data_out  <= '0; \n            dec_valid_out <= 1'b0;\n        end else if (dec_valid_in) begin",
+          "new": "        if (!rst_in) begin\n            dec_data_out  <= '0; \n            dec_valid_out <= 1'b0;\n        end else if (dec_valid_in) begin"
+        }
+      ]
+    }
+  ]
+}

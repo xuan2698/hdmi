@@ -1,0 +1,49 @@
+{
+  "mutants": [
+    {
+      "bug": "Reset is synchronous instead of asynchronous, delaying reset effects until a clock edge.",
+      "edits": [
+        {
+          "old": "    always @(posedge i_clk or negedge i_rst_n) begin",
+          "new": "    always @(posedge i_clk) begin"
+        }
+      ]
+    },
+    {
+      "bug": "Addition accidentally includes a carry-in of one, so every computed sum is incremented.",
+      "edits": [
+        {
+          "old": "                                result = reg_operand_a + reg_operand_b;",
+          "new": "                                result = reg_operand_a + reg_operand_b + 1;"
+        }
+      ]
+    },
+    {
+      "bug": "Subtraction uses the addition operator, producing the wrong result in subtraction mode.",
+      "edits": [
+        {
+          "old": "                                result = reg_operand_a - reg_operand_b;",
+          "new": "                                result = reg_operand_a + reg_operand_b;"
+        }
+      ]
+    },
+    {
+      "bug": "The negative-result condition in the subtraction overflow check is inverted.",
+      "edits": [
+        {
+          "old": "(reg_operand_a[DATA_WIDTH-1] & ~reg_operand_b[DATA_WIDTH-1] & ~result[DATA_WIDTH-1]);",
+          "new": "(reg_operand_a[DATA_WIDTH-1] & ~reg_operand_b[DATA_WIDTH-1] & result[DATA_WIDTH-1]);"
+        }
+      ]
+    },
+    {
+      "bug": "Clear zeroes the output but fails to return the state machine to IDLE.",
+      "edits": [
+        {
+          "old": "            if (i_clear) begin\n                o_resultant_sum <= 0;\n                state <= IDLE;\n            end else begin",
+          "new": "            if (i_clear) begin\n                o_resultant_sum <= 0;\n                state <= state;\n            end else begin"
+        }
+      ]
+    }
+  ]
+}

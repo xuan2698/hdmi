@@ -1,0 +1,49 @@
+{
+  "mutants": [
+    {
+      "bug": "Checks the token for the next node instead of the current node before sending data.",
+      "edits": [
+        {
+          "old": "if (token_received[current_state] && has_data_to_send) begin",
+          "new": "if (token_received[next_state] && has_data_to_send) begin"
+        }
+      ]
+    },
+    {
+      "bug": "Skips NODE2 when advancing from NODE1.",
+      "edits": [
+        {
+          "old": "                next_state = NODE2;",
+          "new": "                next_state = NODE3;"
+        }
+      ]
+    },
+    {
+      "bug": "Retains the previous data_out value instead of clearing it when the send condition is false.",
+      "edits": [
+        {
+          "old": "            data_out <= 4'b0000;",
+          "new": "            data_out <= data_out;"
+        }
+      ]
+    },
+    {
+      "bug": "Rotates the input bits before forwarding them to data_out.",
+      "edits": [
+        {
+          "old": "            data_out <= data_in;",
+          "new": "            data_out <= {data_in[2:0], data_in[3]};"
+        }
+      ]
+    },
+    {
+      "bug": "Sends data when either the token or data-ready condition is true, rather than requiring both.",
+      "edits": [
+        {
+          "old": "if (token_received[current_state] && has_data_to_send) begin",
+          "new": "if (token_received[current_state] || has_data_to_send) begin"
+        }
+      ]
+    }
+  ]
+}

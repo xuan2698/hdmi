@@ -1,0 +1,10 @@
+{
+  "status": "materialized",
+  "bug": "Gives port B priority over port A for the lowest byte during same-address collisions.",
+  "edits": [
+    {
+      "old": "      if (be_a_reg[0])\n        ram[addr_a_reg][7:0] <= data_in_a_reg[7:0];\n      else if (be_b_reg[0])\n        ram[addr_a_reg][7:0] <= data_in_b_reg[7:0];",
+      "new": "      if (be_b_reg[0])\n        ram[addr_a_reg][7:0] <= data_in_b_reg[7:0];\n      else if (be_a_reg[0])\n        ram[addr_a_reg][7:0] <= data_in_a_reg[7:0];"
+    }
+  ]
+}

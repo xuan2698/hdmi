@@ -1,0 +1,49 @@
+{
+  "mutants": [
+    {
+      "bug": "Clears the divider counter when paused, discarding any partial second.",
+      "edits": [
+        {
+          "old": "                one_sec_pulse <= 1'b0;           // Ensure one_sec_pulse is cleared if paused",
+          "new": "                counter <= 0;\n                one_sec_pulse <= 1'b0;           // Ensure one_sec_pulse is cleared if paused"
+        }
+      ]
+    },
+    {
+      "bug": "Leaves the one-second pulse asserted during normal counting after its first tick, preventing subsequent rising edges.",
+      "edits": [
+        {
+          "old": "                    one_sec_pulse <= 1'b0;\n                end",
+          "new": "                    one_sec_pulse <= 1'b1;\n                end"
+        }
+      ]
+    },
+    {
+      "bug": "Rolls the stopwatch into the hour state at minute 58 instead of minute 59.",
+      "edits": [
+        {
+          "old": "                if (minutes < 59) begin",
+          "new": "                if (minutes < 58) begin"
+        }
+      ]
+    },
+    {
+      "bug": "Allows the seconds and minutes counters to keep advancing after the hour flag is set.",
+      "edits": [
+        {
+          "old": "        end else if (start_stop == 1 && hour == 0) begin",
+          "new": "        end else if (start_stop == 1) begin"
+        }
+      ]
+    },
+    {
+      "bug": "Makes the divider reset synchronous, so a reset pulse between clock edges does not clear its partial count.",
+      "edits": [
+        {
+          "old": "    always @(posedge clk or posedge reset) begin",
+          "new": "    always @(posedge clk) begin"
+        }
+      ]
+    }
+  ]
+}

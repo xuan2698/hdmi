@@ -1,0 +1,49 @@
+{
+  "mutants": [
+    {
+      "bug": "Uses the mask as an OR input, causing enabled bits to report changes even when they are stable.",
+      "edits": [
+        {
+          "old": "masked_change_pulses <= change_pulses & mask;",
+          "new": "masked_change_pulses <= change_pulses | mask;"
+        }
+      ]
+    },
+    {
+      "bug": "Generates the word-change pulse from the masked data value rather than from detected changes.",
+      "edits": [
+        {
+          "old": "word_change_pulse <= |masked_change_pulses;",
+          "new": "word_change_pulse <= |masked_data_in;"
+        }
+      ]
+    },
+    {
+      "bug": "Compares against the live match pattern instead of the latched pattern.",
+      "edits": [
+        {
+          "old": "match_detected <= (masked_data_in == (latched_pattern & mask));",
+          "new": "match_detected <= (masked_data_in == (match_pattern & mask));"
+        }
+      ]
+    },
+    {
+      "bug": "Applies the current mask when latching the pattern, so masked-off pattern bits are lost.",
+      "edits": [
+        {
+          "old": "latched_pattern <= match_pattern;",
+          "new": "latched_pattern <= match_pattern & mask;"
+        }
+      ]
+    },
+    {
+      "bug": "Inverts the sampled input history, making the change detector report the wrong transitions.",
+      "edits": [
+        {
+          "old": "bit_in_d <= bit_in;",
+          "new": "bit_in_d <= ~bit_in;"
+        }
+      ]
+    }
+  ]
+}

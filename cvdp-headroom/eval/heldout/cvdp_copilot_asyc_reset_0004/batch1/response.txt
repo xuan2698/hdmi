@@ -1,0 +1,49 @@
+{
+  "mutants": [
+    {
+      "bug": "Reset is sampled only on the clock edge instead of acting asynchronously.",
+      "edits": [
+        {
+          "old": "always_ff @(posedge clk or posedge reset) begin",
+          "new": "always_ff @(posedge clk) begin"
+        }
+      ]
+    },
+    {
+      "bug": "Counter starts at 30 rather than 31 after reset, shortening the reset-release sequence by one cycle.",
+      "edits": [
+        {
+          "old": "cnt_q <= 5'h1F; // Initialize to 31",
+          "new": "cnt_q <= 5'h1E; // Initialize to 31"
+        }
+      ]
+    },
+    {
+      "bug": "Counter decrements by two, skipping every other count value.",
+      "edits": [
+        {
+          "old": "cnt_q <= cnt_q - 1;",
+          "new": "cnt_q <= cnt_q - 2;"
+        }
+      ]
+    },
+    {
+      "bug": "Clock gate remains enabled when the counter reaches zero.",
+      "edits": [
+        {
+          "old": "assign gate_clk_o      = (cnt_q < 5'hE) && (cnt_q != 0); // (cnt_q < 14) && (cnt_q != 0)",
+          "new": "assign gate_clk_o      = (cnt_q < 5'hE); // (cnt_q < 14)"
+        }
+      ]
+    },
+    {
+      "bug": "Counter reloads to 31 when it reaches zero instead of holding at zero.",
+      "edits": [
+        {
+          "old": "cnt_q <= cnt_q; // Hold at 0",
+          "new": "cnt_q <= 5'h1F; // Reload at 0"
+        }
+      ]
+    }
+  ]
+}
