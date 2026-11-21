@@ -58,3 +58,7 @@ Formal-cex 的 hard H 宏平均及 pooled、G 杀伤率、G→H 迁移差、反�
 ```sh
 python3 experiments/formal-cex/preflight.py /path/to/CorrectBench
 ```
+
+## Amendment 1 的来源核验
+
+已追踪 stimulus-v2 在十道开发题用的参考 RTL、G 和 API 的用途。相关代码、逐题文件和 SHA-256 见独立的溯源报告。上文保留原协议下的阶段 0 记录。[溯源报告](V2_PROVENANCE.md) · [哈希 CSV](v2_source_manifest.csv)
