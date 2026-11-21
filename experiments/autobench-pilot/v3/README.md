@@ -16,6 +16,7 @@ B 检查侧继续使用三份 GPT-4o 代理。O 检查侧每题使用归档中 G
 
 ## 结果
 
+- [第三版离线排查与分析](reports/postpilot/README.md)
 - [425 次逐次结果](reports/trials.csv) · [17 题逐题汇总](reports/per_task.csv) · [配置宏平均](reports/macro.csv)
 - [配对检验和置信区间](reports/paired_comparisons.csv) · [逐题配对差](reports/paired_task_deltas.csv)
 - [逐 TB 散点数据](reports/length_scatter.csv) · [长度相关系数](reports/length_correlations.csv) · [散点图](reports/length_scatter.png)

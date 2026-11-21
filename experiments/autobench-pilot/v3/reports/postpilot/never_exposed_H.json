@@ -1,0 +1,203 @@
+[
+  {
+    "task_number": 10,
+    "task": "m2014_q4c",
+    "mutant": "H07",
+    "runs": 25,
+    "mutation": "给同步触发器的敏感列表新增复位上升沿",
+    "difference_from_G": "新增异步事件。G 可以翻转已有边沿、去掉已有异步复位项或改条件，没有给同步敏感列表添加复位沿的规则。",
+    "runs_with_known_phase_difference": {
+      "before_active": 25,
+      "after_active": 0,
+      "after_opposite": 25
+    },
+    "G_retained_catalog_rules": {
+      "arithmetic_or_bitwise": 19,
+      "clock_edge": 17,
+      "condition_operator": 4,
+      "constant_offset": 8,
+      "deleted_assignment": 6,
+      "negated_condition": 21,
+      "relation": 2,
+      "removed_condition": 17,
+      "replaced_assignment": 19,
+      "unary_operator": 12
+    }
+  },
+  {
+    "task_number": 31,
+    "task": "mt2015_muxdff",
+    "mutant": "H01",
+    "runs": 25,
+    "mutation": "Q 上电初值由 0 改为 1",
+    "difference_from_G": "上电初始化。G 的赋值规则检测行首普通赋值，不检测 `initial` 语句。第一个活跃沿覆盖 Q。",
+    "runs_with_known_phase_difference": {
+      "before_active": 25,
+      "after_active": 0,
+      "after_opposite": 0
+    },
+    "G_retained_catalog_rules": {
+      "arithmetic_or_bitwise": 26,
+      "clock_edge": 22,
+      "condition_operator": 12,
+      "deleted_assignment": 6,
+      "negated_condition": 11,
+      "relation": 1,
+      "removed_condition": 21,
+      "replaced_assignment": 22,
+      "unary_operator": 9
+    }
+  },
+  {
+    "task_number": 31,
+    "task": "mt2015_muxdff",
+    "mutant": "H05",
+    "runs": 25,
+    "mutation": "移除 Q 的上电初值，初始变为 X",
+    "difference_from_G": "上电初始化。G 不删除 `initial` 语句。第一个活跃沿覆盖 Q。",
+    "runs_with_known_phase_difference": {
+      "before_active": 25,
+      "after_active": 0,
+      "after_opposite": 0
+    },
+    "G_retained_catalog_rules": {
+      "arithmetic_or_bitwise": 26,
+      "clock_edge": 22,
+      "condition_operator": 12,
+      "deleted_assignment": 6,
+      "negated_condition": 11,
+      "relation": 1,
+      "removed_condition": 21,
+      "replaced_assignment": 22,
+      "unary_operator": 9
+    }
+  },
+  {
+    "task_number": 40,
+    "task": "history_shift",
+    "mutant": "H05",
+    "runs": 25,
+    "mutation": "从敏感列表移除异步复位上升沿，保留复位分支",
+    "difference_from_G": "已有异步事件被删除，与 G 的 temporal_reset 同类。需要跨评分沿的异步复位序列。",
+    "runs_with_known_phase_difference": {
+      "before_active": 25,
+      "after_active": 0,
+      "after_opposite": 0
+    },
+    "G_retained_catalog_rules": {
+      "arithmetic_or_bitwise": 7,
+      "clock_edge": 15,
+      "condition_operator": 12,
+      "constant_offset": 8,
+      "deleted_assignment": 18,
+      "negated_condition": 11,
+      "relation": 6,
+      "removed_condition": 21,
+      "replaced_assignment": 9,
+      "temporal_control": 3,
+      "temporal_reset": 4,
+      "unary_operator": 10
+    }
+  },
+  {
+    "task_number": 76,
+    "task": "dff8r",
+    "mutant": "H02",
+    "runs": 25,
+    "mutation": "给正沿 DFF 敏感列表新增复位上升沿",
+    "difference_from_G": "新增异步事件，G 无对应新增规则。活跃沿重新按当前输入赋值。",
+    "runs_with_known_phase_difference": {
+      "before_active": 25,
+      "after_active": 0,
+      "after_opposite": 25
+    },
+    "G_retained_catalog_rules": {
+      "arithmetic_or_bitwise": 11,
+      "bit_index_offset": 6,
+      "clock_edge": 20,
+      "condition_operator": 12,
+      "constant_offset": 8,
+      "deleted_assignment": 6,
+      "negated_condition": 14,
+      "relation": 2,
+      "removed_condition": 18,
+      "replaced_assignment": 11,
+      "temporal_control": 3,
+      "unary_operator": 14
+    }
+  },
+  {
+    "task_number": 99,
+    "task": "dff8p",
+    "mutant": "H04",
+    "runs": 25,
+    "mutation": "给下降沿 DFF 敏感列表新增复位下降沿",
+    "difference_from_G": "新增异步事件，G 无对应新增规则。活跃沿重新按当前输入赋值。",
+    "runs_with_known_phase_difference": {
+      "before_active": 25,
+      "after_active": 0,
+      "after_opposite": 25
+    },
+    "G_retained_catalog_rules": {
+      "arithmetic_or_bitwise": 20,
+      "bit_index_offset": 2,
+      "clock_edge": 18,
+      "condition_operator": 12,
+      "constant_offset": 8,
+      "deleted_assignment": 5,
+      "negated_condition": 9,
+      "relation": 2,
+      "removed_condition": 24,
+      "replaced_assignment": 11,
+      "temporal_control": 3,
+      "unary_operator": 15
+    }
+  },
+  {
+    "task_number": 154,
+    "task": "count_clock",
+    "mutant": "H05",
+    "runs": 25,
+    "mutation": "秒进位比较常量由 BCD 59 改成 58",
+    "difference_from_G": "与 G 的 ±1 思路相近，位置是嵌套比较字面量。G 的 ±1 规则针对整个常量右值，没有对该嵌套比较执行字面量替换。",
+    "runs_with_known_phase_difference": {
+      "before_active": 0,
+      "after_active": 0,
+      "after_opposite": 0
+    },
+    "G_retained_catalog_rules": {
+      "clock_edge": 11,
+      "condition_operator": 19,
+      "negated_condition": 30,
+      "relation": 11,
+      "removed_condition": 29,
+      "temporal_control": 5
+    }
+  },
+  {
+    "task_number": 156,
+    "task": "countbcd",
+    "mutant": "H02",
+    "runs": 25,
+    "mutation": "百位进位条件由低两位 BCD 99 改成 98",
+    "difference_from_G": "与 G 的 ±1 思路相近，目标是进位向量里的比较字面量。G 的 ±1 规则针对整个常量右值。",
+    "runs_with_known_phase_difference": {
+      "before_active": 0,
+      "after_active": 0,
+      "after_opposite": 0
+    },
+    "G_retained_catalog_rules": {
+      "arithmetic_or_bitwise": 8,
+      "clock_edge": 9,
+      "condition_operator": 4,
+      "constant_offset": 10,
+      "deleted_assignment": 1,
+      "negated_condition": 27,
+      "relation": 6,
+      "removed_condition": 26,
+      "replaced_assignment": 4,
+      "temporal_control": 12,
+      "unary_operator": 7
+    }
+  }
+]
