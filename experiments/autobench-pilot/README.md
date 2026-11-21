@@ -1,5 +1,7 @@
 # AutoBench S1 pilot
 
+The [v3 protocol and replay instructions](v3/README.md) cover the 17-task experiment with gated H scoring, complete checkers, and nine-proxy O feedback.
+
 This pilot fixes the ordering of the 75 sequential AutoBench entries by upstream task number, then draws 25 with Python's `random.Random(42).sample`. The first two entries in [selected_tasks.json](selected_tasks.json) are the pilot tasks. [plan.json](plan.json) records the run parameters.
 
 The driver supplies nonclock input vectors. The Python reference predicts each output at the sampled rising edge. Both sources come from DeepSeek V4.1 Flash and execute in separate Bubblewrap processes with a minimal filesystem and no network. The simulator replays the resulting vectors and captures DUT outputs. G comes from deterministic single-site edits of R1. Each compilable candidate is screened on three independent 2,000-cycle runs.

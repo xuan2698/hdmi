@@ -12,6 +12,16 @@ B 检查侧继续使用三份 GPT-4o 代理。O 检查侧每题使用归档中 G
 
 配对检验以题为单位。先在每题内汇总五次重复，再计算跨题宏平均。Wilcoxon 使用双侧精确符号翻转分布，零差配对不计秩，并保留并列秩。区间对同题的配置差值作 20,000 次配对 bootstrap。四个 p 值均为未校正值。长度相关性把 golden 失败编码为 1，按 TB 计算 Pearson 和 Spearman。
 
+逐次结果的 shared 字段是本次配置所引用初稿的费用和用量。全量账单对每份共用初稿只累计一次，另加各配置的增量调用。
+
+## 结果
+
+- [425 次逐次结果](reports/trials.csv) · [17 题逐题汇总](reports/per_task.csv) · [配置宏平均](reports/macro.csv)
+- [配对检验和置信区间](reports/paired_comparisons.csv) · [逐题配对差](reports/paired_task_deltas.csv)
+- [逐 TB 散点数据](reports/length_scatter.csv) · [长度相关系数](reports/length_correlations.csv) · [散点图](reports/length_scatter.png)
+- [H 预筛](reports/h_prescreen.csv) · [九代理正确数](reports/proxy_correctness.csv)
+- [逐例感染条件](reports/infection_feedback.csv) · [检查侧问题点](reports/checker_issue_counts.csv) · [反馈实例](reports/feedback_examples.json) · [用量与费用](reports/summary.json)
+
 ## 复跑
 
 工具安装、源仓库固定与密钥设置参见上一级 README。分析需要 NumPy、SciPy。Matplotlib 用于绘图，数值报告可独立生成。

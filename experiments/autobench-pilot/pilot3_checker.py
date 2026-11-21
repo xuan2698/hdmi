@@ -1,5 +1,4 @@
 from collections import Counter
-from pathlib import Path
 import re
 
 from pilot2_checker import feedback as baseline_feedback
