@@ -1,0 +1,119 @@
+{
+  "G01": {
+    "old": {
+      "label": "诊断不可用",
+      "reason": "结构或边沿变异没有可单独求值的原/变异表达式"
+    },
+    "rule": "AssignB2N",
+    "line": 88,
+    "old_category": "blocking_vs_nonblocking",
+    "new": {
+      "label": "诊断不可用",
+      "reason": "赋值调度差异没有足够的可证据化采样",
+      "mode": "schedule"
+    }
+  },
+  "G02": {
+    "old": {
+      "label": "诊断不可用",
+      "reason": "结构或边沿变异没有可单独求值的原/变异表达式"
+    },
+    "rule": "AssignN2B",
+    "line": 58,
+    "old_category": "blocking_vs_nonblocking",
+    "new": {
+      "label": "未传播",
+      "interval": {
+        "signal": "masked_change_pulses",
+        "known_samples": 2650,
+        "differing_samples": 150,
+        "first_cycle": 5,
+        "equal_again_cycle": 5,
+        "cause": "局部信号重新一致，重新赋值与掩蔽未区分"
+      },
+      "mode": "schedule",
+      "executions": 567,
+      "comparable": 567
+    }
+  },
+  "G03": {
+    "old": {
+      "label": "诊断不可用",
+      "reason": "结构或边沿变异没有可单独求值的原/变异表达式"
+    },
+    "rule": "EdgeDelete",
+    "line": 78,
+    "old_category": "event_control",
+    "new": {
+      "label": "未传播",
+      "mode": "event",
+      "executions": 32008,
+      "mutant_executions": 32000,
+      "activation_delta_samples": 1,
+      "first_cycle": 1,
+      "last_cycle": 1
+    }
+  },
+  "G10": {
+    "old": {
+      "label": "诊断不可用",
+      "reason": "结构或边沿变异没有可单独求值的原/变异表达式"
+    },
+    "rule": "NSubInsert",
+    "line": 80,
+    "old_category": "statement_insertion_or_deletion",
+    "new": {
+      "label": "未感染",
+      "condition": "有效位宽内 (1'b0) 与 (0) 不同",
+      "ranges": {},
+      "mode": "value",
+      "executions": 32,
+      "comparable": 32
+    }
+  },
+  "G11": {
+    "old": {
+      "label": "诊断不可用",
+      "reason": "结构或边沿变异没有可单独求值的原/变异表达式"
+    },
+    "rule": "NSubInsert_IF",
+    "line": 37,
+    "old_category": "statement_insertion_or_deletion",
+    "new": {
+      "label": "未感染",
+      "condition": "有效位宽内 ({DATA_WIDTH{1'b0}}) 与 (0) 不同",
+      "ranges": {},
+      "mode": "value",
+      "executions": 4,
+      "comparable": 4
+    }
+  },
+  "G18": {
+    "old": {
+      "label": "诊断不可用",
+      "reason": "结构或边沿变异没有可单独求值的原/变异表达式"
+    },
+    "rule": "condition_operator",
+    "line": 36,
+    "old_category": "nested_or_indexed_predicate",
+    "new": {
+      "label": "未传播",
+      "rhs_first": 1,
+      "rhs_last": 3,
+      "infections": 4,
+      "first_values_hex": [
+        "1",
+        "0"
+      ],
+      "interval": {
+        "signal": "predicate",
+        "first_cycle": 1,
+        "equal_again_cycle": null,
+        "cause": "已观测表达式差异，后续消除位置未解析"
+      },
+      "mode": "condition",
+      "executions": 4001,
+      "comparable": 4001
+    }
+  }
+}

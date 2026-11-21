@@ -1,0 +1,51 @@
+def stimulus(rng, cycles):
+    rows = []
+    data_in = 0
+    mask = 0
+    match_pattern = 0
+    enable = 0
+    latch_pattern = 0
+    reset = 1
+    for i in range(cycles):
+        if i < 3:
+            reset = 1
+        elif i < 6:
+            reset = 0
+        else:
+            reset = 0
+        if i >= 6:
+            if i % 97 == 0:
+                enable = 1
+                latch_pattern = 1
+                match_pattern = rng.randrange(256)
+                mask = rng.randrange(256)
+                data_in = rng.randrange(256)
+            elif i % 13 == 0:
+                enable = 1
+                latch_pattern = 0
+                data_in = rng.randrange(256)
+                mask = rng.randrange(256)
+            elif i % 7 == 0:
+                enable = 1
+                latch_pattern = 0
+                data_in = rng.randrange(256)
+            elif i % 5 == 0:
+                enable = 0
+                latch_pattern = 0
+            else:
+                enable = 1
+                latch_pattern = 0
+                if rng.randrange(4) == 0:
+                    data_in = rng.randrange(256)
+                if rng.randrange(8) == 0:
+                    mask = rng.randrange(256)
+        row = {
+            'reset': reset,
+            'data_in': data_in & 0xFF,
+            'mask': mask & 0xFF,
+            'match_pattern': match_pattern & 0xFF,
+            'enable': enable & 1,
+            'latch_pattern': latch_pattern & 1,
+        }
+        rows.append(row)
+    return rows

@@ -1,0 +1,55 @@
+def stimulus(rng, cycles):
+    rows = []
+    rst = 1
+    enc_valid = 0
+    enc_data = 0
+    dec_valid = 0
+    dec_data = 0
+    for c in range(cycles):
+        if c < 3:
+            rst = 1
+            enc_valid = 0
+            enc_data = 0
+            dec_valid = 0
+            dec_data = 0
+        elif c < 10:
+            rst = 0
+            enc_valid = 0
+            enc_data = 0
+            dec_valid = 0
+            dec_data = 0
+        else:
+            rst = 0
+            r = rng.random()
+            if r < 0.35:
+                enc_valid = 1
+                enc_data = rng.randrange(256)
+            else:
+                enc_valid = 0
+                enc_data = 0
+            r2 = rng.random()
+            if r2 < 0.35:
+                dec_valid = 1
+                dec_data = rng.randrange(65536)
+            else:
+                dec_valid = 0
+                dec_data = 0
+        row = {
+            'rst_in': rst,
+            'enc_valid_in': enc_valid,
+            'enc_data_in': enc_data,
+            'dec_valid_in': dec_valid,
+            'dec_data_in': dec_data,
+        }
+        if c == 1:
+            row['mid'] = {'enc_valid_in': 1}
+        elif c == 2:
+            row['mid'] = {'rst_in': 1, 'enc_valid_in': 0, 'enc_data_in': 0, 'dec_valid_in': 0}
+        elif c == 5:
+            row['mid'] = {'rst_in': 1, 'dec_valid_in': 0, 'dec_data_in': 0}
+        elif c == 12:
+            row['mid'] = {'dec_valid_in': 1, 'dec_data_in': 64}
+        elif c == 15:
+            row['mid'] = {'enc_valid_in': 1, 'enc_data_in': 255}
+        rows.append(row)
+    return rows

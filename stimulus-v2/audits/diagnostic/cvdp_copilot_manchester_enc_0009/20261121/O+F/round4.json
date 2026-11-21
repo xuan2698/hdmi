@@ -1,0 +1,245 @@
+{
+  "G01": {
+    "old": {
+      "label": "诊断不可用",
+      "reason": "结构或边沿变异没有可单独求值的原/变异表达式"
+    },
+    "rule": "AssignN2B",
+    "line": 34,
+    "old_category": "blocking_vs_nonblocking",
+    "new": {
+      "label": "未传播",
+      "interval": {
+        "signal": "enc_valid_out",
+        "known_samples": 3427,
+        "differing_samples": 1142,
+        "first_cycle": 5,
+        "equal_again_cycle": 5,
+        "cause": "局部信号重新一致，重新赋值与掩蔽未区分"
+      },
+      "mode": "schedule",
+      "executions": 9192,
+      "comparable": 9192
+    }
+  },
+  "G08": {
+    "old": {
+      "label": "诊断不可用",
+      "reason": "结构或边沿变异没有可单独求值的原/变异表达式"
+    },
+    "rule": "NSubInsert_IF",
+    "line": 43,
+    "old_category": "statement_insertion_or_deletion",
+    "new": {
+      "label": "未感染",
+      "condition": "有效位宽内 ('0) 与 (0) 不同",
+      "ranges": {},
+      "mode": "value",
+      "executions": 9,
+      "comparable": 9
+    }
+  },
+  "G10": {
+    "old": {
+      "label": "未感染",
+      "condition": "执行时 (1'b0) 与 ((1'b0) & 1) 在有效位宽内不等",
+      "ranges": {},
+      "executions": 9
+    },
+    "rule": "arithmetic_or_bitwise",
+    "line": 23,
+    "new": {
+      "label": "未感染",
+      "condition": "有效位宽内 (1'b0) 与 ((1'b0) & 1) 不同",
+      "ranges": {},
+      "mode": "value",
+      "executions": 9,
+      "comparable": 9
+    }
+  },
+  "G12": {
+    "old": {
+      "label": "诊断不可用",
+      "reason": "结构或边沿变异没有可单独求值的原/变异表达式"
+    },
+    "rule": "condition_operator",
+    "line": 45,
+    "old_category": "nested_or_indexed_predicate",
+    "new": {
+      "label": "未感染",
+      "condition": "sufficient example at the reached site: dec_valid_in=0, rst_in=1",
+      "ranges": {
+        "rst_in": [
+          0,
+          0
+        ],
+        "dec_valid_in": [
+          0,
+          1
+        ]
+      },
+      "mode": "condition",
+      "executions": 11991,
+      "comparable": 11991
+    }
+  },
+  "G15": {
+    "old": {
+      "label": "诊断不可用",
+      "reason": "结构或边沿变异没有可单独求值的原/变异表达式"
+    },
+    "rule": "negated_condition",
+    "line": 49,
+    "old_category": "nested_or_indexed_predicate",
+    "new": {
+      "label": "未传播",
+      "rhs_first": 4,
+      "rhs_last": 12000,
+      "infections": 54056,
+      "first_values_hex": [
+        "1",
+        "0"
+      ],
+      "interval": {
+        "signal": "predicate",
+        "first_cycle": 4,
+        "equal_again_cycle": null,
+        "cause": "已观测表达式差异，后续消除位置未解析"
+      },
+      "mode": "condition",
+      "executions": 54056,
+      "comparable": 54056
+    }
+  },
+  "G16": {
+    "old": {
+      "label": "诊断不可用",
+      "reason": "结构或边沿变异没有可单独求值的原/变异表达式"
+    },
+    "rule": "relation",
+    "line": 47,
+    "old_category": "nested_or_indexed_predicate",
+    "new": {
+      "label": "未感染",
+      "condition": "有效位宽内 (dec_data_in[2*i] == 1'b1 && dec_data_in[2*i+1] == 1'b0) 与 ((dec_data_in[2*i] == 1'b1 && dec_data_in[2*i+1] == 1'b0) != 1'b0) 不同",
+      "ranges": {
+        "dec_data_in": [
+          0,
+          65535
+        ]
+      },
+      "mode": "condition",
+      "executions": 72136,
+      "comparable": 72136
+    }
+  },
+  "G17": {
+    "old": {
+      "label": "未传播",
+      "rhs_first": 1,
+      "rhs_last": 8003,
+      "interval": {
+        "signal": "predicate",
+        "first_cycle": 1,
+        "equal_again_cycle": null,
+        "cause": "变异表达式有差异，局部覆盖或下游掩蔽无法区分"
+      }
+    },
+    "rule": "removed_condition",
+    "line": 21,
+    "new": {
+      "label": "未传播",
+      "rhs_first": 1,
+      "rhs_last": 8003,
+      "infections": 9,
+      "first_values_hex": [
+        "1",
+        "0"
+      ],
+      "interval": {
+        "signal": "predicate",
+        "first_cycle": 1,
+        "equal_again_cycle": null,
+        "cause": "已观测表达式差异，后续消除位置未解析"
+      },
+      "mode": "condition",
+      "executions": 12000,
+      "comparable": 12000
+    }
+  },
+  "G20": {
+    "old": {
+      "label": "未传播",
+      "rhs_first": 4,
+      "rhs_last": 12000,
+      "interval": {
+        "signal": "predicate",
+        "first_cycle": 4,
+        "equal_again_cycle": null,
+        "cause": "变异表达式有差异，局部覆盖或下游掩蔽无法区分"
+      }
+    },
+    "rule": "threshold_offset",
+    "line": 49,
+    "new": {
+      "label": "未传播",
+      "rhs_first": 4,
+      "rhs_last": 12000,
+      "infections": 35046,
+      "first_values_hex": [
+        "1",
+        "0"
+      ],
+      "interval": {
+        "signal": "predicate",
+        "first_cycle": 4,
+        "equal_again_cycle": null,
+        "cause": "已观测表达式差异，后续消除位置未解析"
+      },
+      "mode": "condition",
+      "executions": 54056,
+      "comparable": 54056
+    }
+  },
+  "G21": {
+    "old": {
+      "label": "未感染",
+      "condition": "执行时 (1'b0) 与 (+(1'b0)) 在有效位宽内不等",
+      "ranges": {},
+      "executions": 9
+    },
+    "rule": "unary_operator",
+    "line": 44,
+    "new": {
+      "label": "未感染",
+      "condition": "有效位宽内 (1'b0) 与 (+(1'b0)) 不同",
+      "ranges": {},
+      "mode": "value",
+      "executions": 9,
+      "comparable": 9
+    }
+  },
+  "G22": {
+    "old": {
+      "label": "诊断不可用",
+      "reason": "结构或边沿变异没有可单独求值的原/变异表达式"
+    },
+    "rule": "AssignN2B",
+    "line": 50,
+    "old_category": "blocking_vs_nonblocking",
+    "new": {
+      "label": "未传播",
+      "interval": {
+        "signal": "dec_data_out",
+        "known_samples": 2519,
+        "differing_samples": 200,
+        "first_cycle": 54,
+        "equal_again_cycle": 54,
+        "cause": "局部信号重新一致，重新赋值与掩蔽未区分"
+      },
+      "mode": "schedule",
+      "executions": 17366,
+      "comparable": 17366
+    }
+  }
+}

@@ -1,0 +1,91 @@
+{
+  "G01": {
+    "old": {
+      "label": "诊断不可用",
+      "reason": "结构或边沿变异没有可单独求值的原/变异表达式"
+    },
+    "rule": "AssignB2N",
+    "line": 88,
+    "old_category": "blocking_vs_nonblocking",
+    "new": {
+      "label": "诊断不可用",
+      "reason": "赋值调度差异没有足够的可证据化采样",
+      "mode": "schedule"
+    }
+  },
+  "G02": {
+    "old": {
+      "label": "诊断不可用",
+      "reason": "结构或边沿变异没有可单独求值的原/变异表达式"
+    },
+    "rule": "AssignN2B",
+    "line": 58,
+    "old_category": "blocking_vs_nonblocking",
+    "new": {
+      "label": "未传播",
+      "interval": {
+        "signal": "masked_change_pulses",
+        "known_samples": 2045,
+        "differing_samples": 48,
+        "first_cycle": 58,
+        "equal_again_cycle": 58,
+        "cause": "局部信号重新一致，重新赋值与掩蔽未区分"
+      },
+      "mode": "schedule",
+      "executions": 3952,
+      "comparable": 3952
+    }
+  },
+  "G10": {
+    "old": {
+      "label": "诊断不可用",
+      "reason": "结构或边沿变异没有可单独求值的原/变异表达式"
+    },
+    "rule": "NSubInsert",
+    "line": 80,
+    "old_category": "statement_insertion_or_deletion",
+    "new": {
+      "label": "未感染",
+      "condition": "有效位宽内 (1'b0) 与 (0) 不同",
+      "ranges": {},
+      "mode": "value",
+      "executions": 1192,
+      "comparable": 1192
+    },
+    "crosscheck": {
+      "label": "未感染",
+      "method": "raw expression trace, independent Python four-state comparison",
+      "executions": 1192,
+      "comparable": 1192,
+      "first": null,
+      "original_line": "            bit_in_d <= 1'b0;",
+      "mutant_line": "            begin bit_in_d <= 1'b0; bit_in_d <= 0; end"
+    }
+  },
+  "G11": {
+    "old": {
+      "label": "诊断不可用",
+      "reason": "结构或边沿变异没有可单独求值的原/变异表达式"
+    },
+    "rule": "NSubInsert_IF",
+    "line": 37,
+    "old_category": "statement_insertion_or_deletion",
+    "new": {
+      "label": "未感染",
+      "condition": "有效位宽内 ({DATA_WIDTH{1'b0}}) 与 (0) 不同",
+      "ranges": {},
+      "mode": "value",
+      "executions": 149,
+      "comparable": 149
+    },
+    "crosscheck": {
+      "label": "未感染",
+      "method": "raw expression trace, independent Python four-state comparison",
+      "executions": 149,
+      "comparable": 149,
+      "first": null,
+      "original_line": "            masked_data_in <= {DATA_WIDTH{1'b0}};",
+      "mutant_line": "            begin masked_data_in <= {DATA_WIDTH{1'b0}}; masked_data_in <= 0; end"
+    }
+  }
+}

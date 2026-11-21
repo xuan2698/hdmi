@@ -1,0 +1,64 @@
+def stimulus(rng, cycles):
+    rows = []
+    rst = 1
+    enc_v = 0
+    enc_d = 0
+    dec_v = 0
+    dec_d = 0
+    for c in range(cycles):
+        if c < 2:
+            rst = 1
+            enc_v = 0
+            enc_d = 0
+            dec_v = 0
+            dec_d = 0
+        elif c == 2:
+            rst = 0
+            enc_v = 0
+            enc_d = 0
+            dec_v = 0
+            dec_d = 0
+        elif c < 6:
+            rst = 0
+            enc_v = 1
+            enc_d = (c * 37) & 0xFF
+            dec_v = 1
+            dec_d = (c * 0x1234) & 0xFFFF
+        else:
+            rst = 0
+            r = rng.random()
+            if r < 0.45:
+                enc_v = 1
+                enc_d = rng.randrange(256)
+            elif r < 0.55:
+                enc_v = 0
+                enc_d = rng.randrange(256)
+            else:
+                enc_v = 0
+                enc_d = 0
+            r2 = rng.random()
+            if r2 < 0.45:
+                dec_v = 1
+                dec_d = rng.randrange(65536)
+            elif r2 < 0.55:
+                dec_v = 0
+                dec_d = rng.randrange(65536)
+            else:
+                dec_v = 0
+                dec_d = 0
+        row = {
+            'rst_in': rst,
+            'enc_valid_in': enc_v,
+            'enc_data_in': enc_d,
+            'dec_valid_in': dec_v,
+            'dec_data_in': dec_d,
+        }
+        if c >= 2 and c % 9 == 4:
+            row['mid'] = {
+                'enc_valid_in': rng.randrange(2),
+                'enc_data_in': rng.randrange(256),
+                'dec_valid_in': rng.randrange(2),
+                'dec_data_in': rng.randrange(65536),
+            }
+        rows.append(row)
+    return rows

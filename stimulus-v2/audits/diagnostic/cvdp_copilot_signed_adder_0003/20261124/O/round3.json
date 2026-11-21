@@ -1,0 +1,91 @@
+{
+  "G02": {
+    "old": {
+      "label": "诊断不可用",
+      "reason": "结构或边沿变异没有可单独求值的原/变异表达式"
+    },
+    "rule": "AssignN2B",
+    "line": 55,
+    "old_category": "blocking_vs_nonblocking",
+    "new": {
+      "label": "未传播",
+      "interval": {
+        "signal": "reg_operand_a",
+        "known_samples": 2482,
+        "differing_samples": 1240,
+        "first_cycle": 10,
+        "equal_again_cycle": 10,
+        "cause": "局部信号重新一致，重新赋值与掩蔽未区分"
+      },
+      "mode": "schedule",
+      "executions": 1259,
+      "comparable": 1259
+    }
+  },
+  "G05": {
+    "old": {
+      "label": "未传播",
+      "rhs_first": 1,
+      "rhs_last": 4003,
+      "interval": {
+        "signal": "reg_operand_b",
+        "first_cycle": 1,
+        "equal_again_cycle": 10,
+        "cause": "信号更新后收敛，重赋值与掩蔽未区分"
+      }
+    },
+    "rule": "ExprInsert",
+    "line": 38,
+    "new": {
+      "label": "未传播",
+      "rhs_first": 1,
+      "rhs_last": 4003,
+      "infections": 8,
+      "first_values_hex": [
+        "00",
+        "01"
+      ],
+      "interval": {
+        "signal": "reg_operand_b",
+        "known_samples": 1242,
+        "differing_samples": 2,
+        "first_cycle": 1,
+        "equal_again_cycle": 10,
+        "cause": "局部信号重新一致，重新赋值与掩蔽未区分"
+      },
+      "mode": "value",
+      "executions": 8,
+      "comparable": 8
+    }
+  },
+  "G18": {
+    "old": {
+      "label": "诊断不可用",
+      "reason": "结构或边沿变异没有可单独求值的原/变异表达式"
+    },
+    "rule": "condition_operator",
+    "line": 48,
+    "old_category": "nested_or_indexed_predicate",
+    "new": {
+      "label": "未感染",
+      "condition": "有效位宽内 (i_enable && i_start) 与 ((i_enable && i_start) || i_clear) 不同",
+      "ranges": {
+        "i_start": [
+          0,
+          1
+        ],
+        "i_enable": [
+          0,
+          1
+        ],
+        "i_clear": [
+          0,
+          0
+        ]
+      },
+      "mode": "condition",
+      "executions": 3896,
+      "comparable": 3896
+    }
+  }
+}

@@ -1,0 +1,50 @@
+def stimulus(rng, cycles):
+    rows = []
+    reset = 1
+    start_stop = 0
+    for i in range(cycles):
+        if i == 0:
+            reset = 1
+            start_stop = 0
+        elif i == 3:
+            reset = 0
+            start_stop = 0
+        elif i == 5:
+            start_stop = 1
+        elif i == 200:
+            start_stop = 0
+        elif i == 250:
+            start_stop = 1
+        elif i == 400:
+            reset = 1
+        elif i == 402:
+            reset = 0
+            start_stop = 0
+        elif i == 405:
+            start_stop = 1
+        elif i == 1000:
+            start_stop = 0
+        elif i == 1100:
+            start_stop = 1
+        elif i == 5000:
+            reset = 1
+        elif i == 5002:
+            reset = 0
+            start_stop = 1
+        elif i == 10000:
+            start_stop = 0
+        elif i == 12000:
+            start_stop = 1
+        elif i == 15000:
+            reset = 1
+        elif i == 15002:
+            reset = 0
+            start_stop = 0
+        elif i == 15005:
+            start_stop = 1
+        elif i == 18000:
+            start_stop = 0
+        elif i == 18500:
+            start_stop = 1
+        rows.append({'reset': reset, 'start_stop': start_stop})
+    return rows
