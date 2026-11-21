@@ -1,0 +1,1 @@
+I don't see a specification in your message. Could you please provide the hardware design specification (module name, pin names/directions, reset/clock semantics, parameters, and functional description) so I can implement it?

@@ -1,0 +1,1 @@
+I don't see a specification in your message. Could you paste the hardware design spec (module name, pins, parameters, reset/clock semantics, behavior) so I can produce the synthesizable SystemVerilog/Verilog source?
