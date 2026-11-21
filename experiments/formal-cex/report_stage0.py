@@ -1,5 +1,6 @@
 """Export the amended toolchain gate and per-task results from saved checkpoints."""
 
+import argparse
 import csv
 import json
 from collections import Counter
@@ -23,12 +24,15 @@ def write(name, rows):
 
 
 def main():
+    parser=argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--round",type=int,choices=(2,3),default=2)
+    args=parser.parse_args()
     catalogs=[read(p) for p in sorted((ROOT/"generation/G").glob("*/*/catalog.json"))]
     matrix={(r["task"],r["proxy"],g["id"]) for r in catalogs for g in r["candidates"]}
     if len(catalogs)!=100 or not matrix:
         raise ValueError("Missing the frozen proxy-only G archive")
     solved={}
-    for path in (ROOT/"stage0/round2").glob("*/*/G*.json"):
+    for path in (ROOT/"stage0"/f"round{args.round}").glob("*/*/G*.json"):
         record=read(path)
         key=(record["task"],record["proxy"],record["G"])
         assert key in matrix
@@ -41,7 +45,7 @@ def main():
     max_rate=(vetted+pending)/total
     result="passed" if pending==0 and min_rate>=.70 else "failed" if pending==0 else "in_progress"
     write("stage0_amended_gate.csv",[
-        {"status":result,"proxy_slots":len(catalogs),
+        {"status":result,"round":args.round,"proxy_slots":len(catalogs),
          "proxies_with_G":sum(bool(r["candidates"]) for r in catalogs),
          "total_pairs":total,"completed_pairs":done,"pending_pairs":pending,"formal_successes":vetted,
          "observed_completed_success_rate":vetted/done if done else "",

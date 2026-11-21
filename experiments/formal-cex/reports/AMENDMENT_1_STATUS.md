@@ -49,3 +49,9 @@ python3 experiments/formal-cex/stage0.py --repair 2 --quick --workers 6
 python3 experiments/formal-cex/stage0.py --repair 2 --workers 6
 python3 experiments/formal-cex/report_stage0.py
 ```
+
+## 已发布的阶段 0 检查点
+
+快速检查已结束，仍未定的配对已进入完整 BMC。发布时的已完成数、成功数和未决数见门槛 CSV。已完成子集的比例用于显示进度，门槛仍以冻结矩阵全体为分母。主比较、Oracle-F 和 HDLBits 次要比较尚未启动。[完整 BMC 检查点](stage0_amended_gate.csv)
+
+独立 eval 还按代理回放结果汇总了各类代理贡献的已复放反例和有界证明。输出不一致的代理仍会产生可复放的 proxy/G 反例。这项统计区分代理层面的反例证据和目标评测效果，未用来筛选 G。[eval 侧交叉汇总](proxy_eval_formal_join.csv)

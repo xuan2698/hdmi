@@ -382,9 +382,10 @@ def solve(row,candidate,repair,quick=False):
         for engine,allocation in (("boolector",75),("z3",120)):
             if attempt(engine,engine,allocation,4*BOUNDS[-1]+1,keep_memory=ram):
                 break
-        if repair>=3 and not sequence and "Latch inferred" in reason:
-            formal_design(source,mutant,ports,work,repair,normalized=True)
-            attempt("boolector_latch_search","boolector",12,4*BOUNDS[0]+1,restricted=True)
+    if repair>=3 and not sequence and "Latch inferred" in reason:
+        formal_design(source,mutant,ports,work,repair,normalized=True)
+        fixed=attempt("boolector_latch_search","boolector",12,4*BOUNDS[0]+1,restricted=True)
+        complete=complete or fixed
     result={"task":task,"proxy":proxy,"G":tag,"category":category,"formal_success":formal_success,
             "replayable":sequence is not None,"cycles":len(sequence) if sequence else None,
             "reset_cycles":1 if ports["resets"] else 0,"reason":reason,
