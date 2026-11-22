@@ -1,0 +1,45 @@
+def reference(vectors):
+    # Initial state C at time zero per selected unresolved interpretation.
+    state = 'C'
+    outputs = []
+
+    for row in vectors:
+        # Values in the row are driven before the sampled posedge.
+        reset = row.get('reset', 0)
+        inp = row.get('in', 0)
+
+        # Rule sync_reset: synchronous active-high reset has priority.
+        if reset == 1:
+            state = 'A'
+        else:
+            # Rule transition_and_moore_output: explicit transition table.
+            if state == 'A':
+                if inp == 0:
+                    state = 'A'
+                else:
+                    state = 'B'
+            elif state == 'B':
+                if inp == 0:
+                    state = 'C'
+                else:
+                    state = 'B'
+            elif state == 'C':
+                if inp == 0:
+                    state = 'A'
+                else:
+                    state = 'D'
+            elif state == 'D':
+                if inp == 0:
+                    state = 'C'
+                else:
+                    state = 'B'
+            else:
+                state = 'A'
+
+        # Rule transition_and_moore_output: Moore output after the posedge.
+        out = 1 if state == 'D' else 0
+
+        # Mid input changes after sampling affect only future sampled edges.
+        outputs.append({'out': out})
+
+    return outputs

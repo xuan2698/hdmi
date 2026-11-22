@@ -1,0 +1,90 @@
+{
+  "coverage": {
+    "S01": ["R1", "R2"],
+    "S02": ["R1", "R2"],
+    "S03": ["R1", "R2"],
+    "S04": ["unrelated"],
+    "S05": ["R1"],
+    "S06": ["R1"],
+    "S07": ["R1"],
+    "S08": ["R1"],
+    "S09": ["R1"],
+    "S10": ["R1"],
+    "S11": ["R1"],
+    "S12": ["R1"],
+    "S13": ["R2"],
+    "S14": ["R2"],
+    "S15": ["R2"],
+    "S16": ["R2"],
+    "S17": ["R2"],
+    "S18": ["R2"],
+    "S19": ["R2"],
+    "S20": ["R2"],
+    "S21": ["R2"],
+    "S22": ["R2"]
+  },
+  "issues": [
+    {
+      "issue_id": "I1",
+      "rule_id": "R1",
+      "type": "grounding",
+      "severity": "high",
+      "detail": "R1 claims a=1 holds q, but spec shows q changing from 4 to 5 at 55ns with a=0, and from 5 to 6 at 65ns with a=0; R1's quote at 15ns only shows hold, not the full behavior.",
+      "spec_evidence": "15ns            1               1               4",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I2",
+      "rule_id": "R2",
+      "type": "grounding",
+      "severity": "high",
+      "detail": "R2 claims a=0 increments q, but spec shows q holding at 4 from 5ns to 45ns while a=1, then changing to 5 at 55ns with a=0; R2's quote at 55ns shows increment but not the hold behavior when a=1.",
+      "spec_evidence": "55ns            1               0               5",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I3",
+      "rule_id": "global",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "Contract states q increments modulo 8 on posedge when a=0 and holds when a=1, but spec waveform shows q=4 at 5ns (posedge with a=1) and q=5 at 55ns (posedge with a=0), consistent with increment on a=0; however at 45ns posedge a=0 q=4, at 55ns posedge a=0 q=5, at 65ns posedge a=0 q=6, at 75ns posedge a=0 q=0 (wrap), at 85ns posedge a=0 q=1. This matches R2 but R1's example shows hold on a=1 which is consistent. No contradiction between rules and examples, but spec S04 shows q=x at 0ns with a=1, which is not covered by any rule (no reset, no initial state).",
+      "spec_evidence": "0ns             0               1               x",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I4",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec does not define initial q value or behavior at time 0; contract has no reset and first_released_cycle 0ns, but S04 shows q=x at 0ns. Alternative: q initializes to 0 at time 0 regardless of a, then increments on posedge when a=0. Distinguishing sequence: first row a=1 at posedge would yield q=0 under alternative vs q=x under contract (no reset).",
+      "spec_evidence": "0ns             0               1               x",
+      "alternative": "q initializes to 0 at time 0, then increments on posedge when a=0, holds when a=1.",
+      "sequence": [
+        {"a": 1}
+      ]
+    },
+    {
+      "issue_id": "I5",
+      "rule_id": "global",
+      "type": "spec_example",
+      "severity": "high",
+      "detail": "Derived outputs from spec waveform: at 5ns posedge a=1 q=4 (hold from x? but x->4 not hold); at 15ns posedge a=1 q=4 (hold); at 25ns posedge a=1 q=4 (hold); at 35ns posedge a=1 q=4 (hold); at 45ns posedge a=0 q=4 (hold? but a=0 should increment per R2, yet q stays 4); at 55ns posedge a=0 q=5 (increment); at 65ns posedge a=0 q=6 (increment); at 75ns posedge a=0 q=0 (increment mod 8); at 85ns posedge a=0 q=1 (increment). Contract R2 example expects increment on a=0, but spec shows hold at 45ns with a=0 (q=4 from 35ns to 45ns). This contradicts R2.",
+      "spec_evidence": "45ns            1               0               4",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I6",
+      "rule_id": "R2",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "R2 example expects q=5,6,7 for three consecutive a=0 posedges, but spec at 45ns posedge a=0 shows q=4 (no increment from previous 4), then at 55ns posedge a=0 q=5. This suggests increment may be conditional on previous a or other factor, contradicting R2's unconditional increment on a=0.",
+      "spec_evidence": "45ns            1               0               4",
+      "alternative": "",
+      "sequence": []
+    }
+  ]
+}

@@ -1,0 +1,81 @@
+{
+  "coverage": {
+    "S01": ["R1_async_reset", "R2_mispredict_priority", "R3_predict_shift", "R4_hold"],
+    "S02": ["R2_mispredict_priority", "R3_predict_shift"],
+    "S03": ["R2_mispredict_priority"],
+    "S04": ["R1_async_reset", "R2_mispredict_priority", "R4_hold"]
+  },
+  "issues": [
+    {
+      "issue_id": "I1",
+      "rule_id": "R2_mispredict_priority",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "Rule example expected value contradicts spec: train_history=5, train_taken=1 should yield predict_history=11 (5<<1|1), but example expects 0 then 11.",
+      "spec_evidence": "This is the history before the mispredicted branch (train_history) concatenated with the actual result of the branch (train_taken).",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I2",
+      "rule_id": "R3_predict_shift",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "Rule example expected values contradict shift semantics: after shifting in 1 then 0, history should be 2 (binary 10), but example expects 1 then 2.",
+      "spec_evidence": "shift in predict_taken from the LSB side to update the branch history for the predicted branch",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I3",
+      "rule_id": "R2_mispredict_priority",
+      "type": "grounding",
+      "severity": "medium",
+      "detail": "Rule condition omits areset==0 but spec_quote does not mention areset; reset priority over mispredict is implied but not verbatim.",
+      "spec_evidence": "If both a prediction and misprediction occur at the same time, the misprediction takes precedence",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I4",
+      "rule_id": "R1_async_reset",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec says 'positive edge triggered asynchronous reset' which is contradictory; contract treats as level-sensitive async reset. Alternative: reset only on rising edge of areset.",
+      "spec_evidence": "areset is a positive edge triggered asynchronous reset that resets the history counter to zero",
+      "alternative": "Reset occurs only on the rising edge of areset, not while areset remains high.",
+      "sequence": [
+        {"areset": 1, "predict_valid": 0, "predict_taken": 0, "train_mispredicted": 0, "train_taken": 0, "train_history": 0},
+        {"areset": 1, "predict_valid": 1, "predict_taken": 1, "train_mispredicted": 0, "train_taken": 0, "train_history": 0},
+        {"areset": 0, "predict_valid": 0, "predict_taken": 0, "train_mispredicted": 0, "train_taken": 0, "train_history": 0}
+      ]
+    },
+    {
+      "issue_id": "I5",
+      "rule_id": "R2_mispredict_priority",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec does not specify whether train_history is the history before or after the mispredicted branch; contract assumes before. Alternative: train_history is history after the mispredicted branch.",
+      "spec_evidence": "load the branch history register with the history after the completion of the mispredicted branch. This is the history before the mispredicted branch (train_history) concatenated with the actual result of the branch (train_taken).",
+      "alternative": "train_history is the history after the mispredicted branch, so new history = train_history (ignoring train_taken).",
+      "sequence": [
+        {"areset": 0, "predict_valid": 0, "predict_taken": 0, "train_mispredicted": 1, "train_taken": 1, "train_history": 5},
+        {"areset": 0, "predict_valid": 0, "predict_taken": 0, "train_mispredicted": 0, "train_taken": 0, "train_history": 0}
+      ]
+    },
+    {
+      "issue_id": "I6",
+      "rule_id": "R3_predict_shift",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec says shift in predict_taken from LSB side but does not explicitly state shift direction (left vs right). Contract assumes left shift (history << 1 | predict_taken). Alternative: right shift (history >> 1 | predict_taken << 31).",
+      "spec_evidence": "shift in predict_taken from the LSB side to update the branch history for the predicted branch",
+      "alternative": "Shift right: new history = (history >> 1) | (predict_taken << 31).",
+      "sequence": [
+        {"areset": 0, "predict_valid": 1, "predict_taken": 1, "train_mispredicted": 0, "train_taken": 0, "train_history": 0},
+        {"areset": 0, "predict_valid": 1, "predict_taken": 0, "train_mispredicted": 0, "train_taken": 0, "train_history": 0},
+        {"areset": 0, "predict_valid": 0, "predict_taken": 0, "train_mispredicted": 0, "train_taken": 0, "train_history": 0}
+      ]
+    }
+  ]
+}

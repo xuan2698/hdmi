@@ -1,0 +1,66 @@
+```python
+def reference(vectors):
+    # State meaning: A = reset/no 1 seen, B = complement mode z=0, C = copy/first-1 mode z=1
+    state = 'A'
+    cur = {'areset': 0, 'x': 0}
+    out = []
+
+    for row in vectors:
+        # Apply inputs driven before the sampled posedge.
+        for k, v in row.items():
+            if k == 'mid':
+                continue
+            if k == 'areset' or k == 'x':
+                cur[k] = int(v) & 1
+
+        # reset_async_z0: asynchronous active-high reset forces A and z=0.
+        if cur['areset'] == 1:
+            state = 'A'
+
+        # global: Moore output reflects current state before the edge.
+        z = 1 if state == 'C' else 0
+
+        # Posedge transition, with asynchronous reset taking priority.
+        if cur['areset'] == 1:
+            state = 'A'  # reset_async_z0
+        else:
+            if state == 'A':
+                if cur['x'] == 0:
+                    state = 'A'  # A_x0_to_A_z0
+                else:
+                    state = 'C'  # A_x1_to_C_z1
+            elif state == 'B':
+                if cur['x'] == 0:
+                    state = 'C'  # B_x0_to_C_z1
+                else:
+                    state = 'B'  # B_x1_to_B_z0
+            elif state == 'C':
+                if cur['x'] == 0:
+                    state = 'C'  # C_x0_to_C_z1
+                else:
+                    state = 'B'  # C_x1_to_B_z0
+
+        # Optional mid changes occur after sampling, before the next edge.
+        m = row.get('mid', None) if isinstance(row, dict) else None
+        if m is not None:
+            changes = []
+            if isinstance(m, dict):
+                changes = list(m.items())
+            elif isinstance(m, (list, tuple)):
+                for item in m:
+                    if isinstance(item, dict):
+                        for kk, vv in item.items():
+                            changes.append((kk, vv))
+                    elif isinstance(item, (list, tuple)) and len(item) >= 2:
+                        changes.append((item[0], item[1]))
+
+            for k, v in changes:
+                if k == 'areset' or k == 'x':
+                    cur[k] = int(v) & 1
+                    if k == 'areset' and cur[k] == 1:
+                        state = 'A'  # reset_async_z0 (mid asynchronous reset)
+
+        out.append({'z': z})
+
+    return out
+```

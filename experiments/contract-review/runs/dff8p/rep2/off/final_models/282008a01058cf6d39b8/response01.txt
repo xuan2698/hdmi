@@ -1,0 +1,32 @@
+```python
+def reference(vectors):
+    # Contract implementation.
+    # State: Q = 8-bit flip-flop output register, reset value 0x34 (52).
+    # Update time: negedge of clk. Sample after negedge settles.
+    # R1_sync_reset: reset==1 at negedge -> q = 0x34 (priority 1).
+    # R2_dff_capture: reset==0 at negedge -> q = d (priority 2).
+    # R3_reset_value: reset value is 0x34, not 0.
+    # Mid changes occur AFTER sampling, before other edge, carried to next row.
+
+    Q = 0x34  # power-up / initial state (R3_reset_value)
+    out = []
+
+    for row in vectors:
+        d = row.get("d", 0) & 0xFF
+        reset = row.get("reset", 0) & 0x1
+
+        # Sample at negedge (values driven before sampled edge).
+        # R1_sync_reset (priority 1)
+        if reset == 1:
+            Q = 0x34  # R3_reset_value
+        else:
+            # R2_dff_capture (priority 2)
+            Q = d & 0xFF
+
+        out.append({"q": Q & 0xFF})
+
+        # Mid changes: applied AFTER sampling, carried to next row.
+        # (No explicit mid field in this contract's vectors; nothing to do.)
+
+    return out
+```

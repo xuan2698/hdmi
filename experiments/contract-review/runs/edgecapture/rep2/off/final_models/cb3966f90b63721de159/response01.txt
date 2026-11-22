@@ -1,0 +1,22 @@
+```python
+def reference(vectors):
+    # State: out_reg (32-bit sticky flag), prev_in (32-bit previous input)
+    out_reg = 0
+    prev_in = 0
+    results = []
+    for row in vectors:
+        reset = row['reset'] & 1
+        inp = row['in'] & 0xFFFFFFFF
+        # R1_reset_clear: synchronous reset clears out_reg (priority 0)
+        if reset == 1:
+            out_reg = 0
+        else:
+            # R2_capture_falling: capture 1->0 transitions (priority 1)
+            falling = prev_in & (~inp & 0xFFFFFFFF)
+            out_reg = out_reg | falling
+            # R3_hold: otherwise hold (priority 2) - implicit, no change
+        # Update prev_in for next cycle
+        prev_in = inp
+        results.append({'out': out_reg & 0xFFFFFFFF})
+    return results
+```

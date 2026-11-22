@@ -1,0 +1,25 @@
+```python
+def reference(vectors):
+    # Contract implementation.
+    # State: out_reg (32-bit sticky), prev_in (32-bit previous input).
+    # Initial prev_in is unspecified; choose 0 at time 0 (one of the candidates).
+    out_reg = 0
+    prev_in = 0
+    results = []
+    for row in vectors:
+        reset = row["reset"] & 1
+        cur_in = row["in"] & 0xFFFFFFFF
+        # R1_reset_clear: synchronous reset clears out_reg (priority 0)
+        if reset == 1:
+            out_reg = 0
+        else:
+            # R2_capture_falling: set bits where prev_in=1 and in=0 (priority 1)
+            falling = prev_in & (~cur_in) & 0xFFFFFFFF
+            out_reg = (out_reg | falling) & 0xFFFFFFFF
+            # R3_hold: bits not falling remain held (priority 2) - implicit
+        # Output visible same cycle after posedge
+        results.append({"out": out_reg & 0xFFFFFFFF})
+        # Update prev_in for next cycle (mid changes carried to next row start)
+        prev_in = cur_in
+    return results
+```

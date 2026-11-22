@@ -1,0 +1,59 @@
+```python
+def reference(vectors):
+    # Rule global: initial state A at time zero per candidate interpretation.
+    state = 0  # A
+    cur_in = 0
+    cur_reset = 0
+    outs = []
+
+    for row in vectors:
+        if "reset" in row:
+            cur_reset = row["reset"]
+        if "in" in row:
+            cur_in = row["in"]
+
+        # Rule sync_reset: synchronous active high reset.
+        if cur_reset == 1:
+            state = 0
+        else:
+            # Rule transition_and_moore_output: explicit state transitions.
+            if state == 0:       # A
+                if cur_in == 1:
+                    state = 1    # B
+                else:
+                    state = 0    # A
+            elif state == 1:     # B
+                if cur_in == 1:
+                    state = 1    # B
+                else:
+                    state = 2    # C
+            elif state == 2:     # C
+                if cur_in == 1:
+                    state = 3    # D
+                else:
+                    state = 0    # A
+            elif state == 3:     # D
+                if cur_in == 1:
+                    state = 1    # B
+                else:
+                    state = 2    # C
+
+        # Rule transition_and_moore_output: Moore output after the edge.
+        if state == 3:
+            out = 1
+        else:
+            out = 0
+
+        outs.append({"out": out})
+
+        # Optional mid input changes occur AFTER sampling, before the other edge,
+        # and are carried to the start of the next row.
+        if "mid" in row:
+            mid = row["mid"]
+            if "in" in mid:
+                cur_in = mid["in"]
+            if "reset" in mid:
+                cur_reset = mid["reset"]
+
+    return outs
+```

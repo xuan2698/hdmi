@@ -1,0 +1,126 @@
+{
+  "responses": [
+    {
+      "issue_id": "I1",
+      "decision": "accept",
+      "reason": "The R2 example lacks an initial state and reset history, so its expected q=1..4 is unverifiable. Adding a reset=1 vector first establishes q=0 before counting begins, making the sequence self-consistent.",
+      "spec_quote": "counts from 0 through 9, inclusive, with a period of 10",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R2_COUNT_UP_WRAP",
+            "example"
+          ],
+          "value": {
+            "vectors": [
+              {
+                "reset": 1
+              },
+              {
+                "reset": 0
+              },
+              {
+                "reset": 0
+              },
+              {
+                "reset": 0
+              }
+            ],
+            "expected": [
+              {
+                "q": 0
+              },
+              {
+                "q": 1
+              },
+              {
+                "q": 2
+              },
+              {
+                "q": 3
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "issue_id": "I2",
+      "decision": "accept",
+      "reason": "The condition reset==0 does not explicitly encode wrap from 9 to 0; the period-10 wrap should be stated in the condition to distinguish from saturation.",
+      "spec_quote": "counts from 0 through 9, inclusive, with a period of 10",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R2_COUNT_UP_WRAP",
+            "condition"
+          ],
+          "value": "reset == 0; q increments by 1, wrapping from 9 to 0 (period 10)"
+        }
+      ]
+    },
+    {
+      "issue_id": "I3",
+      "decision": "accept",
+      "reason": "The R1 example begins with reset=0 from an unspecified state; prefixing with reset=1 establishes q=0 so the subsequent reset=1 vectors are verifiable.",
+      "spec_quote": "The reset input is active high synchronous, and should reset the counter to 0.",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R1_SYNC_RESET",
+            "example"
+          ],
+          "value": {
+            "vectors": [
+              {
+                "reset": 1
+              },
+              {
+                "reset": 1
+              },
+              {
+                "reset": 0
+              },
+              {
+                "reset": 1
+              }
+            ],
+            "expected": [
+              {
+                "q": 0
+              },
+              {
+                "q": 0
+              },
+              {
+                "q": 0
+              },
+              {
+                "q": 0
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "issue_id": "I4",
+      "decision": "accept",
+      "reason": "Wrap behavior and period=10 should be encoded as a testable condition in R2 rather than only in the quote; the condition edit above makes it explicit.",
+      "spec_quote": "Build a decade counter that counts from 0 through 9, inclusive, with a period of 10.",
+      "edits": [
+        {
+          "path": [
+            "states",
+            "COUNT",
+            "meaning"
+          ],
+          "value": "Counter holds current count value 0..9; increments by 1 on each posedge unless reset is high, in which case it loads 0. Wraps from 9 to 0 (period 10)."
+        }
+      ]
+    }
+  ]
+}

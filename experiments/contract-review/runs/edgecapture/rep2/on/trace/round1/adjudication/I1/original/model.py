@@ -1,0 +1,41 @@
+def reference(vectors):
+    # State: out is the sticky 32-bit capture register; prev_in is the previous sampled in.
+    out = 0
+    prev_in = 0
+    cur_reset = 0
+    cur_in = 0
+    mask = (1 << 32) - 1
+    results = []
+
+    for row in vectors:
+        # Drive row's explicit inputs before the sampled posedge.
+        if "reset" in row:
+            cur_reset = row["reset"] & 1
+        if "in" in row:
+            cur_in = row["in"] & mask
+
+        # Posedge sampling and state update.
+        if cur_reset:
+            # Rule reset_clear: active-high synchronous reset has priority; out becomes 0.
+            out = 0
+            # prev_in still tracks every posedge, including reset cycles.
+            prev_in = cur_in
+        else:
+            # Rule capture_fall: set bits where prev_in[i] is 1 and cur_in[i] is 0.
+            fall = prev_in & (mask ^ cur_in)
+            # Rule hold_state: bits without a detected fall retain their value.
+            out = (out | fall) & mask
+            # prev_in tracks the sampled in on this posedge.
+            prev_in = cur_in
+
+        results.append({"out": out})
+
+        # Apply mid changes after sampling, before the next edge.
+        mid = row.get("mid", {})
+        if mid:
+            if "reset" in mid:
+                cur_reset = mid["reset"] & 1
+            if "in" in mid:
+                cur_in = mid["in"] & mask
+
+    return results

@@ -1,0 +1,79 @@
+def reference(vectors):
+    # State encoding: A = reset/no 1 seen, B = complement output 0, C = copy output 1.
+    state = "A"
+    cur_areset = 0
+    cur_x = 0
+    outputs = []
+
+    for row in vectors:
+        # Apply row values driven before the sampled positive edge.
+        if "areset" in row:
+            cur_areset = row["areset"]
+        if "x" in row:
+            cur_x = row["x"]
+
+        # Sample after the positive edge has settled.
+        if cur_areset == 1:
+            # reset_async_z0: asynchronous reset forces state A and output z=0.
+            state = "A"
+            z = 0
+        else:
+            if state == "A":
+                if cur_x == 0:
+                    # A_x0_to_A_z0
+                    state = "A"
+                    z = 0
+                else:
+                    # A_x1_to_C_z1
+                    state = "C"
+                    z = 1
+            elif state == "B":
+                if cur_x == 0:
+                    # B_x0_to_C_z1
+                    state = "C"
+                    z = 1
+                else:
+                    # B_x1_to_B_z0
+                    state = "B"
+                    z = 0
+            elif state == "C":
+                if cur_x == 0:
+                    # C_x0_to_C_z1
+                    state = "C"
+                    z = 1
+                else:
+                    # C_x1_to_B_z0
+                    state = "B"
+                    z = 0
+            else:
+                state = "A"
+                z = 0
+
+        outputs.append({"z": z})
+
+        # Optional mid changes occur after sampling, before the other edge.
+        if "mid" in row:
+            mid = row["mid"]
+            if mid:
+                try:
+                    # Mapping form of mid changes.
+                    mid.get("x", cur_x)
+                    if "areset" in mid:
+                        cur_areset = mid["areset"]
+                        # reset_async_z0: asynchronous reset forces state A when asserted.
+                        if cur_areset == 1:
+                            state = "A"
+                    if "x" in mid:
+                        cur_x = mid["x"]
+                except:
+                    # Sequence form of mid changes.
+                    for change in mid:
+                        if "areset" in change:
+                            cur_areset = change["areset"]
+                            # reset_async_z0: asynchronous reset forces state A when asserted.
+                            if cur_areset == 1:
+                                state = "A"
+                        if "x" in change:
+                            cur_x = change["x"]
+
+    return outputs

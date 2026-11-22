@@ -1,0 +1,340 @@
+[
+  {
+    "issue_id": "I1",
+    "before": {
+      "ports": {
+        "inputs": {
+          "reset": 1,
+          "in": 32
+        },
+        "outputs": {
+          "out": 32
+        },
+        "clock": "clk"
+      },
+      "states": [
+        {
+          "name": "out",
+          "meaning": "32-bit sticky capture register; out[i] becomes 1 after in[i] is sampled as 1 in one cycle and 0 in the next, and remains 1 until synchronous reset.",
+          "update_time": "posedge after sampling reset and in; reset has priority and sets all bits to 0",
+          "update_during_reset": true
+        },
+        {
+          "name": "prev_in",
+          "meaning": "32-bit previous sampled value of in, used to detect per-bit 1-to-0 transitions; it tracks in on every posedge including reset cycles.",
+          "update_time": "posedge after sampling in",
+          "update_during_reset": true
+        }
+      ],
+      "rules": [
+        {
+          "id": "reset_clear",
+          "outputs": [
+            "out"
+          ],
+          "condition": "reset == 1; on this posedge out becomes 32'd0.",
+          "edge": "posedge",
+          "visible": "same_cycle",
+          "priority": 2,
+          "spec_quote": "active high synchronous reset",
+          "uncertain": false,
+          "example": {
+            "vectors": [
+              {
+                "reset": 0,
+                "in": 1
+              },
+              {
+                "reset": 0,
+                "in": 0
+              },
+              {
+                "reset": 1,
+                "in": 0
+              }
+            ],
+            "expected": [
+              {
+                "out": 0
+              },
+              {
+                "out": 1
+              },
+              {
+                "out": 0
+              }
+            ]
+          }
+        },
+        {
+          "id": "capture_fall",
+          "outputs": [
+            "out"
+          ],
+          "condition": "reset == 0 and exists i such that prev_in[i] == 1 and in[i] == 0; for each bit j, out[j] becomes 1 if prev_in[j] == 1 and in[j] == 0, else out[j] holds its previous value.",
+          "edge": "posedge",
+          "visible": "same_cycle",
+          "priority": 1,
+          "spec_quote": "capture when the input signal changes from 1 in one clock cycle to 0 the next",
+          "uncertain": false,
+          "example": {
+            "vectors": [
+              {
+                "reset": 0,
+                "in": 1
+              },
+              {
+                "reset": 0,
+                "in": 0
+              },
+              {
+                "reset": 0,
+                "in": 0
+              }
+            ],
+            "expected": [
+              {
+                "out": 0
+              },
+              {
+                "out": 1
+              },
+              {
+                "out": 1
+              }
+            ]
+          }
+        },
+        {
+          "id": "hold_state",
+          "outputs": [
+            "out"
+          ],
+          "condition": "reset == 0 and for all i, not (prev_in[i] == 1 and in[i] == 0); for each bit j, out[j] holds its previous value.",
+          "edge": "posedge",
+          "visible": "same_cycle",
+          "priority": 0,
+          "spec_quote": "output will remain 1 until the register is reset",
+          "uncertain": false,
+          "example": {
+            "vectors": [
+              {
+                "reset": 0,
+                "in": 1
+              },
+              {
+                "reset": 0,
+                "in": 0
+              },
+              {
+                "reset": 0,
+                "in": 1
+              },
+              {
+                "reset": 0,
+                "in": 1
+              }
+            ],
+            "expected": [
+              {
+                "out": 0
+              },
+              {
+                "out": 1
+              },
+              {
+                "out": 1
+              },
+              {
+                "out": 1
+              }
+            ]
+          }
+        }
+      ],
+      "reset": {
+        "kind": "sync",
+        "name": "reset",
+        "active": "high",
+        "values": {
+          "out": 0
+        },
+        "first_released_cycle": "the first posedge that samples reset == 0; normal capture/hold behavior applies on that same edge after reset is released"
+      },
+      "mid": "mid may specify nonclock input changes applied after the row's posedge sampling and before the next edge; those changes become the start values for the next row unless the next row explicitly overrides them.",
+      "uncertain": []
+    },
+    "after": {
+      "ports": {
+        "inputs": {
+          "reset": 1,
+          "in": 32
+        },
+        "outputs": {
+          "out": 32
+        },
+        "clock": "clk"
+      },
+      "states": [
+        {
+          "name": "out",
+          "meaning": "32-bit sticky capture register; out[i] becomes 1 after in[i] is sampled as 1 in one cycle and 0 in the next, and remains 1 until synchronous reset.",
+          "update_time": "posedge after sampling reset and in; reset has priority and sets all bits to 0",
+          "update_during_reset": true
+        },
+        {
+          "name": "prev_in",
+          "meaning": "32-bit previous sampled value of in, used to detect per-bit 1-to-0 transitions; it tracks in on every posedge including reset cycles.",
+          "update_time": "posedge after sampling in",
+          "update_during_reset": true
+        }
+      ],
+      "rules": [
+        {
+          "id": "reset_clear",
+          "outputs": [
+            "out"
+          ],
+          "condition": "reset == 1; on this posedge out becomes 32'd0.",
+          "edge": "posedge",
+          "visible": "same_cycle",
+          "priority": 2,
+          "spec_quote": "active high synchronous reset",
+          "uncertain": false,
+          "example": {
+            "vectors": [
+              {
+                "reset": 0,
+                "in": 1
+              },
+              {
+                "reset": 0,
+                "in": 0
+              },
+              {
+                "reset": 1,
+                "in": 0
+              }
+            ],
+            "expected": [
+              {
+                "out": 0
+              },
+              {
+                "out": 1
+              },
+              {
+                "out": 0
+              }
+            ]
+          }
+        },
+        {
+          "id": "capture_fall",
+          "outputs": [
+            "out"
+          ],
+          "condition": "reset == 0 and exists i such that prev_in[i] == 1 and in[i] == 0; for each bit j, out[j] becomes 1 if prev_in[j] == 1 and in[j] == 0, else out[j] holds its previous value.",
+          "edge": "posedge",
+          "visible": "same_cycle",
+          "priority": 1,
+          "spec_quote": "capture when the input signal changes from 1 in one clock cycle to 0 the next",
+          "uncertain": false,
+          "example": {
+            "vectors": [
+              {
+                "reset": 0,
+                "in": 1
+              },
+              {
+                "reset": 0,
+                "in": 0
+              },
+              {
+                "reset": 0,
+                "in": 0
+              }
+            ],
+            "expected": [
+              {
+                "out": 0
+              },
+              {
+                "out": 1
+              },
+              {
+                "out": 1
+              }
+            ]
+          }
+        },
+        {
+          "id": "hold_state",
+          "outputs": [
+            "out"
+          ],
+          "condition": "reset == 0 and for all i, not (prev_in[i] == 1 and in[i] == 0); for each bit j, out[j] holds its previous value.",
+          "edge": "posedge",
+          "visible": "same_cycle",
+          "priority": 0,
+          "spec_quote": "output will remain 1 until the register is reset",
+          "uncertain": false,
+          "example": {
+            "vectors": [
+              {
+                "reset": 0,
+                "in": 1
+              },
+              {
+                "reset": 0,
+                "in": 0
+              },
+              {
+                "reset": 0,
+                "in": 1
+              },
+              {
+                "reset": 0,
+                "in": 1
+              }
+            ],
+            "expected": [
+              {
+                "out": 0
+              },
+              {
+                "out": 1
+              },
+              {
+                "out": 1
+              },
+              {
+                "out": 1
+              }
+            ]
+          }
+        }
+      ],
+      "reset": {
+        "kind": "sync",
+        "name": "reset",
+        "active": "high",
+        "values": {
+          "out": 0
+        },
+        "first_released_cycle": "the first posedge that samples reset == 0; normal capture/hold behavior applies on that same edge after reset is released"
+      },
+      "mid": "mid may specify nonclock input changes applied after the row's posedge sampling and before the next edge; those changes become the start values for the next row unless the next row explicitly overrides them.",
+      "uncertain": [
+        {
+          "rule_id": "capture_fall",
+          "note": "Whether prev_in should track in during reset cycles is unspecified; under the current contract, a 1 sampled while reset is high can pair with a 0 after release and set out.",
+          "candidates": [
+            "prev_in tracks in on every posedge including reset cycles; a 1 sampled while reset is high followed by 0 after release captures (current behavior)",
+            "prev_in is cleared or ignored while reset is high, so reset-cycle history cannot cause capture after release"
+          ]
+        }
+      ]
+    }
+  }
+]

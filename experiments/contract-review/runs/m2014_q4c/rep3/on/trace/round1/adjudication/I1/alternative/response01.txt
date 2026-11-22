@@ -1,0 +1,34 @@
+def reference(vectors):
+    # Implementation of D flip-flop with synchronous active-high reset.
+    # Candidate interpretation: negative-edge-triggered; per-row logic remains identical.
+    # Rule sync_active_high_reset: at sampled edge, if r==1, q=0.
+    # Rule d_capture_when_not_reset: at sampled edge, if r==0, q=d.
+    out = []
+    carried = {}  # input state after previous row's mid changes
+    for row in vectors:
+        # Extract mid changes (after sampling) from this row, if any.
+        mid = {}
+        for key in ('mid', '__mid__', 'mid_changes', 'changes'):
+            if key in row and isinstance(row[key], dict):
+                mid = row[key]
+                break
+        # Determine inputs at the active edge: start from carried state, then override with row-driven values.
+        edge_inputs = carried.copy()
+        for k in ('d', 'r'):
+            if k in row:
+                edge_inputs[k] = row[k]
+        d = edge_inputs.get('d', 0) & 1
+        r = edge_inputs.get('r', 0) & 1
+        # Sample at active edge (negedge per candidate).
+        if r == 1:
+            q = 0  # sync_active_high_reset
+        else:
+            q = d  # d_capture_when_not_reset
+        out.append({'q': q})
+        # Apply mid changes after sampling to carry to next row.
+        next_carried = edge_inputs.copy()
+        for k, v in mid.items():
+            if k in ('d', 'r'):
+                next_carried[k] = v & 1
+        carried = next_carried
+    return out

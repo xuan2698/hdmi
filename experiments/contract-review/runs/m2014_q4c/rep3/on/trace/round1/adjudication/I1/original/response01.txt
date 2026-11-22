@@ -1,0 +1,64 @@
+```python
+def reference(vectors):
+    # State: single-bit q. Power-up unspecified, but each sampled posedge overwrites it.
+    q = 0
+    # Input values at the start of the current row, after previous mid changes.
+    cur = {"d": 0, "r": 0}
+    out = []
+
+    for row in vectors:
+        # Apply values driven before the sampled posedge.
+        if isinstance(row, dict):
+            for name in ("d", "r"):
+                if name in row and not isinstance(row[name], dict):
+                    cur[name] = row[name]
+            if "inputs" in row and isinstance(row["inputs"], dict):
+                for name in ("d", "r"):
+                    if name in row["inputs"]:
+                        cur[name] = row["inputs"][name]
+
+        # At the sampled posedge: active-high synchronous reset has priority.
+        r_val = int(cur.get("r", 0)) & 1
+        d_val = int(cur.get("d", 0)) & 1
+        if r_val == 1:
+            q = 0  # sync_active_high_reset
+        else:
+            q = d_val  # d_capture_when_not_reset
+
+        out.append({"q": q & 1})
+
+        # Process optional mid changes AFTER sampling; they carry to the start of the next row.
+        next_cur = {"d": cur.get("d", 0), "r": cur.get("r", 0)}
+        if isinstance(row, dict):
+            mid_items = []
+            if "mid" in row:
+                mid = row["mid"]
+                if isinstance(mid, dict):
+                    mid_items.append(mid)
+                elif isinstance(mid, list):
+                    for item in mid:
+                        if isinstance(item, dict):
+                            if "values" in item and isinstance(item["values"], dict):
+                                mid_items.append(item["values"])
+                            else:
+                                mid_items.append(item)
+                        elif isinstance(item, (list, tuple)) and len(item) >= 2 and isinstance(item[1], dict):
+                            mid_items.append(item[1])
+
+            for name in ("d", "r"):
+                for key in (name + "_mid", "mid_" + name, name + "_after", "after_" + name):
+                    if key in row and not isinstance(row[key], dict):
+                        mid_items.append({name: row[key]})
+
+            if "after" in row and isinstance(row["after"], dict):
+                mid_items.append(row["after"])
+
+            for mid in mid_items:
+                for name in ("d", "r"):
+                    if name in mid:
+                        next_cur[name] = mid[name]
+
+        cur = next_cur
+
+    return out
+```

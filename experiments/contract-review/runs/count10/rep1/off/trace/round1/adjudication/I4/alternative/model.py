@@ -1,0 +1,18 @@
+def reference(vectors):
+    # State: current decade count value 0..9
+    # Initial q is undefined until first reset; we model it as 0 for concreteness
+    # but the first reset=0 posedge may produce any value. We choose 0 as the
+    # concrete power-up value (allowed by the candidate interpretation).
+    q = 0
+    out = []
+    for row in vectors:
+        reset = row.get("reset", 0)
+        # R1_SYNC_RESET: reset == 1 -> q = 0 on posedge (priority 0)
+        # R2_COUNT_INC: reset == 0 -> q = (q + 1) % 10 on posedge (priority 1)
+        # R3_WRAP: reset == 0 and q == 9 -> q = 0 (covered by modulo)
+        if reset == 1:
+            q = 0
+        else:
+            q = (q + 1) % 10
+        out.append({"q": q})
+    return out

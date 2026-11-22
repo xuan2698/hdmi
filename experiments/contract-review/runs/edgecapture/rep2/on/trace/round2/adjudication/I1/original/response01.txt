@@ -1,0 +1,80 @@
+```python
+def reference(vectors):
+    # Concrete initial state for unspecified power-up.
+    MASK = (1 << 32) - 1
+    out = 0
+    prev_in = 0
+    cur_reset = 0
+    cur_in = 0
+
+    def _as_int(v):
+        if isinstance(v, int):
+            return v
+        s = str(v).strip().replace("_", "")
+        if "'" in s:
+            _, rhs = s.split("'", 1)
+            base_char = rhs[0].lower()
+            digits = rhs[1:]
+            if base_char == "h":
+                return int(digits, 16)
+            if base_char == "b":
+                return int(digits, 2)
+            if base_char == "o":
+                return int(digits, 8)
+            if base_char == "d":
+                return int(digits, 10)
+        if s.lower().startswith("0x"):
+            return int(s, 16)
+        if s.lower().startswith("0b"):
+            return int(s, 2)
+        if s.lower().startswith("0o"):
+            return int(s, 8)
+        return int(s, 10)
+
+    result = []
+
+    for row in vectors:
+        if row is None:
+            row = {}
+
+        # Row values are driven before the sampled posedge.
+        if "reset" in row:
+            cur_reset = _as_int(row["reset"]) & 1
+        if "in" in row:
+            cur_in = _as_int(row["in"]) & MASK
+
+        sampled_reset = cur_reset & 1
+        sampled_in = cur_in & MASK
+
+        if sampled_reset:
+            # Rule reset_clear: synchronous active-high reset has priority.
+            out = 0
+        else:
+            # Rule capture_fall: sticky per-bit 1-to-0 capture.
+            fall = prev_in & (~sampled_in) & MASK
+            # Rule hold_state: non-falling bits hold their previous value.
+            out = (out | fall) & MASK
+
+        # prev_in tracks in on every posedge, including reset cycles.
+        prev_in = sampled_in
+
+        result.append({"out": out & MASK})
+
+        # Optional mid input changes occur after sampling and carry forward.
+        if "mid" in row:
+            mids = row["mid"]
+            if isinstance(mids, dict):
+                mids = [mids]
+            elif not isinstance(mids, (list, tuple)):
+                mids = []
+
+            for mid in mids:
+                if not isinstance(mid, dict):
+                    continue
+                if "reset" in mid:
+                    cur_reset = _as_int(mid["reset"]) & 1
+                if "in" in mid:
+                    cur_in = _as_int(mid["in"]) & MASK
+
+    return result
+```

@@ -1,0 +1,15 @@
+Looking at the waveform:
+- At 5ns (posedge, a=1): q becomes 4 (initial value)
+- While a=1, q stays 4
+- At 55ns (posedge, a=0): q becomes 5
+- At 65ns (posedge, a=0): q becomes 6
+- At 75ns (posedge, a=0): q becomes 0 (wraps mod 8)
+- At 85ns (posedge, a=0): q becomes 1
+
+So: q is a 3-bit counter that holds when a=1 and increments mod 8 when a=0. Initial value is 4.
+
+The correct model is `53dc0f2072f7a20b8e` (mod 8 wrap, initial 4).
+
+```json
+{"models":{"53dc0f2072f7a20b8e":"def reference(vectors):\n    q = 4\n    out = []\n    for v in vectors:\n        a = v['a']\n        if a == 0:\n            q = (q + 1) % 8\n        out.append({'q': q})\n    return out"}}
+```

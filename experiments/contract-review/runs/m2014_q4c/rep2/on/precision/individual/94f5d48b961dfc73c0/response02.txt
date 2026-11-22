@@ -1,0 +1,42 @@
+```python
+def reference(vectors):
+    q = 0  # concrete power-up value
+    carry_d = 0
+    carry_r = 0
+    out = []
+    for row in vectors:
+        d_val = carry_d
+        r_val = carry_r
+        if "d" in row:
+            d_val = row["d"] & 1
+            carry_d = d_val
+        if "r" in row:
+            r_val = row["r"] & 1
+            carry_r = r_val
+        # sync_reset_high: At sampled posedge, r==1 forces q to 0.
+        if r_val == 1:
+            q = 0
+        else:
+            # d_capture_when_reset_inactive: At sampled posedge with r==0, q captures d.
+            # reset.first_released_cycle: first posedge with r==0 captures d.
+            q = d_val & 1
+        out.append({"q": q})
+        # mid changes occur AFTER sampling, before other edge, carried to next row.
+        if "mid" in row:
+            mid = row["mid"]
+            if mid:
+                try:
+                    for k, v in mid.items():
+                        if k == "d":
+                            carry_d = v & 1
+                        elif k == "r":
+                            carry_r = v & 1
+                except:
+                    for change in mid:
+                        for k, v in change.items():
+                            if k == "d":
+                                carry_d = v & 1
+                            elif k == "r":
+                                carry_r = v & 1
+    return out
+```

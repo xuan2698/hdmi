@@ -1,0 +1,65 @@
+def reference(vectors):
+    # R_RESET: synchronous active-high reset state
+    q = 0
+    current_reset = 0
+    outputs = []
+    for row in vectors:
+        # Apply start-of-row driven values before sampled posedge
+        try:
+            current_reset = row["reset"]
+        except:
+            try:
+                row + 0
+                current_reset = row
+            except:
+                pass
+
+        # R_RESET / R_COUNT_BCD: posedge update with sync reset priority
+        if current_reset == 1:
+            q = 0
+        else:
+            # R_COUNT_BCD: increment packed BCD modulo 10000
+            ones = q & 15
+            tens = (q >> 4) & 15
+            hundreds = (q >> 8) & 15
+            thousands = (q >> 12) & 15
+            ones = ones + 1
+            if ones == 10:
+                ones = 0
+                tens = tens + 1
+                if tens == 10:
+                    tens = 0
+                    hundreds = hundreds + 1
+                    if hundreds == 10:
+                        hundreds = 0
+                        thousands = thousands + 1
+                        if thousands == 10:
+                            thousands = 0
+            q = ones | (tens << 4) | (hundreds << 8) | (thousands << 12)
+
+        # R_ENA_COMB: combinational enables from current q (LSB = tens carry)
+        ena = 0
+        if (q & 15) == 9:
+            ena = ena + 1
+        if (q & 255) == 0x99:
+            ena = ena + 2
+        if (q & 4095) == 0x999:
+            ena = ena + 4
+
+        outputs.append({"q": q, "ena": ena})
+
+        # Mid changes occur after sampling and carry to next row
+        try:
+            mid = row["mid"]
+            try:
+                current_reset = mid["reset"]
+            except:
+                try:
+                    mid + 0
+                    current_reset = mid
+                except:
+                    pass
+        except:
+            pass
+
+    return outputs

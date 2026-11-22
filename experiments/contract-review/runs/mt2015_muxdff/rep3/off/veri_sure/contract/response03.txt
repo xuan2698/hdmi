@@ -1,0 +1,54 @@
+```json
+{
+  "module_name": "top_module",
+  "io": [
+    {
+      "name": "clk",
+      "dir": "input",
+      "width": 1,
+      "description": "Clock input; all state updates occur on the posedge."
+    },
+    {
+      "name": "r",
+      "dir": "input",
+      "width": 3,
+      "description": "3-bit load data input, sampled into q when L is high."
+    },
+    {
+      "name": "L",
+      "dir": "input",
+      "width": 1,
+      "description": "Load enable; when high, q <= r on the posedge; when low, q shifts via the LFSR feedback."
+    },
+    {
+      "name": "q",
+      "dir": "output",
+      "width": 3,
+      "description": "3-bit state register output, updated on the posedge of clk."
+    }
+  ],
+  "clocking": {
+    "clock": {
+      "name": "clk",
+      "edge": "posedge"
+    },
+    "reset": null
+  },
+  "timing": {
+    "outputs": {
+      "q": {
+        "latency_cycles": 1
+      }
+    }
+  },
+  "functional_summary": {
+    "overview": "top_module is a 3-bit LFSR/load register. It instantiates three 1-bit submodules (each containing a flipflop and a 2-to-1 multiplexer) to form the 3-bit state q. On each posedge of clk, if L is high the register loads r; otherwise it advances the LFSR: q <= {q[1]^q[2], q[0], q[2]}.",
+    "rules": [
+      "On posedge clk, if L == 1 then q <= r (load).",
+      "On posedge clk, if L == 0 then q <= {q[1] ^ q[2], q[0], q[2]} (LFSR shift with XOR feedback).",
+      "q is a 3-bit register updated only on the posedge of clk; there is no reset.",
+      "The design is hierarchical: three 1-bit submodules (flipflop + 2-to-1 mux) are instantiated to build the 3-bit register."
+    ]
+  }
+}
+```

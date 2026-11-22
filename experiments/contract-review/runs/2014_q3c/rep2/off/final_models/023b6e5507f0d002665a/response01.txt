@@ -1,0 +1,88 @@
+```python
+def reference(vectors):
+    # Contract rules implemented:
+    # R_Y0: Y0 = LSB of next state selected by (y, x) per table.
+    # R_z: z = 1 for y in {011, 100}; z = 0 otherwise (including undefined states 101,110,111).
+    # Mid changes occur AFTER sampling, before other edge, carried to start of next row.
+    # State y updates on posedge clk to next-state value selected by x.
+    # No reset; power-up unspecified but we output concrete values each row.
+
+    # Next-state table: next_state[y][x] -> Y[2:0]
+    next_state = {
+        0b000: {0: 0b000, 1: 0b001},
+        0b001: {0: 0b001, 1: 0b100},
+        0b010: {0: 0b010, 1: 0b001},
+        0b011: {0: 0b001, 1: 0b010},
+        0b100: {0: 0b011, 1: 0b100},
+    }
+
+    def compute_Y0(y, x):
+        # R_Y0: Y0 is LSB of next state
+        if y in next_state:
+            ns = next_state[y][x]
+            return ns & 1
+        else:
+            # Undefined states 101,110,111: candidate interpretation Y0=0
+            return 0
+
+    def compute_z(y):
+        # R_z: z=1 for y in {011,100}, else 0 (including undefined states)
+        if y in (0b011, 0b100):
+            return 1
+        return 0
+
+    results = []
+    # State y is the present state. It updates on posedge clk.
+    # Each row: values driven before sampled edge; sample after posedge settled.
+    # Mid changes occur AFTER sampling, before other edge, carried to next row.
+    # We model: for each row, present state y is current; compute outputs;
+    # then apply posedge update using x to get next y for next row.
+    # Mid changes: if a row has mid changes, they occur after sampling and
+    # affect the next row's inputs. We'll handle by tracking pending mid changes.
+    # Since vectors only give x and y per row, we treat y as the present state
+    # at sampling time. Mid changes to x would be carried to next row's x.
+    # The contract says mid input changes occur AFTER sampling, before other edge,
+    # and are carried to start of next row. So if a vector specifies mid changes,
+    # they modify the next row's inputs. We'll assume vectors may include 'mid'
+    # key with changes to x (and possibly y? but y is state, not input).
+    # We'll process: for each row, use current x and y; compute outputs;
+    # then determine next y from posedge using current x; then apply mid changes
+    # to get next row's x (and possibly y if mid changes y? but y is state).
+    # Since y is state, mid changes to y would be unusual; we'll only handle x mid.
+    # The vectors given in examples only have x and y. We'll assume no mid changes
+    # unless 'mid' key present.
+
+    # Initialize current state y from first vector? The contract says each row's
+    # values are driven before the sampled edge. So y in vector is the present state
+    # at that row's sampling. We don't need to simulate state evolution across rows
+    # because each row provides y explicitly. However, the state updates on posedge,
+    # so the y in the next row should be the next state from previous row's x.
+    # But the vectors provide y explicitly, so we just use it. The contract says
+    # "Each row's values are driven before the sampled edge." So y is given.
+    # We'll just compute outputs from given y and x for each row.
+    # Mid changes: if a row has 'mid' with x change, it affects next row's x.
+    # We'll track pending_x_change.
+
+    pending_x = None
+    for vec in vectors:
+        x = vec['x']
+        y = vec['y']
+        # Apply pending mid change to x if any
+        if pending_x is not None:
+            x = pending_x
+            pending_x = None
+        # Compute outputs
+        Y0 = compute_Y0(y, x)
+        z = compute_z(y)
+        results.append({'Y0': Y0, 'z': z})
+        # After sampling, mid changes occur. Check if vec has 'mid'
+        if 'mid' in vec:
+            mid = vec['mid']
+            if 'x' in mid:
+                pending_x = mid['x']
+        # Note: state y updates on posedge to next state, but next row provides y.
+        # So we don't need to compute next y for next row; it's given.
+        # However, if mid changes include y? Not expected.
+
+    return results
+```

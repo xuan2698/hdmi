@@ -1,0 +1,37 @@
+```python
+def reference(vectors):
+    # Power-up unspecified: choose a concrete initial value (0).
+    q = 0
+    d = 0
+    r = 0
+    outputs = []
+
+    for vec in vectors:
+        # Drive input values before the sampled posedge (row values).
+        if 'd' in vec:
+            d = vec['d']
+        if 'r' in vec:
+            r = vec['r']
+
+        # At the sampled posedge, the edge has settled: update q.
+        if r == 1:
+            # sync_reset_high: r == 1 forces q to 0.
+            q = 0
+        else:
+            # d_capture_when_reset_inactive: r == 0 captures d.
+            q = d
+
+        # Output is visible in the same cycle.
+        outputs.append({'q': q})
+
+        # Optional mid input changes occur after sampling, before the other edge,
+        # and are carried to the start of the next row.
+        mid = vec.get('mid')
+        if isinstance(mid, dict):
+            if 'd' in mid:
+                d = mid['d']
+            if 'r' in mid:
+                r = mid['r']
+
+    return outputs
+```

@@ -1,0 +1,46 @@
+```python
+def reference(vectors):
+    # r_y0_000: y == 0 (000); x=0 -> Y0=0, x=1 -> Y0=1; z=0
+    # r_y0_001: y == 1 (001); x=0 -> Y0=1, x=1 -> Y0=0; z=0
+    # r_y0_010: y == 2 (010); x=0 -> Y0=0, x=1 -> Y0=1; z=0
+    # r_y0_011: y == 3 (011); x=0 -> Y0=1, x=1 -> Y0=0; z=1
+    # r_y0_100: y == 4 (100); x=0 -> Y0=1, x=1 -> Y0=0; z=1
+    x_cur = 0
+    y_cur = 0
+    out = []
+    for v in vectors:
+        # Each row's values are driven before the sampled edge.
+        x = v.get('x', x_cur)
+        y = v.get('y', y_cur)
+        x = x & 1
+        y = y & 7
+        if y == 0:          # r_y0_000
+            Y0 = x
+            z = 0
+        elif y == 1:        # r_y0_001
+            Y0 = 1 - x
+            z = 0
+        elif y == 2:        # r_y0_010
+            Y0 = x
+            z = 0
+        elif y == 3:        # r_y0_011
+            Y0 = 1 - x
+            z = 1
+        elif y == 4:        # r_y0_100
+            Y0 = 1 - x
+            z = 1
+        else:
+            Y0 = 0
+            z = 0
+        out.append({'Y0': Y0 & 1, 'z': z & 1})
+        # Optional mid input changes occur AFTER sampling, before the other edge,
+        # and are carried to the start of the next row.
+        if 'mid' in v and type(v['mid']) is dict:
+            mid = v['mid']
+            x_cur = mid.get('x', x) & 1
+            y_cur = mid.get('y', y) & 7
+        else:
+            x_cur = v.get('mid_x', x) & 1
+            y_cur = v.get('mid_y', y) & 7
+    return out
+```

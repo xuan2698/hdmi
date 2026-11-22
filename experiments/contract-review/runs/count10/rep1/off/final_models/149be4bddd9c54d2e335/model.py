@@ -1,0 +1,26 @@
+def reference(vectors):
+    # R1_SYNC_RESET: reset is active-high synchronous, resets count to 0 on posedge
+    # R2_COUNT_INC: when reset==0 and count!=9, increment on posedge
+    # R3_WRAP: when reset==0 and count==9, wrap to 0 on posedge
+    # State: COUNT holds current decade value 0..9
+    count = 0
+    out = []
+    for row in vectors:
+        # Sample inputs driven before the posedge
+        reset = row.get("reset", 0)
+        # Apply synchronous update at posedge
+        if reset == 1:
+            # R1_SYNC_RESET
+            count = 0
+        else:
+            if count == 9:
+                # R3_WRAP
+                count = 0
+            else:
+                # R2_COUNT_INC
+                count = count + 1
+        # Output visible same cycle
+        out.append({"q": count & 0xF})
+        # Mid changes occur after sampling; carried to next row (no effect here
+        # since we re-read inputs each row from the vector)
+    return out

@@ -1,0 +1,29 @@
+```python
+def reference(vectors):
+    # State: out_reg (32-bit sticky flag), prev_in (32-bit previous input)
+    # R1_reset_clear: reset==1 at posedge -> out=0 (priority 0)
+    # R2_capture_falling: reset==0 and (prev_in & ~in)!=0 -> set bits (priority 1)
+    # R3_hold: reset==0 and no falling -> hold (priority 2)
+    # global interpretation: any falling bit sets ALL 32 output bits to 1
+    out_reg = 0
+    prev_in = 0
+    results = []
+    for row in vectors:
+        reset = row["reset"] & 1
+        inp = row["in"] & 0xFFFFFFFF
+        # posedge sampling: compute next state
+        if reset == 1:
+            # R1_reset_clear
+            out_reg = 0
+        else:
+            falling = prev_in & (~inp & 0xFFFFFFFF)
+            if falling != 0:
+                # R2_capture_falling (global interpretation: all bits set)
+                out_reg = 0xFFFFFFFF
+            else:
+                # R3_hold
+                out_reg = out_reg
+        prev_in = inp
+        results.append({"out": out_reg & 0xFFFFFFFF})
+    return results
+```

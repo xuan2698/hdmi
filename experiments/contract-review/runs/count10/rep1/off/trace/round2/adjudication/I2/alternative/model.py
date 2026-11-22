@@ -1,0 +1,44 @@
+def reference(vectors):
+    # Contract implementation.
+    # State: COUNT (current decade count 0..9), updated on posedge.
+    # R1_SYNC_RESET: reset==1 on posedge -> q=0 (priority 0).
+    # R2_COUNT_INC: reset==0 on posedge -> q increments (priority 1).
+    # R3_WRAP: reset==0 and q==9 -> q=0 (priority 1).
+    # Unresolved R2 interpretation: at q==9 with reset==0, R2 increments to 10
+    # (4-bit q=10) instead of wrapping, since R2 has no q!=9 guard and equal
+    # priority to R3. We apply this candidate interpretation: R2 wins over R3
+    # at q==9 (equal priority, R2 listed first / increment semantics).
+    # Mid changes occur AFTER sampling, before the other edge, carried to next row.
+
+    q = 0  # power-up unspecified; start at 0
+    out = []
+    pending_reset = None  # mid change carried to next row
+
+    for row in vectors:
+        # Apply mid change carried from previous row (before this row's sampling)
+        if pending_reset is not None:
+            reset = pending_reset
+            pending_reset = None
+        else:
+            reset = row.get('reset', 0)
+
+        # Sample at posedge: compute next state
+        # R1_SYNC_RESET
+        if reset == 1:
+            q = 0
+        else:
+            # R2_COUNT_INC (with candidate interpretation: no wrap guard)
+            if q == 9:
+                q = 10  # candidate interpretation: increment to 10
+            else:
+                q = (q + 1) % 16  # 4-bit
+            # R3_WRAP would set q=0 at q==9, but candidate interpretation
+            # gives R2 precedence (equal priority, R2 first). So R3 not applied.
+
+        out.append({'q': q & 0xF})
+
+        # Mid change: if row has 'mid_reset', apply after sampling
+        if 'mid_reset' in row:
+            pending_reset = row['mid_reset']
+
+    return out

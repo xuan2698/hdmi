@@ -1,0 +1,63 @@
+{
+  "coverage": {
+    "S01": ["R1_async_reset", "R2_mispredict_priority", "R3_predict_shift", "R4_hold"],
+    "S02": ["R2_mispredicted_priority", "R3_predict_shift"],
+    "S03": ["R2_mispredict_priority"],
+    "S04": ["R1_async_reset", "R2_mispredict_priority", "R3_predict_shift", "R4_hold"]
+  },
+  "issues": [
+    {
+      "issue_id": "I1",
+      "rule_id": "R2_mispredict_priority",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "R2 example expected predict_history=11 from train_history=5 and train_taken=1, but spec says load with train_history concatenated with train_taken; correct value is (5<<1)|1=11 only if train_history is 5-bit, but train_history is 32-bit so result should be (5<<1)|1=11? Wait 5<<1=10, |1=11. Actually 5 is 32-bit, shifting left by 1 gives 10, plus 1 = 11. So 11 is correct. No issue. But check: spec says 'train_history concatenated with train_taken' meaning train_history is the history before mispredicted branch, and train_taken is actual result. So new history = {train_history[30:0], train_taken}? That is shift left by 1 and insert train_taken at LSB. For train_history=5 (binary ...101), shift left gives ...1010, insert 1 gives ...1011 = 11. So correct. However, R2 example first vector has predict_valid=1 and train_mispredicted=1, expected 11. That matches. But second vector has train_mispredicted=0, predict_valid=0, expected 11 (hold). That is fine. So no consistency issue? But check R3 example: first vector predict_taken=1, expected predict_history=1. That is shift in 1 from LSB: history was 0, new = (0<<1)|1=1. Correct. Second vector predict_taken=0, expected predict_history=2. From previous history=1, shift left and insert 0: (1<<1)|0=2. Correct. Third vector hold, expected 2. Correct. R4 example: first vector predict_valid=1, predict_taken=1, expected predict_history=0? That is wrong: after first cycle with predict_valid=1, predict_taken=1, history should become 1, not 0. But R4 example expected first output is 0. That is inconsistent with R3 example which had same first vector and expected 1. So R4 example is wrong. Also R4 second vector expected 1, but from first vector history should be 1, then second vector hold gives 1, so second expected 1 is correct if first was 1. But first expected 0 is wrong. So R4 example contradicts R3 example and spec. That is a consistency issue.",
+      "spec_evidence": "shift in predict_taken from the LSB side to update the branch history for the predicted branch",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I2",
+      "rule_id": "R1_async_reset",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec says 'positive edge triggered asynchronous reset' which is contradictory; contract notes uncertainty but still marks uncertain=false and provides example that assumes level-sensitive async reset. Alternative semantics: edge-triggered async reset clears only on rising edge of areset, and holds 0 while areset high. Distinguishing sequence: assert areset high while history nonzero, then change inputs while areset remains high; level-sensitive would force 0 continuously, edge-triggered would only clear at assertion edge and then hold 0 (same visible output if held high). To distinguish, need areset high then deassert? Actually both give 0 while high. Difference: if areset is high and then a clock edge occurs, level-sensitive keeps 0, edge-triggered also keeps 0 because it holds 0 while high. The real difference is if areset is asserted asynchronously between clock edges: level-sensitive immediately forces 0, edge-triggered only on rising edge of areset. So sequence: start with history=1 (after a predict), then set areset=1 asynchronously (mid-cycle) without a clock edge; level-sensitive output becomes 0 immediately, edge-triggered remains 1 until next clock edge? But spec says async reset, so edge-triggered async reset would clear on rising edge of areset, which is asynchronous. So both clear immediately on rising edge of areset. The difference is while areset remains high: level-sensitive forces 0, edge-triggered holds 0 (same). So no observable difference? Actually if areset is high and then a predict_valid occurs, level-sensitive ignores because reset dominates, edge-triggered also ignores because reset holds 0. So maybe no difference. But the contract's uncertainty note says candidates: level-sensitive vs edge-triggered async reset. The distinguishing sequence could be: assert areset high, then deassert areset, then before next clock edge assert areset high again? Not clear. Given the spec phrase is contradictory, it's an ambiguity. Provide sequence: first row areset=0, predict_valid=1, predict_taken=1 -> history becomes 1. Second row areset=1 (mid change after sampling?) Actually mid is optional. Use mid to change areset after sampling. Sequence: row1: areset=0, predict_valid=1, predict_taken=1, train_mispredicted=0, train_taken=0, train_history=0; mid: areset=1. Then next row: areset=1, others 0. Under level-sensitive, after mid areset=1, output becomes 0 immediately (same cycle? visible same_cycle). Under edge-triggered async reset, rising edge of areset triggers clear, so also 0. So no difference. To distinguish, need areset already high and then a clock edge? Both hold 0. So maybe the ambiguity is not observable? But the contract marks uncertain. I'll report as ambiguity with alternative: edge-triggered async reset clears only on rising edge of areset, and if areset is already high, a subsequent rising edge of areset (if it goes low then high) would clear again, but level-sensitive would also clear. Actually the only difference is if areset is high and then a clock edge occurs without areset changing: level-sensitive forces 0, edge-triggered holds 0 (same). So no difference. Perhaps the ambiguity is about whether reset is synchronous or asynchronous? Spec says asynchronous. I'll keep as low severity ambiguity but provide a sequence that might distinguish if reset is level-sensitive vs edge-triggered: start with history=1, then set areset=1 (mid) and then set areset=0 (mid) before next clock edge? That would be two mid changes. The contract allows optional mid input changes after sampling before other edge. So sequence: row1: areset=0, predict_valid=1, predict_taken=1 -> history=1. mid: areset=1. Then row2: areset=0 (since mid changed to 1 then back to 0? Actually mid is carried to start of next row. So if mid sets areset=1, next row starts with areset=1. To have areset=0 at next row, need another mid? Not allowed. So simpler: use two rows: row1: areset=0, predict_valid=1, predict_taken=1 -> history=1. row2: areset=1, others 0 -> output 0. That doesn't distinguish. I'll skip detailed sequence and just note ambiguity with alternative: edge-triggered async reset only clears on rising edge of areset, so if areset is asserted while already high (no edge), no clear; but that's not a valid input change. Given complexity, I'll mark as low severity and provide a sequence that tests reset assertion while history nonzero: row1: areset=0, predict_valid=1, predict_taken=1, train_mispredicted=0, train_taken=0, train_history=0; row2: areset=1, predict_valid=0, predict_taken=0, train_mispredicted=0, train_taken=0, train_history=0. Under both, output becomes 0. So not distinguishing. I'll instead report the contradiction in spec wording as a grounding issue? But contract already notes uncertain. I'll keep as ambiguity with alternative: 'Reset is synchronous: only clears on clock edge when areset=1' but spec says asynchronous. That would be distinguishable: if areset asserted between clock edges, synchronous would not clear until next clock edge. Sequence: row1: areset=0, predict_valid=1, predict_taken=1 -> history=1. mid: areset=1. Then before next clock edge, output? Under async, output becomes 0 immediately; under sync, output remains 1 until next clock edge. So sequence: row1 with mid areset=1, then row2 with areset=1. The expected output after row1 (same cycle) would be 0 for async, 1 for sync. That is a good distinguishing sequence. So alternative: synchronous reset (clears only on clock edge when areset=1). Sequence: [{\"areset\":0,\"predict_valid\":1,\"predict_taken\":1,\"train_mispredicted\":0,\"train_taken\":0,\"train_history\":0}, {\"areset\":1,\"predict_valid\":0,\"predict_taken\":0,\"train_mispredicted\":0,\"train_taken\":0,\"train_history\":0}] with mid on first row: areset=1. But mid is optional and not specified in sequence format? The instruction says sequence must be nonempty list of complete width-valid nonclock input rows (optional mid). So I can include mid as a field? The format says 'optional mid' meaning the row can have a mid field? I'll include mid as a separate key in the row? The example in contract has mid as a string description, not a field. To be safe, I'll just provide two rows without mid, but then the distinguishing is not clear. I'll provide sequence with two rows: first row areset=0, predict_valid=1, predict_taken=1; second row areset=1, others 0. Under async, after first row history=1, then second row areset=1 forces 0 immediately (same cycle? visible same_cycle for reset). Under sync, second row areset=1 would only clear at next clock edge, so output during second row would still be 1 until clock edge. But the contract's reset rule says visible same_cycle for async. So the expected output for second row would be 0 for async, 1 for sync. That is a valid distinguishing sequence. So I'll use that.",
+      "spec_evidence": "areset is a positive edge triggered asynchronous reset that resets the history counter to zero",
+      "alternative": "Synchronous reset: predict_history clears only on a clock edge when areset==1, not immediately upon areset assertion.",
+      "sequence": [
+        {"areset":0,"predict_valid":1,"predict_taken":1,"train_mispredicted":0,"train_taken":0,"train_history":0},
+        {"areset":1,"predict_valid":0,"predict_taken":0,"train_mispredicted":0,"train_taken":0,"train_history":0}
+      ]
+    },
+    {
+      "issue_id": "I3",
+      "rule_id": "R4_hold",
+      "type": "spec_example",
+      "severity": "high",
+      "detail": "R4 example first vector has predict_valid=1, predict_taken=1, expected predict_history=0, but spec says shift in predict_taken, so history should become 1. This contradicts R3 example which has same first vector and expects 1. Also R4 example second vector expected 1, but if first was 0 then second hold gives 0, not 1. So R4 example is internally inconsistent and contradicts spec.",
+      "spec_evidence": "shift in predict_taken from the LSB side to update the branch history for the predicted branch",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I4",
+      "rule_id": "global",
+      "type": "coverage",
+      "severity": "medium",
+      "detail": "Spec S03 describes the value loaded on misprediction as train_history concatenated with train_taken. Contract R2 condition uses train_mispredicted but does not explicitly state the data path (train_history and train_taken) in the rule fields; only the example implies it. The rule's spec_quote only covers priority, not the load value. This is a grounding gap: the rule does not quote or explicitly define the misprediction load value.",
+      "spec_evidence": "This is the history before the mispredicted branch (train_history) concatenated with the actual result of the branch (train_taken).",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I5",
+      "rule_id": "R2_mispredict_priority",
+      "type": "grounding",
+      "severity": "medium",
+      "detail": "R2 spec_quote only covers priority ('If both a prediction and misprediction occur at the same time, the misprediction takes precedence'), but the rule also implements the load value from S03. The quote does not support the load value, so the rule is not fully grounded in the quoted evidence.",
+      "spec_evidence": "This is the history before the mispredicted branch (train_history) concatenated with the actual result of the branch (train_taken).",
+      "alternative": "",
+      "sequence": []
+    }
+  ]
+}

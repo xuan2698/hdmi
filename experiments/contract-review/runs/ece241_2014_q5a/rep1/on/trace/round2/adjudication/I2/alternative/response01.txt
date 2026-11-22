@@ -1,0 +1,88 @@
+```python
+def reference(vectors):
+    # State encoding: A = reset/no first 1 seen, B = complement mode z=0, C = copy mode z=1
+    state = 'A'
+    z = 0
+    inputs = {'areset': 0, 'x': 0}
+    result = []
+
+    def apply_mid(mid):
+        if mid is None:
+            return
+        if isinstance(mid, dict):
+            for k, v in mid.items():
+                if k == 'areset' or k == 'x':
+                    inputs[k] = int(v) & 1
+        elif isinstance(mid, (list, tuple)):
+            for item in mid:
+                if isinstance(item, dict):
+                    for k, v in item.items():
+                        if k == 'areset' or k == 'x':
+                            inputs[k] = int(v) & 1
+                elif isinstance(item, (list, tuple)) and len(item) >= 2:
+                    k = item[0]
+                    if k == 'areset' or k == 'x':
+                        inputs[k] = int(item[1]) & 1
+                elif isinstance(item, str):
+                    if '=' in item:
+                        k, v = item.split('=', 1)
+                        k = k.strip()
+                        if k == 'areset' or k == 'x':
+                            try:
+                                inputs[k] = int(v.strip()) & 1
+                            except Exception:
+                                pass
+
+    for row in vectors:
+        if not isinstance(row, dict):
+            row = {}
+
+        # Drive row input values before the sampled posedge.
+        for name in ('areset', 'x'):
+            if name in row:
+                inputs[name] = int(row[name]) & 1
+
+        areset = inputs['areset']
+        x = inputs['x']
+
+        if areset == 1:
+            # reset_async_z0: candidate override says reset only stops conversion
+            # and holds the last output/state, so z does not change while asserted.
+            pass
+        else:
+            if state == 'A':
+                if x == 0:
+                    # A_x0_to_A_z0
+                    state = 'A'
+                else:
+                    # A_x1_to_C_z1
+                    state = 'C'
+            elif state == 'B':
+                if x == 0:
+                    # B_x0_to_C_z1
+                    state = 'C'
+                else:
+                    # B_x1_to_B_z0
+                    state = 'B'
+            else:  # state == 'C'
+                if x == 0:
+                    # C_x0_to_C_z1
+                    state = 'C'
+                else:
+                    # C_x1_to_B_z0
+                    state = 'B'
+
+            # Moore output after the settled posedge.
+            if state == 'C':
+                z = 1
+            else:
+                z = 0
+
+        result.append({'z': int(z)})
+
+        # Optional mid input changes occur after sampling and persist to the next row start.
+        if 'mid' in row:
+            apply_mid(row['mid'])
+
+    return result
+```

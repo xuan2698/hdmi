@@ -1,0 +1,90 @@
+{
+  "coverage": {
+    "S01": [
+      "A_x0_to_A_z0",
+      "A_x1_to_C_z1",
+      "B_x0_to_C_z1",
+      "B_x1_to_B_z0",
+      "C_x0_to_C_z1",
+      "C_x1_to_B_z0"
+    ],
+    "S02": [
+      "A_x0_to_A_z0",
+      "A_x1_to_C_z1",
+      "B_x0_to_C_z1",
+      "B_x1_to_B_z0",
+      "C_x0_to_C_z1",
+      "C_x1_to_B_z0"
+    ],
+    "S03": [
+      "A_x0_to_A_z0",
+      "A_x1_to_C_z1",
+      "B_x0_to_C_z1",
+      "B_x1_to_B_z0",
+      "C_x0_to_C_z1",
+      "C_x1_to_B_z0"
+    ],
+    "S04": [
+      "reset_async_z0"
+    ],
+    "S05": [
+      "reset_async_z0",
+      "A_x0_to_A_z0",
+      "A_x1_to_C_z1"
+    ]
+  },
+  "issues": [
+    {
+      "issue_id": "I1",
+      "rule_id": "reset_async_z0",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec does not define reset polarity or z while reset is asserted; contract chooses active-high and z=0 but marks uncertain.",
+      "spec_evidence": "The circuit requires a positive edge triggered asynchronous reset.",
+      "alternative": "areset is active-low (reset asserted when areset==0) and z=0 during reset.",
+      "sequence": [
+        {
+          "areset": 1,
+          "x": 0
+        },
+        {
+          "areset": 0,
+          "x": 1
+        }
+      ]
+    },
+    {
+      "issue_id": "I2",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec does not state whether z for a sampled x appears after the posedge (same row) or reflects pre-edge state (next row); contract fixes same_cycle without uncertainty.",
+      "spec_evidence": "The input (x) is a series of bits (one per clock cycle) beginning with the least-significant bit of the number, and the output (Z) is the 2's complement of the input.",
+      "alternative": "Moore output reflects current state before the edge, so the first z=1 for x=1 appears one cycle later.",
+      "sequence": [
+        {
+          "areset": 1,
+          "x": 0
+        },
+        {
+          "areset": 0,
+          "x": 1
+        },
+        {
+          "areset": 0,
+          "x": 0
+        }
+      ]
+    },
+    {
+      "issue_id": "I3",
+      "rule_id": "global",
+      "type": "grounding",
+      "severity": "medium",
+      "detail": "Non-reset transition rules are marked uncertain=false, but the spec only states LSB-first 2's complement; it does not verbatim define the state table or exact next-state/output assignments.",
+      "spec_evidence": "The input (x) is a series of bits (one per clock cycle) beginning with the least-significant bit of the number, and the output (Z) is the 2's complement of the input.",
+      "alternative": "",
+      "sequence": []
+    }
+  ]
+}

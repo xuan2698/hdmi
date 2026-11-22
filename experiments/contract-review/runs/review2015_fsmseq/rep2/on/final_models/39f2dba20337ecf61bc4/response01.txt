@@ -1,0 +1,52 @@
+def reference(vectors):
+    state = "S0"
+    start_shifting = 0
+    cur_reset = 0
+    cur_data = 0
+    outputs = []
+
+    for row in vectors:
+        # Values driven before the sampled posedge.
+        if "reset" in row:
+            cur_reset = row["reset"]
+        if "data" in row:
+            cur_data = row["data"]
+
+        # Sample at posedge: compute next state and same-cycle output.
+        if cur_reset == 1:
+            # R_RESET: synchronous active-high reset overrides all other rules.
+            state = "S0"
+            start_shifting = 0
+        else:
+            if state == "SF":
+                # R_HOLD: 1101 found; hold start_shifting=1 until reset.
+                state = "SF"
+                start_shifting = 1
+            elif state == "S3" and cur_data == 1:
+                # R_DETECT: detecting posedge sets SF and start_shifting=1 same-cycle.
+                state = "SF"
+                start_shifting = 1
+            else:
+                # R_PROGRESS: search transitions when not reset, not holding, not detecting.
+                if state == "S0":
+                    state = "S1" if cur_data == 1 else "S0"
+                elif state == "S1":
+                    state = "S2" if cur_data == 1 else "S0"
+                elif state == "S2":
+                    state = "S3" if cur_data == 0 else "S2"
+                elif state == "S3":
+                    # S3 + 1 was handled above by R_DETECT.
+                    state = "S0"
+                start_shifting = 0
+
+        outputs.append({"start_shifting": start_shifting})
+
+        # Mid changes happen after sampling and persist to the start of the next row.
+        if "mid" in row and row["mid"] is not None:
+            mid = row["mid"]
+            if "reset" in mid:
+                cur_reset = mid["reset"]
+            if "data" in mid:
+                cur_data = mid["data"]
+
+    return outputs

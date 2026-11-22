@@ -1,0 +1,108 @@
+{
+  "ports": {
+    "inputs": {
+      "a": 1
+    },
+    "outputs": {
+      "q": 3
+    },
+    "clock": "clk"
+  },
+  "states": [
+    {
+      "name": "count",
+      "meaning": "3-bit counter value stored in q; increments by 1 modulo 8 on each posedge when a=0, holds when a=1 (a is 1-bit so conditions are mutually exclusive)",
+      "update_time": "posedge",
+      "update_during_reset": false
+    }
+  ],
+  "rules": [
+    {
+      "id": "R1",
+      "outputs": [
+        "q"
+      ],
+      "condition": "a == 1",
+      "edge": "posedge",
+      "visible": "next_cycle",
+      "priority": 1,
+      "spec_quote": "15ns            1               1               4",
+      "uncertain": false,
+      "example": {
+        "vectors": [
+          {
+            "a": 1
+          },
+          {
+            "a": 1
+          },
+          {
+            "a": 1
+          }
+        ],
+        "expected": [
+          {
+            "q": 4
+          },
+          {
+            "q": 4
+          },
+          {
+            "q": 4
+          }
+        ]
+      }
+    },
+    {
+      "id": "R2",
+      "outputs": [
+        "q"
+      ],
+      "condition": "a == 0",
+      "edge": "posedge",
+      "visible": "next_cycle",
+      "priority": 2,
+      "spec_quote": "55ns            1               0               5",
+      "uncertain": true,
+      "example": {
+        "vectors": [
+          {
+            "a": 0
+          },
+          {
+            "a": 0
+          },
+          {
+            "a": 0
+          }
+        ],
+        "expected": [
+          {
+            "q": 5
+          },
+          {
+            "q": 6
+          },
+          {
+            "q": 7
+          }
+        ]
+      }
+    }
+  ],
+  "reset": {
+    "kind": "none",
+    "name": null,
+    "active": "none",
+    "values": {
+      "q": null
+    },
+    "first_released_cycle": "0ns"
+  },
+  "mid": "Optional mid input changes occur AFTER sampling, before the other edge, and are carried to the start of the next row.",
+  "uncertain": [],
+  "remaining_uncertain_fields": {
+    "R2": []
+  },
+  "selected_interpretations": []
+}

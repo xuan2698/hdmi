@@ -1,0 +1,118 @@
+{
+  "ports": {
+    "inputs": {
+      "L": 1,
+      "q_in": 1,
+      "r_in": 1
+    },
+    "outputs": {
+      "Q": 1
+    },
+    "clock": "clk"
+  },
+  "states": [
+    {
+      "name": "Q_reg",
+      "meaning": "Registered output bit Q updated on the rising edge of clk according to the L-selected input.",
+      "update_time": "posedge clk",
+      "update_during_reset": false
+    }
+  ],
+  "rules": [
+    {
+      "id": "load_L_high",
+      "outputs": [
+        "Q"
+      ],
+      "condition": "At posedge clk, if L == 1 then Q_next = r_in",
+      "edge": "posedge",
+      "visible": "next_cycle",
+      "priority": 1,
+      "spec_quote": "if (L) begin",
+      "uncertain": false,
+      "example": {
+        "vectors": [
+          {
+            "L": 1,
+            "q_in": 0,
+            "r_in": 0
+          },
+          {
+            "L": 1,
+            "q_in": 1,
+            "r_in": 1
+          },
+          {
+            "L": 1,
+            "q_in": 0,
+            "r_in": 1
+          }
+        ],
+        "expected": [
+          {
+            "Q": 0
+          },
+          {
+            "Q": 1
+          },
+          {
+            "Q": 1
+          }
+        ]
+      }
+    },
+    {
+      "id": "feedback_L_low",
+      "outputs": [
+        "Q"
+      ],
+      "condition": "At posedge clk, if L == 0 then Q_next = q_in",
+      "edge": "posedge",
+      "visible": "next_cycle",
+      "priority": 2,
+      "spec_quote": "2-1 multiplexer",
+      "uncertain": false,
+      "example": {
+        "vectors": [
+          {
+            "L": 0,
+            "q_in": 1,
+            "r_in": 0
+          },
+          {
+            "L": 0,
+            "q_in": 0,
+            "r_in": 1
+          },
+          {
+            "L": 0,
+            "q_in": 1,
+            "r_in": 1
+          }
+        ],
+        "expected": [
+          {
+            "Q": 1
+          },
+          {
+            "Q": 0
+          },
+          {
+            "Q": 1
+          }
+        ]
+      }
+    }
+  ],
+  "reset": {
+    "kind": "none",
+    "name": null,
+    "active": "none",
+    "values": {
+      "Q": null
+    },
+    "first_released_cycle": "N/A"
+  },
+  "mid": "No mid-cycle changes are used in these examples; if present, changes after the posedge sample are carried to the start of the next row.",
+  "uncertain": []
+}

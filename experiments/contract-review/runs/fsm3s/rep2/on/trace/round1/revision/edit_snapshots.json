@@ -1,0 +1,273 @@
+[
+  {
+    "issue_id": "I1",
+    "before": {
+      "ports": {
+        "inputs": {
+          "in": 1,
+          "reset": 1
+        },
+        "outputs": {
+          "out": 1
+        },
+        "clock": "clk"
+      },
+      "states": [
+        {
+          "name": "A",
+          "meaning": "Reset state; Moore output 0.",
+          "update_time": "posedge",
+          "update_during_reset": true
+        },
+        {
+          "name": "B",
+          "meaning": "State B; Moore output 0.",
+          "update_time": "posedge",
+          "update_during_reset": false
+        },
+        {
+          "name": "C",
+          "meaning": "State C; Moore output 0.",
+          "update_time": "posedge",
+          "update_during_reset": false
+        },
+        {
+          "name": "D",
+          "meaning": "State D; Moore output 1.",
+          "update_time": "posedge",
+          "update_during_reset": false
+        }
+      ],
+      "rules": [
+        {
+          "id": "sync_reset",
+          "outputs": [
+            "out"
+          ],
+          "condition": "At a posedge, if reset == 1 then state becomes A regardless of in; after the edge out is 0.",
+          "edge": "posedge",
+          "visible": "same_cycle",
+          "priority": 100,
+          "spec_quote": "synchronous active high reset that resets the FSM to state A",
+          "uncertain": false,
+          "example": {
+            "vectors": [
+              {
+                "reset": 1,
+                "in": 0
+              },
+              {
+                "reset": 1,
+                "in": 1
+              }
+            ],
+            "expected": [
+              {
+                "out": 0
+              },
+              {
+                "out": 0
+              }
+            ]
+          }
+        },
+        {
+          "id": "transition_and_moore_output",
+          "outputs": [
+            "out"
+          ],
+          "condition": "At a posedge with reset == 0: update state S' from current state S and in by A,0->A; A,1->B; B,0->C; B,1->B; C,0->A; C,1->D; D,0->C; D,1->B. After the edge out = 0 for S' in {A,B,C} and out = 1 for S'=D.",
+          "edge": "posedge",
+          "visible": "same_cycle",
+          "priority": 10,
+          "spec_quote": "// A | A, B | 0\n// B | C, B | 0\n// C | A, D | 0\n// D | C, B | 1",
+          "uncertain": false,
+          "example": {
+            "vectors": [
+              {
+                "reset": 0,
+                "in": 1
+              },
+              {
+                "reset": 0,
+                "in": 0
+              },
+              {
+                "reset": 0,
+                "in": 1
+              },
+              {
+                "reset": 0,
+                "in": 0
+              }
+            ],
+            "expected": [
+              {
+                "out": 0
+              },
+              {
+                "out": 0
+              },
+              {
+                "out": 1
+              },
+              {
+                "out": 0
+              }
+            ]
+          }
+        }
+      ],
+      "reset": {
+        "kind": "sync",
+        "name": "reset",
+        "active": "high",
+        "values": {
+          "out": 0
+        },
+        "first_released_cycle": "The first posedge where reset=0 after reset has been sampled high; normal transition and Moore-output behavior applies on that edge."
+      },
+      "mid": "Optional mid input changes occur AFTER sampling, before the other edge, and are carried to the start of the next row; for this Moore FSM, such changes affect the next sampled posedge transition, not the already-sampled out.",
+      "uncertain": []
+    },
+    "after": {
+      "ports": {
+        "inputs": {
+          "in": 1,
+          "reset": 1
+        },
+        "outputs": {
+          "out": 1
+        },
+        "clock": "clk"
+      },
+      "states": [
+        {
+          "name": "A",
+          "meaning": "Reset state entered by a synchronous reset; Moore output 0. Before the first reset, the state is unspecified.",
+          "update_time": "posedge",
+          "update_during_reset": true
+        },
+        {
+          "name": "B",
+          "meaning": "State B; Moore output 0.",
+          "update_time": "posedge",
+          "update_during_reset": false
+        },
+        {
+          "name": "C",
+          "meaning": "State C; Moore output 0.",
+          "update_time": "posedge",
+          "update_during_reset": false
+        },
+        {
+          "name": "D",
+          "meaning": "State D; Moore output 1.",
+          "update_time": "posedge",
+          "update_during_reset": false
+        }
+      ],
+      "rules": [
+        {
+          "id": "sync_reset",
+          "outputs": [
+            "out"
+          ],
+          "condition": "At a posedge, if reset == 1 then state becomes A regardless of in; after the edge out is 0.",
+          "edge": "posedge",
+          "visible": "same_cycle",
+          "priority": 100,
+          "spec_quote": "synchronous active high reset that resets the FSM to state A",
+          "uncertain": false,
+          "example": {
+            "vectors": [
+              {
+                "reset": 1,
+                "in": 0
+              },
+              {
+                "reset": 1,
+                "in": 1
+              }
+            ],
+            "expected": [
+              {
+                "out": 0
+              },
+              {
+                "out": 0
+              }
+            ]
+          }
+        },
+        {
+          "id": "transition_and_moore_output",
+          "outputs": [
+            "out"
+          ],
+          "condition": "At a posedge with reset == 0: update state S' from current state S and in by A,0->A; A,1->B; B,0->C; B,1->B; C,0->A; C,1->D; D,0->C; D,1->B. After the edge out = 0 for S' in {A,B,C} and out = 1 for S'=D.",
+          "edge": "posedge",
+          "visible": "same_cycle",
+          "priority": 10,
+          "spec_quote": "// A | A, B | 0\n// B | C, B | 0\n// C | A, D | 0\n// D | C, B | 1",
+          "uncertain": false,
+          "example": {
+            "vectors": [
+              {
+                "reset": 1,
+                "in": 0
+              },
+              {
+                "reset": 0,
+                "in": 1
+              },
+              {
+                "reset": 0,
+                "in": 0
+              },
+              {
+                "reset": 0,
+                "in": 1
+              }
+            ],
+            "expected": [
+              {
+                "out": 0
+              },
+              {
+                "out": 0
+              },
+              {
+                "out": 0
+              },
+              {
+                "out": 1
+              }
+            ]
+          }
+        }
+      ],
+      "reset": {
+        "kind": "sync",
+        "name": "reset",
+        "active": "high",
+        "values": {
+          "out": 0
+        },
+        "first_released_cycle": "The first posedge where reset=0 after reset has been sampled high; normal transition and Moore-output behavior applies on that edge."
+      },
+      "mid": "Optional mid input changes occur AFTER sampling, before the other edge, and are carried to the start of the next row; for this Moore FSM, such changes affect the next sampled posedge transition, not the already-sampled out.",
+      "uncertain": [
+        {
+          "rule_id": "global",
+          "note": "The state before the first sampled synchronous reset is not specified by the public specification; reset forces state A.",
+          "candidates": [
+            "State A at time zero",
+            "State C at time zero",
+            "An unknown/arbitrary state at time zero"
+          ]
+        }
+      ]
+    }
+  }
+]

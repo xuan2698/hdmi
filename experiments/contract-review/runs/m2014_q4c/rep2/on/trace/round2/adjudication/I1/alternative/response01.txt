@@ -1,0 +1,47 @@
+```python
+def reference(vectors):
+    # Initial registered state. Power-up is unspecified; use concrete 0.
+    q = 0
+    # Current values of the DFF inputs as driven before the sampled edge.
+    cur_d = 0
+    cur_r = 0
+    out = []
+
+    for row in vectors:
+        # Drive row inputs before the sampled posedge (protocol contract).
+        if isinstance(row, dict):
+            if 'd' in row:
+                cur_d = row['d']
+            if 'r' in row:
+                cur_r = row['r']
+
+        # Sample after the posedge has settled. q has not yet changed at this point
+        # because the active clock edge (per the applied candidate) is negedge.
+        out.append({'q': q & 1})
+
+        # Process optional mid input changes AFTER sampling, before the other edge.
+        mid = row.get('mid') if isinstance(row, dict) else None
+        mid_changes = []
+        if isinstance(mid, dict):
+            mid_changes = [mid]
+        elif isinstance(mid, list):
+            mid_changes = mid
+
+        for change in mid_changes:
+            if isinstance(change, dict):
+                if 'd' in change:
+                    cur_d = change['d']
+                if 'r' in change:
+                    cur_r = change['r']
+
+        # Global interpretation: Negative-edge-triggered DFF.
+        # q updates on the negedge between this sampled posedge and the next one.
+        # Rule sync_reset_high: active-high synchronous reset forces q to 0.
+        if cur_r == 1:
+            q = 0
+        # Rule d_capture_when_reset_inactive: when reset inactive, q captures d.
+        else:
+            q = cur_d
+
+    return out
+```

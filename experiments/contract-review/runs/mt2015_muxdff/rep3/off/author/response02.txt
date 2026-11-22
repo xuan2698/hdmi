@@ -1,0 +1,80 @@
+{
+  "ports": {
+    "inputs": {"r_in": 1, "L": 1},
+    "outputs": {"Q": 1},
+    "clock": "clk"
+  },
+  "states": [
+    {
+      "name": "q_state",
+      "meaning": "1-bit register Q holding the current output value",
+      "update_time": "posedge clk",
+      "update_during_reset": false
+    }
+  ],
+  "rules": [
+    {
+      "id": "load_rule",
+      "outputs": ["Q"],
+      "condition": "L == 1",
+      "edge": "posedge",
+      "visible": "next_cycle",
+      "priority": 1,
+      "spec_quote": "if (L) begin q <= r;",
+      "uncertain": false,
+      "example": {
+        "vectors": [
+          {"r_in": 1, "L": 1},
+          {"r_in": 0, "L": 1},
+          {"r_in": 1, "L": 0}
+        ],
+        "expected": [
+          {"Q": 0},
+          {"Q": 1},
+          {"Q": 0}
+        ]
+      }
+    },
+    {
+      "id": "shift_rule",
+      "outputs": ["Q"],
+      "condition": "L == 0",
+      "edge": "posedge",
+      "visible": "next_cycle",
+      "priority": 2,
+      "spec_quote": "q <= {q[1] ^ q[2], q[0], q[2]};",
+      "uncertain": true,
+      "example": {
+        "vectors": [
+          {"r_in": 0, "L": 0},
+          {"r_in": 0, "L": 0},
+          {"r_in": 0, "L": 0}
+        ],
+        "expected": [
+          {"Q": 0},
+          {"Q": 0},
+          {"Q": 0}
+        ]
+      }
+    }
+  ],
+  "reset": {
+    "kind": "none",
+    "name": null,
+    "active": "none",
+    "values": {"Q": null},
+    "first_released_cycle": "0"
+  },
+  "mid": "Optional mid input changes occur AFTER sampling, before the other edge, and are carried to the start of the next row.",
+  "uncertain": [
+    {
+      "rule_id": "shift_rule",
+      "note": "Original spec uses 3-bit q with q[1]^q[2], q[0], q[2]; with 1-bit Q the shift expression is not directly applicable and must be reinterpreted.",
+      "candidates": [
+        "Q <= Q (identity, since only bit 0 exists)",
+        "Q <= Q ^ Q (always 0)",
+        "Q <= 0 (constant)"
+      ]
+    }
+  ]
+}

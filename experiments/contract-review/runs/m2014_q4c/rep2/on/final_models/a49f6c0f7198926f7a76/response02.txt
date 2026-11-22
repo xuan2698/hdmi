@@ -1,0 +1,40 @@
+```python
+def reference(vectors):
+    q = 0
+    cur_d = 0
+    cur_r = 0
+    outputs = []
+    for row in vectors:
+        # Drive row input values before the sampled posedge.
+        if "d" in row:
+            cur_d = row["d"]
+        if "r" in row:
+            cur_r = row["r"]
+
+        # Rule sync_reset_high: at the sampled posedge, r == 1 forces q to 0 (priority 2).
+        # Rule d_capture_when_reset_inactive: at the sampled posedge, r == 0 captures d (priority 1).
+        if cur_r == 1:
+            q = 0
+        else:
+            q = cur_d & 1
+
+        outputs.append({"q": q})
+
+        # Optional mid input changes occur after sampling and are carried to the start of the next row.
+        if "mid" in row and row["mid"] is not None:
+            mid = row["mid"]
+            for entry in mid:
+                if entry == "d":
+                    cur_d = mid["d"]
+                elif entry == "r":
+                    cur_r = mid["r"]
+                else:
+                    # Support mid changes supplied as a sequence of change dictionaries.
+                    for k in entry:
+                        if k == "d":
+                            cur_d = entry[k]
+                        elif k == "r":
+                            cur_r = entry[k"]
+
+    return outputs
+```

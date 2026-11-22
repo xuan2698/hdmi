@@ -1,0 +1,44 @@
+```python
+def reference(vectors):
+    # Contract:
+    # - Outputs Y0 and z are combinational functions of current y and x.
+    # - Y0 = bit 0 of next state Y[2:0] per table.
+    # - z = Moore output for present state y.
+    # - Each row: values driven before sampled edge; mid changes occur AFTER
+    #   sampling, before other edge, carried to start of next row.
+    # - Return dict per row with Y0 and z as unsigned ints within bit width.
+    #
+    # Next-state table:
+    #   y=000: x=0 -> 000, x=1 -> 001
+    #   y=001: x=0 -> 001, x=1 -> 100
+    #   y=010: x=0 -> 010, x=1 -> 001
+    #   y=011: x=0 -> 001, x=1 -> 010
+    #   y=100: x=0 -> 011, x=1 -> 100
+    #
+    # z: 0 for y in {000,001,010}; 1 for y in {011,100}
+
+    next_state = {
+        0b000: (0b000, 0b001),
+        0b001: (0b001, 0b100),
+        0b010: (0b010, 0b001),
+        0b011: (0b001, 0b010),
+        0b100: (0b011, 0b100),
+    }
+    z_table = {
+        0b000: 0,
+        0b001: 0,
+        0b010: 0,
+        0b011: 1,
+        0b100: 1,
+    }
+
+    results = []
+    for row in vectors:
+        y = row['y'] & 0b111
+        x = row['x'] & 0b1
+        Y = next_state[y][x]
+        Y0 = Y & 0b1
+        z = z_table[y]
+        results.append({'Y0': Y0, 'z': z})
+    return results
+```

@@ -1,0 +1,51 @@
+def reference(vectors):
+    q = 0
+    results = []
+    for v in vectors:
+        reset = 0
+        try:
+            reset = v["reset"]
+        except:
+            reset = 0
+
+        # R_RESET: synchronous active-high reset forces q to 0x0000.
+        if reset & 1:
+            q = 0
+        else:
+            # R_COUNT_BCD: increment packed BCD by 1, modulo 10000.
+            ones = (q & 15) + 1
+            carry = 0
+            if ones >= 10:
+                ones = 0
+                carry = 1
+
+            tens = ((q >> 4) & 15) + carry
+            carry = 0
+            if tens >= 10:
+                tens = 0
+                carry = 1
+
+            hundreds = ((q >> 8) & 15) + carry
+            carry = 0
+            if hundreds >= 10:
+                hundreds = 0
+                carry = 1
+
+            thousands = ((q >> 12) & 15) + carry
+            if thousands >= 10:
+                thousands = 0
+
+            q = ones | (tens << 4) | (hundreds << 8) | (thousands << 12)
+
+        # R_ENA_COMB: combinational enables from current packed BCD q.
+        ena = 0
+        if (q & 15) == 9:
+            ena = ena + 1
+        if (q & 255) == 0x99:
+            ena = ena + 2
+        if (q & 4095) == 0x999:
+            ena = ena + 4
+
+        results.append({"q": q, "ena": ena})
+
+    return results

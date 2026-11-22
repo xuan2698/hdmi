@@ -1,0 +1,27 @@
+```python
+def reference(vectors):
+    # State-assigned table:
+    # y=0 (000): x=0 -> Y=000, x=1 -> Y=001
+    # y=1 (001): x=0 -> Y=001, x=1 -> Y=100
+    # y=2 (010): x=0 -> Y=010, x=1 -> Y=001
+    # y=3 (011): x=0 -> Y=001, x=1 -> Y=010
+    # y=4 (100): x=0 -> Y=011, x=1 -> Y=100
+    # R_Y0: Y0 = next-state bit 0 of Y[2:0] selected by x from present state y
+    # R_z: z = 1 when present state y is 011 or 100, else 0
+    next_state = {
+        0: {0: 0b000, 1: 0b001},
+        1: {0: 0b001, 1: 0b100},
+        2: {0: 0b010, 1: 0b001},
+        3: {0: 0b001, 1: 0b010},
+        4: {0: 0b011, 1: 0b100},
+    }
+    out = []
+    for v in vectors:
+        x = v['x'] & 1
+        y = v['y'] & 0b111
+        Y = next_state[y][x]
+        Y0 = Y & 1  # R_Y0
+        z = 1 if (y == 0b011 or y == 0b100) else 0  # R_z
+        out.append({'Y0': Y0, 'z': z})
+    return out
+```

@@ -1,0 +1,78 @@
+def reference(vectors):
+    # State: q_reg is the 8-bit D flip-flop output register.
+    q_reg = 0
+    held_d = 0
+    held_reset = 0
+    result = []
+
+    for row in vectors:
+        d = held_d
+        reset = held_reset
+
+        if isinstance(row, dict):
+            if "d" in row:
+                d = row["d"]
+            if "reset" in row:
+                reset = row["reset"]
+            if isinstance(row.get("inputs"), dict):
+                inp = row["inputs"]
+                if "d" in inp:
+                    d = inp["d"]
+                if "reset" in inp:
+                    reset = inp["reset"]
+
+        d_val = int(d) & 0xFF
+        reset_val = int(reset) & 0x1
+
+        # r_posedge_q_sync_reset: At the positive clk edge, synchronous active-high reset dominates; otherwise load d.
+        if reset_val == 1:
+            q_reg = 0
+        else:
+            q_reg = d_val
+
+        result.append({"q": q_reg & 0xFF})
+
+        # After sampling, any mid-cycle input changes are carried to the start of the next row.
+        held_d = d_val
+        held_reset = reset_val
+
+        if isinstance(row, dict):
+            mid = row.get("mid")
+            if isinstance(mid, dict):
+                if "d" in mid:
+                    held_d = int(mid["d"]) & 0xFF
+                if "reset" in mid:
+                    held_reset = int(mid["reset"]) & 0x1
+            elif isinstance(mid, (list, tuple)):
+                for m in mid:
+                    if isinstance(m, dict):
+                        if "d" in m:
+                            held_d = int(m["d"]) & 0xFF
+                        if "reset" in m:
+                            held_reset = int(m["reset"]) & 0x1
+
+            for base in ("d", "reset"):
+                suffixes = ("_mid", "mid_", "__mid", "_after", "_next", "next_")
+                for suffix in suffixes:
+                    key1 = base + suffix
+                    key2 = suffix + base
+                    if key1 in row:
+                        if base == "d":
+                            held_d = int(row[key1]) & 0xFF
+                        else:
+                            held_reset = int(row[key1]) & 0x1
+                    if key2 in row:
+                        if base == "d":
+                            held_d = int(row[key2]) & 0xFF
+                        else:
+                            held_reset = int(row[key2]) & 0x1
+
+            for extra_key in ("after", "next"):
+                extra = row.get(extra_key)
+                if isinstance(extra, dict):
+                    if "d" in extra:
+                        held_d = int(extra["d"]) & 0xFF
+                    if "reset" in extra:
+                        held_reset = int(extra["reset"]) & 0x1
+
+    return result

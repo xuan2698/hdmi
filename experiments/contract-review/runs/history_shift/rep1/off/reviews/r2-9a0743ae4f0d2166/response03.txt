@@ -1,0 +1,55 @@
+{
+  "coverage": {
+    "S01": ["R1_async_reset", "R2_mispredict_priority", "R3_predict_shift", "R4_hold"],
+    "S02": ["R2_mispredict_priority", "R3_predict_shift"],
+    "S03": ["R2_mispredict_priority"],
+    "S04": ["R1_async_reset", "R2_mispredicted_priority", "R3_predict_shift", "R4_hold"]
+  },
+  "issues": [
+    {
+      "issue_id": "I1",
+      "rule_id": "R2_mispredict_priority",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "R2 example expected predict_history=11 from train_history=5, train_taken=1, but spec says load train_history concatenated with train_taken; correct value is (5<<1)|1=11 only if train_history is 5 and shift left; however spec says 'concatenated' which implies {train_history, train_taken} = 11 for 32-bit? Actually 5<<1|1=11, so example matches. But R2 condition says train_mispredicted==1 and example has predict_valid=1; spec says misprediction takes precedence, so output should be 11, matches. No issue? Wait, check R2 example: first vector train_history=5, train_taken=1, expected 11. That is correct if concatenation means shift left and insert train_taken at LSB. But spec S03 says 'train_history concatenated with train_taken' meaning {train_history, train_taken} as 33-bit? For 32-bit history, it's (train_history << 1) | train_taken. So 5<<1|1=11. OK. But R2 example second vector has train_history=0, train_taken=0, expected 11; that's hold from previous? Actually after first cycle, history=11; second cycle no mispredict, no predict, so hold 11. OK. So no consistency issue? But R3 example: first vector predict_taken=1, expected 1; second vector predict_taken=0, expected 2. That implies shift left and insert predict_taken at LSB: start 0, shift in 1 -> 1; then shift in 0 -> (1<<1)|0=2. Correct. R4 example: first vector predict_valid=1, predict_taken=1, expected 0? Wait R4 example vectors: first vector has predict_valid=1, predict_taken=1, expected predict_history=0. That contradicts R3 which says predict_valid=1 shifts in predict_taken. R4 is hold condition predict_valid=0, but example first vector has predict_valid=1. That is inconsistent: R4 example includes a predict_valid=1 vector but expects hold (0). That is a contradiction between rule condition and example. So issue: R4 example first vector has predict_valid=1 but expected 0, while R3 would give 1. So consistency issue."
+      ,
+      "spec_evidence": "shift in predict_taken from the LSB side to update the branch history for the predicted branch",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I2",
+      "rule_id": "R1_async_reset",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec says 'positive edge triggered asynchronous reset' which is contradictory; contract notes uncertainty but still marks uncertain=false and provides example. Alternative semantics: edge-triggered async reset clears only on rising edge of areset, not level-sensitive.",
+      "spec_evidence": "areset is a positive edge triggered asynchronous reset that resets the history counter to zero",
+      "alternative": "Edge-triggered async reset: predict_history cleared only on rising edge of areset; while areset remains high, history holds 0 but does not re-clear on other events.",
+      "sequence": [
+        {"areset": 1, "predict_valid": 0, "predict_taken": 0, "train_mispredicted": 0, "train_taken": 0, "train_history": 0},
+        {"areset": 1, "predict_valid": 1, "predict_taken": 1, "train_mispredicted": 0, "train_taken": 0, "train_history": 0},
+        {"areset": 0, "predict_valid": 0, "predict_taken": 0, "train_mispredicted": 0, "train_taken": 0, "train_history": 0}
+      ]
+    },
+    {
+      "issue_id": "I3",
+      "rule_id": "R2_mispredict_priority",
+      "type": "grounding",
+      "severity": "medium",
+      "detail": "R2 spec_quote only covers priority, not the load operation; the load behavior (train_history concatenated with train_taken) is from S03 but not quoted in R2. However R2 condition and example imply load. Grounding issue: rule lacks verbatim evidence for the load value.",
+      "spec_evidence": "This is the history before the mispredicted branch (train_history) concatenated with the actual result of the branch (train_taken).",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I4",
+      "rule_id": "global",
+      "type": "coverage",
+      "severity": "low",
+      "detail": "S01 mentions 'rolling back state in response to a pipeline flush caused by a branch misprediction' which is covered by R2, but no explicit rule for the 32-bit width or shift register nature beyond R3/R4. Acceptable.",
+      "spec_evidence": "",
+      "alternative": "",
+      "sequence": []
+    }
+  ]
+}

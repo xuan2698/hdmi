@@ -1,0 +1,25 @@
+def reference(vectors):
+    # Decade counter: counts 0..9, active-high synchronous reset to 0.
+    # Output q is registered (updates one cycle after sampled posedge).
+    # Each row: inputs driven before sampled posedge; mid changes occur
+    # AFTER sampling, before next edge, carried to start of next row.
+    q = 0  # power-up state (unspecified in spec; use 0)
+    out = []
+    for row in vectors:
+        # Apply any mid changes from previous row already carried in row inputs.
+        # Sample at posedge: compute next state from current inputs.
+        reset = row.get('reset', 0)
+        if reset:
+            nq = 0
+        elif q == 9:
+            nq = 0
+        else:
+            nq = q + 1
+        # Output reflects registered value (latency 1): output is current q
+        # before this edge's update? Contract says latency_cycles 1, meaning
+        # q updates one cycle after sampled edge. So output for this row is
+        # the q value that was present at the sampled edge (pre-update).
+        out.append({'q': q & 0xF})
+        # Update state after sampling
+        q = nq
+    return out

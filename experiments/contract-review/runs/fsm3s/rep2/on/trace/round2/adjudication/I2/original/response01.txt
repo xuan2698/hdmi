@@ -1,0 +1,59 @@
+```python
+def reference(vectors):
+    # State encoding: 0=A, 1=B, 2=C, 3=D
+    A, B, C, D = 0, 1, 2, 3
+    state = A  # Initial state assumed A; unspecified before first reset, reset forces A.
+    current_inputs = {'in': 0, 'reset': 0}
+    result = []
+
+    for row in vectors:
+        # Each row's values are driven before the sampled posedge edge.
+        for key, val in row.items():
+            if key in ('in', 'reset'):
+                current_inputs[key] = val
+
+        # Sample at posedge: apply synchronous reset and state transition.
+        reset_val = current_inputs.get('reset', 0)
+        in_val = current_inputs.get('in', 0)
+
+        if reset_val == 1:
+            # rule sync_reset: At a posedge, if reset == 1 then state becomes A
+            # regardless of in; after the edge out is 0.
+            state = A
+        else:
+            # rule transition_and_moore_output: normal transition when reset == 0
+            if state == A:
+                state = B if in_val == 1 else A
+            elif state == B:
+                state = B if in_val == 1 else C
+            elif state == C:
+                state = D if in_val == 1 else A
+            elif state == D:
+                state = B if in_val == 1 else C
+            else:
+                state = A
+
+        # Moore output based on the new state
+        out = 1 if state == D else 0
+        result.append({'out': out})
+
+        # Optional mid input changes occur AFTER sampling, before the other edge,
+        # and are carried to the start of the next row.
+        if 'mid' in row and isinstance(row['mid'], dict):
+            for key, val in row['mid'].items():
+                if key in ('in', 'reset'):
+                    current_inputs[key] = val
+
+        # Also support alternate mid key format: 'in_mid' or 'mid_in'
+        for key, val in row.items():
+            if key.endswith('_mid'):
+                base = key[:-4]
+                if base in ('in', 'reset'):
+                    current_inputs[base] = val
+            elif key.startswith('mid_'):
+                base = key[4:]
+                if base in ('in', 'reset'):
+                    current_inputs[base] = val
+
+    return result
+```

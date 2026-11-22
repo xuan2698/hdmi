@@ -1,0 +1,38 @@
+```python
+def reference(vectors):
+    # Initial stored state (power-up unspecified; first sampled posedge overwrites).
+    q = 0
+    # Current input values before the next sampled posedge.
+    # Mid changes from the previous row are carried here.
+    cur = {'d': 0, 'r': 0}
+    out = []
+
+    for row in vectors:
+        # Drive this row's explicit input values before the sampled posedge.
+        for name in ('d', 'r'):
+            if name in row:
+                cur[name] = int(row[name]) & 1
+
+        # sync_active_high_reset: at sampled posedge, r == 1 forces q to 0.
+        if cur['r'] == 1:
+            q = 0
+        else:
+            # d_capture_when_not_reset: at sampled posedge, r == 0 captures d.
+            q = cur['d'] & 1
+
+        out.append({'q': q})
+
+        # Apply optional mid changes after sampling; they persist to the next row.
+        if 'mid' in row and isinstance(row['mid'], dict):
+            for name, val in row['mid'].items():
+                if name in cur:
+                    cur[name] = int(val) & 1
+
+        # Support flat mid keys such as d_mid, r_mid, mid_d, mid_r.
+        for name in ('d', 'r'):
+            for key in (name + '_mid', 'mid_' + name):
+                if key in row:
+                    cur[name] = int(row[key]) & 1
+
+    return out
+```

@@ -1,0 +1,31 @@
+def reference(vectors):
+    # State: out_reg (32-bit sticky flag), prev_in (32-bit previous input)
+    # R1_reset_clear: reset==1 at posedge clears out_reg to 0 (priority 0)
+    # R2_capture_falling: reset==0 and (prev_in & ~in)!=0 sets those bits (priority 1)
+    # R3_hold: reset==0 and no falling edges -> hold (priority 2)
+    # Mid changes occur AFTER sampling, carried to start of next row.
+    out_reg = 0
+    prev_in = 0
+    results = []
+    for row in vectors:
+        reset = row['reset'] & 1
+        inp = row['in'] & 0xFFFFFFFF
+        # Sampling at posedge: compute next state based on current inputs and prev_in
+        if reset == 1:
+            # R1_reset_clear
+            next_out = 0
+        else:
+            falling = prev_in & (~inp & 0xFFFFFFFF)
+            if falling != 0:
+                # R2_capture_falling
+                next_out = out_reg | falling
+            else:
+                # R3_hold
+                next_out = out_reg
+        # Output visible same cycle for reset (R1), next_cycle for capture/hold.
+        # Contract: R1 visible same_cycle, R2/R3 visible next_cycle.
+        # We output the value AFTER the edge (registered output).
+        out_reg = next_out & 0xFFFFFFFF
+        prev_in = inp
+        results.append({'out': out_reg})
+    return results

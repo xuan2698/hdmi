@@ -1,0 +1,38 @@
+def reference(vectors):
+    # Initial concrete state for unspecified power-up
+    q = 0
+    reset = 0
+    outputs = []
+
+    for row in vectors:
+        # Apply row's driven input values before the sampled posedge
+        if "reset" in row:
+            reset = int(row["reset"]) & 1
+
+        # Sample at posedge clk
+        if reset == 1:
+            # sync_reset_high: active-high synchronous reset forces q to 0
+            q = 0
+        else:
+            # count_decade_mod10: increment modulo 10
+            q = (q + 1) % 10
+
+        outputs.append({"q": q})
+
+        # Process optional mid input changes after sampling, carried to next row
+        mid = row.get("mid")
+        if isinstance(mid, dict):
+            if "reset" in mid:
+                reset = int(mid["reset"]) & 1
+        elif isinstance(mid, list):
+            for change in mid:
+                if isinstance(change, dict) and "reset" in change:
+                    reset = int(change["reset"]) & 1
+
+        # Also support explicit mid-suffixed/prefixed reset keys if present
+        if "reset_mid" in row:
+            reset = int(row["reset_mid"]) & 1
+        if "mid_reset" in row:
+            reset = int(row["mid_reset"]) & 1
+
+    return outputs

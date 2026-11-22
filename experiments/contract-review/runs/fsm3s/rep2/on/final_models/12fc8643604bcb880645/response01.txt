@@ -1,0 +1,71 @@
+```python
+def reference(vectors):
+    # Initial state is chosen as A for concrete power-up; the specification leaves it unspecified.
+    state = 'A'
+    # Carried input values from previous mid changes and held signals.
+    carried = {'in': 0, 'reset': 0}
+    outputs = []
+
+    for row in vectors:
+        # Determine the inputs just before the sampled posedge:
+        # start from carried values, then override with any explicitly driven row values.
+        current = carried.copy()
+        for k, v in row.items():
+            if k in ('in', 'reset'):
+                current[k] = v
+
+        # Extract values used for this sampled edge.
+        rst = current.get('reset', 0)
+        inp = current.get('in', 0)
+
+        # rule: sync_reset
+        # At a posedge, if reset == 1 then state becomes A regardless of in.
+        if rst == 1:
+            state = 'A'
+        else:
+            # rule: transition_and_moore_output
+            # Update state based on current state and input.
+            if state == 'A':
+                if inp == 1:
+                    state = 'B'
+                else:
+                    state = 'A'
+            elif state == 'B':
+                if inp == 1:
+                    state = 'B'
+                else:
+                    state = 'C'
+            elif state == 'C':
+                if inp == 1:
+                    state = 'D'
+                else:
+                    state = 'A'
+            elif state == 'D':
+                if inp == 1:
+                    state = 'B'
+                else:
+                    state = 'C'
+
+        # rule: transition_and_moore_output
+        # Moore output after the edge: out is 1 only for state D.
+        out = 1 if state == 'D' else 0
+        outputs.append({'out': out})
+
+        # After sampling, inputs remain at current values until any mid changes occur.
+        carried = current.copy()
+
+        # Process optional mid input changes: they occur after sampling and are
+        # carried to the start of the next row.
+        mid = None
+        if 'mid' in row:
+            mid = row['mid']
+        elif '__mid__' in row:
+            mid = row['__mid__']
+
+        if isinstance(mid, dict):
+            for k, v in mid.items():
+                if k in ('in', 'reset'):
+                    carried[k] = v
+
+    return outputs
+```

@@ -1,0 +1,48 @@
+def reference(vectors):
+    q = 0  # concrete initial value for unspecified power-up
+    d = 0
+    reset = 0
+    out = []
+
+    for row in vectors:
+        # Drive row input values before the sampled negedge
+        if 'd' in row:
+            d = row['d'] & 0xFF
+        if 'reset' in row:
+            reset = row['reset'] & 1
+
+        # sync_reset_high: reset == 1 on negedge => q = 0x34
+        if reset == 1:
+            q = 0x34
+        else:
+            # negedge_d_update: reset == 0 on negedge => q captures d
+            q = d & 0xFF
+
+        out.append({'q': q})
+
+        # Process optional mid input changes AFTER sampling, carried to next row
+        if 'mid' in row:
+            mid = row['mid']
+            changes = []
+            if isinstance(mid, dict):
+                changes = [mid]
+            elif isinstance(mid, (list, tuple)):
+                if len(mid) == 2 and isinstance(mid[0], str):
+                    changes = [mid]
+                else:
+                    changes = mid
+
+            for change in changes:
+                if isinstance(change, dict):
+                    if 'd' in change:
+                        d = change['d'] & 0xFF
+                    if 'reset' in change:
+                        reset = change['reset'] & 1
+                elif isinstance(change, (list, tuple)) and len(change) == 2 and isinstance(change[0], str):
+                    key, val = change
+                    if key == 'd':
+                        d = val & 0xFF
+                    elif key == 'reset':
+                        reset = val & 1
+
+    return out

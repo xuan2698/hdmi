@@ -1,0 +1,91 @@
+[
+  {
+    "issue": {
+      "issue_id": "I5",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec waveform shows q=4 at 5ns after posedge with a=1 from initial x; contract has no reset and no rule for initial q, so initial value is unspecified.",
+      "spec_evidence": "5ns             1               1               4",
+      "alternative": "Initial q is 4 (as in waveform) rather than unspecified/x.",
+      "sequence": [
+        {
+          "a": 1
+        },
+        {
+          "a": 1
+        }
+      ]
+    },
+    "status": "no_effect",
+    "issue_id": "I5",
+    "outputs": {
+      "original": [
+        {
+          "q": 4
+        },
+        {
+          "q": 4
+        }
+      ],
+      "alternative": [
+        {
+          "q": 4
+        },
+        {
+          "q": 4
+        }
+      ]
+    },
+    "differences": []
+  },
+  {
+    "issue": {
+      "issue_id": "I6",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "low",
+      "detail": "Spec waveform at 45ns shows a=0 and q stays 4, but contract R2 says a=0 increments; alternative is that a=0 holds and a=1 increments, opposite of contract.",
+      "spec_evidence": "45ns            1               0               4",
+      "alternative": "a=0 holds q and a=1 increments q.",
+      "sequence": [
+        {
+          "a": 0
+        },
+        {
+          "a": 0
+        },
+        {
+          "a": 1
+        }
+      ]
+    },
+    "status": "no_effect",
+    "issue_id": "I6",
+    "outputs": {
+      "original": [
+        {
+          "q": 1
+        },
+        {
+          "q": 2
+        },
+        {
+          "q": 2
+        }
+      ],
+      "alternative": [
+        {
+          "q": 1
+        },
+        {
+          "q": 2
+        },
+        {
+          "q": 2
+        }
+      ]
+    },
+    "differences": []
+  }
+]

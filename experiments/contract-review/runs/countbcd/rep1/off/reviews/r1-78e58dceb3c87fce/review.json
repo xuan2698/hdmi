@@ -1,0 +1,186 @@
+{
+  "coverage": {
+    "S01": [
+      "R1_reset",
+      "R2_ones_increment",
+      "R3_ones_wrap",
+      "R7_full_wrap"
+    ],
+    "S02": [
+      "R2_ones_increment",
+      "R3_ones_wrap",
+      "R4_ena_tens",
+      "R5_ena_hundreds",
+      "R6_ena_thousands"
+    ],
+    "S03": [
+      "R4_ena_tens",
+      "R5_ena_hundreds",
+      "R6_ena_thousands"
+    ],
+    "S04": [
+      "R1_reset"
+    ]
+  },
+  "issues": [
+    {
+      "issue_id": "I1",
+      "rule_id": "R1_reset",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "R1 example shows q=0,1,2 with reset=1,0,0 but visible=same_cycle and reset holds q=0; expected[0] q=0 ok but expected[1] q=1 implies counting on deassert cycle contradicting first_released_cycle='cycle after reset deasserted'.",
+      "spec_evidence": "Include a synchronous active-high reset.",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I2",
+      "rule_id": "R2_ones_increment",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "R2 example expected q=1,2,3 from all reset=0 vectors, but no initial state given; if starting from 0 first output should be 1 only if prior state 0, yet three rows give 1,2,3 implying start at 0 and count each edge—consistent only if initial q=0 assumed, not stated.",
+      "spec_evidence": "q[3:0] is the ones digit",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I3",
+      "rule_id": "R3_ones_wrap",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "R3 example expected q=9,10,11 from reset=0 rows but condition q[3:0]==9 only triggers wrap; expected first row q=9 cannot arise from condition unless prior state 8, and q=10,11 are not BCD (ones digit 0,1 with tens increment) but expected shows decimal 10,11 which in 16-bit hex is 0x000A,0x000B—not BCD encoding (should be 0x0010,0x0011).",
+      "spec_evidence": "Each decimal digit is encoded using 4 bits",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I4",
+      "rule_id": "R4_ena_tens",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "R4 example expected q=9,10,11 with ena=1,0,0; q=10,11 as decimal hex 0x000A/0x000B are invalid BCD and ena=1 at q=9 should indicate tens increment next cycle, but expected q=10 (0x000A) not 0x0010.",
+      "spec_evidence": "For digits [3:1], also output an enable signal indicating when each of the upper three digits should be incremented.",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I5",
+      "rule_id": "R5_ena_hundreds",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "R5 example expected q=99,100,101 with ena=3,0,0; q=100 decimal is 0x0064 not BCD 0x0100, and ena=3 at q=99 implies ones and tens both 9 so hundreds increments, but expected q=100 invalid BCD.",
+      "spec_evidence": "For digits [3:1], also output an enable signal indicating when each of the upper three digits should be incremented.",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I6",
+      "rule_id": "R6_ena_thousands",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "R6 example expected q=999,1000,1001 with ena=7,0,0; q=1000 decimal is 0x03E8 not BCD 0x1000, and ena=7 at q=999 implies all lower digits 9 so thousands increments, but expected q=1000 invalid BCD.",
+      "spec_evidence": "For digits [3:1], also output an enable signal indicating when each of the upper three digits should be incremented.",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I7",
+      "rule_id": "R7_full_wrap",
+      "type": "grounding",
+      "severity": "medium",
+      "detail": "R7 marked uncertain=true with spec_quote not stating wrap behavior; spec does not explicitly define 9999->0000, so rule is not verbatim grounded.",
+      "spec_evidence": "Build a 4-digit BCD (binary-coded decimal) counter.",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I8",
+      "rule_id": "R7_full_wrap",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "R7 example expected q=9999,0,1 with ena=7,0,0; q=9999 decimal is 0x270F not BCD 0x9999, and ena=7 at q=9999 should indicate all digits increment/wrap, but expected q=0 then q=1 inconsistent with BCD wrap to 0x0000 then 0x0001.",
+      "spec_evidence": "Build a 4-digit BCD (binary-coded decimal) counter.",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I9",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "high",
+      "detail": "Spec does not define ena bit ordering for digits [3:1]; contract uses ena[0]=tens, ena[1]=hundreds, ena[2]=thousands (ena=3 at 99, ena=7 at 999) but alternative could map ena[2:0] to digits 3,2,1 differently.",
+      "spec_evidence": "For digits [3:1], also output an enable signal indicating when each of the upper three digits should be incremented.",
+      "alternative": "ena[2]=tens enable, ena[1]=hundreds enable, ena[0]=thousands enable (reverse order)",
+      "sequence": [
+        {
+          "reset": 0,
+          "mid": {}
+        },
+        {
+          "reset": 0,
+          "mid": {}
+        },
+        {
+          "reset": 0,
+          "mid": {}
+        }
+      ]
+    },
+    {
+      "issue_id": "I10",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec does not state initial counter value after reset release or whether counting begins immediately; contract assumes q=0 at reset and increments next posedge, but alternative could hold one cycle.",
+      "spec_evidence": "Include a synchronous active-high reset.",
+      "alternative": "After reset deassert, counter holds q=0 for one cycle before first increment",
+      "sequence": [
+        {
+          "reset": 1,
+          "mid": {}
+        },
+        {
+          "reset": 0,
+          "mid": {}
+        },
+        {
+          "reset": 0,
+          "mid": {}
+        }
+      ]
+    },
+    {
+      "issue_id": "I11",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec does not define behavior at 9999; contract assumes wrap to 0000 but alternative saturate at 9999 is plausible.",
+      "spec_evidence": "Build a 4-digit BCD (binary-coded decimal) counter.",
+      "alternative": "Saturate at 9999 (hold q=0x9999, ena=0) instead of wrapping to 0",
+      "sequence": [
+        {
+          "reset": 0,
+          "mid": {}
+        },
+        {
+          "reset": 0,
+          "mid": {}
+        },
+        {
+          "reset": 0,
+          "mid": {}
+        }
+      ]
+    },
+    {
+      "issue_id": "I12",
+      "rule_id": "global",
+      "type": "coverage",
+      "severity": "medium",
+      "detail": "Spec S03 says enable for digits [3:1] indicating when each upper digit should be incremented; contract rules R4-R6 cover tens/hundreds/thousands but no rule explicitly covers ena for digit 1 (tens) when ones=9 only—R4 does, but ena bit for tens at q[3:0]==9 is covered; however no rule covers ena when q[3:0]!=9 but lower digits cause carry? Actually R4 condition q[3:0]==9 covers tens; R5 adds q[7:4]==9; R6 adds q[11:8]==9. Missing explicit rule for ena=0 otherwise.",
+      "spec_evidence": "For digits [3:1], also output an enable signal indicating when each of the upper three digits should be incremented.",
+      "alternative": "",
+      "sequence": []
+    }
+  ]
+}

@@ -1,0 +1,98 @@
+```python
+def reference(vectors):
+    # Moore state A: reset, z=0.
+    # Moore state B: complement mode, z=0.
+    # Moore state C: copy mode, z=1.
+    state = "A"
+    cur_areset = 0
+    cur_x = 0
+    results = []
+
+    for row in vectors:
+        # Each row's values are driven before the sampled posedge.
+        if isinstance(row, dict):
+            if "inputs" in row and isinstance(row["inputs"], dict):
+                inp = row["inputs"]
+            else:
+                inp = row
+
+            if "areset" in inp:
+                cur_areset = int(inp["areset"]) & 1
+            if "x" in inp:
+                cur_x = int(inp["x"]) & 1
+
+        # rule reset_async_z0: areset==1 asynchronously forces state A and z=0.
+        if cur_areset == 1:
+            state = "A"
+            z = 0
+        else:
+            if state == "A":
+                if cur_x == 0:
+                    # rule A_x0_to_A_z0: A --x=0--> A, z=0.
+                    state = "A"
+                    z = 0
+                else:
+                    # rule A_x1_to_C_z1: A --x=1--> C, z=1.
+                    state = "C"
+                    z = 1
+            elif state == "B":
+                if cur_x == 0:
+                    # rule B_x0_to_C_z1: B --x=0--> C, z=1.
+                    state = "C"
+                    z = 1
+                else:
+                    # rule B_x1_to_B_z0: B --x=1--> B, z=0.
+                    state = "B"
+                    z = 0
+            else:  # state == "C"
+                if cur_x == 0:
+                    # rule C_x0_to_C_z1: C --x=0--> C, z=1.
+                    state = "C"
+                    z = 1
+                else:
+                    # rule C_x1_to_B_z0: C --x=1--> B, z=0.
+                    state = "B"
+                    z = 0
+
+        results.append({"z": z & 1})
+
+        # Optional mid input changes occur AFTER sampling and persist
+        # to the start of the next row.
+        if isinstance(row, dict) and "mid" in row:
+            mids = row["mid"]
+            if isinstance(mids, dict):
+                mid_list = [mids]
+            elif isinstance(mids, list):
+                mid_list = mids
+            else:
+                mid_list = [mids]
+
+            for m in mid_list:
+                if isinstance(m, dict):
+                    if "inputs" in m and isinstance(m["inputs"], dict):
+                        m_inp = m["inputs"]
+                    else:
+                        m_inp = m
+
+                    if "areset" in m_inp:
+                        cur_areset = int(m_inp["areset"]) & 1
+                        # rule reset_async_z0: asynchronous reset also applies
+                        # to a mid-cycle assertion of areset.
+                        if cur_areset == 1:
+                            state = "A"
+                    if "x" in m_inp:
+                        cur_x = int(m_inp["x"]) & 1
+
+                elif isinstance(m, (list, tuple)) and len(m) >= 2:
+                    name = m[0]
+                    val = m[1]
+                    if name == "areset":
+                        cur_areset = int(val) & 1
+                        # rule reset_async_z0: asynchronous reset from mid entry.
+                        if cur_areset == 1:
+                            state = "A"
+                    elif name == "x":
+                        cur_x = int(val) & 1
+
+    return results
+```

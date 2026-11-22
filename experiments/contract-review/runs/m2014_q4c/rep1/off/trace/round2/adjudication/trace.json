@@ -1,0 +1,86 @@
+[
+  {
+    "issue": {
+      "issue_id": "I3",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec says synchronous reset; contract reset.first_released_cycle and update_during_reset true imply reset sampled at posedge, but R1 visible same_cycle vs state update_time posedge could mean q changes after edge; alternative: reset applies combinationally.",
+      "spec_evidence": "active high synchronous reset (reset output to 0)",
+      "alternative": "Reset is asynchronous: q goes 0 immediately when r=1, independent of clk edge.",
+      "sequence": [
+        {
+          "d": 1,
+          "r": 0
+        },
+        {
+          "d": 1,
+          "r": 1
+        }
+      ]
+    },
+    "status": "no_effect",
+    "issue_id": "I3",
+    "outputs": {
+      "original": [
+        {
+          "q": 1
+        },
+        {
+          "q": 0
+        }
+      ],
+      "alternative": [
+        {
+          "q": 1
+        },
+        {
+          "q": 0
+        }
+      ]
+    },
+    "differences": []
+  },
+  {
+    "issue": {
+      "issue_id": "I4",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "low",
+      "detail": "Priority ordering R1 before R2 is consistent with reset dominating, but no explicit statement on simultaneous r=1,d=1 beyond reset; alternative: d captured when r=1.",
+      "spec_evidence": "",
+      "alternative": "When r=1 and d=1, q captures d=1 instead of resetting.",
+      "sequence": [
+        {
+          "d": 1,
+          "r": 1
+        }
+      ]
+    },
+    "status": "effect",
+    "issue_id": "I4",
+    "outputs": {
+      "original": [
+        {
+          "q": 0
+        }
+      ],
+      "alternative": [
+        {
+          "q": 1
+        }
+      ]
+    },
+    "differences": [
+      {
+        "cycle": 1,
+        "original": {
+          "q": 0
+        },
+        "alternative": {
+          "q": 1
+        }
+      }
+    ]
+  }
+]

@@ -1,0 +1,71 @@
+[
+  {
+    "issue": {
+      "issue_id": "I4",
+      "rule_id": "R3_predict_shift",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "'shift in predict_taken from the LSB side' could mean shift right inserting at MSB or shift left inserting at LSB; examples imply shift-left (history<<1|predict_taken).",
+      "spec_evidence": "shift in predict_taken from the LSB side to update the branch history for the predicted branch",
+      "alternative": "Shift right: history = (history>>1) | (predict_taken<<31), so predict_taken enters at MSB side.",
+      "sequence": [
+        {
+          "areset": 0,
+          "predict_valid": 1,
+          "predict_taken": 1,
+          "train_mispredicted": 0,
+          "train_taken": 0,
+          "train_history": 0
+        },
+        {
+          "areset": 0,
+          "predict_valid": 0,
+          "predict_taken": 0,
+          "train_mispredicted": 0,
+          "train_taken": 0,
+          "train_history": 0
+        }
+      ]
+    },
+    "status": "effect",
+    "issue_id": "I4",
+    "outputs": {
+      "original": [
+        {
+          "predict_history": 1
+        },
+        {
+          "predict_history": 1
+        }
+      ],
+      "alternative": [
+        {
+          "predict_history": 2147483648
+        },
+        {
+          "predict_history": 2147483648
+        }
+      ]
+    },
+    "differences": [
+      {
+        "cycle": 1,
+        "original": {
+          "predict_history": 1
+        },
+        "alternative": {
+          "predict_history": 2147483648
+        }
+      },
+      {
+        "cycle": 2,
+        "original": {
+          "predict_history": 1
+        },
+        "alternative": {
+          "predict_history": 2147483648
+        }
+      }
+    ]
+  }
+]

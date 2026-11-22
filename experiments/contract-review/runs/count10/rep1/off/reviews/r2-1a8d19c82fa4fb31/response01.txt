@@ -1,0 +1,54 @@
+{
+  "coverage": {
+    "S01": ["R2_COUNT_INC", "R3_WRAP"],
+    "S02": ["R1_SYNC_RESET"]
+  },
+  "issues": [
+    {
+      "issue_id": "I1",
+      "rule_id": "R3_WRAP",
+      "type": "consistency",
+      "severity": "medium",
+      "detail": "R3 example starts at q=9 without showing how q reached 9; first row reset=0 expects q=9, contradicting R2 which would increment from prior state. Example is not self-consistent from reset.",
+      "spec_evidence": "counts from 0 through 9, inclusive, with a period of 10",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I2",
+      "rule_id": "R2_COUNT_INC",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "R2 condition 'reset==0' does not exclude q==9; R3 also matches at q==9 with same priority. Overlapping rules with equal priority leave wrap behavior ambiguous.",
+      "spec_evidence": "counts from 0 through 9, inclusive, with a period of 10",
+      "alternative": "At q==9 with reset==0, R2 increments to 10 (4-bit q=10) instead of wrapping to 0, since R2 has no q!=9 guard and equal priority to R3.",
+      "sequence": [
+        {"reset": 1},
+        {"reset": 0},
+        {"reset": 0},
+        {"reset": 0},
+        {"reset": 0},
+        {"reset": 0},
+        {"reset": 0},
+        {"reset": 0},
+        {"reset": 0},
+        {"reset": 0},
+        {"reset": 0}
+      ]
+    },
+    {
+      "issue_id": "I3",
+      "rule_id": "R1_SYNC_RESET",
+      "type": "ambiguity",
+      "severity": "low",
+      "detail": "R1 visible 'same_cycle' with posedge edge is ambiguous whether q=0 is visible immediately after the reset posedge or only after the next posedge; spec says synchronous reset to 0.",
+      "spec_evidence": "The reset input is active high synchronous, and should reset the counter to 0.",
+      "alternative": "Reset takes effect at the posedge but q output updates only on the following posedge, so q remains previous value during the reset cycle.",
+      "sequence": [
+        {"reset": 0},
+        {"reset": 1},
+        {"reset": 0}
+      ]
+    }
+  ]
+}

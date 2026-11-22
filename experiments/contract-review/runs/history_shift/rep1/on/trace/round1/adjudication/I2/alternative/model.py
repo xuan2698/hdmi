@@ -1,0 +1,37 @@
+def reference(vectors):
+    history = 0
+    outputs = []
+    for row in vectors:
+        areset = row["areset"]
+        predict_valid = row["predict_valid"]
+        predict_taken = row["predict_taken"]
+        train_mispredicted = row["train_mispredicted"]
+        train_taken = row["train_taken"]
+        train_history = row["train_history"]
+
+        # Rule reset_async: asynchronous reset, priority 0, visible same cycle
+        if areset == 1:
+            history = 0
+        else:
+            # Rule mispredict_rollback: priority 1, posedge, same cycle
+            if train_mispredicted == 1:
+                history = ((train_history << 1) | train_taken) & 0xFFFFFFFF
+            # Rule predict_shift: priority 2, posedge, same cycle
+            elif predict_valid == 1:
+                history = ((history << 1) | predict_taken) & 0xFFFFFFFF
+            # Rule hold_no_update: priority 3, candidate interpretation:
+            # on posedge with no prediction/misprediction, clear history to 0.
+            else:
+                history = 0
+
+        outputs.append({"predict_history": history & 0xFFFFFFFF})
+
+        # Mid changes occur AFTER sampling. Only asynchronous reset affects state immediately.
+        if "mid" in row:
+            mid = row["mid"]
+            if "areset" in mid:
+                if mid["areset"] == 1:
+                    history = 0
+            # Other mid input changes do not alter state before the next posedge.
+
+    return outputs

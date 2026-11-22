@@ -1,0 +1,71 @@
+{
+  "responses": [
+    {
+      "issue_id": "I1",
+      "decision": "rebut",
+      "reason": "R1 example is consistent with the synchronous reset rule; no contradiction exists to fix.",
+      "spec_quote": "active high synchronous reset (reset output to 0)"
+    },
+    {
+      "issue_id": "I2",
+      "decision": "accept",
+      "reason": "R2 example row1 uses r=1, which is governed by R1 reset rather than R2 capture; replace the example so all rows satisfy r==0.",
+      "spec_quote": "Implement a simple D flip flop",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R2_capture_d",
+            "example"
+          ],
+          "value": {
+            "vectors": [
+              {
+                "d": 0,
+                "r": 0
+              },
+              {
+                "d": 1,
+                "r": 0
+              },
+              {
+                "d": 0,
+                "r": 0
+              },
+              {
+                "d": 1,
+                "r": 0
+              }
+            ],
+            "expected": [
+              {
+                "q": 0
+              },
+              {
+                "q": 1
+              },
+              {
+                "q": 0
+              },
+              {
+                "q": 1
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "issue_id": "I4",
+      "decision": "rebut",
+      "reason": "Reset priority is already encoded by R1 priority 1 over R2 priority 2, so r=1 forces q=0 regardless of d.",
+      "spec_quote": "active high synchronous reset (reset output to 0)"
+    },
+    {
+      "issue_id": "I5",
+      "decision": "rebut",
+      "reason": "Both rule examples already match their derived outputs; no change needed.",
+      "spec_quote": "Implement a simple D flip flop"
+    }
+  ]
+}

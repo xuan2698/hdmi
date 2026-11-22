@@ -1,0 +1,164 @@
+{
+  "ports": {
+    "inputs": {
+      "reset": 1
+    },
+    "outputs": {
+      "q": 4
+    },
+    "clock": "clk"
+  },
+  "states": [
+    {
+      "name": "S0",
+      "meaning": "counter value q=0",
+      "update_time": "posedge clk",
+      "update_during_reset": true
+    },
+    {
+      "name": "S1",
+      "meaning": "counter value q=1",
+      "update_time": "posedge clk",
+      "update_during_reset": true
+    },
+    {
+      "name": "S2",
+      "meaning": "counter value q=2",
+      "update_time": "posedge clk",
+      "update_during_reset": true
+    },
+    {
+      "name": "S3",
+      "meaning": "counter value q=3",
+      "update_time": "posedge clk",
+      "update_during_reset": true
+    },
+    {
+      "name": "S4",
+      "meaning": "counter value q=4",
+      "update_time": "posedge clk",
+      "update_during_reset": true
+    },
+    {
+      "name": "S5",
+      "meaning": "counter value q=5",
+      "update_time": "posedge clk",
+      "update_during_reset": true
+    },
+    {
+      "name": "S6",
+      "meaning": "counter value q=6",
+      "update_time": "posedge clk",
+      "update_during_reset": true
+    },
+    {
+      "name": "S7",
+      "meaning": "counter value q=7",
+      "update_time": "posedge clk",
+      "update_during_reset": true
+    },
+    {
+      "name": "S8",
+      "meaning": "counter value q=8",
+      "update_time": "posedge clk",
+      "update_during_reset": true
+    },
+    {
+      "name": "S9",
+      "meaning": "counter value q=9",
+      "update_time": "posedge clk",
+      "update_during_reset": true
+    }
+  ],
+  "rules": [
+    {
+      "id": "sync_reset_high",
+      "outputs": [
+        "q"
+      ],
+      "condition": "At a sampled posedge, reset == 1; q is forced to 0 regardless of the prior q.",
+      "edge": "posedge",
+      "visible": "same_cycle",
+      "priority": 10,
+      "spec_quote": "active high synchronous, and should reset the counter to 0",
+      "uncertain": false,
+      "example": {
+        "vectors": [
+          {
+            "reset": 1
+          },
+          {
+            "reset": 1
+          },
+          {
+            "reset": 1
+          }
+        ],
+        "expected": [
+          {
+            "q": 0
+          },
+          {
+            "q": 0
+          },
+          {
+            "q": 0
+          }
+        ]
+      }
+    },
+    {
+      "id": "count_decade_mod10",
+      "outputs": [
+        "q"
+      ],
+      "condition": "At a sampled posedge, reset == 0; q becomes (prior q + 1) mod 10, with sequence 0,1,2,3,4,5,6,7,8,9,0,...",
+      "edge": "posedge",
+      "visible": "same_cycle",
+      "priority": 1,
+      "spec_quote": "counts from 0 through 9, inclusive, with a period of 10",
+      "uncertain": false,
+      "example": {
+        "vectors": [
+          {
+            "reset": 0
+          },
+          {
+            "reset": 0
+          },
+          {
+            "reset": 0
+          },
+          {
+            "reset": 0
+          }
+        ],
+        "expected": [
+          {
+            "q": 9
+          },
+          {
+            "q": 0
+          },
+          {
+            "q": 1
+          },
+          {
+            "q": 2
+          }
+        ]
+      }
+    }
+  ],
+  "reset": {
+    "kind": "sync",
+    "name": "reset",
+    "active": "high",
+    "values": {
+      "q": 0
+    },
+    "first_released_cycle": "first sampled posedge with reset==0 after reset release; q becomes 1 from the reset state 0"
+  },
+  "mid": "Optional mid input changes occur after sampling, before the next edge, and are carried to the next row; they do not alter the current sampled q.",
+  "uncertain": []
+}

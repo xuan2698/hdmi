@@ -1,0 +1,60 @@
+```python
+def reference(vectors):
+    # Initial concrete state for unspecified power-up (within 0..9).
+    q = 0
+    signal_values = {}
+    result = []
+
+    for row in vectors:
+        inputs = {}
+        mids = {}
+
+        if isinstance(row, dict):
+            # Support optional nested "inputs" dictionary.
+            if isinstance(row.get("inputs"), dict):
+                inputs.update(row["inputs"])
+
+            for key, val in row.items():
+                if key in ("inputs", "mid", "clk"):
+                    continue
+                if key.startswith("mid_"):
+                    mids[key[4:]] = val
+                else:
+                    inputs[key] = val
+
+            if isinstance(row.get("mid"), dict):
+                mids.update(row["mid"])
+
+        elif isinstance(row, (list, tuple)):
+            # Fallback representation: (pre-edge inputs, mid changes).
+            if len(row) > 0 and isinstance(row[0], dict):
+                inputs.update(row[0])
+            if len(row) > 1 and isinstance(row[1], dict):
+                mids.update(row[1])
+
+        # Values driven before the sampled edge override carried values.
+        before_edge = dict(signal_values)
+        before_edge.update(inputs)
+
+        reset_val = before_edge.get("reset", 0)
+        try:
+            reset_val = int(reset_val)
+        except Exception:
+            reset_val = 0
+
+        # sync_reset_to_zero: active-high synchronous reset forces q to 0.
+        if reset_val & 1:
+            q = 0
+        else:
+            # count_modulo_10: increment modulo 10 when reset is low.
+            q = (q + 1) % 10
+
+        result.append({"q": q})
+
+        # mid changes happen after sampling and carry to the next row.
+        after_edge = dict(before_edge)
+        after_edge.update(mids)
+        signal_values = after_edge
+
+    return result
+```

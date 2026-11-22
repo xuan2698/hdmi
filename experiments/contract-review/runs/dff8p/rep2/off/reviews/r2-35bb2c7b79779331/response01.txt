@@ -1,0 +1,52 @@
+{
+  "coverage": {
+    "S01": ["R1_sync_reset", "R2_dff_capture"],
+    "S02": ["R3_reset_value"],
+    "S03": ["R1_sync_reset", "R2_dff_capture", "R3_reset_value"]
+  },
+  "issues": [
+    {
+      "issue_id": "I1",
+      "rule_id": "R3_reset_value",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "R3 example expects q=0 after reset deasserts with d=0, but R2 requires capture of d=0, so q=0 is consistent only if d=0; however R3's third vector has d=0 and reset=0, so q=0 is correct by R2, not by reset value. The example does not demonstrate reset value persistence; it conflates reset release with data capture.",
+      "spec_evidence": "reset to 0x34 rather than zero",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I2",
+      "rule_id": "R1_sync_reset",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec says synchronous reset but does not specify same-cycle vs next-cycle visibility; contract marks uncertain but still asserts same_cycle with no distinguishing evidence.",
+      "spec_evidence": "active high synchronous reset",
+      "alternative": "reset visible next negedge (next_cycle)",
+      "sequence": [
+        {"d": 10, "reset": 1},
+        {"d": 20, "reset": 0}
+      ]
+    },
+    {
+      "issue_id": "I3",
+      "rule_id": "R1_sync_reset",
+      "type": "spec_example",
+      "severity": "medium",
+      "detail": "R1 example first vector d=10, reset=1 expects q=52 (0x34), which is correct for reset, but the example does not show a case where reset and d conflict on the same edge with a prior non-reset value to prove override; it only shows reset from unknown/initial state.",
+      "spec_evidence": "active high synchronous reset",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I4",
+      "rule_id": "global",
+      "type": "grounding",
+      "severity": "low",
+      "detail": "Contract reset object includes 'first_released_cycle' and 'values' but no rule explicitly maps 'first_released_cycle' to spec; it is an implementation detail not grounded in spec text.",
+      "spec_evidence": "",
+      "alternative": "",
+      "sequence": []
+    }
+  ]
+}

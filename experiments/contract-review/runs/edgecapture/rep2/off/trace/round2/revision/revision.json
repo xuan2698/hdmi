@@ -1,0 +1,297 @@
+{
+  "responses": [
+    {
+      "issue_id": "I1",
+      "decision": "accept",
+      "reason": "R2 example timing contradicts visible=next_cycle; the falling edge occurs at row2 and output should appear at row3 under next_cycle semantics. Fix example to align with next_cycle.",
+      "spec_quote": "capture when the input signal changes from 1 in one clock cycle to 0 the next",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R2_capture_falling",
+            "example"
+          ],
+          "value": {
+            "vectors": [
+              {
+                "reset": 0,
+                "in": 4294967295
+              },
+              {
+                "reset": 0,
+                "in": 0
+              },
+              {
+                "reset": 0,
+                "in": 0
+              },
+              {
+                "reset": 0,
+                "in": 0
+              }
+            ],
+            "expected": [
+              {
+                "out": 0
+              },
+              {
+                "out": 0
+              },
+              {
+                "out": 4294967295
+              },
+              {
+                "out": 4294967295
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "issue_id": "I2",
+      "decision": "accept",
+      "reason": "Same timing mismatch as I1; example must show output one cycle after the falling edge.",
+      "spec_quote": "capture when the input signal changes from 1 in one clock cycle to 0 the next",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R2_capture_falling",
+            "example"
+          ],
+          "value": {
+            "vectors": [
+              {
+                "reset": 0,
+                "in": 4294967295
+              },
+              {
+                "reset": 0,
+                "in": 0
+              },
+              {
+                "reset": 0,
+                "in": 0
+              },
+              {
+                "reset": 0,
+                "in": 0
+              }
+            ],
+            "expected": [
+              {
+                "out": 0
+              },
+              {
+                "out": 0
+              },
+              {
+                "out": 4294967295
+              },
+              {
+                "out": 4294967295
+              }
+            ]
+          }
+        }
+      ],
+      "already_applied_by_earlier_issue": true
+    },
+    {
+      "issue_id": "I3",
+      "decision": "accept",
+      "reason": "R3 example does not demonstrate hold after a capture; strengthen example to show a captured bit persisting.",
+      "spec_quote": "the output will remain 1 until the register is reset",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R3_hold",
+            "example"
+          ],
+          "value": {
+            "vectors": [
+              {
+                "reset": 0,
+                "in": 1
+              },
+              {
+                "reset": 0,
+                "in": 0
+              },
+              {
+                "reset": 0,
+                "in": 0
+              },
+              {
+                "reset": 0,
+                "in": 0
+              }
+            ],
+            "expected": [
+              {
+                "out": 0
+              },
+              {
+                "out": 0
+              },
+              {
+                "out": 1
+              },
+              {
+                "out": 1
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "issue_id": "I4",
+      "decision": "accept",
+      "reason": "R1 example does not show reset clearing a previously captured bit; add a capture-then-reset sequence.",
+      "spec_quote": "until the register is reset (active high synchronous reset)",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R1_reset_clear",
+            "example"
+          ],
+          "value": {
+            "vectors": [
+              {
+                "reset": 0,
+                "in": 1
+              },
+              {
+                "reset": 0,
+                "in": 0
+              },
+              {
+                "reset": 1,
+                "in": 0
+              },
+              {
+                "reset": 0,
+                "in": 0
+              }
+            ],
+            "expected": [
+              {
+                "out": 0
+              },
+              {
+                "out": 0
+              },
+              {
+                "out": 0
+              },
+              {
+                "out": 0
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "issue_id": "I5",
+      "decision": "rebut",
+      "reason": "Spec explicitly says 'For each bit', establishing per-bit semantics; the global-any alternative is not plausible against the quoted text.",
+      "spec_quote": "For each bit in a 32-bit vector, capture when the input signal changes from 1 in one clock cycle to 0 the next."
+    },
+    {
+      "issue_id": "I6",
+      "decision": "accept",
+      "reason": "Initial prev_in value is unspecified; record as an explicit uncertainty without inventing a reset kind.",
+      "spec_quote": "",
+      "edits": [
+        {
+          "path": [
+            "uncertain"
+          ],
+          "value": [
+            {
+              "rule_id": "global",
+              "note": "Initial value of prev_in at time 0 is unspecified; affects whether a capture occurs on the first sampled edge.",
+              "candidates": [
+                "prev_in initialized to 0 at time 0",
+                "prev_in initialized to all ones at time 0",
+                "prev_in unknown at time 0"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "issue_id": "I7",
+      "decision": "accept",
+      "reason": "Clarify per-bit set behavior in the rule condition text to ground the bitwise expression.",
+      "spec_quote": "For each bit in a 32-bit vector, capture when the input signal changes from 1 in one clock cycle to 0 the next.",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R2_capture_falling",
+            "condition"
+          ],
+          "value": "reset == 0 && (prev_in & ~in) != 0; set only bits where prev_in=1 and in=0"
+        }
+      ]
+    },
+    {
+      "issue_id": "I8",
+      "decision": "accept",
+      "reason": "Same as I1/I2; example must reflect next_cycle visibility.",
+      "spec_quote": "capture when the input signal changes from 1 in one clock cycle to 0 the next",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R2_capture_falling",
+            "example"
+          ],
+          "value": {
+            "vectors": [
+              {
+                "reset": 0,
+                "in": 4294967295
+              },
+              {
+                "reset": 0,
+                "in": 0
+              },
+              {
+                "reset": 0,
+                "in": 0
+              },
+              {
+                "reset": 0,
+                "in": 0
+              }
+            ],
+            "expected": [
+              {
+                "out": 0
+              },
+              {
+                "out": 0
+              },
+              {
+                "out": 4294967295
+              },
+              {
+                "out": 4294967295
+              }
+            ]
+          }
+        }
+      ],
+      "already_applied_by_earlier_issue": true
+    }
+  ]
+}

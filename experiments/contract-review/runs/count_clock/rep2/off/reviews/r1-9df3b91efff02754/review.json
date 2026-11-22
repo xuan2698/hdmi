@@ -1,0 +1,132 @@
+{
+  "coverage": {
+    "S01": [
+      "R1_reset",
+      "R2_hold",
+      "R3_seconds",
+      "R4_seconds_roll",
+      "R5_minutes_roll",
+      "R6_hours_roll_am_pm"
+    ],
+    "S02": [
+      "R2_hold",
+      "R3_seconds",
+      "R4_seconds_roll",
+      "R5_minutes_roll",
+      "R6_hours_roll_am_pm"
+    ],
+    "S03": [
+      "R3_seconds",
+      "R4_seconds_roll",
+      "R5_minutes_roll",
+      "R6_hours_roll_am_pm"
+    ],
+    "S04": [
+      "R1_reset"
+    ]
+  },
+  "issues": [
+    {
+      "issue_id": "I1",
+      "rule_id": "R1_reset",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "Reset expected hh=18 (0x12) but spec says 12:00 AM; BCD 12 is 0x12, not 0x18.",
+      "spec_evidence": "resets the clock to \"12:00 AM.\"",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I2",
+      "rule_id": "R2_hold",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "Hold example uses hh=18, contradicting reset value 12 (0x12).",
+      "spec_evidence": "resets the clock to \"12:00 AM.\"",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I3",
+      "rule_id": "R3_seconds",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "Seconds increment example starts from hh=18, not valid 12-hour BCD.",
+      "spec_evidence": "hours (01-12)",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I4",
+      "rule_id": "R4_seconds_roll",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "Seconds roll example uses hh=18 and mm=1, inconsistent with stated roll condition.",
+      "spec_evidence": "minutes (00-59), and seconds (00-59)",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I5",
+      "rule_id": "R5_minutes_roll",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "Minutes roll example uses hh=18 and does not show hour increment.",
+      "spec_evidence": "hours (01-12), minutes (00-59)",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I6",
+      "rule_id": "R6_hours_roll_am_pm",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "Hours roll example uses hh=18 and sets hh=1, but spec requires 12-hour wrap to 01.",
+      "spec_evidence": "hours (01-12)",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I7",
+      "rule_id": "R6_hours_roll_am_pm",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec does not state whether 12:00 AM is noon or midnight; contract assumes 12:00 AM is midnight and toggles pm at 12:59:59.",
+      "spec_evidence": "The signal \"pm\" is asserted if the clock is PM, or is otherwise AM.",
+      "alternative": "Treat 12:00 AM as noon (12:00 PM) and toggle pm at 11:59:59.",
+      "sequence": [
+        {
+          "reset": 1,
+          "ena": 0
+        },
+        {
+          "reset": 0,
+          "ena": 1
+        },
+        {
+          "reset": 0,
+          "ena": 1
+        }
+      ]
+    },
+    {
+      "issue_id": "I8",
+      "rule_id": "R3_seconds",
+      "type": "ambiguity",
+      "severity": "low",
+      "detail": "Spec does not define behavior for invalid BCD states; contract assumes valid states only.",
+      "spec_evidence": "ss are two BCD (Binary-Coded Decimal) digits each for hours (01-12), minutes (00-59), and seconds (00-59).",
+      "alternative": "On invalid BCD, wrap to 00 or hold.",
+      "sequence": [
+        {
+          "reset": 0,
+          "ena": 1
+        },
+        {
+          "reset": 0,
+          "ena": 1
+        }
+      ]
+    }
+  ]
+}

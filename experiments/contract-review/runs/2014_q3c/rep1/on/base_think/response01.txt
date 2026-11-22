@@ -1,0 +1,29 @@
+def reference(vectors):
+    s={"x":0,"y":0}
+    r=[]
+    for v in vectors:
+        for k in ("x","y"):
+            if k in v:
+                s[k]=v[k]
+        x=s["x"]&1
+        y=s["y"]&7
+        if y==0:
+            Y0=x
+        elif y==1:
+            Y0=1-x
+        elif y==2:
+            Y0=x
+        elif y==3:
+            Y0=1-x
+        elif y==4:
+            Y0=1-x
+        else:
+            Y0=0
+        z=1 if y==3 or y==4 else 0
+        r.append({"Y0":Y0,"z":z})
+        if "mid" in v:
+            m=v["mid"]
+            for k in ("x","y"):
+                if k in m:
+                    s[k]=m[k]
+    return r

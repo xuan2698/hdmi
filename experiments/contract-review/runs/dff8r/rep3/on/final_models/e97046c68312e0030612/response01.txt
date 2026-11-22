@@ -1,0 +1,46 @@
+def reference(vectors):
+    # State: q is the 8-bit registered output. Initialized to a concrete 0.
+    q = 0
+    # Current input values carried across rows. Defaults for d and reset.
+    cur = {'d': 0, 'reset': 0}
+    out = []
+    for row in vectors:
+        # Apply row's pre-edge input drives (values before the sampled posedge).
+        # Exclude 'mid' (post-sample changes) and 'clk' (we assume one posedge per row).
+        for k, v in row.items():
+            if k == 'mid' or k == 'clk':
+                continue
+            if k == 'd':
+                cur[k] = int(v) & 0xFF
+            elif k == 'reset':
+                cur[k] = int(v) & 0x1
+            else:
+                cur[k] = v
+
+        # At the active posedge of clk (inputs have settled), update q.
+        # Rule sync_reset_clears_q: posedge clk and reset == 1 -> q becomes 0.
+        # Rule load_d_on_posedge_when_not_reset: posedge clk and reset == 0 -> q becomes d.
+        if int(cur.get('reset', 0)) & 1:
+            q_next = 0
+        else:
+            q_next = int(cur.get('d', 0)) & 0xFF
+        q = q_next & 0xFF
+
+        # Output q is visible in the same cycle after the posedge has settled.
+        out.append({'q': q})
+
+        # After sampling, apply optional mid input changes; they carry to the start
+        # of the next row. Mid changes affect only subsequent pre-edge settling.
+        mid = row.get('mid')
+        if isinstance(mid, dict):
+            for k, v in mid.items():
+                if k == 'clk':
+                    continue
+                if k == 'd':
+                    cur[k] = int(v) & 0xFF
+                elif k == 'reset':
+                    cur[k] = int(v) & 0x1
+                else:
+                    cur[k] = v
+
+    return out

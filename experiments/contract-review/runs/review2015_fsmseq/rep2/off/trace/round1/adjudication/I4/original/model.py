@@ -1,0 +1,40 @@
+def reference(vectors):
+    # State encoding: 0=S0, 1=S1, 2=S2, 3=S3, 4=S4
+    state = 0
+    start_shifting = 0
+    out = []
+
+    for row in vectors:
+        reset = row.get('reset', 0)
+        data = row.get('data', 0)
+
+        # R1: reset == 1 -> start_shifting = 0 (priority 1)
+        if reset == 1:
+            start_shifting = 0
+            state = 0
+        else:
+            # R2: state == S4 -> start_shifting = 1 (priority 2)
+            if state == 4:
+                start_shifting = 1
+            # R3: state == S3 and data == 1 -> start_shifting = 1 (priority 3)
+            elif state == 3 and data == 1:
+                start_shifting = 1
+            # R4: otherwise start_shifting = 0 (priority 4)
+            else:
+                start_shifting = 0
+
+            # State transitions (posedge, reset == 0)
+            if state == 0:
+                state = 1 if data == 1 else 0
+            elif state == 1:
+                state = 2 if data == 1 else 0
+            elif state == 2:
+                state = 3 if data == 0 else 2
+            elif state == 3:
+                state = 4 if data == 1 else 0
+            elif state == 4:
+                state = 4
+
+        out.append({'start_shifting': start_shifting & 1})
+
+    return out

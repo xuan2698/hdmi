@@ -1,0 +1,23 @@
+```python
+def reference(vectors):
+    # R_Y0, R_z: combinational next-state bit 0 and output z from present state y and input x.
+    # Table: y -> (Y_x0, Y_x1, z)
+    table = {
+        0: (0, 1, 0),  # 000 -> x=0:000, x=1:001, z=0
+        1: (1, 4, 0),  # 001 -> x=0:001, x=1:100, z=0
+        2: (2, 1, 0),  # 010 -> x=0:010, x=1:001, z=0
+        3: (1, 2, 1),  # 011 -> x=0:001, x=1:010, z=1
+        4: (3, 4, 1),  # 100 -> x=0:011, x=1:100, z=1
+    }
+    out = []
+    for v in vectors:
+        y = v["y"] & 0x7
+        x = v["x"] & 0x1
+        # R_Y0: Y0 = next-state bit 0 selected by x from present state y
+        nxt = table[y][x]
+        Y0 = nxt & 0x1
+        # R_z: z = 1 when present state y is 011 or 100, else 0
+        z = table[y][2]
+        out.append({"Y0": Y0, "z": z})
+    return out
+```

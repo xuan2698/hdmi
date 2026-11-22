@@ -1,0 +1,60 @@
+def reference(vectors):
+    # State: 4-digit BCD counter value (16-bit), initialized to 0.
+    # Contract rules implemented below with rule IDs in comments.
+    q = 0
+    ena = 0
+    out = []
+
+    for vec in vectors:
+        reset = vec.get("reset", 0)
+
+        # R1_reset: synchronous active-high reset -> q=0, ena=0 (same cycle visible)
+        if reset == 1:
+            q = 0
+            ena = 0
+            out.append({"q": q & 0xFFFF, "ena": ena & 0x7})
+            continue
+
+        # Compute enables based on current q (before increment) - visible next cycle
+        ones = q & 0xF
+        tens = (q >> 4) & 0xF
+        hundreds = (q >> 8) & 0xF
+        thousands = (q >> 12) & 0xF
+
+        # R4_ena_tens: enable tens when ones == 9
+        ena_tens = 1 if ones == 9 else 0
+        # R5_ena_hundreds: enable hundreds when ones==9 and tens==9
+        ena_hundreds = 1 if (ones == 9 and tens == 9) else 0
+        # R6_ena_thousands: enable thousands when ones==9, tens==9, hundreds==9
+        ena_thousands = 1 if (ones == 9 and tens == 9 and hundreds == 9) else 0
+
+        ena = (ena_thousands << 2) | (ena_hundreds << 1) | ena_tens
+
+        # Compute next q value (BCD increment)
+        if q == 0x9999:
+            # R7_full_wrap: wrap to 0
+            nq = 0
+        else:
+            n_ones = ones + 1
+            n_tens = tens
+            n_hundreds = hundreds
+            n_thousands = thousands
+            if n_ones == 10:
+                n_ones = 0
+                n_tens += 1
+                if n_tens == 10:
+                    n_tens = 0
+                    n_hundreds += 1
+                    if n_hundreds == 10:
+                        n_hundreds = 0
+                        n_thousands += 1
+                        if n_thousands == 10:
+                            n_thousands = 0
+            nq = (n_thousands << 12) | (n_hundreds << 8) | (n_tens << 4) | n_ones
+
+        # R2_ones_increment / R3_ones_wrap / R7_full_wrap: q updates next cycle
+        q = nq
+
+        out.append({"q": q & 0xFFFF, "ena": ena & 0x7})
+
+    return out

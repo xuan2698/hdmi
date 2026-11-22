@@ -1,0 +1,59 @@
+```json
+{
+  "module_name": "top_module",
+  "io": [
+    {
+      "name": "clk",
+      "dir": "input",
+      "width": 1,
+      "description": "Clock input; all state updates occur on the rising edge."
+    },
+    {
+      "name": "reset",
+      "dir": "input",
+      "width": 1,
+      "description": "Active-high synchronous reset. When asserted at a rising edge, the FSM returns to the initial state and start_shifting is cleared to 0."
+    },
+    {
+      "name": "data",
+      "dir": "input",
+      "width": 1,
+      "description": "Serial input bit stream sampled on each rising clock edge."
+    },
+    {
+      "name": "start_shifting",
+      "dir": "output",
+      "width": 1,
+      "description": "Output flag. Set to 1 when the sequence 1101 is detected in the input stream, and remains 1 forever until reset."
+    }
+  ],
+  "clocking": {
+    "clock": {
+      "name": "clk",
+      "edge": "posedge"
+    },
+    "reset": {
+      "name": "reset",
+      "active": "high",
+      "kind": "synchronous"
+    }
+  },
+  "timing": {
+    "outputs": {
+      "start_shifting": {
+        "latency_cycles": 1
+      }
+    }
+  },
+  "functional_summary": {
+    "overview": "Finite-state machine that monitors a serial input bit stream for the pattern 1101. Upon detection, it asserts start_shifting and latches it high permanently until a synchronous active-high reset occurs.",
+    "rules": [
+      "On each rising clock edge, if reset is 1, the FSM enters the initial state and start_shifting is set to 0.",
+      "Otherwise, the FSM transitions according to the input data bit, tracking the longest suffix of the input seen so far that is a prefix of 1101.",
+      "When the FSM reaches the state corresponding to having matched 1101, start_shifting is set to 1.",
+      "Once start_shifting is 1, it remains 1 on all subsequent rising edges regardless of data, until reset is asserted.",
+      "start_shifting is a registered output updated on the rising clock edge, giving a latency of 1 cycle from the sampling edge that completes the pattern detection."
+    ]
+  }
+}
+```

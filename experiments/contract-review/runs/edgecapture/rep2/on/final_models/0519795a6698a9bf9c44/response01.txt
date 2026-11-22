@@ -1,0 +1,46 @@
+def reference(vectors):
+    MASK = 0xFFFFFFFF
+    out = 0
+    prev_in = 0
+    env_reset = 0
+    env_in = 0
+    result = []
+
+    for row in vectors:
+        # Drive row inputs before the sampled posedge. Missing inputs retain carried values.
+        if isinstance(row, dict):
+            if 'reset' in row:
+                env_reset = row['reset']
+            if 'in' in row:
+                env_in = row['in']
+
+        reset_val = env_reset & 1
+        in_val = env_in & MASK
+        old_prev = prev_in
+
+        if reset_val:
+            # reset_clear: synchronous active-high reset has priority and clears out to 0.
+            out = 0
+        else:
+            fall = old_prev & ((~in_val) & MASK)
+            # capture_fall: current behavior uses prev_in tracking in on every posedge,
+            # including reset cycles, to detect per-bit 1-to-0 transitions.
+            # hold_state: bits without a detected falling edge hold their previous out value.
+            out = (out | fall) & MASK
+
+        # prev_in is sampled from in after every posedge, including reset cycles.
+        prev_in = in_val
+
+        # Output is visible on the same cycle after the sampled posedge settles.
+        result.append({'out': out & MASK})
+
+        # Apply mid changes after the row posedge; they become start values for the next row.
+        if isinstance(row, dict) and 'mid' in row:
+            mid = row['mid']
+            if isinstance(mid, dict):
+                if 'reset' in mid:
+                    env_reset = mid['reset']
+                if 'in' in mid:
+                    env_in = mid['in']
+
+    return result

@@ -1,0 +1,113 @@
+[
+  {
+    "issue": {
+      "issue_id": "I7",
+      "rule_id": "R5_minutes_roll",
+      "type": "ambiguity",
+      "severity": "high",
+      "detail": "R5 condition excludes hh==0x11&&pm==0 but includes hh==0x11&&pm==1. For 11:59:59 PM, R7 applies (hh==0x11&&pm==1). For 11:59:59 AM, R6 applies. R5 covers other hours. But what about hh==0x12 (12) roll? 12:59:59 AM +1s = 01:00:00 AM, hh should become 0x01. R5 condition !(hh==0x11&&pm==0) includes hh==0x12, so R5 would increment hh from 0x12 to 0x13 (invalid). Spec requires 12->01. Missing rule for 12->01 roll.",
+      "spec_evidence": "hours (01-12)",
+      "alternative": "R5 should handle hh==0x12 by setting hh=0x01, not incrementing to 0x13.",
+      "sequence": [
+        {
+          "reset": 0,
+          "ena": 1,
+          "mid": {}
+        },
+        {
+          "reset": 0,
+          "ena": 1,
+          "mid": {}
+        }
+      ]
+    },
+    "status": "no_effect",
+    "issue_id": "I7",
+    "outputs": {
+      "original": [
+        {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 0
+        },
+        {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 1
+        }
+      ],
+      "alternative": [
+        {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 0
+        },
+        {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 1
+        }
+      ]
+    },
+    "differences": []
+  },
+  {
+    "issue": {
+      "issue_id": "I14",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Contract mid says optional mid input changes occur AFTER sampling, before other edge, carried to next row. But mid keys must be input ports; contract mid field is string not object. Format issue: mid should be object with input port keys.",
+      "spec_evidence": "",
+      "alternative": "mid should be {} or {reset:0,ena:1} etc.",
+      "sequence": [
+        {
+          "reset": 0,
+          "ena": 1,
+          "mid": {}
+        }
+      ]
+    },
+    "status": "effect",
+    "issue_id": "I14",
+    "outputs": {
+      "original": [
+        {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 0
+        }
+      ],
+      "alternative": [
+        {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 1
+        }
+      ]
+    },
+    "differences": [
+      {
+        "cycle": 1,
+        "original": {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 0
+        },
+        "alternative": {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 1
+        }
+      }
+    ]
+  }
+]

@@ -1,0 +1,68 @@
+def reference(vectors):
+    # R_RESET: synchronous active-high reset forces q to 0 at posedge.
+    # R_COUNT_BCD: BCD increment modulo 10000 when reset == 0.
+    # R_ENA_COMB: candidate interpretation mapping:
+    #   ena[2] = tens enable (ones == 9)
+    #   ena[1] = hundreds enable (lower two digits == 99)
+    #   ena[0] = thousands enable (lower three digits == 999)
+    q = 0                # initial state chosen concretely as 0
+    reset_val = 0        # current reset input level, updated by rows/mid
+    out = []
+
+    for row in vectors:
+        # Apply row inputs before the sampled posedge.
+        if isinstance(row, dict):
+            if "reset" in row:
+                reset_val = row["reset"]
+
+        # Synchronous state update at sampled posedge.
+        if reset_val:
+            q_next = 0
+        else:
+            # BCD increment of packed decimal q.
+            ones = q & 0xF
+            tens = (q >> 4) & 0xF
+            hundreds = (q >> 8) & 0xF
+            thousands = (q >> 12) & 0xF
+
+            ones += 1
+            if ones == 10:
+                ones = 0
+                tens += 1
+                if tens == 10:
+                    tens = 0
+                    hundreds += 1
+                    if hundreds == 10:
+                        hundreds = 0
+                        thousands += 1
+                        if thousands == 10:
+                            thousands = 0
+
+            q_next = (thousands << 12) | (hundreds << 8) | (tens << 4) | ones
+
+        q = q_next
+
+        # Combinational enable outputs after the posedge has settled.
+        ena = 0
+        if (q & 0xF) == 9:
+            ena |= 4          # ena[2] = tens enable
+        if (q & 0xFF) == 0x99:
+            ena |= 2          # ena[1] = hundreds enable
+        if (q & 0xFFF) == 0x999:
+            ena |= 1          # ena[0] = thousands enable
+
+        out.append({"q": q, "ena": ena})
+
+        # Optional mid input changes occur after sampling and carry to next row.
+        if isinstance(row, dict):
+            if "mid" in row:
+                mid = row["mid"]
+                if isinstance(mid, dict):
+                    if "reset" in mid:
+                        reset_val = mid["reset"]
+                else:
+                    reset_val = mid
+            if "mid_reset" in row:
+                reset_val = row["mid_reset"]
+
+    return out

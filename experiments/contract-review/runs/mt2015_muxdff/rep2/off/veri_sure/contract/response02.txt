@@ -1,0 +1,55 @@
+```json
+{
+  "module_name": "top_module",
+  "io": [
+    {
+      "name": "clk",
+      "dir": "input",
+      "width": 1,
+      "description": "Clock signal; all state updates occur on the posedge."
+    },
+    {
+      "name": "r",
+      "dir": "input",
+      "width": 3,
+      "description": "3-bit parallel load data input, sampled into q when L is high."
+    },
+    {
+      "name": "L",
+      "dir": "input",
+      "width": 1,
+      "description": "Load enable; when high, q <= r on the posedge; when low, q shifts/LFSR-updates."
+    },
+    {
+      "name": "q",
+      "dir": "output",
+      "width": 3,
+      "description": "3-bit registered state output, updated on the posedge of clk."
+    }
+  ],
+  "clocking": {
+    "clock": {
+      "name": "clk",
+      "edge": "posedge"
+    },
+    "reset": null
+  },
+  "timing": {
+    "outputs": {
+      "q": {
+        "latency_cycles": 1
+      }
+    }
+  },
+  "functional_summary": {
+    "overview": "top_module is a 3-bit clocked register with a load enable. It is built hierarchically from three instances of a submodule containing a flip-flop and a 2-to-1 multiplexer. On each posedge of clk, if L is high the register loads r; otherwise it updates to the LFSR-style next state {q[1]^q[2], q[0], q[2]}.",
+    "rules": [
+      "On posedge clk, if L == 1 then q <= r.",
+      "On posedge clk, if L == 0 then q <= {q[1] ^ q[2], q[0], q[2]}.",
+      "q holds its value between posedges of clk.",
+      "There is no reset; initial state is undefined until first posedge with defined inputs.",
+      "The design is implemented as three instantiations of a submodule (flip-flop + 2-to-1 mux), one per bit of q."
+    ]
+  }
+}
+```

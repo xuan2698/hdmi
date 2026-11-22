@@ -1,0 +1,65 @@
+{
+  "module_name": "top_module",
+  "io": [
+    {
+      "name": "clk",
+      "dir": "input",
+      "width": 1,
+      "description": "Clock input; all state updates occur on the positive edge."
+    },
+    {
+      "name": "reset",
+      "dir": "input",
+      "width": 1,
+      "description": "Synchronous active-high reset. When asserted at a positive clock edge, all counter digits and enables are cleared to 0."
+    },
+    {
+      "name": "q",
+      "dir": "output",
+      "width": 16,
+      "description": "4-digit BCD counter value. q[3:0] = ones digit, q[7:4] = tens digit, q[11:8] = hundreds digit, q[15:12] = thousands digit. Each 4-bit field holds a valid BCD digit (0-9)."
+    },
+    {
+      "name": "ena",
+      "dir": "output",
+      "width": 3,
+      "description": "Enable signals for upper three digits. ena[0] indicates the tens digit (q[7:4]) should increment, ena[1] indicates the hundreds digit (q[11:8]) should increment, ena[2] indicates the thousands digit (q[15:12]) should increment. Each is asserted when the corresponding lower digit is 9 (and, for higher digits, all lower digits are also 9)."
+    }
+  ],
+  "clocking": {
+    "clock": {
+      "name": "clk",
+      "edge": "posedge"
+    },
+    "reset": {
+      "name": "reset",
+      "active": "high",
+      "kind": "synchronous"
+    }
+  },
+  "timing": {
+    "outputs": {
+      "q": {
+        "latency_cycles": 1
+      },
+      "ena": {
+        "latency_cycles": 1
+      }
+    }
+  },
+  "functional_summary": {
+    "overview": "A 4-digit binary-coded decimal (BCD) counter. On each positive clock edge, the counter increments by one in decimal, with each of the four digits represented as a 4-bit BCD value. The ones digit always increments; each upper digit increments only when all lower digits are 9. Enable outputs indicate when each upper digit should increment. A synchronous active-high reset clears all digits and enables to zero.",
+    "rules": [
+      "On a positive clock edge with reset asserted, q is set to 16'b0 and ena is set to 3'b0.",
+      "On a positive clock edge with reset deasserted, the counter increments by one in decimal BCD representation.",
+      "The ones digit q[3:0] increments modulo 10 on every enabled clock edge.",
+      "The tens digit q[7:4] increments modulo 10 when q[3:0] == 9.",
+      "The hundreds digit q[11:8] increments modulo 10 when q[7:4] == 9 and q[3:0] == 9.",
+      "The thousands digit q[15:12] increments modulo 10 when q[11:8] == 9, q[7:4] == 9, and q[3:0] == 9.",
+      "ena[0] is asserted (1) when q[3:0] == 9, indicating the tens digit will increment on the next clock edge.",
+      "ena[1] is asserted (1) when q[7:4] == 9 and q[3:0] == 9, indicating the hundreds digit will increment on the next clock edge.",
+      "ena[2] is asserted (1) when q[11:8] == 9, q[7:4] == 9, and q[3:0] == 9, indicating the thousands digit will increment on the next clock edge.",
+      "All outputs are registered and update one clock cycle after the sampled edge."
+    ]
+  }
+}

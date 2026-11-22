@@ -1,0 +1,72 @@
+```python
+def reference(vectors):
+    # Contract: synchronous active-high reset; outputs registered (latency 1).
+    # q[3:0]=ones, q[7:4]=tens, q[11:8]=hundreds, q[15:12]=thousands.
+    # ena[0]=tens enable, ena[1]=hundreds enable, ena[2]=thousands enable.
+    # Each row: inputs driven before sampled posedge; mid changes occur after
+    # sampling, before next edge, carried to start of next row.
+    # We model state as the register contents; outputs reflect state after edge.
+
+    # State registers
+    d0 = 0  # ones
+    d1 = 0  # tens
+    d2 = 0  # hundreds
+    d3 = 0  # thousands
+
+    def pack():
+        return (d3 << 12) | (d2 << 8) | (d1 << 4) | d0
+
+    def ena_val():
+        e0 = 1 if d0 == 9 else 0
+        e1 = 1 if (d1 == 9 and d0 == 9) else 0
+        e2 = 1 if (d2 == 9 and d1 == 9 and d0 == 9) else 0
+        return (e2 << 2) | (e1 << 1) | e0
+
+    results = []
+    for row in vectors:
+        # Apply mid changes from previous row (already applied at end of prev iter)
+        # Sample inputs at this edge
+        reset = row.get('reset', 0)
+        if isinstance(reset, list):
+            reset = reset[0] if reset else 0
+        reset = reset & 1
+
+        # Compute next state based on current state and reset
+        if reset:
+            nd0 = nd1 = nd2 = nd3 = 0
+        else:
+            # Increment BCD
+            nd0 = d0 + 1
+            carry0 = 0
+            if nd0 == 10:
+                nd0 = 0
+                carry0 = 1
+            nd1 = d1 + carry0
+            carry1 = 0
+            if nd1 == 10:
+                nd1 = 0
+                carry1 = 1
+            nd2 = d2 + carry1
+            carry2 = 0
+            if nd2 == 10:
+                nd2 = 0
+                carry2 = 1
+            nd3 = d3 + carry2
+            if nd3 == 10:
+                nd3 = 0
+
+        # Update state (registered outputs)
+        d0, d1, d2, d3 = nd0, nd1, nd2, nd3
+
+        # Outputs after edge
+        q_out = pack()
+        ena_out = ena_val()
+
+        results.append({'q': q_out, 'ena': ena_out})
+
+        # Apply mid changes AFTER sampling, before next edge
+        # (mid changes affect inputs for next row; handled by reading next row's inputs)
+        # Since inputs are per-row, mid changes are already reflected in next row's dict.
+
+    return results
+```

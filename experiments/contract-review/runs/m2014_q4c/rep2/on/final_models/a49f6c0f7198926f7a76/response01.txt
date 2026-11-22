@@ -1,0 +1,38 @@
+def reference(vectors):
+    # power-up unspecified: choose concrete unsigned 0 for q to satisfy output requirement
+    q = 0
+    out = []
+    inputs = {}
+
+    for row in vectors:
+        # Drive row values before the sampled posedge; skip mid markers.
+        for k, v in row.items():
+            if k == "mid":
+                continue
+            if isinstance(k, str) and k.startswith("mid_"):
+                continue
+            inputs[k] = v
+
+        d = inputs.get("d", 0)
+        r = inputs.get("r", 0)
+
+        # Rule sync_reset_high (priority 2): at sampled posedge, r == 1 forces q to 0.
+        if r == 1:
+            q = 0
+        else:
+            # Rule d_capture_when_reset_inactive (priority 1): at sampled posedge with r == 0, q captures d.
+            q = 1 if d == 1 else 0
+
+        out.append({"q": q & 1})
+
+        # Optional mid changes occur AFTER sampling, before the other edge; carry to next row.
+        mid = row.get("mid")
+        if isinstance(mid, dict):
+            for k, v in mid.items():
+                inputs[k] = v
+
+        for k, v in row.items():
+            if isinstance(k, str) and k.startswith("mid_"):
+                inputs[k[4:]] = v
+
+    return out

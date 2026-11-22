@@ -1,0 +1,106 @@
+[
+  {
+    "issue": {
+      "issue_id": "I3",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec does not state whether reset is synchronous vs asynchronous; contract assumes sync. Alternative async reset would zero q immediately on reset assertion independent of clk edge.",
+      "spec_evidence": "active high synchronous reset",
+      "alternative": "Asynchronous active-high reset: q becomes 0 immediately when reset=1, not only at posedge clk.",
+      "sequence": [
+        {
+          "d": 170,
+          "reset": 1
+        },
+        {
+          "d": 85,
+          "reset": 0
+        },
+        {
+          "d": 15,
+          "reset": 1
+        }
+      ]
+    },
+    "status": "no_effect",
+    "issue_id": "I3",
+    "outputs": {
+      "original": [
+        {
+          "q": 0
+        },
+        {
+          "q": 85
+        },
+        {
+          "q": 0
+        }
+      ],
+      "alternative": [
+        {
+          "q": 0
+        },
+        {
+          "q": 85
+        },
+        {
+          "q": 0
+        }
+      ]
+    },
+    "differences": []
+  },
+  {
+    "issue": {
+      "issue_id": "I4",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "low",
+      "detail": "Spec does not define reset priority vs D capture on same edge; contract gives reset priority 1. Alternative: D capture wins when reset and d both present.",
+      "spec_evidence": "",
+      "alternative": "D capture has priority over reset on same posedge.",
+      "sequence": [
+        {
+          "d": 170,
+          "reset": 1
+        },
+        {
+          "d": 85,
+          "reset": 0
+        },
+        {
+          "d": 15,
+          "reset": 1
+        }
+      ]
+    },
+    "status": "no_effect",
+    "issue_id": "I4",
+    "outputs": {
+      "original": [
+        {
+          "q": 0
+        },
+        {
+          "q": 85
+        },
+        {
+          "q": 0
+        }
+      ],
+      "alternative": [
+        {
+          "q": 0
+        },
+        {
+          "q": 85
+        },
+        {
+          "q": 0
+        }
+      ]
+    },
+    "differences": []
+  }
+]

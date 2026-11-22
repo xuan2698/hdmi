@@ -1,0 +1,39 @@
+def reference(vectors):
+    # Contract implementation.
+    # State: 3-bit counter q. No reset. Initial value unspecified; use 0 as a
+    # concrete placeholder (R-uncertain global). Update on posedge clk.
+    # R1: a==1 -> hold q (priority 1)
+    # R2: a==0 -> q = (q+1) mod 8 (priority 2)
+    # Mid changes occur after sampling, before other edge; carried to next row.
+    # We process each row: apply any pending mid change, then sample on posedge.
+
+    q = 0  # R-uncertain: initial value unspecified; concrete placeholder
+    pending_a = None  # mid change carried to next row
+    out = []
+
+    for row in vectors:
+        # Apply pending mid change from previous row (carried to start of this row)
+        if pending_a is not None:
+            a = pending_a
+            pending_a = None
+        else:
+            a = row.get('a', 0)
+
+        # Mid change within this row: occurs AFTER sampling, before other edge.
+        # We sample first, then apply mid change for next row.
+        # Sample on posedge (each row represents a posedge sample).
+        # R1: a==1 -> hold
+        if a == 1:
+            # hold q
+            pass
+        # R2: a==0 -> increment mod 8
+        else:
+            q = (q + 1) % 8
+
+        out.append({'q': q & 0x7})
+
+        # Mid change: if row provides 'a_mid', it applies after sampling
+        if 'a_mid' in row:
+            pending_a = row['a_mid']
+
+    return out

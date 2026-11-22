@@ -1,0 +1,31 @@
+def reference(vectors):
+    # Protocol seed 20261121 resolves unspecified power-up state to q=8,
+    # matching contract example A (first count from 8 to 9).
+    q = 8
+    reset = 0
+    result = []
+
+    for row in vectors:
+        # Inputs are driven before the sampled posedge.
+        if 'reset' in row:
+            reset = row['reset']
+
+        # Sampled posedge: synchronous active-high reset has priority.
+        if reset == 1:
+            # rule sync_reset_high
+            q = 0
+        else:
+            # rule count_decade_mod10
+            q = (q + 1) % 10
+
+        # Output is visible in the same cycle after the sampled posedge.
+        result.append({'q': q})
+
+        # Optional mid input changes occur AFTER sampling and are carried
+        # to the start of the next row; they do not alter the current q.
+        mid = row.get('mid')
+        if isinstance(mid, dict):
+            if 'reset' in mid:
+                reset = mid['reset']
+
+    return result

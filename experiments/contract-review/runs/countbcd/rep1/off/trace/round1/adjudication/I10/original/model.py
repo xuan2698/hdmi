@@ -1,0 +1,59 @@
+def reference(vectors):
+    # State: 4-digit BCD counter value (16 bits)
+    # q[3:0]=ones, q[7:4]=tens, q[11:8]=hundreds, q[15:12]=thousands
+    count = 0
+    results = []
+
+    for vec in vectors:
+        reset = vec.get("reset", 0)
+
+        # R1_reset: synchronous active-high reset -> q=0, ena=0 (visible same cycle)
+        if reset == 1:
+            count = 0
+            q_out = 0
+            ena_out = 0
+        else:
+            # Compute outputs based on current state (before this posedge update)
+            ones = count & 0xF
+            tens = (count >> 4) & 0xF
+            hundreds = (count >> 8) & 0xF
+            thousands = (count >> 12) & 0xF
+
+            # R4_ena_tens: ena[0] when ones==9
+            ena_tens = 1 if ones == 9 else 0
+            # R5_ena_hundreds: ena[1] when ones==9 and tens==9
+            ena_hundreds = 1 if (ones == 9 and tens == 9) else 0
+            # R6_ena_thousands: ena[2] when ones==9 and tens==9 and hundreds==9
+            ena_thousands = 1 if (ones == 9 and tens == 9 and hundreds == 9) else 0
+
+            ena_out = (ena_thousands << 2) | (ena_hundreds << 1) | ena_tens
+            q_out = count
+
+            # Compute next state (posedge update)
+            # R7_full_wrap: if count == 9999, wrap to 0
+            if count == 0x9999:
+                count = 0
+            else:
+                # R2_ones_increment / R3_ones_wrap: increment ones digit
+                if ones != 9:
+                    count = count + 1
+                else:
+                    # ones wraps to 0, increment tens
+                    new_ones = 0
+                    if tens != 9:
+                        count = (count & ~0xFF) | (new_ones) | ((tens + 1) << 4)
+                    else:
+                        new_tens = 0
+                        if hundreds != 9:
+                            count = (count & ~0xFFF) | new_ones | (new_tens << 4) | ((hundreds + 1) << 8)
+                        else:
+                            new_hundreds = 0
+                            if thousands != 9:
+                                count = (count & ~0xFFFF) | new_ones | (new_tens << 4) | (new_hundreds << 8) | ((thousands + 1) << 12)
+                            else:
+                                # all 9s handled by R7 above
+                                count = 0
+
+        results.append({"q": q_out & 0xFFFF, "ena": ena_out & 0x7})
+
+    return results

@@ -1,0 +1,214 @@
+[
+  {
+    "issue": {
+      "issue_id": "I4",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "high",
+      "detail": "Spec says 'forever until reset' but does not define whether start_shifting is a registered output (visible next cycle) or combinational (same cycle). Contract asserts same_cycle for all rules, which conflicts with typical FSM registered output and with R3 example timing.",
+      "spec_evidence": "When the sequence is found, it should set start_shifting to 1, forever, until reset.",
+      "alternative": "Registered output: start_shifting becomes 1 on the posedge AFTER entering S4 (i.e., one cycle later than the detecting data bit).",
+      "sequence": [
+        {
+          "reset": 0,
+          "data": 1
+        },
+        {
+          "reset": 0,
+          "data": 1
+        },
+        {
+          "reset": 0,
+          "data": 0
+        },
+        {
+          "reset": 0,
+          "data": 1
+        },
+        {
+          "reset": 0,
+          "data": 0
+        }
+      ]
+    },
+    "status": "effect",
+    "issue_id": "I4",
+    "outputs": {
+      "original": [
+        {
+          "start_shifting": 0
+        },
+        {
+          "start_shifting": 0
+        },
+        {
+          "start_shifting": 0
+        },
+        {
+          "start_shifting": 1
+        },
+        {
+          "start_shifting": 1
+        }
+      ],
+      "alternative": [
+        {
+          "start_shifting": 0
+        },
+        {
+          "start_shifting": 0
+        },
+        {
+          "start_shifting": 0
+        },
+        {
+          "start_shifting": 0
+        },
+        {
+          "start_shifting": 0
+        }
+      ]
+    },
+    "differences": [
+      {
+        "cycle": 4,
+        "original": {
+          "start_shifting": 1
+        },
+        "alternative": {
+          "start_shifting": 0
+        }
+      },
+      {
+        "cycle": 5,
+        "original": {
+          "start_shifting": 1
+        },
+        "alternative": {
+          "start_shifting": 0
+        }
+      }
+    ]
+  },
+  {
+    "issue": {
+      "issue_id": "I5",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Overlapping sequence handling (e.g., 1101101) is unspecified: after finding 1101, does the FSM stay in S4 forever (per 'forever') or continue matching? Contract latches in S4, but spec's 'forever' could mean output only, with state continuing.",
+      "spec_evidence": "searches for the sequence 1101 in an input bit stream",
+      "alternative": "FSM continues searching after match; start_shifting stays 1 but state machine can re-enter S1..S4 on subsequent 1101 patterns.",
+      "sequence": [
+        {
+          "reset": 0,
+          "data": 1
+        },
+        {
+          "reset": 0,
+          "data": 1
+        },
+        {
+          "reset": 0,
+          "data": 0
+        },
+        {
+          "reset": 0,
+          "data": 1
+        },
+        {
+          "reset": 0,
+          "data": 1
+        },
+        {
+          "reset": 0,
+          "data": 1
+        },
+        {
+          "reset": 0,
+          "data": 0
+        },
+        {
+          "reset": 0,
+          "data": 1
+        }
+      ]
+    },
+    "status": "effect",
+    "issue_id": "I5",
+    "outputs": {
+      "original": [
+        {
+          "start_shifting": 0
+        },
+        {
+          "start_shifting": 0
+        },
+        {
+          "start_shifting": 0
+        },
+        {
+          "start_shifting": 1
+        },
+        {
+          "start_shifting": 1
+        },
+        {
+          "start_shifting": 1
+        },
+        {
+          "start_shifting": 1
+        },
+        {
+          "start_shifting": 1
+        }
+      ],
+      "alternative": [
+        {
+          "start_shifting": 0
+        },
+        {
+          "start_shifting": 0
+        },
+        {
+          "start_shifting": 0
+        },
+        {
+          "start_shifting": 1
+        },
+        {
+          "start_shifting": 1
+        },
+        {
+          "start_shifting": 0
+        },
+        {
+          "start_shifting": 0
+        },
+        {
+          "start_shifting": 1
+        }
+      ]
+    },
+    "differences": [
+      {
+        "cycle": 6,
+        "original": {
+          "start_shifting": 1
+        },
+        "alternative": {
+          "start_shifting": 0
+        }
+      },
+      {
+        "cycle": 7,
+        "original": {
+          "start_shifting": 1
+        },
+        "alternative": {
+          "start_shifting": 0
+        }
+      }
+    ]
+  }
+]

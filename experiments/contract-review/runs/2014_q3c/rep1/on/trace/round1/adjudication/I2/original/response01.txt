@@ -1,0 +1,24 @@
+def reference(vectors):
+    results = []
+    for v in vectors:
+        x = v['x']
+        y = v['y']
+
+        # Rule Y0_comb: for y in {0,1,2,3} use x XOR (y & 1); for y == 4 use NOT x
+        if y in (0, 1, 2, 3):
+            Y0 = (x ^ (y & 1)) & 1
+        elif y == 4:
+            Y0 = (1 - x) & 1
+        else:
+            Y0 = 0  # undefined states default to 0
+
+        # Rule z_comb: for y in {0,1,2} z=0; for y in {3,4} z=1
+        if y in (0, 1, 2):
+            z = 0
+        elif y in (3, 4):
+            z = 1
+        else:
+            z = 0  # undefined states default to 0
+
+        results.append({'Y0': Y0, 'z': z})
+    return results

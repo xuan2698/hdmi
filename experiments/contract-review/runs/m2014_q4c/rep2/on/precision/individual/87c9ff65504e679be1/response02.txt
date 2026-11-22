@@ -1,0 +1,54 @@
+def reference(vectors):
+    # Rule sync_reset_high: At sampled posedge, r == 1 forces q to 0.
+    # Rule d_capture_when_reset_inactive: At sampled posedge, r == 0 makes q capture d.
+    # Named state: q is the registered D flip-flop output value.
+    q = 0
+    current_d = 0
+    current_r = 0
+    results = []
+
+    for row in vectors:
+        # Each row's values are driven before the sampled posedge.
+        start_d = None
+        start_r = None
+        mid_updates = {}
+
+        for key, value in row.items():
+            if key == "mid":
+                if type(value) is dict:
+                    for mid_key, mid_value in value.items():
+                        mid_updates[mid_key] = mid_value
+            elif key.startswith("mid_"):
+                mid_updates[key[4:]] = value
+            elif key.endswith("_mid"):
+                mid_updates[key[:-4]] = value
+            else:
+                if key == "d":
+                    start_d = value
+                elif key == "r":
+                    start_r = value
+
+        # Apply values driven before the sampled posedge.
+        if start_d is not None:
+            current_d = start_d
+        if start_r is not None:
+            current_r = start_r
+
+        # Sampled posedge after inputs and edge settled.
+        # Rule sync_reset_high has priority 2 over d capture.
+        if current_r == 1:
+            q = 0  # sync_reset_high
+        else:
+            q = current_d  # d_capture_when_reset_inactive
+
+        results.append({"q": q})
+
+        # Optional mid input changes occur AFTER sampling, before the other edge,
+        # and are carried to the start of the next row.
+        for mid_key, mid_value in mid_updates.items():
+            if mid_key == "d":
+                current_d = mid_value
+            elif mid_key == "r":
+                current_r = mid_value
+
+    return results

@@ -1,0 +1,90 @@
+{
+  "coverage": {
+    "S01": [
+      "R1_sync_reset",
+      "R2_dff_capture"
+    ],
+    "S02": [
+      "R1_sync_reset",
+      "R2_dff_capture"
+    ]
+  },
+  "issues": [
+    {
+      "issue_id": "I1",
+      "rule_id": "R1_sync_reset",
+      "type": "consistency",
+      "severity": "low",
+      "detail": "Example expected q=85 after reset released, but R1 only covers reset==1; q=85 is governed by R2, not R1.",
+      "spec_evidence": "active high synchronous reset setting the output to zero",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I2",
+      "rule_id": "R2_dff_capture",
+      "type": "grounding",
+      "severity": "low",
+      "detail": "R2 spec_quote 'Create 8 D flip-flops' does not state reset==0 capture condition; condition is inferred, not verbatim.",
+      "spec_evidence": "Create 8 D flip-flops",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I3",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec does not state whether reset is synchronous vs asynchronous; contract assumes sync. Alternative async reset would zero q immediately on reset assertion independent of clk edge.",
+      "spec_evidence": "active high synchronous reset",
+      "alternative": "Asynchronous active-high reset: q becomes 0 immediately when reset=1, not only at posedge clk.",
+      "sequence": [
+        {
+          "d": 170,
+          "reset": 1
+        },
+        {
+          "d": 85,
+          "reset": 0
+        },
+        {
+          "d": 15,
+          "reset": 1
+        }
+      ]
+    },
+    {
+      "issue_id": "I4",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "low",
+      "detail": "Spec does not define reset priority vs D capture on same edge; contract gives reset priority 1. Alternative: D capture wins when reset and d both present.",
+      "spec_evidence": "",
+      "alternative": "D capture has priority over reset on same posedge.",
+      "sequence": [
+        {
+          "d": 170,
+          "reset": 1
+        },
+        {
+          "d": 85,
+          "reset": 0
+        },
+        {
+          "d": 15,
+          "reset": 1
+        }
+      ]
+    },
+    {
+      "issue_id": "I5",
+      "rule_id": "global",
+      "type": "spec_example",
+      "severity": "low",
+      "detail": "Derived outputs for R1 example: row1 reset=1 -> q=0; row2 reset=0 -> q=85; row3 reset=1 -> q=0. Matches expected. R2 example: q=1,2,255 matches. No mismatch found.",
+      "spec_evidence": "",
+      "alternative": "",
+      "sequence": []
+    }
+  ]
+}

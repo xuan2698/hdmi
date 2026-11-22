@@ -1,0 +1,86 @@
+[
+  {
+    "issue": {
+      "issue_id": "I3",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec says synchronous reset sets output to zero; contract says update_during_reset true and visible same_cycle. Alternative semantics: reset is synchronous but output updates only on next posedge after reset asserted (i.e., reset sampled at edge). Distinguishing sequence: first row reset=1,d=0 then second row reset=0,d=5; if reset is same-cycle visible, q after first edge is 0; if reset requires prior edge, q after first edge may be unspecified/old.",
+      "spec_evidence": "active high synchronous reset setting the output to zero",
+      "alternative": "Reset is sampled at posedge but output zeroing occurs on the following posedge (one-cycle delayed reset visibility).",
+      "sequence": [
+        {
+          "d": 0,
+          "reset": 1
+        },
+        {
+          "d": 5,
+          "reset": 0
+        }
+      ]
+    },
+    "status": "effect",
+    "issue_id": "I3",
+    "outputs": {
+      "original": [
+        {
+          "q": 0
+        },
+        {
+          "q": 5
+        }
+      ],
+      "alternative": [
+        {
+          "q": 0
+        },
+        {
+          "q": 0
+        }
+      ]
+    },
+    "differences": [
+      {
+        "cycle": 2,
+        "original": {
+          "q": 5
+        },
+        "alternative": {
+          "q": 0
+        }
+      }
+    ]
+  },
+  {
+    "issue": {
+      "issue_id": "I4",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "low",
+      "detail": "Contract states initial q before first posedge is unspecified; spec does not specify initial value. Alternative: initial q is zero. Distinguishing sequence: first row reset=0,d=7; if initial zero and capture, q=7 after edge; if unspecified, any value possible before edge but after edge q=7 regardless, so not distinguishing. Better: first row reset=1,d=7; if initial zero, q=0 after edge; if unspecified, q=0 after reset edge anyway. No distinguishing sequence for initial value given synchronous reset/capture on first edge.",
+      "spec_evidence": "",
+      "alternative": "Initial q is zero.",
+      "sequence": [
+        {
+          "d": 7,
+          "reset": 0
+        }
+      ]
+    },
+    "status": "no_effect",
+    "issue_id": "I4",
+    "outputs": {
+      "original": [
+        {
+          "q": 7
+        }
+      ],
+      "alternative": [
+        {
+          "q": 7
+        }
+      ]
+    },
+    "differences": []
+  }
+]

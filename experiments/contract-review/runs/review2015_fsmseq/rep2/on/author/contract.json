@@ -1,0 +1,213 @@
+{
+  "ports": {
+    "inputs": {
+      "reset": 1,
+      "data": 1
+    },
+    "outputs": {
+      "start_shifting": 1
+    },
+    "clock": "clk"
+  },
+  "states": [
+    {
+      "name": "S0",
+      "meaning": "initial/reset state; no non-empty suffix of the sampled input history matches a prefix of 1101",
+      "update_time": "posedge clk",
+      "update_during_reset": true
+    },
+    {
+      "name": "S1",
+      "meaning": "last sampled bit is 1 (candidate prefix 1)",
+      "update_time": "posedge clk",
+      "update_during_reset": false
+    },
+    {
+      "name": "S2",
+      "meaning": "last two sampled bits are 11 (candidate prefix 11)",
+      "update_time": "posedge clk",
+      "update_during_reset": false
+    },
+    {
+      "name": "S3",
+      "meaning": "last three sampled bits are 110 (candidate prefix 110)",
+      "update_time": "posedge clk",
+      "update_during_reset": false
+    },
+    {
+      "name": "SF",
+      "meaning": "sequence 1101 has been found and start_shifting is held at 1 while reset=0",
+      "update_time": "posedge clk",
+      "update_during_reset": false
+    }
+  ],
+  "rules": [
+    {
+      "id": "R_RESET",
+      "outputs": [
+        "start_shifting"
+      ],
+      "condition": "reset == 1 at the sampled posedge; state <= S0 and start_shifting <= 0, overriding all other rules",
+      "edge": "posedge",
+      "visible": "same_cycle",
+      "priority": 100,
+      "spec_quote": "Reset is active high synchronous",
+      "uncertain": false,
+      "example": {
+        "vectors": [
+          {
+            "reset": 1,
+            "data": 0
+          },
+          {
+            "reset": 0,
+            "data": 0
+          }
+        ],
+        "expected": [
+          {
+            "start_shifting": 0
+          },
+          {
+            "start_shifting": 0
+          }
+        ]
+      }
+    },
+    {
+      "id": "R_DETECT",
+      "outputs": [
+        "start_shifting"
+      ],
+      "condition": "reset == 0, current state == S3, and data == 1 at the sampled posedge; next state <= SF and start_shifting <= 1",
+      "edge": "posedge",
+      "visible": "same_cycle",
+      "priority": 30,
+      "spec_quote": "When the sequence is found, it should set start_shifting to 1",
+      "uncertain": false,
+      "example": {
+        "vectors": [
+          {
+            "reset": 0,
+            "data": 1
+          },
+          {
+            "reset": 0,
+            "data": 1
+          },
+          {
+            "reset": 0,
+            "data": 0
+          },
+          {
+            "reset": 0,
+            "data": 1
+          }
+        ],
+        "expected": [
+          {
+            "start_shifting": 0
+          },
+          {
+            "start_shifting": 0
+          },
+          {
+            "start_shifting": 0
+          },
+          {
+            "start_shifting": 1
+          }
+        ]
+      }
+    },
+    {
+      "id": "R_HOLD",
+      "outputs": [
+        "start_shifting"
+      ],
+      "condition": "reset == 0 and current state == SF at the sampled posedge; next state <= SF and start_shifting <= 1",
+      "edge": "posedge",
+      "visible": "same_cycle",
+      "priority": 20,
+      "spec_quote": "forever, until reset",
+      "uncertain": false,
+      "example": {
+        "vectors": [
+          {
+            "reset": 0,
+            "data": 0
+          },
+          {
+            "reset": 0,
+            "data": 1
+          },
+          {
+            "reset": 0,
+            "data": 0
+          }
+        ],
+        "expected": [
+          {
+            "start_shifting": 1
+          },
+          {
+            "start_shifting": 1
+          },
+          {
+            "start_shifting": 1
+          }
+        ]
+      }
+    },
+    {
+      "id": "R_PROGRESS",
+      "outputs": [
+        "start_shifting"
+      ],
+      "condition": "reset == 0, current state in {S0,S1,S2,S3}, and not (state == S3 and data == 1). Next state: S0+0->S0, S0+1->S1, S1+0->S0, S1+1->S2, S2+0->S3, S2+1->S2, S3+0->S0; start_shifting <= 0",
+      "edge": "posedge",
+      "visible": "same_cycle",
+      "priority": 10,
+      "spec_quote": "searches for the sequence 1101",
+      "uncertain": false,
+      "example": {
+        "vectors": [
+          {
+            "reset": 0,
+            "data": 1
+          },
+          {
+            "reset": 0,
+            "data": 1
+          },
+          {
+            "reset": 0,
+            "data": 0
+          }
+        ],
+        "expected": [
+          {
+            "start_shifting": 0
+          },
+          {
+            "start_shifting": 0
+          },
+          {
+            "start_shifting": 0
+          }
+        ]
+      }
+    }
+  ],
+  "reset": {
+    "kind": "sync",
+    "name": "reset",
+    "active": "high",
+    "values": {
+      "start_shifting": 0
+    },
+    "first_released_cycle": "the first sampled posedge with reset=0 after any reset-active posedge; normal search then starts from S0 with start_shifting=0"
+  },
+  "mid": "mid is an optional object in a vector giving nonclock input changes applied after that row's sampled posedge and before the next row; changed values persist to the next row",
+  "uncertain": []
+}

@@ -1,0 +1,20 @@
+```python
+def reference(vectors):
+    # Contract implementation.
+    # R1: a == 1 at posedge -> q holds (next_cycle).
+    # R2: a == 0 at posedge -> q increments by 1 mod 8 (next_cycle).
+    # global: q initial value is 0.
+    q = 0  # global: initial q = 0
+    out = []
+    for row in vectors:
+        a = row["a"]
+        # posedge sampling: apply transition based on a
+        if a == 1:
+            # R1: hold
+            pass
+        else:
+            # R2: increment mod 8
+            q = (q + 1) % 8
+        out.append({"q": q})
+    return out
+```

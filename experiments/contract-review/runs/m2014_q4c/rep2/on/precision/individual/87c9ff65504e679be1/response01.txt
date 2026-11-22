@@ -1,0 +1,60 @@
+def reference(vectors):
+    # Initial registered state q, concrete 0 (power-up unspecified; concrete value required).
+    q = 0
+    # Carried input state from previous mid-cycle changes.
+    d_state = 0
+    r_state = 0
+    result = []
+    for row in vectors:
+        # Apply row's driven inputs before the sampled posedge. Sparse rows keep carried values.
+        if isinstance(row, dict):
+            if 'd' in row:
+                d_state = int(row['d']) & 1
+            if 'r' in row:
+                r_state = int(row['r']) & 1
+        # Rule sync_reset_high: At sampled posedge, r == 1 forces q to 0 (priority 2).
+        # Rule d_capture_when_reset_inactive: At sampled posedge, r == 0 makes q capture d (priority 1).
+        if r_state == 1:
+            q = 0
+        else:
+            q = d_state & 1
+        result.append({'q': q & 1})
+        # Process optional mid input changes AFTER sampling, before the other edge.
+        # They are carried to the start of the next row.
+        if isinstance(row, dict):
+            # Direct keys such as mid_d, d_mid, dmid.
+            for key, val in row.items():
+                if not isinstance(key, str):
+                    continue
+                k = key.lower()
+                if k in ('mid_d', 'd_mid', 'dmid'):
+                    d_state = int(val) & 1
+                elif k in ('mid_r', 'r_mid', 'rmid'):
+                    r_state = int(val) & 1
+            # Container key 'mid'.
+            mid = row.get('mid', None)
+            if mid is not None:
+                if isinstance(mid, dict):
+                    for key, val in mid.items():
+                        k = str(key).lower()
+                        if k == 'd' or k.endswith('_d') or k.startswith('d_'):
+                            d_state = int(val) & 1
+                        elif k == 'r' or k.endswith('_r') or k.startswith('r_'):
+                            r_state = int(val) & 1
+                elif isinstance(mid, (list, tuple)):
+                    for item in mid:
+                        if isinstance(item, dict):
+                            for key, val in item.items():
+                                k = str(key).lower()
+                                if k == 'd' or k.endswith('_d') or k.startswith('d_'):
+                                    d_state = int(val) & 1
+                                elif k == 'r' or k.endswith('_r') or k.startswith('r_'):
+                                    r_state = int(val) & 1
+                        elif isinstance(item, (list, tuple)) and len(item) >= 2:
+                            key, val = item[0], item[1]
+                            k = str(key).lower()
+                            if k == 'd' or k.endswith('_d') or k.startswith('d_'):
+                                d_state = int(val) & 1
+                            elif k == 'r' or k.endswith('_r') or k.startswith('r_'):
+                                r_state = int(val) & 1
+    return result

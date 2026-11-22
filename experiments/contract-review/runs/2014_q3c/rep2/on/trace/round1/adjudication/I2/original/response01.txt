@@ -1,0 +1,57 @@
+def reference(vectors):
+    # Contract: combinational logic functions Y[0] and z from inputs x, y.
+    # Mid changes are applied after sampling and carried to the next row.
+    cur_x = 0
+    cur_y = 0
+    result = []
+    for row in vectors:
+        if isinstance(row, dict):
+            if 'x' in row:
+                cur_x = int(row['x'])
+            if 'y' in row:
+                cur_y = int(row['y'])
+
+        x = cur_x & 1
+        y = cur_y & 7
+        y0 = y & 1
+        y1 = (y >> 1) & 1
+        y2 = (y >> 2) & 1
+
+        if y <= 4:
+            # rule valid_y_0_to_4: y <= 4 && Y0 == ((~x & y[0]) | (~x & y[2]) | (x & ~y[2] & ~y[0]))
+            # rule valid_y_0_to_4: y <= 4 && z == (y[2] | (y[1] & y[0]))
+            Y0 = ((1 - x) & y0) | ((1 - x) & y2) | (x & (1 - y2) & (1 - y0))
+            z = y2 | (y1 & y0)
+        else:
+            # rule unused_y_gt_4: y > 4 && Y0 == ((~x & y[0]) | (~x & y[2]) | (x & ~y[2] & ~y[0]))
+            # rule unused_y_gt_4: y > 4 && z == (y[2] | (y[1] & y[0]))
+            # Uses the minimized don't-care candidate for unused states 5, 6, 7.
+            Y0 = ((1 - x) & y0) | ((1 - x) & y2) | (x & (1 - y2) & (1 - y0))
+            z = y2 | (y1 & y0)
+
+        result.append({'Y0': int(Y0) & 1, 'z': int(z) & 1})
+
+        # Mid changes occur after sampling, before the other edge, and carry to the next row.
+        if isinstance(row, dict) and 'mid' in row:
+            mid = row['mid']
+            if isinstance(mid, dict):
+                if 'x' in mid:
+                    cur_x = int(mid['x'])
+                if 'y' in mid:
+                    cur_y = int(mid['y'])
+            elif isinstance(mid, (list, tuple)):
+                for m in mid:
+                    if isinstance(m, dict):
+                        if 'x' in m:
+                            cur_x = int(m['x'])
+                        if 'y' in m:
+                            cur_y = int(m['y'])
+
+        # Accept explicit mid_x / mid_y forms if present.
+        if isinstance(row, dict):
+            if 'mid_x' in row:
+                cur_x = int(row['mid_x'])
+            if 'mid_y' in row:
+                cur_y = int(row['mid_y'])
+
+    return result

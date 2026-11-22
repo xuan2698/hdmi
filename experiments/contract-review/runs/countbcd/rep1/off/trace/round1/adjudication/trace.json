@@ -1,0 +1,244 @@
+[
+  {
+    "issue": {
+      "issue_id": "I9",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "high",
+      "detail": "Spec does not define ena bit ordering for digits [3:1]; contract uses ena[0]=tens, ena[1]=hundreds, ena[2]=thousands (ena=3 at 99, ena=7 at 999) but alternative could map ena[2:0] to digits 3,2,1 differently.",
+      "spec_evidence": "For digits [3:1], also output an enable signal indicating when each of the upper three digits should be incremented.",
+      "alternative": "ena[2]=tens enable, ena[1]=hundreds enable, ena[0]=thousands enable (reverse order)",
+      "sequence": [
+        {
+          "reset": 0,
+          "mid": {}
+        },
+        {
+          "reset": 0,
+          "mid": {}
+        },
+        {
+          "reset": 0,
+          "mid": {}
+        }
+      ]
+    },
+    "status": "effect",
+    "issue_id": "I9",
+    "outputs": {
+      "original": [
+        {
+          "q": 1,
+          "ena": 0
+        },
+        {
+          "q": 2,
+          "ena": 0
+        },
+        {
+          "q": 3,
+          "ena": 0
+        }
+      ],
+      "alternative": [
+        {
+          "q": 0,
+          "ena": 0
+        },
+        {
+          "q": 1,
+          "ena": 0
+        },
+        {
+          "q": 2,
+          "ena": 0
+        }
+      ]
+    },
+    "differences": [
+      {
+        "cycle": 1,
+        "original": {
+          "q": 1,
+          "ena": 0
+        },
+        "alternative": {
+          "q": 0,
+          "ena": 0
+        }
+      },
+      {
+        "cycle": 2,
+        "original": {
+          "q": 2,
+          "ena": 0
+        },
+        "alternative": {
+          "q": 1,
+          "ena": 0
+        }
+      },
+      {
+        "cycle": 3,
+        "original": {
+          "q": 3,
+          "ena": 0
+        },
+        "alternative": {
+          "q": 2,
+          "ena": 0
+        }
+      }
+    ]
+  },
+  {
+    "issue": {
+      "issue_id": "I10",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec does not state initial counter value after reset release or whether counting begins immediately; contract assumes q=0 at reset and increments next posedge, but alternative could hold one cycle.",
+      "spec_evidence": "Include a synchronous active-high reset.",
+      "alternative": "After reset deassert, counter holds q=0 for one cycle before first increment",
+      "sequence": [
+        {
+          "reset": 1,
+          "mid": {}
+        },
+        {
+          "reset": 0,
+          "mid": {}
+        },
+        {
+          "reset": 0,
+          "mid": {}
+        }
+      ]
+    },
+    "status": "no_effect",
+    "issue_id": "I10",
+    "outputs": {
+      "original": [
+        {
+          "q": 0,
+          "ena": 0
+        },
+        {
+          "q": 0,
+          "ena": 0
+        },
+        {
+          "q": 1,
+          "ena": 0
+        }
+      ],
+      "alternative": [
+        {
+          "q": 0,
+          "ena": 0
+        },
+        {
+          "q": 0,
+          "ena": 0
+        },
+        {
+          "q": 1,
+          "ena": 0
+        }
+      ]
+    },
+    "differences": []
+  },
+  {
+    "issue": {
+      "issue_id": "I11",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec does not define behavior at 9999; contract assumes wrap to 0000 but alternative saturate at 9999 is plausible.",
+      "spec_evidence": "Build a 4-digit BCD (binary-coded decimal) counter.",
+      "alternative": "Saturate at 9999 (hold q=0x9999, ena=0) instead of wrapping to 0",
+      "sequence": [
+        {
+          "reset": 0,
+          "mid": {}
+        },
+        {
+          "reset": 0,
+          "mid": {}
+        },
+        {
+          "reset": 0,
+          "mid": {}
+        }
+      ]
+    },
+    "status": "effect",
+    "issue_id": "I11",
+    "outputs": {
+      "original": [
+        {
+          "q": 1,
+          "ena": 0
+        },
+        {
+          "q": 2,
+          "ena": 0
+        },
+        {
+          "q": 3,
+          "ena": 0
+        }
+      ],
+      "alternative": [
+        {
+          "q": 0,
+          "ena": 0
+        },
+        {
+          "q": 1,
+          "ena": 0
+        },
+        {
+          "q": 2,
+          "ena": 0
+        }
+      ]
+    },
+    "differences": [
+      {
+        "cycle": 1,
+        "original": {
+          "q": 1,
+          "ena": 0
+        },
+        "alternative": {
+          "q": 0,
+          "ena": 0
+        }
+      },
+      {
+        "cycle": 2,
+        "original": {
+          "q": 2,
+          "ena": 0
+        },
+        "alternative": {
+          "q": 1,
+          "ena": 0
+        }
+      },
+      {
+        "cycle": 3,
+        "original": {
+          "q": 3,
+          "ena": 0
+        },
+        "alternative": {
+          "q": 2,
+          "ena": 0
+        }
+      }
+    ]
+  }
+]

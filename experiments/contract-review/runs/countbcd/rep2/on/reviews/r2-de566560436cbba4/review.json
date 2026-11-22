@@ -1,0 +1,124 @@
+{
+  "coverage": {
+    "S01": [
+      "R_COUNT_BCD"
+    ],
+    "S02": [
+      "R_COUNT_BCD",
+      "R_ENA_COMB"
+    ],
+    "S03": [
+      "R_ENA_COMB"
+    ],
+    "S04": [
+      "R_RESET"
+    ]
+  },
+  "issues": [
+    {
+      "issue_id": "I1",
+      "rule_id": "R_COUNT_BCD",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec says counter but not count direction; contract fixes increment.",
+      "spec_evidence": "Build a 4-digit BCD (binary-coded decimal) counter.",
+      "alternative": "Decrement by 1 on each enabled edge, wrapping 0000 to 9999.",
+      "sequence": [
+        {
+          "reset": 1
+        },
+        {
+          "reset": 0
+        }
+      ]
+    },
+    {
+      "issue_id": "I2",
+      "rule_id": "R_ENA_COMB",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec does not define which ena bit maps to tens/hundreds/thousands.",
+      "spec_evidence": "For digits [3:1], also output an enable signal indicating when each of the upper three digits should be incremented.",
+      "alternative": "ena[2]=ones==9, ena[1]=lower2==99, ena[0]=lower3==999 (MSB=tens carry).",
+      "sequence": [
+        {
+          "reset": 1
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        }
+      ]
+    },
+    {
+      "issue_id": "I3",
+      "rule_id": "R_ENA_COMB",
+      "type": "ambiguity",
+      "severity": "low",
+      "detail": "Contract computes ena only from q, so ena may stay 1 while reset is high and q=9; gating ena by reset is also plausible.",
+      "spec_evidence": "Include a synchronous active-high reset.",
+      "alternative": "ena is forced to 0 while reset==1.",
+      "sequence": [
+        {
+          "reset": 1
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0,
+          "mid": {
+            "reset": 1
+          }
+        },
+        {
+          "reset": 1
+        }
+      ]
+    }
+  ]
+}

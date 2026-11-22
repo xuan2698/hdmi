@@ -1,0 +1,82 @@
+```json
+{
+  "module_name": "top_module",
+  "io": [
+    {
+      "name": "clk",
+      "dir": "input",
+      "width": 1,
+      "description": "Fast-running clock. All state updates occur on the rising edge."
+    },
+    {
+      "name": "reset",
+      "dir": "input",
+      "width": 1,
+      "description": "Active-high synchronous reset. Resets the clock to 12:00 AM. Has priority over ena and applies even when ena is low."
+    },
+    {
+      "name": "ena",
+      "dir": "input",
+      "width": 1,
+      "description": "Enable pulse; when high, the clock advances by one second on the rising edge."
+    },
+    {
+      "name": "pm",
+      "dir": "output",
+      "width": 1,
+      "description": "AM/PM indicator: 1 = PM, 0 = AM."
+    },
+    {
+      "name": "hh",
+      "dir": "output",
+      "width": 8,
+      "description": "Two BCD digits for hours, range 01-12."
+    },
+    {
+      "name": "mm",
+      "dir": "output",
+      "width": 8,
+      "description": "Two BCD digits for minutes, range 00-59."
+    },
+    {
+      "name": "ss",
+      "dir": "output",
+      "width": 8,
+      "description": "Two BCD digits for seconds, range 00-59."
+    }
+  ],
+  "clocking": {
+    "clock": {
+      "name": "clk",
+      "edge": "posedge"
+    },
+    "reset": {
+      "name": "reset",
+      "active": "high",
+      "kind": "synchronous"
+    }
+  },
+  "timing": {
+    "outputs": {
+      "pm": { "latency_cycles": 1 },
+      "hh": { "latency_cycles": 1 },
+      "mm": { "latency_cycles": 1 },
+      "ss": { "latency_cycles": 1 }
+    }
+  },
+  "functional_summary": {
+    "overview": "12-hour clock with AM/PM indicator. On each rising clk edge: if reset is high, outputs become 12:00 AM (hh=0x12, mm=0x00, ss=0x00, pm=0). Otherwise, if ena is high, the time advances by one second with BCD rollover: seconds 00-59, minutes 00-59, hours 01-12, and AM/PM toggling when hours wrap from 12 to 01 (or 11 to 12).",
+    "rules": [
+      "Reset is synchronous, active-high, and has priority over ena; on reset, hh=0x12, mm=0x00, ss=0x00, pm=0.",
+      "When ena=1 and reset=0, increment seconds by one BCD count.",
+      "Seconds roll over from 59 to 00, incrementing minutes.",
+      "Minutes roll over from 59 to 00, incrementing hours.",
+      "Hours count 01,02,...,12 then wrap to 01; the wrap from 12 to 01 toggles pm.",
+      "When hours transition from 11 to 12, pm toggles (AM<->PM).",
+      "When hours transition from 12 to 01, pm toggles (AM<->PM).",
+      "All outputs update on the rising clk edge with one-cycle latency relative to sampled inputs.",
+      "Outputs are held when ena=0 and reset=0."
+    ]
+  }
+}
+```

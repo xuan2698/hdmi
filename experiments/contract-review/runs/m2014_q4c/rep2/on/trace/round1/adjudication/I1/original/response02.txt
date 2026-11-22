@@ -1,0 +1,44 @@
+def reference(vectors):
+    # Initial state: concrete q value for unspecified power-up
+    q = 0
+    # Current input values, carried across rows and mid changes
+    cur_d = 0
+    cur_r = 0
+    results = []
+    for row in vectors:
+        # Drive row inputs before sampled posedge
+        if 'd' in row:
+            cur_d = row['d'] & 1
+        if 'r' in row:
+            cur_r = row['r'] & 1
+
+        # Sample at posedge: reset has priority
+        if cur_r == 1:
+            # Rule sync_reset_high: active high synchronous reset forces q to 0
+            q = 0
+        else:
+            # Rule d_capture_when_reset_inactive: q captures d when reset inactive
+            q = cur_d & 1
+
+        # Output visible same cycle after edge has settled
+        results.append({'q': q})
+
+        # Optional mid input changes occur AFTER sampling,
+        # before the other edge, and are carried to start of next row.
+        if 'mid' in row:
+            mid = row['mid']
+            if mid:
+                if mid.__class__.__name__ == 'dict':
+                    if 'd' in mid:
+                        cur_d = mid['d'] & 1
+                    if 'r' in mid:
+                        cur_r = mid['r'] & 1
+                else:
+                    for item in mid:
+                        key = item[0]
+                        val = item[1] & 1
+                        if key == 'd':
+                            cur_d = val
+                        elif key == 'r':
+                            cur_r = val
+    return results

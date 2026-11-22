@@ -1,0 +1,82 @@
+def reference(vectors):
+    # Moore states: A = reset/no 1 seen (z=0), B = seen 1 with z=0, C = seen 1 with z=1.
+    state = "A"
+    areset = 1
+    x = 0
+    results = []
+
+    for row in vectors:
+        # Inputs driven before the sampled posedge.
+        if "areset" in row:
+            areset = row["areset"]
+        if "x" in row:
+            x = row["x"]
+
+        # Rule reset_async_z0: areset high asynchronously forces state A and z=0.
+        if areset == 1:
+            state = "A"
+
+        if areset == 1:
+            # Rule reset_async_z0: output z=0 while reset is asserted at the sampled edge.
+            state = "A"
+            z = 0
+        else:
+            if state == "A":
+                if x == 0:
+                    # Rule A_x0_to_A_z0: A, x=0 -> A, z=0.
+                    state = "A"
+                    z = 0
+                else:
+                    # Rule A_x1_to_C_z1: A, x=1 -> C, z=1.
+                    state = "C"
+                    z = 1
+            elif state == "B":
+                if x == 0:
+                    # Rule B_x0_to_C_z1: B, x=0 -> C, z=1.
+                    state = "C"
+                    z = 1
+                else:
+                    # Rule B_x1_to_B_z0: B, x=1 -> B, z=0.
+                    state = "B"
+                    z = 0
+            else:  # state == "C"
+                if x == 0:
+                    # Rule C_x0_to_C_z1: C, x=0 -> C, z=1.
+                    state = "C"
+                    z = 1
+                else:
+                    # Rule C_x1_to_B_z0: C, x=1 -> B, z=0.
+                    state = "B"
+                    z = 0
+
+        results.append({"z": z})
+
+        # Mid input changes occur after sampling and persist to the next row.
+        if "mid" in row:
+            m = row["mid"]
+            if m is not None:
+                cname = m.__class__.__name__
+                if cname == "dict":
+                    for k in m:
+                        v = m[k]
+                        if k == "areset":
+                            areset = v
+                            # Rule reset_async_z0: reset asserted after the sampled edge resets state for the next row.
+                            if areset == 1:
+                                state = "A"
+                        elif k == "x":
+                            x = v
+                else:
+                    for md in m:
+                        if md.__class__.__name__ == "dict":
+                            for k in md:
+                                v = md[k]
+                                if k == "areset":
+                                    areset = v
+                                    # Rule reset_async_z0: reset asserted after the sampled edge resets state for the next row.
+                                    if areset == 1:
+                                        state = "A"
+                                elif k == "x":
+                                    x = v
+
+    return results

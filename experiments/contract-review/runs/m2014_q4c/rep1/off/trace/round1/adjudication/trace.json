@@ -1,0 +1,76 @@
+[
+  {
+    "issue": {
+      "issue_id": "I3",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Initial state of Q before first posedge is unspecified; two semantics (Q=0 vs Q=1 at power-up) yield different first-cycle outputs when r=0.",
+      "spec_evidence": "",
+      "alternative": "Power-up Q=1 instead of Q=0.",
+      "sequence": [
+        {
+          "d": 0,
+          "r": 0
+        }
+      ]
+    },
+    "status": "no_effect",
+    "issue_id": "I3",
+    "outputs": {
+      "original": [
+        {
+          "q": 0
+        }
+      ],
+      "alternative": [
+        {
+          "q": 0
+        }
+      ]
+    },
+    "differences": []
+  },
+  {
+    "issue": {
+      "issue_id": "I4",
+      "rule_id": "R1_sync_reset",
+      "type": "ambiguity",
+      "severity": "low",
+      "detail": "Rule says visible same_cycle for synchronous reset; alternative interpretation could make reset visible only after the posedge (next cycle), changing output timing.",
+      "spec_evidence": "active high synchronous reset (reset output to 0)",
+      "alternative": "Reset output becomes 0 one cycle after the posedge with r=1 (registered reset).",
+      "sequence": [
+        {
+          "d": 1,
+          "r": 1
+        },
+        {
+          "d": 0,
+          "r": 0
+        }
+      ]
+    },
+    "status": "no_effect",
+    "issue_id": "I4",
+    "outputs": {
+      "original": [
+        {
+          "q": 0
+        },
+        {
+          "q": 0
+        }
+      ],
+      "alternative": [
+        {
+          "q": 0
+        },
+        {
+          "q": 0
+        }
+      ]
+    },
+    "differences": []
+  }
+]

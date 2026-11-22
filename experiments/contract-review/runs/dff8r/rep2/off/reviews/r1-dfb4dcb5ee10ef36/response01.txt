@@ -1,0 +1,62 @@
+{
+  "coverage": {
+    "S01": ["R1_sync_reset", "R2_dff_capture"],
+    "S02": ["R1_sync_reset", "R2_dff_capture"]
+  },
+  "issues": [
+    {
+      "issue_id": "I1",
+      "rule_id": "R1_sync_reset",
+      "type": "consistency",
+      "severity": "medium",
+      "detail": "Rule example expected q=85 after reset release, but with d=85 and reset=0 at posedge, q should capture 85; however the first vector has reset=1 so q=0, second vector d=85 reset=0 gives q=85, third reset=1 gives q=0. This is consistent. No issue.",
+      "spec_evidence": "",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I2",
+      "rule_id": "R2_dff_capture",
+      "type": "consistency",
+      "severity": "low",
+      "detail": "R2 example vectors show d=1,2,255 with reset=0 and expected q=1,2,255. This is consistent with DFF capture. No issue.",
+      "spec_evidence": "",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I3",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec says 'active high synchronous reset setting the output to zero' but does not specify whether reset is synchronous to posedge clk only. Contract assumes sync reset on posedge. Alternative: reset could be asynchronous or level-sensitive. Distinguishing sequence: apply reset=1 with d=0xFF before any clock edge; if async, q becomes 0 immediately; if sync, q remains previous until posedge.",
+      "spec_evidence": "active high synchronous reset setting the output to zero",
+      "alternative": "Reset is asynchronous active-high, clearing q immediately when reset=1 regardless of clock edge.",
+      "sequence": [
+        {"d": 255, "reset": 1}
+      ]
+    },
+    {
+      "issue_id": "I4",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "low",
+      "detail": "Spec does not define behavior when reset and d change simultaneously at posedge. Contract prioritizes reset (priority 1). Alternative: d capture could take precedence. Distinguishing sequence: at posedge with reset=1 and d=0xAA, contract outputs q=0; alternative outputs q=0xAA.",
+      "spec_evidence": "",
+      "alternative": "D input capture has priority over synchronous reset when both are active at posedge.",
+      "sequence": [
+        {"d": 170, "reset": 1}
+      ]
+    },
+    {
+      "issue_id": "I5",
+      "rule_id": "global",
+      "type": "spec_example",
+      "severity": "low",
+      "detail": "No explicit spec waveform/table/examples provided beyond textual description; contract examples are self-consistent and match derived behavior.",
+      "spec_evidence": "",
+      "alternative": "",
+      "sequence": []
+    }
+  ]
+}

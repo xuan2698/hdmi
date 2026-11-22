@@ -1,0 +1,76 @@
+def reference(vectors):
+    # q_posedge_update: initialize concrete unspecified power-up state as q_zero.
+    q = 0
+    d = 0
+    r = 0
+    result = []
+
+    for row in vectors:
+        row_inputs = None
+        mid = None
+
+        # Determine row input values and optional mid changes for this cycle.
+        if isinstance(row, dict):
+            row_inputs = row
+            mid = row.get("mid", None)
+        elif isinstance(row, (list, tuple)) and len(row) == 2 and isinstance(row[0], dict):
+            row_inputs = row[0]
+            mid = row[1]
+        elif isinstance(row, (list, tuple)):
+            # Positional d, r, optional mid.
+            if len(row) >= 1:
+                d = int(row[0]) & 1
+            if len(row) >= 2:
+                r = int(row[1]) & 1
+            if len(row) >= 3:
+                mid = row[2]
+
+        if isinstance(row_inputs, dict):
+            # Inputs are driven before the sampled posedge; omitted inputs hold carried values.
+            if "d" in row_inputs:
+                d = int(row_inputs["d"]) & 1
+            if "r" in row_inputs:
+                r = int(row_inputs["r"]) & 1
+
+        # q_posedge_update: At each sampled posedge, active high synchronous reset r=1 forces q=0;
+        # otherwise q becomes d. The returned q is the post-edge visible value for this row.
+        if r == 1:
+            q = 0
+        else:
+            q = d & 1
+
+        result.append({"q": q & 1})
+
+        # Optional mid input changes happen AFTER sampling and are carried to the next row.
+        if isinstance(mid, dict):
+            if "d" in mid:
+                d = int(mid["d"]) & 1
+            if "r" in mid:
+                r = int(mid["r"]) & 1
+        elif isinstance(mid, str):
+            pass
+        elif isinstance(mid, (list, tuple)):
+            # Support a single ("d", value) or ("r", value) pair.
+            if len(mid) == 2 and isinstance(mid[0], str) and mid[0] in ("d", "r"):
+                k = mid[0]
+                v = mid[1]
+                if k == "d":
+                    d = int(v) & 1
+                else:
+                    r = int(v) & 1
+            else:
+                for change in mid:
+                    if isinstance(change, dict):
+                        if "d" in change:
+                            d = int(change["d"]) & 1
+                        if "r" in change:
+                            r = int(change["r"]) & 1
+                    elif isinstance(change, (list, tuple)) and len(change) >= 2:
+                        k = change[0]
+                        v = change[1]
+                        if k == "d":
+                            d = int(v) & 1
+                        elif k == "r":
+                            r = int(v) & 1
+
+    return result

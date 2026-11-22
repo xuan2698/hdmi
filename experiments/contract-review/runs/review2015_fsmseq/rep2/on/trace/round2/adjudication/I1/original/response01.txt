@@ -1,0 +1,81 @@
+def reference(vectors):
+    # Named states per contract.
+    S0, S1, S2, S3, SF = 0, 1, 2, 3, 4
+
+    # Power-up concrete state: S0, output 0.
+    state = S0
+
+    # Persistent nonclock inputs; mid changes persist to next row.
+    inp = {"reset": 0, "data": 0}
+
+    outputs = []
+
+    for row in vectors:
+        # Drive row inputs before the sampled posedge. Row drives override
+        # values carried from the previous row's mid changes.
+        if "reset" in row:
+            inp["reset"] = int(row["reset"]) & 1
+        if "data" in row:
+            inp["data"] = int(row["data"]) & 1
+
+        reset = inp["reset"]
+        data = inp["data"]
+
+        # R_RESET: active-high synchronous reset has highest priority.
+        if reset == 1:
+            next_state = S0
+            next_start_shifting = 0
+
+        # R_DETECT: sequence 1101 found on this posedge.
+        elif state == S3 and data == 1:
+            next_state = SF
+            next_start_shifting = 1
+
+        # R_HOLD: once found, hold start_shifting=1 until reset.
+        elif state == SF:
+            next_state = SF
+            next_start_shifting = 1
+
+        # R_PROGRESS: normal search transition when not detecting/holding/reset.
+        else:
+            if state == S0:
+                if data == 0:
+                    next_state = S0
+                else:
+                    next_state = S1
+            elif state == S1:
+                if data == 0:
+                    next_state = S0
+                else:
+                    next_state = S2
+            elif state == S2:
+                if data == 0:
+                    next_state = S3
+                else:
+                    next_state = S2
+            elif state == S3:
+                if data == 0:
+                    next_state = S0
+                else:
+                    # Covered by R_DETECT, but kept for explicit completeness.
+                    next_state = SF
+            else:
+                next_state = S0
+
+            next_start_shifting = 0
+
+        # Posedge update is visible after the sampled edge.
+        state = next_state
+
+        outputs.append({"start_shifting": int(next_start_shifting) & 1})
+
+        # Mid changes occur after sampling and persist to the start of the
+        # next row.
+        mid = row.get("mid")
+        if isinstance(mid, dict):
+            if "reset" in mid:
+                inp["reset"] = int(mid["reset"]) & 1
+            if "data" in mid:
+                inp["data"] = int(mid["data"]) & 1
+
+    return outputs

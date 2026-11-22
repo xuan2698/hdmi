@@ -1,0 +1,22 @@
+def reference(vectors):
+    # State: q_state holds the registered 8-bit output value.
+    # Initial value before first posedge is unspecified; we use 0 as a concrete placeholder.
+    q_state = 0  # R1_sync_reset / R2_dff_capture state holder
+
+    results = []
+    for row in vectors:
+        d = row.get('d', 0)
+        reset = row.get('reset', 0)
+
+        # R1_sync_reset: active high synchronous reset -> q = 0 on posedge
+        # R2_dff_capture: reset == 0 -> q = d on posedge
+        # Priority: reset (1) over capture (2)
+        if reset == 1:
+            q_state = 0  # R1_sync_reset
+        else:
+            q_state = d & 0xFF  # R2_dff_capture
+
+        # Output visible same cycle after posedge settles
+        results.append({'q': q_state & 0xFF})
+
+    return results

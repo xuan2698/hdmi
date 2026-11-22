@@ -1,0 +1,26 @@
+{
+  "responses": [
+    {
+      "issue_id": "I1",
+      "decision": "rebut",
+      "reason": "The synchronous reset rule already specifies same_cycle visibility on posedge with reset==1, so q=0 is produced by that edge, not assumed from prior state; the example is consistent with the contract.",
+      "spec_quote": "active high synchronous reset setting the output to zero"
+    },
+    {
+      "issue_id": "I3",
+      "decision": "accept",
+      "reason": "Spec does not define an initial q value before any posedge; clarify that q is unspecified until the first sampled edge, while reset still forces q=0 on that edge.",
+      "spec_quote": "active high synchronous reset setting the output to zero",
+      "edits": [
+        {
+          "path": [
+            "states",
+            "q_state",
+            "meaning"
+          ],
+          "value": "Registered 8-bit output value held between clock edges; initial value before the first posedge clk is unspecified"
+        }
+      ]
+    }
+  ]
+}

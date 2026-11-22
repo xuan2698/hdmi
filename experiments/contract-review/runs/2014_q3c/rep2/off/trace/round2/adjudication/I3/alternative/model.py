@@ -1,0 +1,44 @@
+def reference(vectors):
+    # Contract implementation.
+    # R_Y0: Y0 = LSB of next state selected by (y, x) per table.
+    #       Undefined states y=101,110,111 -> Y0=0 (per chosen interpretation).
+    # R_z:  z = 1 when y in {011, 100}, else 0 (undefined states -> 0).
+    # Combinational, visible same cycle. No reset. Mid changes handled by
+    # carrying inputs to next row (we just read x,y each row).
+
+    # Next-state table: next_state[y][x] -> 3-bit value
+    # y=000: x0->000, x1->001
+    # y=001: x0->001, x1->100
+    # y=010: x0->010, x1->001
+    # y=011: x0->001, x1->010
+    # y=100: x0->011, x1->100
+    # y=101,110,111: undefined -> Y0=0
+    next_state = {
+        0: {0: 0b000, 1: 0b001},
+        1: {0: 0b001, 1: 0b100},
+        2: {0: 0b010, 1: 0b001},
+        3: {0: 0b001, 1: 0b010},
+        4: {0: 0b011, 1: 0b100},
+    }
+
+    results = []
+    for row in vectors:
+        x = row["x"] & 1
+        y = row["y"] & 0b111
+
+        # R_Y0
+        if y in next_state:
+            ns = next_state[y][x]
+            Y0 = ns & 1
+        else:
+            Y0 = 0  # chosen interpretation for undefined states
+
+        # R_z
+        if y in (0b011, 0b100):
+            z = 1
+        else:
+            z = 0
+
+        results.append({"Y0": Y0, "z": z})
+
+    return results

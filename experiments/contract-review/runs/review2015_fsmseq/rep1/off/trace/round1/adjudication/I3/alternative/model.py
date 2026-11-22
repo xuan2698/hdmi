@@ -1,0 +1,69 @@
+def reference(vectors):
+    # FSM states
+    S0, S1, S2, S3, S4 = 0, 1, 2, 3, 4
+
+    state = S0
+    start_shifting = 0
+    out = []
+
+    for row in vectors:
+        reset = row.get('reset', 0) & 1
+        data = row.get('data', 0) & 1
+
+        # R1: synchronous active-high reset -> start_shifting=0, state=S0
+        if reset == 1:
+            start_shifting = 0
+            state = S0
+            out.append({'start_shifting': start_shifting & 1})
+            continue
+
+        # Compute next state and output based on current state and data
+        # R2: state == S4 -> start_shifting stays 1
+        # R3: state == S3 and data == 1 -> completes 1101, start_shifting=1
+        # R4: otherwise start_shifting stays 0 (unless already latched)
+        if state == S4:
+            # R2: latched forever until reset
+            start_shifting = 1
+            # global interpretation: after match, FSM returns to S0 and can
+            # detect a new 1101 later, but start_shifting stays 1.
+            # We are in S4 only on the cycle we just matched; next cycle we
+            # transition to S0. But since we set state=S4 at match time and
+            # output same cycle, we need to handle: on the cycle after match,
+            # state should be S0 (per interpretation) while start_shifting=1.
+            # So here, if state==S4, we've already latched; move to S0.
+            state = S0
+            # But we must still process data for next state from S0? The
+            # interpretation says FSM returns to S0 and can detect new 1101.
+            # So process data from S0 for next state.
+            if data == 1:
+                state = S1
+            else:
+                state = S0
+        else:
+            # Normal transition
+            if state == S0:
+                if data == 1:
+                    state = S1
+                else:
+                    state = S0
+            elif state == S1:
+                if data == 1:
+                    state = S2
+                else:
+                    state = S0
+            elif state == S2:
+                if data == 1:
+                    state = S2  # "11" then another 1 -> still "11" suffix
+                else:
+                    state = S3  # "110"
+            elif state == S3:
+                if data == 1:
+                    # R3: completes 1101
+                    start_shifting = 1
+                    state = S4  # mark matched; next cycle goes to S0
+                else:
+                    state = S0
+
+        out.append({'start_shifting': start_shifting & 1})
+
+    return out

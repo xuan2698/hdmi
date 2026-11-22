@@ -1,0 +1,23 @@
+```python
+def reference(vectors):
+    # Contract implementation.
+    # State: q_state (8-bit), initial value unspecified -> use 0 as concrete power-up.
+    q_state = 0
+
+    results = []
+
+    for row in vectors:
+        d = row.get('d', 0) & 0xFF
+        reset = row.get('reset', 0) & 0x1
+
+        # R1_sync_reset: active high synchronous reset, priority 1, posedge, visible same_cycle
+        # R2_dff_capture: D flip-flop capture when reset == 0, priority 2, posedge, visible same_cycle
+        if reset == 1:
+            q_state = 0
+        else:
+            q_state = d & 0xFF
+
+        results.append({'q': q_state & 0xFF})
+
+    return results
+```

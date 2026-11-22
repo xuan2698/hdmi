@@ -1,0 +1,256 @@
+We need to produce, for each of the four model IDs, a Python source string defining `reference(vectors)` that simulates the BCD counter per the given rules. The models differ in subtle ways (ena visibility timing, R8 condition, etc.). Let me analyze each.
+
+**Common semantics:**
+- State: 16-bit BCD counter `q`, digits: ones=q[3:0], tens=q[7:4], hundreds=q[11:8], thousands=q[15:12].
+- Synchronous active-high reset: on posedge with reset=1, q<=0, ena<=0.
+- Otherwise increment BCD by 1 (with wrap at 9999 -> 0000).
+- ena[0]=tens enable (when ones==9), ena[1]=hundreds enable (when ones==9 and tens==9), ena[2]=thousands enable (when ones==9, tens==9, hundreds==9).
+
+The `reference(vectors)` function: vectors is a list of dicts with input values per cycle (reset). We must return a list of dicts with output values each cycle. The protocol: "Each row's values are driven before the sampled edge." So for each cycle, inputs are given, we compute outputs for that cycle (which reflect state after the posedge that samples those inputs). Actually let's think: "sample after the posedge edge has settled" — so the outputs shown for a cycle are the registered outputs after the clock edge that sampled the inputs of that cycle. So for cycle i, we take input reset[i], apply posedge update, and output the resulting q and ena.
+
+Wait, but the examples: vectors [{reset:1},{reset:0},{reset:0}], expected [{q:0,ena:0},{q:0,ena:0},{q:1,ena:0}]. So cycle 0: reset=1 -> q=0. Cycle 1: reset=0, state was 0, increments to 1? But expected q=0 at cycle 1. Hmm. So the output at cycle 1 is q=0, meaning the increment happens at the posedge of cycle 1 but the output shown is... Let's re-read: "Each row's values are driven before the sampled edge." So inputs for row i are driven before the posedge of cycle i. The output for row i is sampled after that posedge. So at cycle 0: reset=1 driven, posedge, q becomes 0, output q=0. Cycle 1: reset=0 driven, posedge, q increments from 0 to 1, output should be q=1. But expected says q=0. Contradiction.
+
+Hmm, maybe the output shown is the value *before* the posedge (i.e., the registered value that was set at the previous edge)? Let's check: cycle 0 output q=0 (initial state before any edge, or after reset edge). Cycle 1 output q=0 (state after cycle 0's edge, which was reset -> 0). Cycle 2 output q=1 (state after cycle 1's edge, which incremented 0->1). That matches! So the output for row i is the state *after* the posedge of row i-1, i.e., the value present during row i before its posedge. Actually more precisely: outputs for row i are the register values that are stable during row i (before the posedge of row i). The posedge of row i updates them for row i+1.
+
+But wait, the spec says "sample after the posedge edge has settled". Hmm. Let's check R4 example: vectors [{reset:1},{reset:0},{reset:0}], expected [{q:9,ena:1},{q:16,ena:0},{q:17,ena:0}]. Here cycle 0 output q=9, ena=1. That means the state during cycle 0 is q=9. But reset=1 at cycle 0, so after posedge q should be 0. So the output at cycle 0 is the state *before* the posedge, i.e., the initial state. So the initial state is q=9? That doesn't make sense for a fresh simulation.
+
+Hmm, maybe the examples are not starting from reset state; they're just illustrative of a sequence where the counter happens to be at 9 at cycle 0. The "vectors" are inputs, and "expected" are outputs for those cycles, assuming some initial state. But the reference function must start from a defined initial state. The reset rule says reset sets q=0. So initial state before any clock is undefined, but typically 0. The examples might be showing a scenario where the counter was already at 9 before cycle 0.
+
+Let's reconsider: The protocol says "Each row's values are driven before the sampled edge." So for row i, inputs are set, then posedge occurs, then outputs are sampled. So output for row i reflects the state after the posedge of row i. Let's test with R1 example: cycle 0 reset=1 -> posedge -> q=0, output q=0. Cycle 1 reset=0 -> posedge -> q increments 0->1, output q=1. But expected says q=0 at cycle 1. So that doesn't match.
+
+Alternative: outputs for row i are sampled *before* the posedge of row i (i.e., the state at the beginning of row i). Then cycle 0 output is initial state (before any edge). If initial state is 0, cycle 0 output q=0. Cycle 1 output is state after cycle 0's posedge (reset -> 0), so q=0. Cycle 2 output is state after cycle 1's posedge (increment 0->1), so q=1. That matches R1 example! And R4 example: cycle 0 output q=9 means initial state was 9. That's possible if the simulation starts with q=9 (not reset). But the reference function should probably start with q=0 unless reset is applied. However, the examples are just illustrative; the actual test vectors will include reset at the start presumably.
+
+But the spec says "sample after the posedge edge has settled". That suggests outputs are after the edge. Hmm. Let's look at R2 example: vectors [{reset:1},{reset:0},{reset:0}], expected [{q:0,ena:0},{q:1,ena:0},{q:2,ena:0}]. Here cycle 0 reset=1 -> q=0. Cycle 1 reset=0 -> q=1. Cycle 2 reset=0 -> q=2. This matches "output after posedge" interpretation! Because cycle 0: reset -> q=0. Cycle 1: increment -> q=1. Cycle 2: increment -> q=2. So R2 example supports after-posedge.
+
+But R1 example: cycle 0 reset=1 -> q=0. Cycle 1 reset=0 -> increment -> q=1, but expected q=0. Contradiction. Unless R1 example is showing that reset holds q=0 for one cycle after deassert? The reset rule says "first_released_cycle": "cycle after reset deasserted at posedge". That might mean the counter holds at 0 for one cycle after reset is deasserted. Let's check: cycle 0 reset=1 -> q=0. Cycle 1 reset=0: reset was deasserted at this posedge, so maybe it holds q=0 (doesn't increment yet). Cycle 2 reset=0: now increments to 1. That matches R1 example: q=0,0,1. And R2 example: q=0,1,2 — that would mean it increments immediately at cycle 1. So R1 and R2 examples are inconsistent with each other under any single interpretation? Let's re-read R1 example: expected [{q:0,ena:0},{q:0,ena:0},{q:1,ena:0}]. R2 example: expected [{q:0,ena:0},{q:1,ena:0},{q:2,ena:0}]. These are different behaviors for the same input sequence! So the examples are not consistent; they're just illustrative of the rule in isolation, perhaps with different initial states or assumptions. The actual reference implementation must follow the rules as stated, not the examples.
+
+The rules: R1_reset: reset==1 -> q=0, ena=0 (same_cycle, priority 1). R2_ones_increment: reset==0 and q[3:0]!=9 -> q increments (next_cycle). So at a posedge with reset=0, if ones!=9, q increments. There's no mention of holding for a cycle after reset. The "first_released_cycle" note says "cycle after reset deasserted at posedge" — that might just mean the first cycle where reset=0 is the cycle after the reset was deasserted, and counting begins then. So R2 example is correct: cycle 0 reset=1 -> q=0; cycle 1 reset=0 -> increment -> q=1; cycle 2 -> q=2. R1 example seems to show a hold, but maybe it's just wrong or illustrating something else. We'll follow the rules.
+
+So the reference function: simulate posedge updates. For each cycle i, given reset[i], compute next state from current state, then output the next state (since outputs are after posedge). But wait, the protocol says "Each row's values are driven before the sampled edge." So inputs for row i are driven, then posedge, then outputs sampled. So output for row i = state after posedge of row i. That means we start with some initial state (before cycle 0), then for each cycle, apply update based on reset[i], and output the new state.
+
+What is the initial state? The reset rule says reset sets q=0. If the first cycle has reset=1, q becomes 0. If the first cycle has reset=0, the initial state is undefined. Typically in such problems, the initial state is 0. We'll assume initial q=0, ena=0.
+
+Now, the ena outputs: The rules have different visibility for ena. Let's parse each model.
+
+**Model 6055488bcf1dcd24aa:**
+- R1_reset: reset==1 -> q=0, ena=0 (same_cycle, priority 1). So when reset=1, output ena=0.
+- R4_ena_tens: reset==0 and q[3:0]==9 -> ena (same_cycle, priority 3). "same_cycle" means the ena is visible in the same cycle as the condition? But condition is on q, which is the current state. Since ena is an output, it's combinational based on current q? But the rules say edge: posedge, visible: same_cycle. That suggests ena is registered? Actually "same_cycle" might mean the ena output in cycle i reflects the condition evaluated on the state *before* the posedge of cycle i (i.e., the state during cycle i). Let's think: The counter q is a register updated at posedge. The ena signals indicate when upper digits should be incremented. Typically, ena is combinational from the current q: ena[0] = (q[3:0]==9), etc. But the rules say edge: posedge, visible: same_cycle. That might mean ena is also registered, updated at posedge, and its value in cycle i is based on the state before the posedge (i.e., the q value during cycle i). Let's check R4 example: vectors [{reset:1},{reset:0},{reset:0}], expected [{q:9,ena:1},{q:16,ena:0},{q:17,ena:0}]. Here cycle 0: q=9, ena=1. That means during cycle 0, q=9 and ena=1. If ena is combinational from q, then ena=1 because q[3:0]=9. That matches. Cycle 1: q=16 (ones=6), ena=0. Cycle 2: q=17 (ones=7), ena=0. So ena is combinational from the current q (the state during that cycle). But the rule says edge: posedge, visible: same_cycle. That might just mean the ena is evaluated at the posedge but reflects the pre-edge state? Actually, if ena is combinational, it's always visible. The "same_cycle" might mean the ena output in cycle i is based on the q value in cycle i (before the posedge of cycle i). Since q is the state during cycle i, ena = f(q). That's combinational.
+
+But then R5_ena_hundreds: condition reset==0 and q[3:0]==9 and q[7:4]==9, visible: next_cycle (in model 6055488bcf1dcd24aa). Wait, R5 in model 6055488bcf1dcd24aa says visible: "next_cycle". Let's check: R5_ena_hundreds: condition reset==0 and q[3:0]==9 and q[7:4]==9, edge: posedge, visible: "next_cycle", priority 3. Example: vectors [{reset:1},{reset:0},{reset:0}], expected [{q:99,ena:3},{q:256,ena:0},{q:257,ena:0}]. Cycle 0: q=99, ena=3. q=99 means ones=9, tens=9. ena=3 means ena[0]=1, ena[1]=1. So ena[1] (hundreds enable) is 1 when ones=9 and tens=9. That's combinational from q. But the rule says visible: next_cycle. That's contradictory. Maybe "next_cycle" means the ena is registered and its value in cycle i is based on the condition evaluated at the posedge of cycle i-1 (i.e., based on the state before that posedge). Let's test: cycle 0: q=99, ena=3. If ena is registered, it would be based on the state before cycle 0's posedge. But we don't know that. Alternatively, maybe the ena is combinational but the rule's "visible" field is just metadata about when the condition is evaluated relative to the edge. For R4, visible: same_cycle means the condition is evaluated on the current state (before the edge) and the ena is output in the same cycle. For R5, visible: next_cycle might mean the condition is evaluated on the next state (after the edge) and the ena is output in the next cycle? That would mean ena is registered. Let's check R5 example: cycle 0: q=99, ena=3. If ena is registered, it would be based on the state before cycle 0's posedge. But we don't have that. Cycle 1: q=256, ena=0. If ena were registered based on cycle 0's state (q=99), then at cycle 1 ena should be 3 (since q=99 had ones=9,tens=9). But expected ena=0. So ena is not registered based on previous state. It seems ena is combinational from current q. So the "visible" field might be inconsistent or just indicating the rule's priority.
+
+Let's look at model 6c77745b20482d939f: R5_ena_hundreds has visible: "same_cycle". R6_ena_thousands has visible: "same_cycle". R8_ena_default has condition "reset == 0 and not (q[3:0] == 9 and q[7:4] == 9 and q[11:8] == 9)" and visible: "next_cycle". This is different from model 6055488bcf1dcd24aa where R8 condition is "reset == 0 and not (q[3:0] == 9)" and visible: "next_cycle". So the models differ in the ena logic.
+
+We need to implement each model's exact state semantics independently. The rules define the behavior. Let's interpret each model's rules to determine the ena outputs.
+
+The key is: ena is a 3-bit output. The rules specify conditions for each bit. We need to determine the ena value for each cycle based on the state q (which is the counter value during that cycle, i.e., after the previous posedge). The rules have "visible" fields: same_cycle or next_cycle. This likely indicates whether the ena bit is combinational (same_cycle) or registered (next_cycle). But the examples suggest combinational. Let's check model 6055488bcf1dcd24aa R8_ena_default: condition "reset == 0 and not (q[3:0] == 9)", visible: "next_cycle", priority 4. Example: vectors [{reset:1},{reset:0},{reset:0}], expected [{q:0,ena:0},{q:1,ena:0},{q:2,ena:0}]. Here ena=0 always. If ena were registered based on previous state, at cycle 1 (q=1), previous state was q=0 (ones=0!=9), so ena would be 0. At cycle 2 (q=2), previous state q=1 (ones=1!=9), ena=0. So it's consistent with both.
+
+Let's look at model 3eac00f1a16cb0bc96: R8_ena_default condition "reset == 0 and not (q[3:0] == 9 and q[7:4] == 9 and q[11:8] == 9)", visible: "next_cycle". This is different.
+
+We need to carefully derive the ena logic for each model from its rules. The rules are prioritized. For each cycle, we evaluate the rules based on the current state q (the state during that cycle, which is the output of the previous posedge). The ena output for that cycle is determined by the highest priority rule that applies? Or are the rules additive? The rules specify conditions for individual ena bits. Let's list the ena-related rules for each model.
+
+**Model 6055488bcf1dcd24aa:**
+- R1_reset: reset==1 -> ena=0 (priority 1).
+- R4_ena_tens: reset==0 and q[3:0]==9 -> ena (priority 3, same_cycle). This likely sets ena[0]=1.
+- R5_ena_hundreds: reset==0 and q[3:0]==9 and q[7:4]==9 -> ena (priority 3, next_cycle). This likely sets ena[1]=1.
+- R6_ena_thousands: reset==0 and q[3:0]==9 and q[7:4]==9 and q[11:8]==9 -> ena (priority 3, next_cycle). This likely sets ena[2]=1.
+- R8_ena_default: reset==0 and not (q[3:0]==9) -> ena (priority 4, next_cycle). This likely sets ena=0? Or maybe it's a default that ena=0 when ones!=9.
+
+But note: R4, R5, R6 are not mutually exclusive; they can all be true simultaneously (e.g., q=999: ones=9, tens=9, hundreds=9 -> ena[0]=1, ena[1]=1, ena[2]=1 -> ena=7). The example for R6 shows q=999, ena=7. So ena bits are set independently based on conditions. R8 is a default for when ones!=9, setting ena=0? But if ones!=9, then R4, R5, R6 are all false, so ena would be 0 anyway. So R8 might be redundant or specify that ena=0 when ones!=9. But R8 condition is "not (q[3:0]==9)", which is exactly when R4 is false. So R8 just ensures ena=0 in that case. But what about when ones==9 but tens!=9? Then R4 true (ena[0]=1), R5 false, R6 false. So ena=1. That matches example R4: q=9, ena=1. When ones==9 and tens==9 but hundreds!=9: R4 true, R5 true, R6 false -> ena=3. Example R5: q=99, ena=3. When ones==9, tens==9, hundreds==9: ena=7. Example R6: q=999, ena=7. So ena is simply:
+ena[0] = (reset==0 and q[3:0]==9)
+ena[1] = (reset==0 and q[3:0]==9 and q[7:4]==9)
+ena[2] = (reset==0 and q[3:0]==9 and q[7:4]==9 and q[11:8]==9)
+And when reset==1, ena=0.
+
+But wait, R8_ena_default has visible: next_cycle and condition "not (q[3:0]==9)". If ena is combinational, this is just ena=0 when ones!=9. That's consistent. So for this model, ena is combinational from q (and reset). The "visible" fields might be irrelevant or indicate that the ena is evaluated based on the current q (same_cycle) or next q (next_cycle)? But the examples show ena based on current q. Let's check R5 example: q=99, ena=3. If ena were based on next q (after increment), then at q=99, next q would be 256 (since 99+1=100 in BCD? Actually 99+1=100, so q becomes 0x100=256). Then ena based on next q=256: ones=6!=9 -> ena=0. But expected ena=3. So ena is based on current q, not next q. So "next_cycle" in the rule might mean the ena is visible in the next cycle? But it's visible in the same cycle in the example. This is confusing.
+
+Maybe the "visible" field indicates when the condition is evaluated relative to the clock edge: same_cycle means the condition is evaluated on the current state (before the edge) and the ena is output in the same cycle (combinational). next_cycle means the condition is evaluated on the next state (after the edge) and the ena is output in the next cycle (registered). But the examples contradict this for R5. Let's re-examine R5 example in model 6055488bcf1dcd24aa: vectors [{reset:1},{reset:0},{reset:0}], expected [{q:99,ena:3},{q:256,ena:0},{q:257,ena:0}]. Here cycle 0: q=99, ena=3. If ena were registered based on next state, then at cycle 0, the next state after posedge would be 256 (since 99+1=100 -> 0x100=256). Then ena for cycle 1 would be based on q=256: ones=6!=9 -> ena=0. That matches cycle 1 ena=0. But cycle 0 ena=3 would be based on the state before cycle 0's posedge, which we don't know. So it's possible that ena is registered: ena in cycle i is based on the state before the posedge of cycle i (i.e., the state during cycle i-1). Let's test this hypothesis with R4 example: vectors [{reset:1},{reset:0},{reset:0}], expected [{q:9,ena:1},{q:16,ena:0},{q:17,ena:0}]. If ena is registered based on previous state: cycle 0 ena=1 would be based on state before cycle 0's posedge. We don't know that. Cycle 1 ena=0 would be based on state during cycle 0 (q=9). q=9 has ones=9 -> ena[0]=1, so ena should be 1, but expected 0. So that doesn't match. So ena is not registered based on previous state.
+
+What if ena is combinational from current q, but the "visible" field is just a hint about when the condition is checked for the purpose of the rule's priority? I think the simplest interpretation is: ena is combinational from the current state q (the value during that cycle) and reset. The rules define the conditions for each ena bit. The "visible" field might be a red herring or indicate that the ena bit is updated at the posedge but reflects the pre-edge state? Actually, if ena is combinational, it's always visible. The "same_cycle" vs "next_cycle" might indicate whether the ena bit is based on the current q (same_cycle) or the next q (next_cycle). But the examples show ena based on current q for all bits. Let's check R6 example: q=999, ena=7. Current q=999 has ones=9,tens=9,hundreds=9 -> ena=7. Next q would be 0 (wrap) -> ena=0. So ena is based on current q. So all ena bits are based on current q. The "visible" field might be inconsistent or just metadata.
+
+Given the ambiguity, we should implement the ena logic as combinational from the current state q (the state during the cycle) and reset, using the conditions from the rules. For each model, we need to determine the exact ena conditions from its rules.
+
+Let's list the ena rules for each model:
+
+**Model 6055488bcf1dcd24aa:**
+- R1: reset==1 -> ena=0.
+- R4: reset==0 and q[3:0]==9 -> ena (bit 0).
+- R5: reset==0 and q[3:0]==9 and q[7:4]==9 -> ena (bit 1).
+- R6: reset==0 and q[3:0]==9 and q[7:4]==9 and q[11:8]==9 -> ena (bit 2).
+- R8: reset==0 and not (q[3:0]==9) -> ena (default 0).
+So ena = (reset==0) ? ((q[3:0]==9) ? (1 | ((q[7:4]==9) ? (2 | ((q[11:8]==9) ? 4 : 0)) : 0)) : 0) : 0.
+Actually, ena[0] = (reset==0 and q[3:0]==9)
+ena[1] = (reset==0 and q[3:0]==9 and q[7:4]==9)
+ena[2] = (reset==0 and q[3:0]==9 and q[7:4]==9 and q[11:8]==9)
+This matches the examples.
+
+**Model c081aa42c666368402:**
+Same as above? Let's check: R5_ena_hundreds visible: "same_cycle" (instead of next_cycle). R6_ena_thousands visible: "next_cycle". R8_ena_default condition: "reset == 0 and not (q[3:0] == 9)" visible: "next_cycle". So the conditions are the same as model 6055488bcf1dcd24aa. The only difference is the "visible" field for R5. But since we're implementing combinational ena based on current q, the visible field doesn't change the logic. So model c081aa42c666368402 has the same ena logic as 6055488bcf1dcd24aa? Let's check the rules carefully: In c081aa42c666368402, R5_ena_hundreds has visible: "same_cycle". In 6055488bcf1dcd24aa, R5 has visible: "next_cycle". But the condition is the same. So the ena logic is identical. However, the models might differ in the q update logic? Let's check R7_full_wrap: both have same. R2, R3 same. So c081aa42c666368402 is identical to 6055488bcf1dcd24aa except for the visible field of R5, which we ignore. So they should produce the same outputs.
+
+Wait, let's check R8_ena_default in c081aa42c666368402: condition "reset == 0 and not (q[3:0] == 9)" visible: "next_cycle". Same as 6055488bcf1dcd24aa. So identical.
+
+**Model 6c77745b20482d939f:**
+- R1: reset==1 -> ena=0.
+- R4: reset==0 and q[3:0]==9 -> ena (bit 0).
+- R5: reset==0 and q[3:0]==9 and q[7:4]==9 -> ena (bit 1), visible: same_cycle.
+- R6: reset==0 and q[3:0]==9 and q[7:4]==9 and q[11:8]==9 -> ena (bit 2), visible: same_cycle.
+- R8: reset==0 and not (q[3:0]==9) -> ena (default 0), visible: next_cycle.
+So ena logic is the same as above: ena[0]=ones==9, ena[1]=ones==9&tens==9, ena[2]=ones==9&tens==9&hundreds==9. So same ena logic.
+
+**Model 3eac00f1a16cb0bc96:**
+- R1: reset==1 -> ena=0.
+- R4: reset==0 and q[3:0]==9 -> ena (bit 0).
+- R5: reset==0 and q[3:0]==9 and q[7:4]==9 -> ena (bit 1), visible: same_cycle.
+- R6: reset==0 and q[3:0]==9 and q[7:4]==9 and q[11:8]==9 -> ena (bit 2), visible: same_cycle.
+- R8: reset==0 and not (q[3:0]==9 and q[7:4]==9 and q[11:8]==9) -> ena (default 0), visible: next_cycle.
+Here R8 condition is different: it's not (ones==9 and tens==9 and hundreds==9). This means when ones==9 and tens==9 and hundreds==9, R8 is false. But R6 is true then, so ena[2]=1. When ones==9 and tens==9 but hundreds!=9, R8 is true (since not all three are 9), so ena default 0? But R5 is true, so ena[1]=1. The default might override? The priority: R8 has priority 4, lower than R4,R5,R6 (priority 3). So R8 only applies if no higher priority rule sets ena? But ena is a multi-bit output. The rules might be specifying individual bits. R8 might be specifying that ena=0 when the condition holds, but it's lower priority, so it only applies when no other rule sets ena? Actually, if R8 sets ena=0, and R5 sets ena[1]=1, there's a conflict. The priority suggests R5 (priority 3) overrides R8 (priority 4). So ena[1] would be 1. But what about ena[0]? R4 sets ena[0]=1 when ones==9. R8 condition is not (ones==9 and tens==9 and hundreds==9). If ones==9 but tens!=9, R8 is true (since not all three are 9). Then R4 sets ena[0]=1, R8 sets ena=0? Conflict. Priority: R4 (3) > R8 (4), so ena[0]=1. So R8 might just be a default that ena=0 when no other rule applies? But R8 condition is broad. Let's think: The ena bits are set by R4, R5, R6. R8 might be intended to set ena=0 when the counter is not at a point where any upper digit should increment. But the condition "not (ones==9 and tens==9 and hundreds==9)" is true in many cases where some ena bits should be 1 (e.g., ones==9, tens!=9). So if R8 overrides, it would incorrectly set ena=0. But priority says R8 is lower, so it doesn't override. So R8 only applies when no higher priority rule sets ena? But ena is a vector; maybe R8 sets all bits to 0, but only if no other rule sets any bit? That would be weird.
+
+Let's look at the example for R8 in model 3eac00f1a16cb0bc96: vectors [{reset:1},{reset:0},{reset:0}], expected [{q:0,ena:0},{q:1,ena:0},{q:2,ena:0}]. Here q=0,1,2 have ones!=9, so R4,R5,R6 false, R8 true -> ena=0. That's consistent.
+
+What about a case where ones==9 but tens!=9? R4 true -> ena[0]=1. R8 condition: not (ones==9 and tens==9 and hundreds==9) -> true (since tens!=9). So R8 would set ena=0, but R4 has higher priority, so ena[0]=1. So ena=1. That seems correct.
+
+What about ones==9, tens==9, hundreds!=9? R4 true, R5 true -> ena[0]=1, ena[1]=1 -> ena=3. R8 condition: not (ones==9 and tens==9 and hundreds==9) -> true (since hundreds!=9). So R8 would set ena=0, but R4,R5 higher priority -> ena=3. Correct.
+
+What about ones==9, tens==9, hundreds==9? R4,R5,R6 true -> ena=7. R8 condition: not (all three 9) -> false. So R8 doesn't apply. ena=7. Correct.
+
+So R8 in this model is essentially redundant: it sets ena=0 when the condition holds, but higher priority rules override it when they set bits. The only case where R8 applies and no higher priority rule sets any bit is when ones!=9 (then R4,R5,R6 false) and the condition not (ones==9 and tens==9 and hundreds==9) is true (since ones!=9, the conjunction is false, so not is true). So R8 sets ena=0. That's the same as the default. So the ena logic is still: ena[0]=ones==9, ena[1]=ones==9&tens==9, ena[2]=ones==9&tens==9&hundreds==9, and ena=0 when reset==1. So all four models have the same ena logic! Let's double-check model 3eac00f1a16cb0bc96 R8 condition: "reset == 0 and not (q[3:0] == 9 and q[7:4] == 9 and q[11:8] == 9)". If ones==9, tens==9, hundreds==9, R8 false. If any of them !=9, R8 true. But as argued, higher priority rules set the bits. So the effective ena is the same.
+
+Wait, is there any case where R8 could set ena=0 and no higher priority rule sets any bit, but the correct ena should be non-zero? No, because if ones!=9, ena should be 0. If ones==9, R4 sets ena[0]=1, so ena is non-zero. So R8 never incorrectly zeros out a non-zero ena because R4 always sets ena[0] when ones==9. So the ena logic is identical across all models.
+
+Thus, all four models have the same state update and ena logic. The only differences are in the "visible" fields and R8 condition, which don't affect the actual behavior. So we can write a single reference function that works for all.
+
+But wait, let's check the q update logic. R2_ones_increment: reset==0 and q[3:0]!=9 -> q increments (next_cycle). R3_ones_wrap: reset==0 and q[3:0]==9 and q[7:4]!=9 -> q increments (next_cycle). R7_full_wrap: reset==0 and q==16'h9999 -> q wraps to 0 (next_cycle). These rules define the BCD increment. The standard BCD increment: if ones!=9, ones++; else ones=0, if tens!=9, tens++; else tens=0, if hundreds!=9, hundreds++; else hundreds=0, if thousands!=9, thousands++; else thousands=0. This is exactly what the rules describe. So q update is standard BCD increment with wrap at 9999.
+
+So all models are identical in behavior. We can write one reference function.
+
+Now, the reference function signature: `def reference(vectors):` where vectors is a list of dicts with key 'reset'. We need to return a list of dicts with keys 'q' and 'ena'.
+
+We need to simulate the clocked behavior. The protocol: "Each row's values are driven before the sampled edge." So for each cycle i, we have input reset[i]. We apply the posedge update based on reset[i] and current state, then output the new state. But wait, the examples: R2 example: vectors [{reset:1},{reset:0},{reset:0}], expected [{q:0,ena:0},{q:1,ena:0},{q:2,ena:0}]. If we start with initial state q=0, ena=0. Cycle 0: reset=1 -> posedge -> q=0, ena=0. Output q=0, ena=0. Cycle 1: reset=0 -> posedge -> q increments 0->1, ena based on new q? Or based on old q? The ena output for cycle 1 is 0. If ena is combinational from current q (which is the state during cycle 1, i.e., after cycle 0's posedge), then at cycle 1, q=0 (before cycle 1's posedge). ena based on q=0: ones=0!=9 -> ena=0. Then posedge updates q to 1. Output for cycle 1 should be the state after posedge? Or before? The expected q=1 at cycle 1. So output q is after posedge. But ena=0. If ena is combinational from the state after posedge (q=1), ones=1!=9 -> ena=0. So both give 0. Cycle 2: reset=0, state before posedge q=1, ena based on q=1 -> 0. posedge -> q=2. Output q=2, ena=0. Matches.
+
+What about R4 example: vectors [{reset:1},{reset:0},{reset:0}], expected [{q:9,ena:1},{q:16,ena:0},{q:17,ena:0}]. Here cycle 0 output q=9, ena=1. If we start with initial state q=9, ena=1? But reset=1 at cycle 0, so posedge should set q=0. So output after posedge would be q=0, not 9. So the example must assume initial state q=9 and reset=1 doesn't affect? That contradicts R1. So the examples are not consistent with starting from reset. They are just illustrative of the rule in isolation, perhaps showing the state before the edge. The actual test vectors will likely start with reset=1 to initialize. So we should implement the standard synchronous reset: on posedge with reset=1, q<=0, ena<=0. Otherwise, q<=next BCD value, and ena is combinational from the current q (the value before the posedge) or from the next q? The rules say ena is visible same_cycle or next_cycle. Let's determine from the rules: R4_ena_tens: condition reset==0 and q[3:0]==9, visible: same_cycle. This suggests ena[0] is based on the current q (before the posedge) and is output in the same cycle. R5_ena_hundreds: condition reset==0 and q[3:0]==9 and q[7:4]==9, visible: next_cycle (in some models). This might suggest ena[1] is based on the next q (after the posedge) and output in the next cycle? But the example for R5 shows q=99, ena=3 in the same cycle. If ena[1] were based on next q, then at q=99, next q=256, ones=6!=9 -> ena[1]=0, but expected 3. So ena[1] is based on current q. So all ena bits are based on current q (the state during the cycle, before the posedge). So ena is combinational from the current state q (which is the output of the previous posedge). The output q for a cycle is the state after the posedge of that cycle? Or before? Let's check R2 example: cycle 0: reset=1, initial q=0. posedge -> q=0. output q=0. cycle 1: reset=0, current q=0 (before posedge). ena based on q=0 -> 0. posedge -> q=1. output q=1. So output q is after posedge. ena is based on the state before posedge (current q). So for each cycle, we compute ena from the current state (before posedge), then apply posedge to get next state, and output the next state as q, and the ena computed from the current state? But wait, in cycle 1, ena based on current q=0 is 0. Output ena=0. That matches. In cycle 2, current q=1, ena based on q=1 is 0. posedge -> q=2. output q=2, ena=0. Matches.
+
+What about a case where current q=9? Suppose cycle i has current q=9. ena based on q=9: ones=9 -> ena[0]=1. posedge -> q becomes 16 (0x10). output q=16, ena=1? But the example R4 shows q=9, ena=1 in the same cycle. That would mean the output q is the current q (before posedge), not after. Let's re-examine R4 example: vectors [{reset:1},{reset:0},{reset:0}], expected [{q:9,ena:1},{q:16,ena:0},{q:17,ena:0}]. If we assume initial state q=9, and cycle 0 reset=1, then posedge would set q=0, so output q=0, not 9. So the example must be showing the state before the posedge. That is, the output for cycle i is the state before the posedge of cycle i. Then cycle 0: initial q=9, ena=1 (based on q=9). reset=1, but output is before posedge? That would mean reset doesn't affect the output of the same cycle. But R1 says reset==1 -> q=0, ena=0, visible: same_cycle. So reset should affect the same cycle. So the example is inconsistent with R1. Therefore, the examples are not reliable for determining the timing. We must rely on the rules and the protocol description.
+
+The protocol says: "Each row's values are driven before the sampled edge." So for row i, inputs are driven, then the sampled edge (posedge) occurs, then outputs are sampled. So outputs for row i are after the posedge of row i. That means q output is the state after the posedge. ena output is also after the posedge? But ena is combinational from q? If ena is combinational from the state after the posedge, then ena would be based on the new q. Let's test with R2 example: cycle 0: reset=1, initial q=0. posedge -> q=0. ena based on q=0 -> 0. output q=0, ena=0. cycle 1: reset=0, current q=0. posedge -> q=1. ena based on new q=1 -> 0. output q=1, ena=0. cycle 2: reset=0, current q=1. posedge -> q=2. ena based on q=2 -> 0. output q=2, ena=0. Matches R2 example.
+
+Now test R4 example with this interpretation: vectors [{reset:1},{reset:0},{reset:0}], expected [{q:9,ena:1},{q:16,ena:0},{q:17,ena:0}]. For cycle 0 to output q=9, the state after posedge must be 9. But reset=1 at cycle 0, so posedge should set q=0. Contradiction. So R4 example cannot be explained by any consistent timing if reset=1 at cycle 0. Therefore, the examples are just illustrative of the rule's condition, not a full simulation. They probably assume the counter is already at that state and reset is not active, but they show reset=1 in the vector? That's weird. Maybe the vectors in the examples are not the actual inputs for that rule; they are just a generic sequence. The expected outputs are for the rule's condition, not for the whole sequence. So we should ignore the examples for timing and follow the rules and protocol.
+
+Given the protocol: outputs are sampled after the posedge. So for each cycle, we apply the posedge update based on the input reset and current state, then output the new state (q) and the ena computed from... what? The ena rules have conditions on q. If ena is combinational from the current state (the state during the cycle, before the posedge), then the ena output for cycle i would be based on the state before the posedge of cycle i. But the output is sampled after the posedge. So the ena would be based on the old state, while q is the new state. That would mean ena and q are not consistent (ena based on old q, q is new q). Is that typical? In many designs, ena is combinational from the current counter value, and the counter updates on the clock. So during a cycle, the counter holds a value, and ena is derived from that value. At the posedge, the counter updates, and ena changes combinationally to reflect the new value. So after the posedge, ena reflects the new counter value. So if we sample after the posedge, both q and ena reflect the new state. So ena should be based on the new q. Let's check the rules: R4_ena_tens: condition reset==0 and q[3:0]==9. If ena is based on the new q, then after the posedge, if the new q has ones==9, ena[0]=1. But the rule says "visible: same_cycle". That might mean the ena is visible in the same cycle as the condition on q. If q is the new q, then ena is based on new q. That's consistent with sampling after posedge.
+
+Let's test with a scenario: suppose current q=8, reset=0. posedge -> q=9. ena based on new q=9: ones=9 -> ena[0]=1. So output q=9, ena=1. That matches R4 example's first cycle if we assume the state before cycle 0 was 8 and reset=0. But the example has reset=1 at cycle 0. So again inconsistent.
+
+Given the ambiguity, the safest is to implement the standard BCD counter with synchronous reset, where ena is combinational from the current counter value (the value after the posedge, i.e., the registered q). So for each cycle, we compute the next state from the current state and reset, then set q = next state, and ena = f(q, reset). But wait, if reset=1, q=0, ena=0. If reset=0, q=next BCD, ena = f(q). This means ena is based on the new q. Let's check if this matches the rules' "visible" fields. R4 says visible: same_cycle. If ena is based on new q, and q is output in the same cycle, then ena is visible in the same cycle as q. That fits. R5 says visible: next_cycle in some models. If ena[1] is based on new q, it's still same cycle. So "next_cycle" might mean the condition is evaluated on the next q? But we're using new q. I think the "visible" field is just a hint about when the condition is checked relative to the edge, but since we're sampling after the edge, everything is based on the new state. So we'll implement: for each cycle, given reset, compute next_q = 0 if reset else bcd_inc(q). Then q = next_q. ena = 0 if reset else f(q). This is the standard synchronous counter with combinational ena from the registered q.
+
+Let's verify with R2 example: initial q=0. cycle 0: reset=1 -> next_q=0, q=0, ena=0. output q=0, ena=0. cycle 1: reset=0 -> next_q=bcd_inc(0)=1, q=1, ena=f(1)=0. output q=1, ena=0. cycle 2: reset=0 -> next_q=2, q=2, ena=0. output q=2, ena=0. Matches R2 example.
+
+R4 example: if we start with initial q=8, cycle 0: reset=1 -> q=0, ena=0. Not 9. So doesn't match. But if we start with initial q=9 and reset=0 at cycle 0: next_q=bcd_inc(9)=16, q=16, ena=f(16)=0. Not 9. So the example must be showing the state before the edge. So the examples are not consistent with sampling after the edge. They seem to show the state before the edge. But the protocol says sample after the edge. So we follow the protocol.
+
+Given the confusion, I'll implement the standard synchronous BCD counter with synchronous reset, where outputs are the registered values after the clock edge. ena is combinational from the registered q. This is the most common interpretation.
+
+Let's write the reference function.
+
+```python
+def reference(vectors):
+    q = 0
+    ena = 0
+    out = []
+    for v in vectors:
+        reset = v['reset']
+        if reset:
+            q = 0
+            ena = 0
+        else:
+            # BCD increment
+            ones = q & 0xF
+            tens = (q >> 4) & 0xF
+            hundreds = (q >> 8) & 0xF
+            thousands = (q >> 12) & 0xF
+            if ones != 9:
+                ones += 1
+            else:
+                ones = 0
+                if tens != 9:
+                    tens += 1
+                else:
+                    tens = 0
+                    if hundreds != 9:
+                        hundreds += 1
+                    else:
+                        hundreds = 0
+                        if thousands != 9:
+                            thousands += 1
+                        else:
+                            thousands = 0
+            q = (thousands << 12) | (hundreds << 8) | (tens << 4) | ones
+            # ena based on new q
+            ena = 0
+            if (q & 0xF) == 9:
+                ena |= 1
+                if ((q >> 4) & 0xF) == 9:
+                    ena |= 2
+                    if ((q >> 8) & 0xF) == 9:
+                        ena |= 4
+        out.append({'q': q, 'ena': ena})
+    return out
+```
+
+Wait, we need to ensure that ena is based on the new q. But what about the case where reset=1? We set ena=0. That's correct.
+
+Let's test with a simple sequence: reset=1, then reset=0 for several cycles. Starting q=0.
+cycle 0: reset=1 -> q=0, ena=0.
+cycle 1: reset=0 -> q=1, ena=0.
+cycle 2: reset=0 -> q=2, ena=0.
+...
+cycle 9: reset=0 -> q=9, ena=1 (since ones=9).
+cycle 10: reset=0 -> q=16, ena=0.
+This seems correct.
+
+But wait, the rules say R4_ena_tens: condition reset==0 and q[3:0]==9, visible: same_cycle. In our implementation, at cycle 9, q=9, ena=1. That's same cycle. Good.
+
+What about R5_ena_hundreds: condition reset==0 and q[3:0]==9 and q[7:4]==9. At q=99, ena=3. Our implementation: q=99 -> ones=9, tens=9 -> ena=1|2=3. Good.
+
+R6: q=999 -> ena=7. Good.
+
+R7: q=9999 -> next q=0, ena=0. Good.
+
+So this seems correct.
+
+Now, we need to output the JSON with models. The keys are the model IDs. Each value is a dict with "id": Python source string. The source string must define `reference(vectors)`.
+
+We must ensure no imports, no I/O, no executable top-level code. Just the function definition.
+
+We'll write the same function for all four models since they are behaviorally identical.
+
+Let's double-check if there's any difference in the ena logic for model 3eac00f1a16cb0bc96 due to R8 condition. As argued, it's the same. But let's test a case: q=9 (ones=9, tens=0, hundreds=0). R4 true -> ena[0]=1. R8 condition: not (ones==9 and tens==9 and hundreds==9) -> not (9==9 and 0==9 and 0==9) -> not (False) -> True. So R8 would set ena=0, but R4 has higher priority, so ena[0]=1. So ena=1. Our implementation gives ena=1. Good.
+
+What about q=99 (ones=9, tens=9, hundreds=0). R4 true, R5 true -> ena=3. R8 condition: not (9==9 and 9==9 and 0==9) -> not (False) -> True. R8 would set ena=0, but R4,R5 higher priority -> ena=3. Our implementation gives 3. Good.
+
+What about q=999 (ones=9, tens=9, hundreds=9). R4,R5,R6 true -> ena=7. R8 condition: not (9==9 and 9==9 and 9==9) -> not (True) -> False. So R8 doesn't apply. ena=7. Good.
+
+So no difference.
+
+Thus, all models have the same reference function.
+
+We'll produce the JSON.
+
+```json
+{
+  "models": {
+    "6055488bcf1dcd24aa": "def reference(vectors):\n    q = 0\n    ena = 0\n    out = []\n    for v in vectors:\n        reset = v['reset']\n        if reset:\n            q = 0\n            ena = 0\n        else:\n            ones = q & 0xF\n            tens = (q >> 4) & 0xF\n            hundreds = (q >> 8) & 0xF\n            thousands = (q >> 12) & 0xF\n            if ones != 9:\n                ones += 1\n            else:\n                ones = 0\n                if tens != 9:\n                    tens += 1\n                else:\n                    tens = 0\n                    if hundreds != 9:\n                        hundreds += 1\n                    else:\n                        hundreds = 0\n                        if thousands != 9:\n                            thousands += 1\n                        else:\n                            thousands = 0\n            q = (thousands << 12) | (hundreds << 8) | (tens << 4) | ones\n            ena = 0\n            if (q & 0xF) == 9:\n                ena |= 1\n                if ((q >> 4) & 0xF) == 9:\n                    ena |= 2\n                    if ((q >> 8) & 0xF) == 9:\n                        ena |= 4\n        out.append({'q': q, 'ena': ena})\n    return out\n",
+    "c081aa42c666368402": "def reference(vectors):\n    q = 0\n    ena = 0\n    out = []\n    for v in vectors:\n        reset = v['reset']\n        if reset:\n            q = 0\n            ena = 0\n        else:\n            ones = q & 0xF\n            tens = (q >> 4) & 0xF\n            hundreds = (q >> 8) & 0xF\n            thousands = (q >> 12) & 0xF\n            if ones != 9:\n                ones += 1\n            else:\n                ones = 0\n                if tens != 9:\n                    tens += 1\n                else:\n                    tens = 0\n                    if hundreds != 9:\n                        hundreds += 1\n                    else:\n                        hundreds = 0\n                        if thousands != 9:\n                            thousands += 1\n                        else:\n                            thousands = 0\n            q = (thousands << 12) | (hundreds << 8) | (tens << 4) | ones\n            ena = 0\n            if (q & 0xF) == 9:\n                ena |= 1\n                if ((q >> 4) & 0xF) == 9:\n                    ena |= 2\n                    if ((q >> 8) & 0xF) == 9:\n                        ena |= 4\n        out.append({'q': q, 'ena': ena})\n    return out\n",
+    "6c77745b20482d939f": "def reference(vectors):\n    q = 0\n    ena = 0\n    out = []\n    for v in vectors:\n        reset = v['reset']\n        if reset:\n            q = 0\n            ena = 0\n        else:\n            ones = q & 0xF\n            tens = (q >> 4) & 0xF\n            hundreds = (q >> 8) & 0xF\n            thousands = (q >> 12) & 0xF\n            if ones != 9:\n                ones += 1\n            else:\n                ones = 0\n                if tens != 9:\n                    tens += 1\n                else:\n                    tens = 0\n                    if hundreds != 9:\n                        hundreds += 1\n                    else:\n                        hundreds = 0\n                        if thousands != 9:\n                            thousands += 1\n                        else:\n                            thousands = 0\n            q = (thousands << 12) | (hundreds << 8) | (tens << 4) | ones\n            ena = 0\n            if (q & 0xF) == 9:\n                ena |= 1\n                if ((q >> 4) & 0xF) == 9:\n                    ena |= 2\n                    if ((q >> 8) & 0xF) == 9:\n                        ena |= 4\n        out.append({'q': q, 'ena': ena})\n    return out\n",
+    "3eac00f1a16cb0bc96": "def reference(vectors):\n    q = 0\n    ena = 0\n    out = []\n    for v in vectors:\n        reset = v['reset']\n        if reset:\n            q = 0\n            ena = 0\n        else:\n            ones = q & 0xF\n            tens = (q >> 4) & 0xF\n            hundreds = (q >> 8) & 0xF\n            thousands = (q >> 12) & 0xF\n            if ones != 9:\n                ones += 1\n            else:\n                ones = 0\n                if tens != 9:\n                    tens += 1\n                else:\n                    tens = 0\n                    if hundreds != 9:\n                        hundreds += 1\n                    else:\n                        hundreds = 0\n                        if thousands != 9:\n                            thousands += 1\n                        else:\n                            thousands = 0\n            q = (thousands << 12) | (hundreds << 8) | (tens << 4) | ones\n            ena = 0\n            if (q & 0xF) == 9:\n                ena |= 1\n                if ((q >> 4) & 0xF) == 9:\n                    ena |= 2\n                    if ((q >> 8) & 0xF) == 9:\n                        ena |= 4\n        out.append({'q': q, 'ena': ena})\n    return out\n"
+  }
+}
+```
+
+But wait, the JSON must be valid. The strings contain newlines and quotes. We need to escape them properly. In the final answer, we'll output the JSON with escaped strings. Since this is a text response, we can just write the JSON with proper escaping. I'll use a compact representation.
+
+Actually, the problem says: "return JSON {models:{id: Python source string}}". So we need to output a JSON object. I'll write it with the strings properly escaped.
+
+Let me double-check the ena logic: In the rules, R8_ena_default in model 6055488bcf1dcd24aa has condition "reset == 0 and not (q[3:0] == 9)" and visible: "next_cycle". This might imply that when ones!=9, ena is set to 0 in the next cycle? But our implementation sets ena=0 in the same cycle. However, since ena is combinational from q, it's always 0 when ones!=9. So it's fine.
+
+One more thing: The rules mention "For digits [3:1], also output an enable signal indicating when each of the upper three digits should be incremented." This means ena[0] is for tens digit (digit 1), ena[1] for hundreds (digit 2), ena[2] for thousands (digit 3). Our implementation matches: ena[0] set when ones==9 (tens should increment), ena[1] when ones==9 and tens==9 (hundreds should increment), ena[2] when ones==9, tens==9, hundreds==9 (thousands should increment). Good.
+
+Thus, the answer is the JSON with the four identical reference functions.
+
+I'll now produce the final answer.

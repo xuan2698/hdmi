@@ -1,0 +1,104 @@
+{
+  "coverage": {
+    "S01": [
+      "R_Y0",
+      "R_z"
+    ],
+    "S02": [
+      "R_Y0",
+      "R_z"
+    ],
+    "S03": [
+      "R_Y0",
+      "R_z"
+    ],
+    "S04": [
+      "R_Y0",
+      "R_z"
+    ],
+    "S05": [
+      "R_Y0",
+      "R_z"
+    ],
+    "S06": [
+      "R_Y0",
+      "R_z"
+    ],
+    "S07": [
+      "R_Y0",
+      "R_z"
+    ]
+  },
+  "issues": [
+    {
+      "issue_id": "I1",
+      "rule_id": "R_Y0",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "R_Y0 example vector y=3,x=0 expects Y0=1,z=1, but spec S06 says y=011,x=0 -> next state 001 (Y0=1) and z=1; consistent. However R_z example y=3,x=1 expects Y0=1,z=1 while spec S06 says y=011,x=1 -> next state 010 (Y0=0). Contradiction.",
+      "spec_evidence": "// 011 | 001, 010 | 1",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I2",
+      "rule_id": "R_Y0",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "R_Y0 example y=1,x=1 expects Y0=0,z=0; spec S04 says y=001,x=1 -> next state 100 (Y0=0), z=0; consistent. But R_z example y=4,x=0 expects Y0=1,z=1; spec S07 says y=100,x=0 -> next state 011 (Y0=1), z=1; consistent. Main contradiction is I1.",
+      "spec_evidence": "",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I3",
+      "rule_id": "R_z",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "R_z example vector y=3,x=1 expects Y0=1 but spec S06 next state 010 has Y0=0.",
+      "spec_evidence": "// 011 | 001, 010 | 1",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I4",
+      "rule_id": "R_Y0",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec table only defines next states for y=000..100; y=101,110,111 undefined. Rule condition also omits them, leaving Y0/z unspecified for those states.",
+      "spec_evidence": "// 100 | 011, 100 | 1",
+      "alternative": "Treat undefined states as don't-care, e.g. Y0=0,z=0 for y=101.",
+      "sequence": [
+        {
+          "x": 0,
+          "y": 5
+        }
+      ]
+    },
+    {
+      "issue_id": "I5",
+      "rule_id": "R_z",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "z depends only on present state per rule, but spec S06/S07 list z per row; for undefined states 101-111 z is unspecified.",
+      "spec_evidence": "// 011 | 001, 010 | 1",
+      "alternative": "z=0 for all undefined states.",
+      "sequence": [
+        {
+          "x": 1,
+          "y": 6
+        }
+      ]
+    },
+    {
+      "issue_id": "I6",
+      "rule_id": "global",
+      "type": "grounding",
+      "severity": "low",
+      "detail": "Spec S02-S07 are comments/table rows; rules cite only S01 quote, but conditions faithfully encode table. No verbatim quote for table rows in rule fields.",
+      "spec_evidence": "// Present state y[2:0] | Next state Y[2:0] x=0, Next state Y[2:0] x=1 | Output z",
+      "alternative": "",
+      "sequence": []
+    }
+  ]
+}

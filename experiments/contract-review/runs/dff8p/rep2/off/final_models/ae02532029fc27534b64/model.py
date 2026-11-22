@@ -1,0 +1,16 @@
+def reference(vectors):
+    # R1_sync_reset / R3_reset_value: state Q initialized to 0x34 (52)
+    Q = 0x34
+    out = []
+    for row in vectors:
+        d = row["d"]
+        reset = row["reset"]
+        # R1_sync_reset: active high synchronous reset at negedge -> Q = 0x34
+        # R3_reset_value: reset value is 0x34 (52), not zero
+        if reset == 1:
+            Q = 0x34
+        else:
+            # R2_dff_capture: capture d on negedge when reset == 0
+            Q = d & 0xFF
+        out.append({"q": Q & 0xFF})
+    return out

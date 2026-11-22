@@ -1,0 +1,43 @@
+def reference(vectors):
+    # Rule r_posedge_q_sync_reset: 8-bit DFF with active-high synchronous reset.
+    # q_reg holds the register value after the sampled positive edge has settled.
+    q_reg = 0  # concrete initial value for unspecified power-up
+    cur_d = 0
+    cur_reset = 0
+    result = []
+    for row in vectors:
+        # Pre-edge drives for this row (inputs driven before the sampled positive edge)
+        if 'd' in row:
+            cur_d = row['d']
+        if 'reset' in row:
+            cur_reset = row['reset']
+        # Positive edge of clk has settled: synchronous reset dominates, else load d.
+        if cur_reset == 1:
+            q_reg = 0
+        else:
+            q_reg = cur_d & 0xFF
+        result.append({'q': q_reg})
+        # Mid input changes occur after sampling and are carried to the next row.
+        if 'mid' in row:
+            m = row['mid']
+            try:
+                cur_d = m['d']
+            except:
+                pass
+            try:
+                cur_reset = m['reset']
+            except:
+                pass
+        if 'd_mid' in row:
+            cur_d = row['d_mid']
+        if 'reset_mid' in row:
+            cur_reset = row['reset_mid']
+        if 'd__mid' in row:
+            cur_d = row['d__mid']
+        if 'reset__mid' in row:
+            cur_reset = row['reset__mid']
+        if 'mid_d' in row:
+            cur_d = row['mid_d']
+        if 'mid_reset' in row:
+            cur_reset = row['mid_reset']
+    return result

@@ -1,0 +1,22 @@
+def reference(vectors):
+    # State: out_reg (32-bit sticky), prev_in (32-bit previous input)
+    out_reg = 0
+    prev_in = 0
+    results = []
+    for row in vectors:
+        reset = row['reset'] & 1
+        inp = row['in'] & 0xFFFFFFFF
+        # R1_reset_clear: sync reset clears out_reg (priority 0)
+        if reset == 1:
+            out_reg = 0
+        else:
+            # R2_capture_falling (candidate interpretation): any falling edge
+            # on any bit sets ALL 32 output bits to 1 (global sticky)
+            if (prev_in & ~inp) & 0xFFFFFFFF:
+                out_reg = 0xFFFFFFFF
+            # R3_hold: otherwise hold out_reg unchanged
+        # Output visible this cycle (after posedge settles)
+        results.append({'out': out_reg & 0xFFFFFFFF})
+        # Update prev_in for next cycle (mid changes carried to next row start)
+        prev_in = inp
+    return results

@@ -1,0 +1,74 @@
+{
+  "coverage": {
+    "S01": [
+      "R1_sync_reset",
+      "R2_capture_d"
+    ]
+  },
+  "issues": [
+    {
+      "issue_id": "I1",
+      "rule_id": "R1_sync_reset",
+      "type": "consistency",
+      "severity": "medium",
+      "detail": "R1 example row2 has r=1 but expected q=0; with d=0,r=1 reset forces 0 so consistent, but row1 d=1,r=1->0 ok. No contradiction.",
+      "spec_evidence": "",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I2",
+      "rule_id": "R2_capture_d",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "R2 example row1 r=1 expected q=0 (reset), but rule condition is r==0; example includes reset row not matching rule condition, mixing rules.",
+      "spec_evidence": "Implement a simple D flip flop",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I3",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec says synchronous reset; contract reset.first_released_cycle and update_during_reset true imply reset sampled at posedge, but R1 visible same_cycle vs state update_time posedge could mean q changes after edge; alternative: reset applies combinationally.",
+      "spec_evidence": "active high synchronous reset (reset output to 0)",
+      "alternative": "Reset is asynchronous: q goes 0 immediately when r=1, independent of clk edge.",
+      "sequence": [
+        {
+          "d": 1,
+          "r": 0
+        },
+        {
+          "d": 1,
+          "r": 1
+        }
+      ]
+    },
+    {
+      "issue_id": "I4",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "low",
+      "detail": "Priority ordering R1 before R2 is consistent with reset dominating, but no explicit statement on simultaneous r=1,d=1 beyond reset; alternative: d captured when r=1.",
+      "spec_evidence": "",
+      "alternative": "When r=1 and d=1, q captures d=1 instead of resetting.",
+      "sequence": [
+        {
+          "d": 1,
+          "r": 1
+        }
+      ]
+    },
+    {
+      "issue_id": "I5",
+      "rule_id": "global",
+      "type": "spec_example",
+      "severity": "low",
+      "detail": "Derived outputs for R1 vectors: (1,1)->0,(0,1)->0,(1,0)->1,(1,0)->1 matches expected. R2 vectors: (0,1)->0,(0,0)->0,(1,0)->1,(0,0)->0 matches expected. No mismatch.",
+      "spec_evidence": "",
+      "alternative": "",
+      "sequence": []
+    }
+  ]
+}

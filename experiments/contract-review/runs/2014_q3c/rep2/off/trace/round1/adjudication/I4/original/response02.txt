@@ -1,0 +1,26 @@
+```python
+def reference(vectors):
+    # R_Y0: Y0 = LSB of next state selected by (y, x) per table.
+    # R_z:  z = 1 for y in {011, 100}, else 0.
+    # Table: next_state[(y, x)] -> Y[2:0]
+    next_state = {
+        (0, 0): 0b000, (0, 1): 0b001,
+        (1, 0): 0b001, (1, 1): 0b100,
+        (2, 0): 0b010, (2, 1): 0b001,
+        (3, 0): 0b001, (3, 1): 0b010,
+        (4, 0): 0b011, (4, 1): 0b100,
+    }
+    z_states = {0b011, 0b100}
+
+    results = []
+    for row in vectors:
+        x = int(row["x"]) & 0x1
+        y = int(row["y"]) & 0x7
+        # R_Y0: combinational, same cycle
+        Y = next_state[(y, x)]
+        Y0 = Y & 0x1
+        # R_z: combinational, same cycle
+        z = 1 if y in z_states else 0
+        results.append({"Y0": Y0, "z": z})
+    return results
+```

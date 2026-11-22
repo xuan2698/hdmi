@@ -1,0 +1,96 @@
+[
+  {
+    "issue": {
+      "issue_id": "I5",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "high",
+      "detail": "Spec says capture when input changes 1->0; contract uses prev_in & ~in (any falling bit) and sets only those bits. Alternative semantics: capture sets all 32 output bits to 1 if any bit falls (sticky global flag). Distinguishing sequence: row1 reset=0,in=0x00000001; row2 reset=0,in=0x00000000. Per-bit semantics yields out=0x00000001; global-any semantics yields out=0xFFFFFFFF.",
+      "spec_evidence": "For each bit in a 32-bit vector, capture when the input signal changes from 1 in one clock cycle to 0 the next.",
+      "alternative": "Any falling bit sets all 32 output bits to 1 (global sticky flag).",
+      "sequence": [
+        {
+          "reset": 0,
+          "in": 1
+        },
+        {
+          "reset": 0,
+          "in": 0
+        }
+      ]
+    },
+    "status": "effect",
+    "issue_id": "I5",
+    "outputs": {
+      "original": [
+        {
+          "out": 0
+        },
+        {
+          "out": 1
+        }
+      ],
+      "alternative": [
+        {
+          "out": 0
+        },
+        {
+          "out": 4294967295
+        }
+      ]
+    },
+    "differences": [
+      {
+        "cycle": 2,
+        "original": {
+          "out": 1
+        },
+        "alternative": {
+          "out": 4294967295
+        }
+      }
+    ]
+  },
+  {
+    "issue": {
+      "issue_id": "I6",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Initial value of prev_in / out_reg at time 0 is unspecified. Alternative: prev_in initialized to 0 vs all ones vs unknown. Distinguishing sequence: first row reset=0,in=0. If prev_in=0, no capture, out=0; if prev_in=all ones, capture all bits, out=0xFFFFFFFF (next cycle).",
+      "spec_evidence": "",
+      "alternative": "prev_in initialized to all ones at time 0, causing a capture on first row if in=0.",
+      "sequence": [
+        {
+          "reset": 0,
+          "in": 0
+        }
+      ]
+    },
+    "status": "effect",
+    "issue_id": "I6",
+    "outputs": {
+      "original": [
+        {
+          "out": 0
+        }
+      ],
+      "alternative": [
+        {
+          "out": 4294967295
+        }
+      ]
+    },
+    "differences": [
+      {
+        "cycle": 1,
+        "original": {
+          "out": 0
+        },
+        "alternative": {
+          "out": 4294967295
+        }
+      }
+    ]
+  }
+]

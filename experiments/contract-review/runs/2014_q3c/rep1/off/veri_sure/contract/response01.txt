@@ -1,0 +1,31 @@
+```json
+{
+  "module_name": "top_module",
+  "io": [
+    {"name": "clk", "dir": "input", "width": 1, "description": "Clock; state sampled on posedge"},
+    {"name": "x", "dir": "input", "width": 1, "description": "Input selecting next-state branch"},
+    {"name": "y", "dir": "input", "width": 3, "description": "Present state"},
+    {"name": "Y0", "dir": "output", "width": 1, "description": "Bit 0 of next state Y[2:0]"},
+    {"name": "z", "dir": "output", "width": 1, "description": "Moore output for present state"}
+  ],
+  "clocking": {
+    "clock": {"name": "clk", "edge": "posedge"},
+    "reset": null
+  },
+  "timing": {
+    "outputs": {
+      "Y0": {"latency_cycles": 0},
+      "z": {"latency_cycles": 0}
+    }
+  },
+  "functional_summary": {
+    "overview": "Moore FSM. Outputs Y0 (bit 0 of next state) and z (Moore output) are combinational functions of present state y and input x, sampled after posedge settles.",
+    "rules": [
+      "Next-state table (y -> Y when x=0, Y when x=1): 000->000/001, 001->001/100, 010->010/001, 011->001/010, 100->011/100.",
+      "Y0 = bit 0 of Y[2:0] per the next-state table.",
+      "z = 0 for y in {000,001,010}; z = 1 for y in {011,100}.",
+      "Outputs are combinational (latency 0) and reflect current y and x."
+    ]
+  }
+}
+```

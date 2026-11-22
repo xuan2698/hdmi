@@ -1,0 +1,34 @@
+def reference(vectors):
+    # sync_reset: synchronous active high reset resets FSM to state A
+    # transition_and_moore_output: state transition and Moore output
+    state = 'A'  # initial state A (safe default for power-up unspecified)
+    inputs = {'in': 0, 'reset': 0}
+    results = []
+    for row in vectors:
+        # Drive row values before sampled edge
+        for key, val in row.items():
+            if key != 'mid':
+                inputs[key] = val
+        # Sample posedge
+        if inputs.get('reset', 0) == 1:
+            # sync_reset rule
+            state = 'A'
+        else:
+            # transition_and_moore_output rule
+            inp = inputs.get('in', 0)
+            if state == 'A':
+                state = 'B' if inp == 1 else 'A'
+            elif state == 'B':
+                state = 'C' if inp == 0 else 'B'
+            elif state == 'C':
+                state = 'D' if inp == 1 else 'A'
+            elif state == 'D':
+                state = 'B' if inp == 1 else 'C'
+        # Moore output
+        out = 1 if state == 'D' else 0
+        results.append({'out': out})
+        # Apply mid changes after sampling, carried to start of next row
+        if 'mid' in row and isinstance(row['mid'], dict):
+            for key, val in row['mid'].items():
+                inputs[key] = val
+    return results

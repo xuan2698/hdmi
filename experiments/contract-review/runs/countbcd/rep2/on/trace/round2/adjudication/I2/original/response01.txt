@@ -1,0 +1,91 @@
+def reference(vectors):
+    # R_RESET: synchronous active-high reset forces q = 0x0000 at sampled posedge.
+    # R_COUNT_BCD: BCD increment with carry, wrapping 9999 -> 0000.
+    # R_ENA_COMB: combinational enables from current q, LSB = tens carry.
+    q = 0
+    cur_reset = 0
+    out = []
+
+    for row in vectors:
+        vec = row if isinstance(row, dict) else {'reset': row}
+
+        reset = cur_reset
+        if 'reset' in vec:
+            reset = int(vec['reset']) & 1
+        cur_reset = reset
+
+        if reset == 1:
+            q = 0
+        else:
+            ones = q & 15
+            tens = (q >> 4) & 15
+            hundreds = (q >> 8) & 15
+            thousands = (q >> 12) & 15
+
+            if ones < 9:
+                ones += 1
+            else:
+                ones = 0
+                if tens < 9:
+                    tens += 1
+                else:
+                    tens = 0
+                    if hundreds < 9:
+                        hundreds += 1
+                    else:
+                        hundreds = 0
+                        if thousands < 9:
+                            thousands += 1
+                        else:
+                            thousands = 0
+
+            q = (thousands << 12) | (hundreds << 8) | (tens << 4) | ones
+
+        ena = 0
+        if (q & 15) == 9:
+            ena |= 1
+        if (q & 255) == 0x99:
+            ena |= 2
+        if (q & 4095) == 0x999:
+            ena |= 4
+
+        out.append({'q': q, 'ena': ena})
+
+        mid_reset = None
+        for key, val in vec.items():
+            if key == 'reset':
+                continue
+            lk = str(key).lower()
+
+            if 'reset' in lk and ('mid' in lk or 'after' in lk or 'next' in lk or 'post' in lk):
+                if isinstance(val, dict):
+                    if 'reset' in val:
+                        mid_reset = val['reset']
+                else:
+                    mid_reset = val
+            elif key in ('mid', '__mid__', 'mid_changes', 'midchange', 'changes', 'after', 'post', '__after__', 'changed'):
+                if isinstance(val, dict):
+                    if 'reset' in val:
+                        mid_reset = val['reset']
+                    else:
+                        for k2, v2 in val.items():
+                            if 'reset' in str(k2).lower():
+                                mid_reset = v2
+                elif isinstance(val, (list, tuple)):
+                    for item in val:
+                        if isinstance(item, dict):
+                            if 'reset' in item:
+                                mid_reset = item['reset']
+                            else:
+                                for k2, v2 in item.items():
+                                    if 'reset' in str(k2).lower():
+                                        mid_reset = v2
+                        else:
+                            mid_reset = item
+                else:
+                    mid_reset = val
+
+        if mid_reset is not None:
+            cur_reset = int(mid_reset) & 1
+
+    return out

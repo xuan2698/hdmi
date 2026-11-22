@@ -1,0 +1,228 @@
+{
+  "coverage": {
+    "S01": [
+      "R1_predict_outputs",
+      "R4_train_pht_update"
+    ],
+    "S02": [
+      "R4_train_pht_update"
+    ],
+    "S03": [
+      "R3_ghr_update_predict",
+      "R5_train_mispredict_ghr_recover"
+    ],
+    "S04": [
+      "R1_predict_outputs",
+      "R4_train_pht_update"
+    ],
+    "S05": [
+      "R1_predict_outputs"
+    ],
+    "S06": [
+      "R4_train_pht_update"
+    ],
+    "S07": [
+      "R4_train_pht_update"
+    ],
+    "S08": [
+      "R1_predict_outputs"
+    ],
+    "S09": [
+      "R3_ghr_update_predict"
+    ],
+    "S10": [
+      "R4_train_pht_update",
+      "R5_train_mispredict_ghr_recover"
+    ],
+    "S11": [
+      "R4_train_pht_update"
+    ],
+    "S12": [
+      "R5_train_mispredict_ghr_recover"
+    ],
+    "S13": [
+      "R6_train_priority_over_predict_ghr"
+    ],
+    "S14": [
+      "R6_train_priority_over_predict_ghr"
+    ],
+    "S15": [
+      "R7_predict_sees_pre_train_pht"
+    ],
+    "S16": [
+      "R7_predict_sees_pre_train_pht"
+    ],
+    "S17": [
+      "R7_predict_sees_pre_train_pht"
+    ],
+    "S18": [
+      "R8_async_reset"
+    ]
+  },
+  "issues": [
+    {
+      "issue_id": "I1",
+      "rule_id": "R3_ghr_update_predict",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "Rule condition includes train_valid==1 && train_mispredicted==0, but spec says training takes precedence over prediction for GHR; non-mispredict training should not update GHR from prediction.",
+      "spec_evidence": "When this happens, training takes precedence, because the branch being predicted will be discarded anyway.",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I2",
+      "rule_id": "R5_train_mispredict_ghr_recover",
+      "type": "ambiguity",
+      "severity": "high",
+      "detail": "Spec says recover GHR to state immediately after mispredicting branch, but contract does not define whether train_history is that state or pre-branch state; example only checks zero.",
+      "spec_evidence": "recover the branch history register to the state immediately after the mispredicting branch completes execution.",
+      "alternative": "GHR becomes train_history (given state after branch) versus GHR becomes {train_history[5:0], train_taken}.",
+      "sequence": [
+        {
+          "areset": 0,
+          "predict_valid": 0,
+          "predict_pc": 0,
+          "train_valid": 1,
+          "train_taken": 1,
+          "train_mispredicted": 1,
+          "train_history": 42,
+          "train_pc": 5
+        },
+        {
+          "areset": 0,
+          "predict_valid": 1,
+          "predict_pc": 0,
+          "train_valid": 0,
+          "train_taken": 0,
+          "train_mispredicted": 0,
+          "train_history": 0,
+          "train_pc": 0
+        }
+      ]
+    },
+    {
+      "issue_id": "I3",
+      "rule_id": "R4_train_pht_update",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec does not define 2-bit counter update direction/limits; contract omits counter transition semantics.",
+      "spec_evidence": "Update the pattern history table (PHT) to train the branch predictor to predict this branch more accurately next time.",
+      "alternative": "On taken increment saturating at 3, on not-taken decrement saturating at 0; prediction taken iff counter>=2.",
+      "sequence": [
+        {
+          "areset": 0,
+          "predict_valid": 0,
+          "predict_pc": 0,
+          "train_valid": 1,
+          "train_taken": 1,
+          "train_mispredicted": 0,
+          "train_history": 0,
+          "train_pc": 0
+        },
+        {
+          "areset": 0,
+          "predict_valid": 1,
+          "predict_pc": 0,
+          "train_valid": 0,
+          "train_taken": 0,
+          "train_mispredicted": 0,
+          "train_history": 0,
+          "train_pc": 0
+        }
+      ]
+    },
+    {
+      "issue_id": "I4",
+      "rule_id": "R7_predict_sees_pre_train_pht",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Rule condition requires same PHT index but does not specify how to determine same index when train_history differs from current GHR; spec only says same PHT entry.",
+      "spec_evidence": "If training and prediction of the same PHT entry happen at the same time, the prediction sees the PHT state before training",
+      "alternative": "Same index computed using train_pc xor train_history for training and predict_pc xor current GHR for prediction.",
+      "sequence": [
+        {
+          "areset": 0,
+          "predict_valid": 1,
+          "predict_pc": 0,
+          "train_valid": 1,
+          "train_taken": 1,
+          "train_mispredicted": 0,
+          "train_history": 1,
+          "train_pc": 1
+        },
+        {
+          "areset": 0,
+          "predict_valid": 0,
+          "predict_pc": 0,
+          "train_valid": 0,
+          "train_taken": 0,
+          "train_mispredicted": 0,
+          "train_history": 0,
+          "train_pc": 0
+        }
+      ]
+    },
+    {
+      "issue_id": "I5",
+      "rule_id": "R1_predict_outputs",
+      "type": "grounding",
+      "severity": "medium",
+      "detail": "Rule claims predict_history is GHR used for prediction, but spec S08 says state of branch history register used; contract does not state whether output is pre-update GHR or post-update.",
+      "spec_evidence": "produces the predicted branch direction and state of the branch history register used to make the prediction.",
+      "alternative": "predict_history outputs current GHR before predicted-branch update versus after update.",
+      "sequence": [
+        {
+          "areset": 0,
+          "predict_valid": 1,
+          "predict_pc": 5,
+          "train_valid": 0,
+          "train_taken": 0,
+          "train_mispredicted": 0,
+          "train_history": 0,
+          "train_pc": 0
+        },
+        {
+          "areset": 0,
+          "predict_valid": 1,
+          "predict_pc": 5,
+          "train_valid": 0,
+          "train_taken": 0,
+          "train_mispredicted": 0,
+          "train_history": 0,
+          "train_pc": 0
+        }
+      ]
+    },
+    {
+      "issue_id": "I6",
+      "rule_id": "R2_predict_no_valid",
+      "type": "grounding",
+      "severity": "low",
+      "detail": "Rule is marked uncertain and spec does not define outputs when predict_valid=0; example assumes zero.",
+      "spec_evidence": "",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I7",
+      "rule_id": "R8_async_reset",
+      "type": "consistency",
+      "severity": "medium",
+      "detail": "Reset rule lists predict_taken/predict_history outputs but does not specify reset values for internal ghr and pht; states say update_during_reset true but no reset values.",
+      "spec_evidence": "Reset is asynchronous active-high.",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I8",
+      "rule_id": "global",
+      "type": "spec_example",
+      "severity": "medium",
+      "detail": "Spec timing diagram S16/S17 not explicitly derived; contract example R7 uses pc=0, train_pc=0, history=0 and expects predict_taken=0, consistent with initial zero PHT but does not demonstrate pre-train visibility after a nonzero counter.",
+      "spec_evidence": "The training request at cycle 4 changes the PHT entry state in cycle 5, but the prediction request in cycle 4 outputs the PHT state at cycle 4, without considering the effect of the training request in cycle 4.",
+      "alternative": "",
+      "sequence": []
+    }
+  ]
+}

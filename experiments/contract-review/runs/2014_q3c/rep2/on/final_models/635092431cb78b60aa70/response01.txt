@@ -1,0 +1,39 @@
+```python
+def reference(vectors):
+    results = []
+    current = {"x": 0, "y": 0}
+    for row in vectors:
+        sampled = {"x": current.get("x", 0), "y": current.get("y", 0)}
+        for key in ("x", "y"):
+            if key in row:
+                sampled[key] = row[key]
+
+        xval = sampled["x"] & 1
+        yval = sampled["y"] & 7
+
+        if yval <= 4:
+            # valid_y_0_to_4: implement Y0 and z for valid present states y = 000..100
+            y0 = yval & 1
+            y1 = (yval >> 1) & 1
+            y2 = (yval >> 2) & 1
+            not_x = 1 - xval
+            Y0 = (not_x & y0) | (not_x & y2) | (xval & (1 - y2) & (1 - y0))
+            z = y2 | (y1 & y0)
+            Y0 &= 1
+            z &= 1
+        else:
+            # global: treat unused present states as zero next-state bits with z=0
+            Y0 = 0
+            z = 0
+
+        results.append({"Y0": Y0, "z": z})
+
+        current = {"x": sampled["x"], "y": sampled["y"]}
+        mid = row.get("mid") if isinstance(row, dict) else None
+        if isinstance(mid, dict):
+            for key in ("x", "y"):
+                if key in mid:
+                    current[key] = mid[key]
+
+    return results
+```

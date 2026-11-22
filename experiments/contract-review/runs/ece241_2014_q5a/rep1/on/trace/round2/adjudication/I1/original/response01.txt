@@ -1,0 +1,79 @@
+def reference(vectors):
+    # Power-up is treated as the reset state A, per the contract's first_released_cycle.
+    state = "A"
+    z = 0
+    # Current driven nonclock input values; initialized to reset-safe levels.
+    cur = {"areset": 0, "x": 0}
+    outputs = []
+
+    for row in vectors:
+        # Drive nonclock inputs before the sampled posedge.
+        if "areset" in row:
+            cur["areset"] = row["areset"] & 1
+        if "x" in row:
+            cur["x"] = row["x"] & 1
+
+        # Asynchronous active-high reset has priority whenever areset==1.
+        # Rule reset_async_z0: asynchronous reset forces state A and z=0.
+        if cur["areset"] == 1:
+            state = "A"
+            z = 0
+        else:
+            # Sampled posedge transition rules.
+            if state == "A":
+                if cur["x"] == 0:
+                    # Rule A_x0_to_A_z0
+                    state = "A"
+                    z = 0
+                else:
+                    # Rule A_x1_to_C_z1
+                    state = "C"
+                    z = 1
+            elif state == "B":
+                if cur["x"] == 0:
+                    # Rule B_x0_to_C_z1
+                    state = "C"
+                    z = 1
+                else:
+                    # Rule B_x1_to_B_z0
+                    state = "B"
+                    z = 0
+            elif state == "C":
+                if cur["x"] == 0:
+                    # Rule C_x0_to_C_z1
+                    state = "C"
+                    z = 1
+                else:
+                    # Rule C_x1_to_B_z0
+                    state = "B"
+                    z = 0
+
+        # Sample output after the posedge has settled.
+        outputs.append({"z": int(z)})
+
+        # Process optional mid changes AFTER sampling, before the next edge.
+        if "mid" in row:
+            mid = row["mid"]
+            if mid is None:
+                changes = []
+            elif isinstance(mid, dict):
+                changes = [mid]
+            else:
+                changes = mid
+
+            for change in changes:
+                if not isinstance(change, dict):
+                    continue
+
+                if "areset" in change:
+                    cur["areset"] = change["areset"] & 1
+                    # Asynchronous reset is visible immediately after a mid change.
+                    # Rule reset_async_z0: asynchronous reset forces state A and z=0.
+                    if cur["areset"] == 1:
+                        state = "A"
+                        z = 0
+
+                if "x" in change:
+                    cur["x"] = change["x"] & 1
+
+    return outputs

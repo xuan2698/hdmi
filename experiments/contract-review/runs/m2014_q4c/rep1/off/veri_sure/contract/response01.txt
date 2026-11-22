@@ -1,0 +1,59 @@
+```json
+{
+  "module_name": "top_module",
+  "io": [
+    {
+      "name": "clk",
+      "dir": "input",
+      "width": 1,
+      "description": "Clock input; all sampling occurs on the posedge of clk."
+    },
+    {
+      "name": "d",
+      "dir": "input",
+      "width": 1,
+      "description": "Data input sampled on the posedge of clk."
+    },
+    {
+      "name": "r",
+      "dir": "input",
+      "width": 1,
+      "description": "Active high synchronous reset input; when high at a posedge, q is reset to 0."
+    },
+    {
+      "name": "q",
+      "dir": "output",
+      "width": 1,
+      "description": "Registered output; reflects d sampled at the previous posedge, or 0 if reset was active."
+    }
+  ],
+  "clocking": {
+    "clock": {
+      "name": "clk",
+      "edge": "posedge"
+    },
+    "reset": {
+      "name": "r",
+      "active": "high",
+      "kind": "synchronous"
+    }
+  },
+  "timing": {
+    "outputs": {
+      "q": {
+        "latency_cycles": 1
+      }
+    }
+  },
+  "functional_summary": {
+    "overview": "A single-bit D flip-flop with active-high synchronous reset. On each rising edge of clk, if r is high then q is set to 0; otherwise q captures the value of d. Output q updates one clock cycle after the sampled edge.",
+    "rules": [
+      "On posedge clk: if r == 1, then q <= 0.",
+      "On posedge clk: if r == 0, then q <= d.",
+      "q holds its value between posedges of clk.",
+      "Reset is synchronous: r only affects q at a posedge of clk.",
+      "Output q has a latency of 1 clock cycle relative to the sampled inputs."
+    ]
+  }
+}
+```

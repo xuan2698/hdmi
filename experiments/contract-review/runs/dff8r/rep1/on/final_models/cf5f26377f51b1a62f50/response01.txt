@@ -1,0 +1,48 @@
+def reference(vectors):
+    # r_posedge_q_sync_reset: q_reg is an 8-bit DFF sampled on positive clk edges.
+    # r_posedge_q_sync_reset: synchronous active-high reset has priority and sets q to 0.
+    q = 0
+    inputs = {"d": 0, "reset": 0}
+    out = []
+
+    for row in vectors:
+        if not isinstance(row, dict):
+            row = {}
+
+        # Drive row's pre-edge input values before the sampled positive edge.
+        for k, v in row.items():
+            if k == "mid" or k == "clk":
+                continue
+            if k in inputs:
+                inputs[k] = int(v)
+
+        d = inputs.get("d", 0) & 0xFF
+        reset = inputs.get("reset", 0) & 1
+
+        # r_posedge_q_sync_reset: at the positive edge, if reset==1 then q<=0,
+        # otherwise q<=d. Reset dominates the d load.
+        if reset:
+            q = 0
+        else:
+            q = d
+        q &= 0xFF
+
+        out.append({"q": q})
+
+        # Mid changes occur after sampling, before the other edge,
+        # and are carried to the start of the next vector row.
+        mid = row.get("mid", {})
+        if isinstance(mid, dict):
+            changes = [mid]
+        elif isinstance(mid, (list, tuple)):
+            changes = mid
+        else:
+            changes = []
+
+        for change in changes:
+            if isinstance(change, dict):
+                for k, v in change.items():
+                    if k in inputs:
+                        inputs[k] = int(v)
+
+    return out

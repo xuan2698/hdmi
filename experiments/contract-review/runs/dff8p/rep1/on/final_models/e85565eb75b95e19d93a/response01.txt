@@ -1,0 +1,38 @@
+def reference(vectors):
+    # Rule sync_reset_high: synchronous active-high reset on negedge sets q to 0x34
+    # Rule negedge_d_update: on negedge with reset low, q captures d
+    cur_d = 0
+    cur_reset = 0
+    q = 0  # power-up unspecified; concrete default within 8-bit width
+    out = []
+    for row in vectors:
+        # Apply row's pre-edge input values (driven before sampled negedge)
+        if isinstance(row, dict):
+            if "d" in row:
+                cur_d = int(row["d"]) & 0xFF
+            if "reset" in row:
+                cur_reset = int(row["reset"]) & 0x1
+        # Sample negedge after edge has settled
+        if cur_reset == 1:
+            # Rule sync_reset_high: reset has priority; q becomes 0x34
+            q = 0x34
+        else:
+            # Rule negedge_d_update: q captures d
+            q = cur_d & 0xFF
+        out.append({"q": q & 0xFF})
+        # Process optional mid changes AFTER sampling, carried to next row
+        if isinstance(row, dict):
+            mid = row.get("mid", None)
+            if isinstance(mid, dict):
+                mids = [mid]
+            elif isinstance(mid, list):
+                mids = mid
+            else:
+                mids = []
+            for m in mids:
+                if isinstance(m, dict):
+                    if "d" in m:
+                        cur_d = int(m["d"]) & 0xFF
+                    if "reset" in m:
+                        cur_reset = int(m["reset"]) & 0x1
+    return out

@@ -1,0 +1,130 @@
+{
+  "coverage": {
+    "S01": [
+      "R3",
+      "R4"
+    ],
+    "S02": [
+      "R2"
+    ],
+    "S03": [
+      "R1"
+    ]
+  },
+  "issues": [
+    {
+      "issue_id": "I1",
+      "rule_id": "R3",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "R3 example expects start_shifting=1 on the same cycle as the 4th data=1, but state==S3 requires the prior 110 already sampled; the 4th row's data=1 is the transition into S4, so same_cycle output should be 0 (output reflects pre-edge state).",
+      "spec_evidence": "When the sequence is found, it should set start_shifting to 1",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I2",
+      "rule_id": "R2",
+      "type": "grounding",
+      "severity": "medium",
+      "detail": "R2 example starts with reset=0 and data=1 but never establishes state==S4; expected start_shifting=1 is unsupported by the given vectors.",
+      "spec_evidence": "it should set start_shifting to 1, forever, until reset",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I3",
+      "rule_id": "R1",
+      "type": "consistency",
+      "severity": "medium",
+      "detail": "R1 visible=same_cycle with reset==1 and expected start_shifting=0 is fine, but reset.values says start_shifting=0; no contradiction, however R1 example's third row reset=0,data=0 expects 0 while state after two reset cycles is S0 — consistent. No issue; retained as low.",
+      "spec_evidence": "Reset is active high synchronous.",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I4",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "high",
+      "detail": "Spec says 'forever until reset' but does not define whether start_shifting is a registered output (visible next cycle) or combinational (same cycle). Contract asserts same_cycle for all rules, which conflicts with typical FSM registered output and with R3 example timing.",
+      "spec_evidence": "When the sequence is found, it should set start_shifting to 1, forever, until reset.",
+      "alternative": "Registered output: start_shifting becomes 1 on the posedge AFTER entering S4 (i.e., one cycle later than the detecting data bit).",
+      "sequence": [
+        {
+          "reset": 0,
+          "data": 1
+        },
+        {
+          "reset": 0,
+          "data": 1
+        },
+        {
+          "reset": 0,
+          "data": 0
+        },
+        {
+          "reset": 0,
+          "data": 1
+        },
+        {
+          "reset": 0,
+          "data": 0
+        }
+      ]
+    },
+    {
+      "issue_id": "I5",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Overlapping sequence handling (e.g., 1101101) is unspecified: after finding 1101, does the FSM stay in S4 forever (per 'forever') or continue matching? Contract latches in S4, but spec's 'forever' could mean output only, with state continuing.",
+      "spec_evidence": "searches for the sequence 1101 in an input bit stream",
+      "alternative": "FSM continues searching after match; start_shifting stays 1 but state machine can re-enter S1..S4 on subsequent 1101 patterns.",
+      "sequence": [
+        {
+          "reset": 0,
+          "data": 1
+        },
+        {
+          "reset": 0,
+          "data": 1
+        },
+        {
+          "reset": 0,
+          "data": 0
+        },
+        {
+          "reset": 0,
+          "data": 1
+        },
+        {
+          "reset": 0,
+          "data": 1
+        },
+        {
+          "reset": 0,
+          "data": 1
+        },
+        {
+          "reset": 0,
+          "data": 0
+        },
+        {
+          "reset": 0,
+          "data": 1
+        }
+      ]
+    },
+    {
+      "issue_id": "I6",
+      "rule_id": "R4",
+      "type": "grounding",
+      "severity": "low",
+      "detail": "R4 condition uses 'not (state==S4) and not (state==S3 and data==1)' but does not cover state==S3 with data==0 explicitly; R4 example never reaches S3, so the S3/data=0 path is unverified.",
+      "spec_evidence": "searches for the sequence 1101",
+      "alternative": "",
+      "sequence": []
+    }
+  ]
+}

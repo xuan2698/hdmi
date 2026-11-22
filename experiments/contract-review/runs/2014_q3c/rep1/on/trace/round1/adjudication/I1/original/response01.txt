@@ -1,0 +1,24 @@
+def reference(vectors):
+    result = []
+    for row in vectors:
+        x = row['x'] & 1
+        y = row['y'] & 7
+
+        # Y0_comb: y in {0,1,2,3}: Y0 = (x XOR (y & 1)) & 1; y == 4: Y0 = (NOT x) & 1.
+        if y in (0, 1, 2, 3):
+            y0 = (x ^ (y & 1)) & 1
+        elif y == 4:
+            y0 = (1 - x) & 1
+        else:
+            y0 = 0  # invalid/unreachable state fallback
+
+        # z_comb: y in {0,1,2}: z = 0; y in {3,4}: z = 1.
+        if y in (0, 1, 2):
+            z = 0
+        elif y in (3, 4):
+            z = 1
+        else:
+            z = 0  # invalid/unreachable state fallback
+
+        result.append({'Y0': int(y0), 'z': int(z)})
+    return result

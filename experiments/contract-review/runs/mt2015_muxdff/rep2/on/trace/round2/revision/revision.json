@@ -1,0 +1,123 @@
+{
+  "responses": [
+    {
+      "issue_id": "I1",
+      "decision": "accept",
+      "reason": "The fixed 1-bit ports expose only q[2]/r[2]; clarify q_in as q[1] and that q[0] and r[1:0] are outside the observable contract.",
+      "spec_quote": "output reg [2:0] q",
+      "edits": [
+        {
+          "path": [
+            "states",
+            "Q_reg",
+            "meaning"
+          ],
+          "value": "Registered q[2] slice for the hierarchical design: top_module instantiates the flipflop plus 2-1 multiplexer submodule three times for public 3-bit q[2:0]. Contract port Q is q[2], q_in is the q[1] feedback bit, and r_in is the r[2] load bit; q[0] and r[1:0] are not exposed by the fixed 1-bit ports. Q updates on posedge clk: if L=1, Q_next=r_in; if L=0, Q_next=q_in ^ Q."
+        }
+      ]
+    },
+    {
+      "issue_id": "I2",
+      "decision": "accept",
+      "reason": "Use q_in as the q[1] feedback bit for the exposed q[2] slice, so L=0 gives Q_next=q_in^Q.",
+      "spec_quote": "q <= {q[1] ^ q[2], q[0], q[2]};",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "feedback_L_low",
+            "condition"
+          ],
+          "value": "At posedge clk, if L == 0 then Q_next = q_in ^ Q, where q_in represents q[1] and Q represents q[2] in the spec feedback q_next[2] = q[1]^q[2]."
+        },
+        {
+          "path": [
+            "rules",
+            "feedback_L_low",
+            "example",
+            "expected"
+          ],
+          "value": [
+            {
+              "Q": 0
+            },
+            {
+              "Q": 1
+            },
+            {
+              "Q": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "issue_id": "I3",
+      "decision": "accept",
+      "reason": "The spec feedback for q[2] is q[1]^q[2], which toggles when q_in=1 rather than holding Q.",
+      "spec_quote": "q <= {q[1] ^ q[2], q[0], q[2]};",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "feedback_L_low",
+            "condition"
+          ],
+          "value": "At posedge clk, if L == 0 then Q_next = q_in ^ Q, where q_in represents q[1] and Q represents q[2] in the spec feedback q_next[2] = q[1]^q[2]."
+        }
+      ],
+      "already_applied_by_earlier_issue": true
+    },
+    {
+      "issue_id": "I4",
+      "decision": "accept",
+      "reason": "With q_in representing q[1], loading Q=0 then applying L=0 and q_in=1 must yield Q=1 on the next cycle.",
+      "spec_quote": "q <= {q[1] ^ q[2], q[0], q[2]};",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "feedback_L_low",
+            "example",
+            "expected"
+          ],
+          "value": [
+            {
+              "Q": 0
+            },
+            {
+              "Q": 1
+            },
+            {
+              "Q": 1
+            }
+          ]
+        }
+      ],
+      "already_applied_by_earlier_issue": true
+    },
+    {
+      "issue_id": "I5",
+      "decision": "rebut",
+      "reason": "The current Q_reg state meaning already states that top_module instantiates the flipflop plus 2-1 multiplexer submodule three times.",
+      "spec_quote": "flipflop and 2-1 multiplexer are in a submodule, and that submodule is instantiated three times in this code.",
+      "edits": []
+    },
+    {
+      "issue_id": "I6",
+      "decision": "accept",
+      "reason": "Map r_in to r[2] for the exposed Q=q[2] slice while noting the full q<=r load also updates unexposed bits.",
+      "spec_quote": "q <= r;",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "load_L_high",
+            "condition"
+          ],
+          "value": "At posedge clk, if L == 1 then Q_next = r_in, where r_in is the exposed r[2] bit (Q=q[2]); the full q<=r load also updates unexposed q[1:0] from r[1:0]."
+        }
+      ]
+    }
+  ]
+}

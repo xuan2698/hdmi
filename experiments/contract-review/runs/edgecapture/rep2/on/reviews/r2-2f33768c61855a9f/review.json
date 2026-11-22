@@ -1,0 +1,40 @@
+{
+  "coverage": {
+    "S01": [
+      "reset_clear",
+      "capture_fall",
+      "hold_state"
+    ]
+  },
+  "issues": [
+    {
+      "issue_id": "I1",
+      "rule_id": "capture_fall",
+      "type": "ambiguity",
+      "severity": "high",
+      "detail": "Spec leaves prev_in reset-cycle handling open; contract captures a 1 during reset paired with a 0 after release.",
+      "spec_evidence": "For each bit in a 32-bit vector, capture when the input signal changes from 1 in one clock cycle to 0 the next. \"Capture\" means that the output will remain 1 until the register is reset (active high synchronous reset).",
+      "alternative": "prev_in is cleared/ignored while reset is high, so reset-cycle 1s cannot cause capture after release.",
+      "sequence": [
+        {
+          "reset": 1,
+          "in": 1
+        },
+        {
+          "reset": 0,
+          "in": 0
+        }
+      ]
+    },
+    {
+      "issue_id": "I2",
+      "rule_id": "capture_fall",
+      "type": "consistency",
+      "severity": "medium",
+      "detail": "capture_fall.uncertain is false while global uncertain lists reset-cycle prev_in behavior for capture_fall.",
+      "spec_evidence": "",
+      "alternative": "",
+      "sequence": []
+    }
+  ]
+}

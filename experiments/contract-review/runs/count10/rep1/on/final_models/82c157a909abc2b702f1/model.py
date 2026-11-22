@@ -1,0 +1,26 @@
+def reference(vectors):
+    # sync_reset_to_zero: active high synchronous reset to 0
+    # count_modulo_10: increment modulo 10 when not reset
+    q_state = 0
+    inputs = {'reset': 0}
+    result = []
+    for row in vectors:
+        # Each row's values are driven before the sampled edge.
+        if 'reset' in row:
+            inputs['reset'] = row['reset']
+        # Sample at posedge; reset has priority.
+        if inputs.get('reset', 0) == 1:
+            # sync_reset_to_zero
+            q_state = 0
+        else:
+            # count_modulo_10
+            q_state = (q_state + 1) % 10
+        # Output after the edge has settled, as a concrete unsigned integer.
+        result.append({'q': q_state})
+        # Optional mid input changes occur AFTER sampling, before the other edge,
+        # and are carried to the start of the next row.
+        if 'mid' in row:
+            mid = row['mid']
+            for k in mid:
+                inputs[k] = mid[k]
+    return result

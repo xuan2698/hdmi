@@ -1,0 +1,202 @@
+[
+  {
+    "issue": {
+      "issue_id": "I2",
+      "rule_id": "R_ENA_COMB",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec does not define ena bit order; contract maps ones==9 to LSB, but spec allows reversed mapping.",
+      "spec_evidence": "For digits [3:1], also output an enable signal indicating when each of the upper three digits should be incremented.",
+      "alternative": "Map ena[2]=tens enable (ones==9), ena[1]=hundreds enable (lower two BCD digits==99), ena[0]=thousands enable (lower three BCD digits==999).",
+      "sequence": [
+        {
+          "reset": 1
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        }
+      ]
+    },
+    "status": "effect",
+    "issue_id": "I2",
+    "outputs": {
+      "original": [
+        {
+          "q": 0,
+          "ena": 0
+        },
+        {
+          "q": 1,
+          "ena": 0
+        },
+        {
+          "q": 2,
+          "ena": 0
+        },
+        {
+          "q": 3,
+          "ena": 0
+        },
+        {
+          "q": 4,
+          "ena": 0
+        },
+        {
+          "q": 5,
+          "ena": 0
+        },
+        {
+          "q": 6,
+          "ena": 0
+        },
+        {
+          "q": 7,
+          "ena": 0
+        },
+        {
+          "q": 8,
+          "ena": 0
+        },
+        {
+          "q": 9,
+          "ena": 1
+        }
+      ],
+      "alternative": [
+        {
+          "q": 0,
+          "ena": 0
+        },
+        {
+          "q": 1,
+          "ena": 0
+        },
+        {
+          "q": 2,
+          "ena": 0
+        },
+        {
+          "q": 3,
+          "ena": 0
+        },
+        {
+          "q": 4,
+          "ena": 0
+        },
+        {
+          "q": 5,
+          "ena": 0
+        },
+        {
+          "q": 6,
+          "ena": 0
+        },
+        {
+          "q": 7,
+          "ena": 0
+        },
+        {
+          "q": 8,
+          "ena": 0
+        },
+        {
+          "q": 9,
+          "ena": 4
+        }
+      ]
+    },
+    "differences": [
+      {
+        "cycle": 10,
+        "original": {
+          "q": 9,
+          "ena": 1
+        },
+        "alternative": {
+          "q": 9,
+          "ena": 4
+        }
+      }
+    ]
+  },
+  {
+    "issue": {
+      "issue_id": "I3",
+      "rule_id": "R_COUNT_BCD",
+      "type": "ambiguity",
+      "severity": "low",
+      "detail": "Spec says BCD counter but not count direction; contract assumes increment (+1).",
+      "spec_evidence": "Build a 4-digit BCD (binary-coded decimal) counter.",
+      "alternative": "Decrement by 1 each enabled edge, wrapping 0000 to 9999.",
+      "sequence": [
+        {
+          "reset": 1
+        },
+        {
+          "reset": 0
+        }
+      ]
+    },
+    "status": "effect",
+    "issue_id": "I3",
+    "outputs": {
+      "original": [
+        {
+          "q": 0,
+          "ena": 0
+        },
+        {
+          "q": 1,
+          "ena": 0
+        }
+      ],
+      "alternative": [
+        {
+          "q": 0,
+          "ena": 0
+        },
+        {
+          "q": 39321,
+          "ena": 7
+        }
+      ]
+    },
+    "differences": [
+      {
+        "cycle": 2,
+        "original": {
+          "q": 1,
+          "ena": 0
+        },
+        "alternative": {
+          "q": 39321,
+          "ena": 7
+        }
+      }
+    ]
+  }
+]

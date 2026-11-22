@@ -1,0 +1,39 @@
+def reference(vectors):
+    # Contract rules:
+    # load_L_high: At posedge clk, if L == 1 then Q_next = r_in
+    # feedback_L_low: At posedge clk, if L == 0 then Q_next = q_in
+    current = {}
+    result = []
+    for row in vectors:
+        # Drive row's values before sampled edge
+        for key in row:
+            if key != 'mid':
+                current[key] = row[key]
+        # At posedge, sample after edge settled
+        L = current['L'] if 'L' in current else 0
+        if L:
+            # load_L_high
+            Q = current['r_in'] if 'r_in' in current else 0
+        else:
+            # feedback_L_low
+            Q = current['q_in'] if 'q_in' in current else 0
+        Q = Q & 1  # ensure width 1
+        result.append({'Q': Q})
+        # Mid changes occur after sampling, before other edge, carried to next row
+        if 'mid' in row:
+            mid = row['mid']
+            if mid:
+                try:
+                    for k, v in mid.items():
+                        current[k] = v
+                except AttributeError:
+                    try:
+                        for m in mid:
+                            try:
+                                for k, v in m.items():
+                                    current[k] = v
+                            except AttributeError:
+                                pass
+                    except TypeError:
+                        pass
+    return result

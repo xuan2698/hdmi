@@ -1,0 +1,101 @@
+def reference(vectors):
+    # Rule global: Power-up q initialized to 0; first sampled reset=0 posedge yields q=1.
+    q = 0
+    carried_reset = 0
+    out = []
+
+    if isinstance(vectors, dict):
+        keys = list(vectors.keys())
+        n = 0
+        for k in keys:
+            try:
+                ln = len(vectors[k])
+            except Exception:
+                ln = 0
+            if ln > n:
+                n = ln
+        rows = []
+        for i in range(n):
+            row = {}
+            for k in keys:
+                v = vectors[k]
+                if isinstance(v, (list, tuple)):
+                    if i < len(v):
+                        row[k] = v[i]
+                else:
+                    row[k] = v
+            rows.append(row)
+        vectors = rows
+
+    for row in vectors:
+        reset_at_edge = carried_reset
+        if isinstance(row, dict):
+            if "reset" in row:
+                reset_at_edge = row["reset"]
+        elif isinstance(row, (list, tuple)):
+            if len(row) > 0:
+                reset_at_edge = row[0]
+        else:
+            reset_at_edge = row
+
+        try:
+            reset_at_edge = int(reset_at_edge)
+        except Exception:
+            reset_at_edge = 1 if reset_at_edge else 0
+        reset_at_edge = 1 if reset_at_edge != 0 else 0
+
+        # Rule sync_reset_to_zero: If reset == 1 at sampled posedge, q after edge is 0.
+        if reset_at_edge == 1:
+            q = 0
+        else:
+            # Rule count_modulo_10: If reset == 0, q = (previous q + 1) modulo 10.
+            q = (q + 1) % 10
+
+        out.append({"q": int(q)})
+
+        carried_reset = reset_at_edge
+
+        mid = None
+        if isinstance(row, dict):
+            for k in ("mid", "mid_changes", "mid_inputs", "mid_change"):
+                if k in row:
+                    mid = row[k]
+                    break
+            if mid is None:
+                for k in list(row.keys()):
+                    if not isinstance(k, str):
+                        continue
+                    if k.startswith("mid_") and k[4:] == "reset":
+                        mid = {"reset": row[k]}
+                    elif k.endswith("_mid") and k[:-4] == "reset":
+                        mid = {"reset": row[k]}
+        elif isinstance(row, (list, tuple)):
+            if len(row) > 1:
+                mid = row[1]
+
+        if mid is not None:
+            if isinstance(mid, dict):
+                if "reset" in mid:
+                    mv = mid["reset"]
+                    try:
+                        mv = int(mv)
+                    except Exception:
+                        mv = 1 if mv else 0
+                    carried_reset = 1 if mv != 0 else 0
+            elif isinstance(mid, (list, tuple)):
+                if len(mid) > 0:
+                    mv = mid[0]
+                    try:
+                        mv = int(mv)
+                    except Exception:
+                        mv = 1 if mv else 0
+                    carried_reset = 1 if mv != 0 else 0
+            else:
+                mv = mid
+                try:
+                    mv = int(mv)
+                except Exception:
+                    mv = 1 if mv else 0
+                carried_reset = 1 if mv != 0 else 0
+
+    return out

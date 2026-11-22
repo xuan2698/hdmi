@@ -1,0 +1,29 @@
+```python
+def reference(vectors):
+    # State: q_state holds the registered 8-bit output value.
+    # Contract rules:
+    #   R1_sync_reset: reset==1 at posedge -> q becomes 0 (priority 1)
+    #   R2_dff_capture: reset==0 at posedge -> q captures d (priority 2)
+    # Candidate interpretation for global: asynchronous active-high reset:
+    #   q becomes 0 immediately when reset=1, not only at posedge clk.
+    # Mid input changes occur AFTER sampling, before the other edge, and are
+    # carried to the start of the next row.
+
+    q_state = 0  # power-up unspecified; use 0 as concrete value
+    results = []
+
+    for row in vectors:
+        d = row.get('d', 0)
+        reset = row.get('reset', 0)
+
+        # R1_sync_reset (async interpretation): reset==1 forces q to 0 immediately
+        if reset == 1:
+            q_state = 0
+        else:
+            # R2_dff_capture: at posedge with reset==0, capture d
+            q_state = d & 0xFF
+
+        results.append({'q': q_state & 0xFF})
+
+    return results
+```

@@ -1,0 +1,79 @@
+```python
+def reference(vectors):
+    # State: q is packed BCD, count is decimal equivalent.
+    q = 0
+    count = 0
+    inputs = {}
+    results = []
+
+    def pack_bcd(n):
+        ones = n % 10
+        tens = (n // 10) % 10
+        hundreds = (n // 100) % 10
+        thousands = (n // 1000) % 10
+        return (thousands << 12) | (hundreds << 8) | (tens << 4) | ones
+
+    def calc_ena(qval, reset_active):
+        # R_ENA_COMB: ena[0]=ones==9, ena[1]=lower2==0x99, ena[2]=lower3==0x999.
+        # Unresolved candidate: ena is forced to 0 while reset==1.
+        if reset_active:
+            return 0
+        e = 0
+        if (qval & 0xF) == 9:
+            e |= 1
+        if (qval & 0xFF) == 0x99:
+            e |= 2
+        if (qval & 0xFFF) == 0x999:
+            e |= 4
+        return e & 7
+
+    for row in vectors:
+        mid_val = None
+        if type(row) == dict:
+            # Identify mid-change key(s).
+            if 'mid' in row:
+                mid_val = row['mid']
+            elif 'mid_inputs' in row:
+                mid_val = row['mid_inputs']
+            elif 'mid_change' in row:
+                mid_val = row['mid_change']
+            # Drive pre-edge inputs from this row (excluding mid keys).
+            for k in row:
+                if k == 'mid' or k == 'mid_inputs' or k == 'mid_change':
+                    continue
+                inputs[k] = row[k]
+        # else: assume no new pre-edge inputs; carried inputs remain.
+
+        reset = inputs.get('reset', 0)
+        reset_active = (reset == 1)
+
+        # R_RESET: synchronous active-high reset forces q = 0x0000.
+        if reset_active:
+            count = 0
+            q = 0
+        else:
+            # R_COUNT_BCD: increment 4-digit BCD count modulo 10000.
+            count = (count + 1) % 10000
+            q = pack_bcd(count)
+
+        # R_ENA_COMB: combinational from current q (after edge update).
+        ena = calc_ena(q, reset_active)
+
+        results.append({'q': q & 0xFFFF, 'ena': ena & 0x7})
+
+        # Apply mid changes AFTER sampling, before the next edge.
+        if mid_val is not None:
+            if type(mid_val) == dict:
+                for k in mid_val:
+                    inputs[k] = mid_val[k]
+            else:
+                try:
+                    for m in mid_val:
+                        if type(m) == dict:
+                            for k in m:
+                                inputs[k] = m[k]
+                except TypeError:
+                    pass
+
+    return results
+```

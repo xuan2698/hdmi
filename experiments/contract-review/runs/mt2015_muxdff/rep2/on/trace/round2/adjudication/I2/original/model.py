@@ -1,0 +1,22 @@
+def reference(vectors):
+    # State Q_reg: initial concrete value 0 for unspecified power-up.
+    Q = 0
+    outputs = []
+    for row in vectors:
+        # Inputs are driven before the sampled posedge.
+        L = row.get('L', 0)
+        # q_in is not used for feedback in this contract; ignore it.
+        r_in = row.get('r_in', 0)
+
+        # At posedge clk, update the registered state.
+        if L == 1:
+            # rule load_L_high: Q_next = r_in
+            Q = r_in & 1
+        else:
+            # rule feedback_L_low: Q_next = Q (hold)
+            Q = Q & 1
+
+        # Output is visible next_cycle after the posedge has settled.
+        outputs.append({'Q': Q & 1})
+
+    return outputs

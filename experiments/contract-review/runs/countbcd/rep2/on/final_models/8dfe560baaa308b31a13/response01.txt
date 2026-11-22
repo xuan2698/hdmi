@@ -1,0 +1,107 @@
+def reference(vectors):
+    q = 0
+    inputs = {"reset": 0}
+    mid_keys = {"mid", "_mid", "__mid__", "mid_changes", "midcycle", "mid_cycle", "mid_inputs"}
+
+    def is_mid(k):
+        return k in mid_keys or k.endswith("_mid")
+
+    def apply_start(row):
+        if isinstance(row, dict):
+            for k, v in row.items():
+                if is_mid(k):
+                    continue
+                if k == "reset":
+                    inputs["reset"] = 1 if int(v) else 0
+        else:
+            inputs["reset"] = 1 if int(row) else 0
+
+    def apply_mid_dict(d):
+        if not isinstance(d, dict):
+            return
+        for k, v in d.items():
+            if k == "reset":
+                inputs["reset"] = 1 if int(v) else 0
+
+    def apply_mid(row):
+        if not isinstance(row, dict):
+            return
+        for k, v in row.items():
+            if not is_mid(k):
+                continue
+            if k in mid_keys:
+                if isinstance(v, dict):
+                    apply_mid_dict(v)
+                elif isinstance(v, (list, tuple)):
+                    for item in v:
+                        if isinstance(item, dict):
+                            apply_mid_dict(item)
+                        elif isinstance(item, (list, tuple)) and len(item) >= 2:
+                            sig = item[0]
+                            val = item[1]
+                            if sig == "reset":
+                                inputs["reset"] = 1 if int(val) else 0
+            elif k.endswith("_mid"):
+                base = k[:-4]
+                if base == "reset":
+                    inputs["reset"] = 1 if int(v) else 0
+
+    def bcd_inc(qv):
+        d0 = qv & 0xF
+        d1 = (qv >> 4) & 0xF
+        d2 = (qv >> 8) & 0xF
+        d3 = (qv >> 12) & 0xF
+
+        if d0 == 9:
+            d0 = 0
+            carry = 1
+        else:
+            d0 += 1
+            carry = 0
+
+        if carry:
+            if d1 == 9:
+                d1 = 0
+                carry = 1
+            else:
+                d1 += 1
+                carry = 0
+
+        if carry:
+            if d2 == 9:
+                d2 = 0
+                carry = 1
+            else:
+                d2 += 1
+                carry = 0
+
+        if carry:
+            if d3 == 9:
+                d3 = 0
+                carry = 1
+            else:
+                d3 += 1
+                carry = 0
+
+        return (d3 << 12) | (d2 << 8) | (d1 << 4) | d0
+
+    out = []
+    for row in vectors:
+        apply_start(row)
+        reset = inputs.get("reset", 0)
+
+        if reset:
+            q = 0  # R_RESET
+        else:
+            q = bcd_inc(q)  # R_COUNT_BCD
+
+        q &= 0xFFFF
+        ones = q & 15
+        lower2 = q & 255
+        lower3 = q & 4095
+        ena = (1 if ones == 9 else 0) + (2 if lower2 == 0x99 else 0) + (4 if lower3 == 0x999 else 0)  # R_ENA_COMB
+
+        out.append({"ena": ena & 0x7, "q": q})
+        apply_mid(row)
+
+    return out

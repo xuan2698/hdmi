@@ -1,0 +1,132 @@
+{
+  "responses": [
+    {
+      "issue_id": "I1",
+      "decision": "accept",
+      "reason": "The third vector's expected q=1 is not derivable since no prior r=0 posedge captured d=1; the example must be self-consistent with the rule fields.",
+      "spec_quote": "active high synchronous reset (reset output to 0)",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R1_sync_reset",
+            "example"
+          ],
+          "value": {
+            "vectors": [
+              {
+                "d": 1,
+                "r": 1
+              },
+              {
+                "d": 0,
+                "r": 1
+              },
+              {
+                "d": 1,
+                "r": 0
+              },
+              {
+                "d": 0,
+                "r": 0
+              }
+            ],
+            "expected": [
+              {
+                "q": 0
+              },
+              {
+                "q": 0
+              },
+              {
+                "q": 0
+              },
+              {
+                "q": 1
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "issue_id": "I2",
+      "decision": "accept",
+      "reason": "First vector expected q=0 assumes power-up Q=0, which the contract does not state; the example must not rely on an unspecified initial state.",
+      "spec_quote": "Implement a simple D flip flop",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R2_capture_d",
+            "example"
+          ],
+          "value": {
+            "vectors": [
+              {
+                "d": 0,
+                "r": 1
+              },
+              {
+                "d": 0,
+                "r": 0
+              },
+              {
+                "d": 1,
+                "r": 0
+              },
+              {
+                "d": 0,
+                "r": 0
+              }
+            ],
+            "expected": [
+              {
+                "q": 0
+              },
+              {
+                "q": 0
+              },
+              {
+                "q": 1
+              },
+              {
+                "q": 0
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "issue_id": "I3",
+      "decision": "accept",
+      "reason": "Initial state of Q before first posedge is genuinely unspecified; record both plausible power-up interpretations without inventing a reset kind.",
+      "spec_quote": "Implement a simple D flip flop",
+      "edits": [
+        {
+          "path": [
+            "uncertain"
+          ],
+          "value": [
+            {
+              "rule_id": "global",
+              "note": "Initial Q before first posedge is unspecified; examples avoid depending on power-up value.",
+              "candidates": [
+                "Power-up Q=0",
+                "Power-up Q=1"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "issue_id": "I4",
+      "decision": "rebut",
+      "reason": "The contract already specifies same_cycle visibility for the synchronous reset, matching the active high synchronous reset semantics; no change needed.",
+      "spec_quote": "active high synchronous reset (reset output to 0)",
+      "edits": []
+    }
+  ]
+}

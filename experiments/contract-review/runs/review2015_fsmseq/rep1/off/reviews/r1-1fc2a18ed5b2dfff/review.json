@@ -1,0 +1,99 @@
+{
+  "coverage": {
+    "S01": [
+      "R3",
+      "R4"
+    ],
+    "S02": [
+      "R2"
+    ],
+    "S03": [
+      "R1"
+    ]
+  },
+  "issues": [
+    {
+      "issue_id": "I1",
+      "rule_id": "R3",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "R3 claims same_cycle visibility for start_shifting when 1101 completes, but example shows output 1 only on the following row (one-cycle delay), contradicting same_cycle.",
+      "spec_evidence": "When the sequence is found, it should set start_shifting to 1, forever, until reset.",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I2",
+      "rule_id": "R2",
+      "type": "grounding",
+      "severity": "medium",
+      "detail": "R2 example starts in S4 without showing how S4 was reached; no verbatim evidence that state persists across arbitrary data, only that output stays 1.",
+      "spec_evidence": "it should set start_shifting to 1, forever, until reset",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I3",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec does not define overlapping-match behavior (e.g., 1101101); contract assumes S4 terminal latch, but alternative could re-arm after match.",
+      "spec_evidence": "searches for the sequence 1101 in an input bit stream",
+      "alternative": "After match, FSM returns to S0 and can detect a new 1101 later, but start_shifting stays 1.",
+      "sequence": [
+        {
+          "reset": 0,
+          "data": 1
+        },
+        {
+          "reset": 0,
+          "data": 1
+        },
+        {
+          "reset": 0,
+          "data": 0
+        },
+        {
+          "reset": 0,
+          "data": 1
+        },
+        {
+          "reset": 0,
+          "data": 1
+        },
+        {
+          "reset": 0,
+          "data": 1
+        },
+        {
+          "reset": 0,
+          "data": 0
+        },
+        {
+          "reset": 0,
+          "data": 1
+        }
+      ]
+    },
+    {
+      "issue_id": "I4",
+      "rule_id": "R1",
+      "type": "consistency",
+      "severity": "low",
+      "detail": "R1 example shows reset=1 for two cycles then reset=0; expected outputs all 0, consistent, but does not demonstrate synchronous reset timing vs async.",
+      "spec_evidence": "Reset is active high synchronous.",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I5",
+      "rule_id": "global",
+      "type": "coverage",
+      "severity": "low",
+      "detail": "No rule explicitly defines state transition table (S0-S4 next-state logic); only output rules given, so FSM transition semantics are unverified.",
+      "spec_evidence": "Build a finite-state machine that searches for the sequence 1101 in an input bit stream.",
+      "alternative": "",
+      "sequence": []
+    }
+  ]
+}

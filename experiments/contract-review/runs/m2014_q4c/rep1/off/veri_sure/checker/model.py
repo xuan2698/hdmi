@@ -1,0 +1,20 @@
+def reference(vectors):
+    # D flip-flop with active-high synchronous reset.
+    # q updates on posedge clk: q <= 0 if r else d.
+    # Output has 1-cycle latency relative to sampled inputs.
+    q = 0  # power-up unspecified; use 0 as concrete value
+    out = []
+    for row in vectors:
+        # Sample inputs at posedge (values driven before edge)
+        d = row['d'] & 1
+        r = row['r'] & 1
+        # Compute next state
+        if r:
+            q_next = 0
+        else:
+            q_next = d
+        # Output reflects previous state (latency 1)
+        out.append({'q': q & 1})
+        # Update state after sampling
+        q = q_next
+    return out

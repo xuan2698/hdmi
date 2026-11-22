@@ -1,0 +1,67 @@
+def reference(vectors):
+    # Contract implementation.
+    # R_Y0: Y0 = LSB of next state selected by (y, x) per table.
+    # R_z:  z = 1 for y in {011, 100}, else 0.
+    # Undefined states (101,110,111): treat Y0=0, z=0 (candidate choice).
+    # Mid changes: applied after sampling, carried to next row start.
+    # State y updates on posedge clk to next state.
+
+    # Next-state table: next_state[y][x] -> 3-bit value
+    next_state = {
+        0b000: {0: 0b000, 1: 0b001},
+        0b001: {0: 0b001, 1: 0b100},
+        0b010: {0: 0b010, 1: 0b001},
+        0b011: {0: 0b001, 1: 0b010},
+        0b100: {0: 0b011, 1: 0b100},
+    }
+
+    def compute_Y0(y, x):
+        # R_Y0
+        if y in next_state:
+            ns = next_state[y][x & 1]
+            return ns & 1
+        return 0  # undefined state -> 0
+
+    def compute_z(y):
+        # R_z
+        if y in (0b011, 0b100):
+            return 1
+        return 0
+
+    results = []
+    # Present state y, initialized to 0 (power-up unspecified; choose 0).
+    y = 0
+    # Pending mid changes carried from previous row (applied before this row's sampling).
+    pending = {}
+
+    for vec in vectors:
+        # Apply any pending mid changes from previous row (carried to start of this row).
+        if pending:
+            if 'x' in pending:
+                vec = dict(vec)
+                vec['x'] = pending['x']
+            pending = {}
+
+        x = vec.get('x', 0) & 1
+        # y input from vector overrides internal state if provided? The contract says
+        # present state y is the FSM state. Vectors provide x and y. We use vector y
+        # as the present state for combinational outputs, and also sync internal state.
+        if 'y' in vec:
+            y = vec['y'] & 0b111
+
+        Y0 = compute_Y0(y, x)
+        z = compute_z(y)
+
+        results.append({'Y0': Y0 & 1, 'z': z & 1})
+
+        # Posedge: state updates to next state.
+        if y in next_state:
+            y = next_state[y][x]
+        # else undefined: keep y (no defined transition)
+
+        # Mid changes: if vector contains 'mid', apply after sampling.
+        mid = vec.get('mid')
+        if mid:
+            pending = dict(mid)
+
+    return results

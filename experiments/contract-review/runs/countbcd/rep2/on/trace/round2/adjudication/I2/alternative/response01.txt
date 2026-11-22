@@ -1,0 +1,62 @@
+def reference(vectors):
+    q = 0  # 16-bit packed BCD count, initialized to 0
+    carried_reset = 0
+    out = []
+    for row in vectors:
+        if isinstance(row, dict):
+            reset = row.get('reset', carried_reset) & 1
+        else:
+            reset = int(row) & 1
+
+        # R_RESET: synchronous active-high reset forces q to 0x0000
+        if reset:
+            q = 0
+        else:
+            # R_COUNT_BCD: increment packed BCD modulo 10000
+            ones = q & 0xF
+            tens = (q >> 4) & 0xF
+            hundreds = (q >> 8) & 0xF
+            thousands = (q >> 12) & 0xF
+
+            ones += 1
+            if ones == 10:
+                ones = 0
+                tens += 1
+                if tens == 10:
+                    tens = 0
+                    hundreds += 1
+                    if hundreds == 10:
+                        hundreds = 0
+                        thousands += 1
+                        if thousands == 10:
+                            thousands = 0
+
+            q = (thousands << 12) | (hundreds << 8) | (tens << 4) | ones
+
+        # R_ENA_COMB: combinational enables from current q
+        # Resolved interpretation: ena[2]=ones==9, ena[1]=lower2==99, ena[0]=lower3==999
+        ena = 0
+        if (q & 0xF) == 9:
+            ena |= 4  # ena[2]
+        if (q & 0xFF) == 0x99:
+            ena |= 2  # ena[1]
+        if (q & 0xFFF) == 0x999:
+            ena |= 1  # ena[0]
+
+        out.append({'q': q & 0xFFFF, 'ena': ena & 0x7})
+
+        # Optional mid changes occur after sampling and are carried to the next row
+        carried_reset = reset
+        if isinstance(row, dict):
+            if 'mid' in row:
+                mid = row['mid']
+                if isinstance(mid, dict) and 'reset' in mid:
+                    carried_reset = mid['reset'] & 1
+                elif not isinstance(mid, dict):
+                    carried_reset = int(mid) & 1
+            if 'mid_reset' in row:
+                carried_reset = row['mid_reset'] & 1
+            if 'reset_mid' in row:
+                carried_reset = row['reset_mid'] & 1
+
+    return out

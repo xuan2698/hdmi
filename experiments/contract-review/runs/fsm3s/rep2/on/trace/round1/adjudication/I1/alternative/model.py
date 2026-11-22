@@ -1,0 +1,77 @@
+def reference(vectors):
+    # Candidate interpretation: Initial state may be C until first reset.
+    state = "C"
+    cur_in = 0
+    cur_reset = 0
+    results = []
+
+    for row in vectors:
+        # Apply values driven before this row's sampled posedge.
+        try:
+            cur_in = row["in"]
+        except:
+            pass
+        try:
+            cur_reset = row["reset"]
+        except:
+            pass
+
+        # Rule sync_reset: synchronous active-high reset has priority at posedge.
+        if cur_reset == 1:
+            state = "A"
+        else:
+            # Rule transition_and_moore_output: explicit transition table.
+            if state == "A":
+                if cur_in == 1:
+                    state = "B"
+                else:
+                    state = "A"
+            elif state == "B":
+                if cur_in == 1:
+                    state = "B"
+                else:
+                    state = "C"
+            elif state == "C":
+                if cur_in == 1:
+                    state = "D"
+                else:
+                    state = "A"
+            else:  # state == "D"
+                if cur_in == 1:
+                    state = "B"
+                else:
+                    state = "C"
+
+        # Rule transition_and_moore_output: Moore output after edge.
+        if state == "D":
+            out_val = 1
+        else:
+            out_val = 0
+
+        results.append({"out": out_val})
+
+        # Optional mid changes occur AFTER sampling and carry to the next row.
+        try:
+            mid = row["mid"]
+            try:
+                cur_in = mid["in"]
+            except:
+                pass
+            try:
+                cur_reset = mid["reset"]
+            except:
+                pass
+        except:
+            pass
+
+        # Also support flat mid keys if present.
+        try:
+            cur_in = row["mid_in"]
+        except:
+            pass
+        try:
+            cur_reset = row["mid_reset"]
+        except:
+            pass
+
+    return results

@@ -1,0 +1,40 @@
+{
+  "coverage": {
+    "S01": ["reset_async_z0", "A_x0_to_A_z0", "A_x1_to_C_z1", "B_x0_to_C_z1", "B_x1_to_B_z0", "C_x0_to_C_z1", "C_x1_to_B_z0"],
+    "S02": ["A_x0_to_A_z0", "A_x1_to_C_z1", "B_x0_to_C_z1", "B_x1_to_B_z0", "C_x0_to_C_z1", "C_x1_to_B_z0"],
+    "S03": ["A_x0_to_A_z0", "A_x1_to_C_z1", "B_x0_to_C_z1", "B_x1_to_B_z0", "C_x0_to_C_z1", "C_x1_to_B_z0"],
+    "S04": ["reset_async_z0"],
+    "S05": ["reset_async_z0", "A_x0_to_A_z0", "A_x1_to_C_z1", "B_x0_to_C_z1", "B_x1_to_B_z0", "C_x0_to_C_z1", "C_x1_to_B_z0"]
+  },
+  "issues": [
+    {
+      "issue_id": "I1",
+      "rule_id": "reset_async_z0",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec does not define reset active level; contract fixes active-high and marks uncertainty.",
+      "spec_evidence": "The circuit requires a positive edge triggered asynchronous reset.",
+      "alternative": "Reset is active-low: assert on areset==0 and release on areset==1.",
+      "sequence": [
+        {"areset": 0, "x": 0},
+        {"areset": 1, "x": 1},
+        {"areset": 0, "x": 0},
+        {"areset": 0, "x": 0}
+      ]
+    },
+    {
+      "issue_id": "I2",
+      "rule_id": "reset_async_z0",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec says conversion stops on reset but does not define z during reset; contract forces z=0.",
+      "spec_evidence": "The conversion begins when Reset is released and stops when Reset is asserted.",
+      "alternative": "Reset only stops conversion and holds the last output/state, so z does not change while areset is asserted.",
+      "sequence": [
+        {"areset": 1, "x": 0},
+        {"areset": 0, "x": 1},
+        {"areset": 1, "x": 0}
+      ]
+    }
+  ]
+}

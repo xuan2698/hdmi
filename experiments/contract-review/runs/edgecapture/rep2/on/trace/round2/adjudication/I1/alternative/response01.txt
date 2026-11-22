@@ -1,0 +1,53 @@
+def reference(vectors):
+    MASK = 0xFFFFFFFF
+    out = 0
+    prev_in = 0
+    carry_reset = 0
+    carry_in = 0
+    result = []
+
+    for row in vectors:
+        # Drive explicit row inputs before sampled posedge; otherwise use carried values.
+        reset_v = carry_reset
+        in_v = carry_in
+        if "reset" in row:
+            reset_v = row["reset"]
+        if "in" in row:
+            in_v = row["in"]
+
+        reset_v = int(reset_v) & 1
+        in_v = int(in_v) & MASK
+
+        if reset_v:
+            # rule reset_clear: synchronous active-high reset clears output.
+            # capture_fall unresolved interpretation: reset-cycle 1s are cleared/ignored.
+            out = 0
+            prev_in = 0
+        else:
+            # rule capture_fall: per-bit 1-to-0 transition from prev_in to current in sets out.
+            falls = prev_in & ((~in_v) & MASK)
+            # rule hold_state: non-falling bits retain their previous sticky value.
+            out = (out | falls) & MASK
+            prev_in = in_v
+
+        result.append({"out": out})
+
+        # Current driven values persist until overridden; apply mid changes after sampling.
+        carry_reset = reset_v
+        carry_in = in_v
+
+        mid = row.get("mid") if isinstance(row, dict) else None
+        if mid:
+            if isinstance(mid, dict):
+                if "reset" in mid:
+                    carry_reset = int(mid["reset"]) & 1
+                if "in" in mid:
+                    carry_in = int(mid["in"]) & MASK
+            else:
+                for m in mid:
+                    if "reset" in m:
+                        carry_reset = int(m["reset"]) & 1
+                    if "in" in m:
+                        carry_in = int(m["in"]) & MASK
+
+    return result

@@ -1,0 +1,22 @@
+def reference(vectors):
+    # Contract implementation.
+    # State: COUNT (current decade count 0..9), updated on posedge.
+    # R1_SYNC_RESET: reset==1 at posedge -> q=0 (synchronous, same cycle visible).
+    # R2_COUNT_INC: reset==0 at posedge -> q = (q+1) mod 10.
+    # R3_WRAP: q==9 and reset==0 -> q=0.
+    # Initial state: q=0 (power-up unspecified but we choose 0; first posedge with reset=0 increments to 1).
+    q = 0
+    out = []
+    for row in vectors:
+        reset = row.get('reset', 0)
+        # Sample at posedge: apply synchronous update based on current reset.
+        if reset == 1:
+            # R1_SYNC_RESET
+            q = 0
+        else:
+            # R2_COUNT_INC / R3_WRAP
+            q = (q + 1) % 10
+        out.append({'q': q & 0xF})
+        # mid changes occur after sampling; carried to next row (no effect here since
+        # we read reset fresh each row from the vector).
+    return out

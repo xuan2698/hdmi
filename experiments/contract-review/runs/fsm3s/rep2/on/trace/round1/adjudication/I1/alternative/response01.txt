@@ -1,0 +1,49 @@
+```python
+def reference(vectors):
+    # Candidate interpretation for unresolved transition_and_moore_output: initial state may be C until first reset.
+    state = 'C'
+    cur_in = 0
+    cur_reset = 0
+    results = []
+
+    # Explicit state transition table.
+    trans = {
+        'A': {0: 'A', 1: 'B'},
+        'B': {0: 'C', 1: 'B'},
+        'C': {0: 'A', 1: 'D'},
+        'D': {0: 'C', 1: 'B'}
+    }
+
+    for row in vectors:
+        # Apply row-driven input values before the sampled posedge edge.
+        if 'in' in row:
+            cur_in = row['in']
+        if 'reset' in row:
+            cur_reset = row['reset']
+
+        # Rule sync_reset: At a posedge, if reset == 1 then state becomes A regardless of in; after edge out is 0.
+        if cur_reset == 1:
+            state = 'A'
+        else:
+            # Rule transition_and_moore_output: transition based on current state and in; output based on new state.
+            state = trans[state][cur_in]
+
+        # Moore output based on the new state.
+        out = 1 if state == 'D' else 0
+        results.append({'out': out})
+
+        # Process optional mid input changes after sampling, carried to the start of the next row.
+        if 'mid' in row:
+            mids = row['mid']
+            if isinstance(mids, dict):
+                mids = [mids]
+            if isinstance(mids, list):
+                for m in mids:
+                    if isinstance(m, dict):
+                        if 'in' in m:
+                            cur_in = m['in']
+                        if 'reset' in m:
+                            cur_reset = m['reset']
+
+    return results
+```

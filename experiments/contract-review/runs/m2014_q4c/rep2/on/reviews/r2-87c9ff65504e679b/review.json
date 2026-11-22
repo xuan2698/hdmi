@@ -1,0 +1,29 @@
+{
+  "coverage": {
+    "S01": [
+      "sync_reset_high",
+      "d_capture_when_reset_inactive"
+    ]
+  },
+  "issues": [
+    {
+      "issue_id": "I1",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "high",
+      "detail": "Spec omits clock-edge polarity; contract assumes posedge, but negedge is plausible.",
+      "spec_evidence": "D flip flop",
+      "alternative": "Negative-edge-triggered DFF with active-high synchronous reset: q updates on negedge, so a mid-cycle d=1 is captured before the next posedge.",
+      "sequence": [
+        {
+          "d": 0,
+          "r": 0,
+          "mid": {
+            "d": 1,
+            "r": 0
+          }
+        }
+      ]
+    }
+  ]
+}

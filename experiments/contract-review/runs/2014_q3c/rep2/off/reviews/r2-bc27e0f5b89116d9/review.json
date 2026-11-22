@@ -1,0 +1,110 @@
+{
+  "coverage": {
+    "S01": [
+      "R_Y0",
+      "R_z"
+    ],
+    "S02": [
+      "R_Y0",
+      "R_z"
+    ],
+    "S03": [
+      "R_Y0",
+      "R_z"
+    ],
+    "S04": [
+      "R_Y0",
+      "R_z"
+    ],
+    "S05": [
+      "R_Y0",
+      "R_z"
+    ],
+    "S06": [
+      "R_Y0",
+      "R_z"
+    ],
+    "S07": [
+      "R_Y0",
+      "R_z"
+    ]
+  },
+  "issues": [
+    {
+      "issue_id": "I1",
+      "rule_id": "R_Y0",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "R_Y0 example vector y=3,x=0 expects Y0=1, but table row 011 x=0 gives next state 001, so Y0=1 is correct; however R_z example y=3,x=1 expects Y0=0 while table row 011 x=1 gives next state 010, so Y0=0 is correct. No contradiction found in Y0 examples.",
+      "spec_evidence": "// 011 | 001, 010 | 1",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I2",
+      "rule_id": "R_z",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "R_z example vector y=3,x=1 expects z=1, consistent with table row 011 output z=1. R_z example y=4,x=0 expects z=1, consistent with row 100 output z=1. No contradiction.",
+      "spec_evidence": "// 100 | 011, 100 | 1",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I3",
+      "rule_id": "R_Y0",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec table only defines next states for y=000..100; Y0 for y=101,110,111 is unspecified. Contract marks uncertain with candidates Y0=0 or don't-care.",
+      "spec_evidence": "// 100 | 011, 100 | 1",
+      "alternative": "Y0=0 for undefined states y=101,110,111",
+      "sequence": [
+        {
+          "x": 0,
+          "y": 5
+        },
+        {
+          "x": 1,
+          "y": 6
+        },
+        {
+          "x": 0,
+          "y": 7
+        }
+      ]
+    },
+    {
+      "issue_id": "I4",
+      "rule_id": "R_z",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec table only defines z for y=000..100; z for y=101,110,111 is unspecified. Contract marks uncertain with candidates z=0 or don't-care.",
+      "spec_evidence": "// 100 | 011, 100 | 1",
+      "alternative": "z=0 for undefined states y=101,110,111",
+      "sequence": [
+        {
+          "x": 0,
+          "y": 5
+        },
+        {
+          "x": 1,
+          "y": 6
+        },
+        {
+          "x": 0,
+          "y": 7
+        }
+      ]
+    },
+    {
+      "issue_id": "I5",
+      "rule_id": "global",
+      "type": "grounding",
+      "severity": "low",
+      "detail": "All spec segments S01-S07 are mapped to R_Y0 and R_z; no missing or unrelated segments. Verbatim quotes present for both rules.",
+      "spec_evidence": "",
+      "alternative": "",
+      "sequence": []
+    }
+  ]
+}

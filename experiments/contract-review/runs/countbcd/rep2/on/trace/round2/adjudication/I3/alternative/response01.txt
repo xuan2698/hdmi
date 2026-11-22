@@ -1,0 +1,89 @@
+```python
+def reference(vectors):
+    # Initial state: power-up unspecified; contract requires a concrete value.
+    q = 0
+    reset_val = 0
+    out = []
+
+    for row in vectors:
+        reset_mid = None
+
+        # Drive pre-edge input values before the sampled posedge.
+        if isinstance(row, dict):
+            if 'reset' in row:
+                val = row['reset']
+                if isinstance(val, (list, tuple)) and len(val) >= 2:
+                    reset_val = int(val[0]) & 1
+                    reset_mid = int(val[1]) & 1
+                else:
+                    reset_val = int(val) & 1
+        elif isinstance(row, (list, tuple)):
+            if len(row) >= 1:
+                reset_val = int(row[0]) & 1
+            if len(row) >= 2:
+                reset_mid = int(row[1]) & 1
+        else:
+            reset_val = int(row) & 1
+
+        # R_RESET: synchronous active-high reset forces all BCD digits to 0.
+        if reset_val == 1:
+            q = 0
+        else:
+            # R_COUNT_BCD: 4-digit BCD increment, wrapping 9999 -> 0000.
+            d0 = q & 0xF
+            d1 = (q >> 4) & 0xF
+            d2 = (q >> 8) & 0xF
+            d3 = (q >> 12) & 0xF
+
+            d0 += 1
+            if d0 == 10:
+                d0 = 0
+                d1 += 1
+                if d1 == 10:
+                    d1 = 0
+                    d2 += 1
+                    if d2 == 10:
+                        d2 = 0
+                        d3 += 1
+                        if d3 == 10:
+                            d3 = 0
+
+            q = d0 | (d1 << 4) | (d2 << 8) | (d3 << 12)
+
+        # R_ENA_COMB: combinational enables from current q.
+        # Candidate interpretation: ena is forced to 0 while reset == 1.
+        if reset_val == 1:
+            ena = 0
+        else:
+            ena = 0
+            if (q & 0xF) == 9:
+                ena += 1
+            if (q & 0xFF) == 0x99:
+                ena += 2
+            if (q & 0xFFF) == 0x999:
+                ena += 4
+
+        out.append({'q': q, 'ena': ena})
+
+        # Process optional mid-cycle input changes after sampling.
+        if reset_mid is not None:
+            reset_val = reset_mid
+
+        if isinstance(row, dict):
+            if 'mid' in row:
+                m = row['mid']
+                if isinstance(m, dict):
+                    if 'reset' in m:
+                        reset_val = int(m['reset']) & 1
+                elif isinstance(m, (list, tuple)) and len(m) >= 1:
+                    reset_val = int(m[0]) & 1
+                elif m is not None:
+                    reset_val = int(m) & 1
+
+            for k in row:
+                if isinstance(k, str) and k.endswith('_mid'):
+                    if k[:-4] == 'reset':
+                        reset_val = int(row[k]) & 1
+
+    return out
+```

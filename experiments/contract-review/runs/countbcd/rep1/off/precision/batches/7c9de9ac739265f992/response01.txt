@@ -1,0 +1,596 @@
+We need to implement four independent reference models, each matching the exact state semantics described in its spec. The key differences are in the "uncertain" examples for R5/R6/R7, which show different expected values (some appear to be buggy/hex-misinterpreted examples). We must follow the *rules* (state semantics) rather than the possibly-wrong example values, since the task says "implement its exact state semantics independently with the same interface."
+
+Let me analyze each model:
+
+**Model 1 (6f0b83455311f1c4f6):** Standard BCD counter. R5 example shows q=99→100 (correct BCD), R6 shows 999→1000 (correct BCD), R7 shows 9999→0 (wrap). This is the canonical correct behavior.
+
+**Model 2 (09ab8a785a70599f7a):** R5 example shows q=99→256 (which is 0x100, i.e., hex increment, not BCD!). R6 shows 999→1000 (correct BCD). R7 shows 9999→0. This is inconsistent — but the *rules* say BCD. The example for R5 is likely a bug in the spec's example. We should implement the rules as stated (BCD), since the rules are the authoritative semantics. Actually wait — the task says "implement its exact state semantics independently". The state semantics are defined by the rules. The examples are just illustrations. But the examples differ between models, suggesting the models are meant to differ. Hmm.
+
+Let me reconsider. The examples in R5/R6/R7 differ across models. These are likely *intentional variations* representing different interpretations of ambiguous behavior. The "uncertain" field only flags R7. But R5/R6 examples differ too.
+
+Actually, looking more carefully: the examples might just be buggy (e.g., 99→256 is 0x100, suggesting the example generator used hex). But the task wants us to implement "exact state semantics" — the rules define the semantics. The rules are identical across all four models (same conditions, same quotes). So the state semantics are identical: a proper BCD counter.
+
+But then why four models? Perhaps they're meant to be identical implementations (the task says "For every assigned item, implement its exact state semantics independently"). The differences in examples are noise/bugs. The safest interpretation: implement the BCD counter correctly per the rules, which are identical.
+
+Wait — but R7 is marked uncertain with candidates "wrap to 0000", "saturate at 9999", "undefined behavior". The examples all show wrap to 0. So we implement wrap to 0.
+
+Let me just implement the canonical BCD counter for all four, since the rules are identical. The examples that show 256, 4096, 39321 are clearly hex-increment bugs in the example data, not intended semantics.
+
+Actually, let me reconsider once more. The task says "implement its exact state semantics independently with the same interface." If all four have identical rules, they get identical implementations. That's fine — "independently" just means each string is self-contained.
+
+Let me write the reference function. The interface: `reference(vectors)` where vectors is a list of dicts with 'reset' key. Returns list of dicts with 'q' and 'ena'.
+
+Semantics:
+- State: 4 BCD digits (ones, tens, hundreds, thousands), each 0-9.
+- Synchronous active-high reset: on posedge with reset=1, q=0, ena=0.
+- Otherwise on posedge: increment BCD counter.
+- ena outputs: computed combinationally from current q (before increment), indicating which upper digits will increment.
+  - ena[0] (tens enable) = (ones == 9)
+  - ena[1] (hundreds enable) = (ones == 9 and tens == 9)
+  - ena[2] (thousands enable) = (ones == 9 and tens == 9 and hundreds == 9)
+
+Wait, but the examples show ena as visible "next_cycle" for R4/R5/R6. Let me check: R4 example: vectors reset=1,0,0 → expected q=9,ena=1 then q=16,ena=0 then q=17,ena=0. So at the cycle where q=9 is *output*, ena=1. That means ena is computed from the current q value (the value being output this cycle), indicating what will happen at the next posedge. So ena is combinational from current state q.
+
+But the rule says "visible: next_cycle" — meaning the ena output reflects the state after the edge? Let me re-read.
+
+R4: condition "reset == 0 and q[3:0] == 9", edge posedge, visible next_cycle. Example: cycle 1 reset=1 → q=0,ena=0. Cycle 2 reset=0 → q=9,ena=1. Cycle 3 reset=0 → q=16,ena=0.
+
+Hmm, at cycle 2, q=9 is output. The ena=1 at cycle 2. But the condition q[3:0]==9 is true at cycle 2 (q=9). So ena is computed from the q value at that cycle. But "visible next_cycle" suggests ena is registered?
+
+Actually let's trace: if ena were registered (computed from previous cycle's q), then at cycle 2 (q=9), ena would reflect cycle 1's q=0 → ena=0. But expected ena=1. So ena is combinational from current q.
+
+Wait, but the example for R4 shows q=9,ena=1 at the same cycle. So ena is combinational: ena = f(current q). That matches "For digits [3:1], also output an enable signal indicating when each of the upper three digits should be incremented" — it's a combinational output telling you what will happen next.
+
+But then why "visible: next_cycle"? Maybe it means the *effect* (increment) is visible next cycle. The ena itself is same-cycle combinational. Let me just go with: ena is combinational from current q.
+
+Let me verify with R5 example (model 1): vectors reset=0,0,0 → expected q=99,ena=3 then q=100,ena=0 then q=101,ena=0. At cycle 1, q=99, ena=3 (ones=9→tens enable, tens=9→hundreds enable, hundreds=0→thousands no). ena=3 = binary 011 = tens and hundreds enabled. Correct. At cycle 2, q=100, ena=0. Correct (ones=0).
+
+R6 model 1: q=999,ena=7 then q=1000,ena=0. ena=7=111 all three enabled. Correct.
+
+So ena is combinational from current q. Good.
+
+Now the increment logic: on posedge (reset=0), increment BCD:
+- ones += 1; if ones==10: ones=0, tens+=1; if tens==10: tens=0, hundreds+=1; if hundreds==10: hundreds=0, thousands+=1; if thousands==10: thousands=0.
+
+Now, the "vectors" input: each row is driven before the sampled edge. So for each vector, we sample the state at that cycle (the q/ena output for that cycle), then apply the posedge update to get next state.
+
+Wait, need to be careful about timing. "Each row's values are driven before the sampled edge." So for row i, inputs are set, then posedge occurs, then we sample outputs. The outputs sampled are the *new* state after the edge? Or the state before?
+
+Look at R1 example: vectors reset=1,0,0 → expected q=0,ena=0 then q=0,ena=0 then q=1,ena=0.
+
+Cycle 1: reset=1, posedge → q becomes 0 (reset). Output q=0. ✓
+Cycle 2: reset=0, posedge → q increments from 0 to 1? But expected q=0 at cycle 2. Hmm.
+
+Wait, expected cycle 2 is q=0, cycle 3 is q=1. So at cycle 2, reset=0, but q is still 0. That means the increment happens at the *next* posedge (cycle 3's edge). So the output at cycle i is the state *before* the posedge of cycle i? No...
+
+Let me re-read: "Each row's values are driven before the sampled edge." So for row i: drive inputs, then posedge, then sample. The sample is after the edge. So output at row i = state after posedge i.
+
+Cycle 1: reset=1 driven, posedge → reset applied → q=0. Sample q=0. ✓
+Cycle 2: reset=0 driven, posedge → increment q from 0 to 1. Sample q=1? But expected q=0. ✗
+
+Hmm. So maybe the sample is *before* the edge? "sample after the posedge edge has settled" — no, it says after.
+
+Let me reconsider. Maybe the reset is synchronous and the first cycle's reset=1 causes q=0 at the *next* cycle. Let's try: output at cycle i = state before posedge i (i.e., state from end of cycle i-1).
+
+Cycle 1: initial state q=0 (assume). reset=1 driven. Sample before edge: q=0,ena=0. ✓
+Cycle 2: after cycle 1's posedge, reset was 1 so q=0. reset=0 driven. Sample before edge: q=0,ena=0. ✓
+Cycle 3: after cycle 2's posedge, reset was 0 so q incremented 0→1. reset=0 driven. Sample before edge: q=1,ena=0. ✓
+
+Yes! So the output at cycle i is the state *before* the posedge of cycle i (i.e., the state resulting from all previous edges). The posedge of cycle i uses the inputs of cycle i to compute the state for cycle i+1.
+
+So the model: 
+- state starts at 0 (or we can think of it as: output cycle 1 = initial state, then apply edge with cycle 1 inputs to get state for cycle 2, etc.)
+
+Actually more precisely: for each cycle i, output = current state. Then apply posedge with inputs[i]: if reset=1, state=0; else state = increment(state).
+
+Let me verify R2: reset=1,0,0 → q=0,0,1? Expected q=0,0,1. 
+Cycle 1: state=0, output q=0. Apply reset=1 → state=0.
+Cycle 2: state=0, output q=0. Apply reset=0 → state=1.
+Cycle 3: state=1, output q=1. ✓
+
+R3: reset=1,0,0 → expected q=9,16,17. Hmm, that doesn't start at 0. So the initial state isn't 0 for this example? Or the example is showing a different starting point.
+
+Wait, R3 example: vectors reset=1,0,0 → expected q=9,ena=0 then q=16,ena=0 then q=17,ena=0.
+
+If initial state=9: cycle 1 output q=9, apply reset=1 → state=0. Cycle 2 output q=0? But expected 16. Doesn't work.
+
+Hmm, maybe the examples are just illustrative and don't follow from the vectors literally. The examples might be showing "if you were at q=9, then..." Let me not over-index on the examples. The rules are clear.
+
+Actually, looking at R3: "condition reset==0 and q[3:0]==9", example shows q=9→16→17. This is just showing the wrap behavior: when ones=9, next is tens+1, ones=0. So 9→16 (0x10, which is BCD 10). Then 16→17. So the example is showing a sequence starting from q=9, not from reset.
+
+OK so the examples are illustrative of the rule, not full traces from the given vectors. I'll implement the rules.
+
+Let me also reconsider the ena timing. R4 example: q=9,ena=1 then q=16,ena=0 then q=17,ena=0. So when q=9 (ones=9), ena=1 (tens will increment). When q=16 (ones=6), ena=0. So ena is combinational from current q. ✓
+
+Now, the "visible: next_cycle" for ena rules — maybe it means the ena is registered? Let's check: if ena were registered (output at cycle i = f(state at cycle i-1)), then at cycle where q=9, ena would be f(previous state). Previous state before q=9 would be q=8 (ones=8), so ena=0. But expected ena=1. So ena is NOT registered. It's combinational. The "next_cycle" might refer to the increment effect.
+
+Hmm, but actually wait. Let me reconsider the timing model. What if output at cycle i = state after posedge i (as the spec says "sample after the posedge edge has settled")?
+
+Then for R1: cycle 1 reset=1, posedge → q=0. Output q=0. ✓
+Cycle 2 reset=0, posedge → q increments 0→1. Output q=1? Expected q=0. ✗
+
+Unless the reset is applied such that cycle 1's posedge sets q=0, and cycle 2's posedge with reset=0... hmm.
+
+Wait, maybe the vectors represent: at cycle i, the input is set, then the posedge occurs, then we sample. But the "expected" is the output *for that cycle* which is sampled after the edge. Let me re-examine R1 with this:
+
+Cycle 1: reset=1. Posedge: q←0. Sample: q=0. ✓
+Cycle 2: reset=0. Posedge: q←q+1=1. Sample: q=1. Expected q=0. ✗
+
+Still doesn't match. So the "sample before edge" model is correct: output at cycle i = state before posedge i.
+
+But the spec says "sample after the posedge edge has settled". Contradiction. Unless "the posedge edge" refers to the *previous* cycle's edge? Like, the state has settled from the previous edge.
+
+Actually, I think the intended model is: the outputs shown for row i are the values *during* cycle i (before the edge at the end of cycle i). The "sample after posedge has settled" means the state is stable (settled from the previous edge). So output at cycle i = state that resulted from edge i-1 (or initial state for i=1).
+
+This matches my "sample before edge" model. Good.
+
+So algorithm:
+```
+state = 0  # initial
+results = []
+for v in vectors:
+    # output current state
+    q = state
+    ena = compute_ena(state)
+    results.append({q: q, ena: ena})
+    # apply posedge
+    if v['reset'] == 1:
+        state = 0
+    else:
+        state = bcd_increment(state)
+return results
+```
+
+Wait, but for cycle 1, the initial state — is it 0? The reset is synchronous, so before any edge, state is undefined/0. Let's assume 0. R1 example: cycle 1 reset=1, output q=0 (initial state 0). ✓. Then edge sets state=0. Cycle 2 output q=0. ✓. Edge increments to 1. Cycle 3 output q=1. ✓. 
+
+Now compute_ena(state):
+- ones = state & 0xF, tens = (state>>4)&0xF, hundreds = (state>>8)&0xF, thousands = (state>>12)&0xF
+- ena bit 0 (tens enable) = 1 if ones==9
+- ena bit 1 (hundreds enable) = 1 if ones==9 and tens==9
+- ena bit 2 (thousands enable) = 1 if ones==9 and tens==9 and hundreds==9
+- ena = bit0 | (bit1<<1) | (bit2<<2)
+
+Check R4: q=9 (ones=9,tens=0,hundreds=0): ena = 1 | 0 | 0 = 1. ✓
+R5: q=99 (ones=9,tens=9,hundreds=0): ena = 1 | 2 | 0 = 3. ✓
+R6: q=999: ena = 1|2|4 = 7. ✓
+
+bcd_increment(state):
+- ones = state & 0xF, tens = (state>>4)&0xF, hundreds = (state>>8)&0xF, thousands = (state>>12)&0xF
+- ones += 1
+- if ones == 10: ones=0; tens+=1
+- if tens == 10: tens=0; hundreds+=1
+- if hundreds == 10: hundreds=0; thousands+=1
+- if thousands == 10: thousands=0
+- return ones | (tens<<4) | (hundreds<<8) | (thousands<<12)
+
+Check R7: 9999 → ones=9→10→0,tens=9→10→0,hundreds=9→10→0,thousands=9→10→0. Result 0. ✓
+
+Now, the four models have identical rules. The only differences are in the example values (which are buggy for some). Since the task says "implement its exact state semantics", and the state semantics (rules) are identical, all four implementations will be identical. That's fine.
+
+But wait — maybe the task intends for us to match the *examples* too, meaning the models differ. Let me look at the differences:
+
+Model 1 (6f0b...): R5: 99→100, R6: 999→1000, R7: 9999→0. All correct BCD.
+Model 2 (09ab...): R5: 99→256 (0x100), R6: 999→1000, R7: 9999→0. R5 is hex-increment.
+Model 3 (6e51...): R5: 99→256, R6: 999→4096 (0x1000), R7: 9999→0. R5,R6 hex.
+Model 4 (3f0f...): R5: 99→256, R6: 999→4096, R7: 39321→0 (39321=0x9999). R7 example starts at 0x9999.
+
+These look like the example generator had bugs (using hex instead of BCD for some). The rules are identical. I'll implement the correct BCD semantics for all four, since that's what the rules specify. The "uncertain" only flags R7, and all examples agree on wrap-to-0.
+
+Actually, hold on. Let me reconsider whether the task wants us to reproduce the buggy examples. The task says "implement its exact state semantics independently". The state semantics are the rules. The examples are just examples. I'll go with correct BCD.
+
+But to be safe, maybe I should note that the examples for R5/R6 in models 2,3,4 are inconsistent with the rules. Since the rules are authoritative, I implement BCD.
+
+Let me write the code. No imports, no I/O, no executable top-level code. Just define `reference(vectors)`.
+
+```python
+def reference(vectors):
+    def compute_ena(state):
+        ones = state & 0xF
+        tens = (state >> 4) & 0xF
+        hundreds = (state >> 8) & 0xF
+        ena = 0
+        if ones == 9:
+            ena |= 1
+            if tens == 9:
+                ena |= 2
+                if hundreds == 9:
+                    ena |= 4
+        return ena
+    
+    def bcd_inc(state):
+        ones = state & 0xF
+        tens = (state >> 4) & 0xF
+        hundreds = (state >> 8) & 0xF
+        thousands = (state >> 12) & 0xF
+        ones += 1
+        if ones == 10:
+            ones = 0
+            tens += 1
+            if tens == 10:
+                tens = 0
+                hundreds += 1
+                if hundreds == 10:
+                    hundreds = 0
+                    thousands += 1
+                    if thousands == 10:
+                        thousands = 0
+        return ones | (tens << 4) | (hundreds << 8) | (thousands << 12)
+    
+    state = 0
+    results = []
+    for v in vectors:
+        results.append({"q": state, "ena": compute_ena(state)})
+        if v.get("reset", 0) == 1:
+            state = 0
+        else:
+            state = bcd_inc(state)
+    return results
+```
+
+Wait, need to double check the ena computation. The ena bits: bit 0 = tens enable (ones==9), bit 1 = hundreds enable (ones==9 and tens==9), bit 2 = thousands enable (ones==9 and tens==9 and hundreds==9). My nested if does exactly that. Good.
+
+But wait, should ena also be 0 when reset=1? The reset rule says values {q:0, ena:0}. In my model, when reset=1 at cycle i, the output at cycle i is the state *before* the edge, which might not be 0. But the reset rule says "visible: same_cycle" — meaning when reset=1, the output should be q=0,ena=0 at that same cycle.
+
+Hmm, this contradicts my "sample before edge" model. Let me re-examine R1: cycle 1 reset=1, expected q=0,ena=0. In my model, initial state=0, so output q=0,ena=0. ✓. But what if initial state were 5? Then output would be q=5, but reset rule says q=0. So the reset must be applied combinationally to the output when reset=1?
+
+Let me check: "R1_reset: condition reset==1, edge posedge, visible same_cycle". So when reset=1, the output q=0,ena=0 is visible in the same cycle. This means the reset affects the output combinationally (or the output is the post-edge state).
+
+But then R2: cycle 2 reset=0, expected q=0. If output = post-edge state, then cycle 2's edge with reset=0 would increment q from 0 to 1, giving q=1. But expected q=0. Contradiction.
+
+Unless... the reset is synchronous and the "same_cycle" visibility means: at the cycle where reset=1 is sampled, the *next* state is 0, and that's what's shown. But the example shows q=0 at cycle 1 (reset=1), which is consistent with either interpretation if initial state is 0.
+
+Let me think about this differently. Maybe the model is:
+- Output at cycle i = state after posedge i (post-edge state).
+- But the reset is applied such that when reset=1, the post-edge state is 0.
+- For R1: cycle 1 reset=1, post-edge q=0. ✓. Cycle 2 reset=0, post-edge q = inc(0)=1? Expected 0. ✗.
+
+Still fails. 
+
+Alternative: maybe the vectors are offset. The "expected" for row i corresponds to the state *entering* row i (before the edge). And reset=1 at row i means the state entering row i is 0 (because the previous edge had reset=1? No...).
+
+Let me try: output at cycle i = state entering cycle i. The edge at end of cycle i uses inputs[i] to compute state entering cycle i+1.
+- Cycle 1: state entering = initial = 0. Output q=0. Edge: reset=1 → state entering cycle 2 = 0.
+- Cycle 2: state entering = 0. Output q=0. Edge: reset=0 → state entering cycle 3 = 1.
+- Cycle 3: state entering = 1. Output q=1. ✓
+
+This works for R1. And the reset rule "visible same_cycle" — at cycle 1, reset=1, output q=0. The output is 0 because initial state is 0, not because reset forced it. But if initial state were 5, output would be 5, violating the reset rule. So maybe the initial state is always 0 (power-on reset), and the reset rule is just describing that when reset=1, the next state is 0.
+
+Actually, I think the cleanest interpretation: the state is initialized to 0. The output at cycle i is the current state (before edge i). The edge at cycle i updates state for cycle i+1. When reset=1 at cycle i, the state for cycle i+1 becomes 0. The "visible same_cycle" for reset might be loosely worded — it means the reset takes effect at that edge, and the result (q=0) is visible starting the next cycle. But the example shows q=0 at the reset cycle itself, which is just because initial state is 0.
+
+Hmm, but what if reset=1 at cycle 3 after some counting? Then output at cycle 3 would be the current count (not 0), and cycle 4 would be 0. But the rule says "visible same_cycle" — suggesting cycle 3 output should be 0.
+
+Let me look at the reset spec: "reset: kind sync, active high, values {q:0, ena:0}, first_released_cycle: cycle after reset deasserted at posedge". This suggests: when reset is asserted, the outputs are 0. When deasserted, the first cycle after deassertion shows the counter starting.
+
+I think the intended model is: the output shown for cycle i is the state *after* the posedge of cycle i. And the reset is synchronous: if reset=1 at cycle i, the posedge sets state to 0, so output is 0. If reset=0, the posedge increments.
+
+But then R1 cycle 2: reset=0, posedge increments 0→1, output should be 1. Expected 0. 
+
+Unless the increment doesn't happen on the first cycle after reset? Or the vectors are: reset=1,0,0 means reset is high for cycle 1, then low for cycles 2,3. The counter starts counting from cycle 2's edge? So cycle 2 output = 0 (state after cycle 1's edge, which was reset), cycle 3 output = 1 (state after cycle 2's edge, which incremented 0→1). That gives q=0,0,1. ✓!
+
+So the model is: output at cycle i = state after posedge i. 
+- Cycle 1: reset=1, posedge → state=0. Output q=0. ✓
+- Cycle 2: reset=0, posedge → state=inc(0)=1. Output q=1? But expected 0. ✗
+
+Argh. Unless the increment is delayed. Let me try: output at cycle i = state before posedge i, but reset=1 forces output to 0 combinationally.
+
+- Cycle 1: reset=1 → output forced to q=0,ena=0. State before edge = 0 (initial). Edge: reset=1 → state=0.
+- Cycle 2: reset=0 → output = state = 0. Edge: reset=0 → state=1.
+- Cycle 3: reset=0 → output = state = 1. ✓
+
+This works! And it handles the case where reset=1 mid-count: output forced to 0 at that cycle.
+
+But does the reset rule say ena=0 too? Yes, values {q:0, ena:0}. So when reset=1, output q=0, ena=0 regardless of state.
+
+Let me verify R4 with this model: vectors reset=1,0,0 → expected q=9,ena=1 then q=16,ena=0 then q=17,ena=0.
+
+Cycle 1: reset=1 → output q=0,ena=0. But expected q=9! ✗
+
+Hmm. So R4's example doesn't start from reset. The example is just showing the sequence 9→16→17, not a trace from the given vectors. So the examples are illustrative, not literal traces.
+
+OK, I think the examples are just showing the rule's effect, not full traces. The vectors in the examples are probably just placeholders. Let me focus on the rules.
+
+Given the ambiguity, let me go with the most standard interpretation:
+- Synchronous reset: on posedge, if reset=1, state←0.
+- Output at cycle i = state after posedge i (post-edge state).
+- ena is combinational from the post-edge state? Or pre-edge?
+
+Wait, let me reconsider ena. R4: q=9,ena=1. If output is post-edge state, then q=9 means the state after the edge is 9. ena=1 means ones==9. So ena is computed from the post-edge state (the q being output). That's consistent: ena = f(q_output).
+
+So: output q = post-edge state, ena = f(q).
+
+Let me re-verify R1 with post-edge model:
+- Cycle 1: reset=1, posedge → state=0. Output q=0,ena=0. ✓
+- Cycle 2: reset=0, posedge → state=inc(0)=1. Output q=1? Expected 0. ✗
+
+Still fails. So post-edge model fails R1.
+
+Pre-edge model with combinational reset override:
+- Cycle 1: reset=1 → output q=0,ena=0 (override). State before edge=0. Edge: reset=1 → state=0.
+- Cycle 2: reset=0 → output q=0,ena=0. Edge: reset=0 → state=1.
+- Cycle 3: reset=0 → output q=1,ena=0. ✓
+
+This works for R1. Let me check R2: reset=1,0,0 → expected q=0,0,1. Same as R1. ✓
+
+R3: reset=1,0,0 → expected q=9,16,17. This doesn't match pre-edge model (would give 0,0,1). But as noted, R3's example is illustrative (showing 9→16→17), not a trace from the vectors.
+
+I'll go with the pre-edge model with combinational reset override. But wait — does the reset override apply to ena too? Yes, ena=0 when reset=1.
+
+Actually, let me reconsider. The reset rule says "visible: same_cycle". This strongly suggests that when reset=1, the output in that same cycle is q=0,ena=0. So combinational override is correct.
+
+But then the state update: on posedge with reset=1, state←0. On posedge with reset=0, state←inc(state).
+
+Let me also double-check: does the reset override affect the state used for the next cycle? Yes, the edge sets state=0.
+
+So the algorithm:
+```
+state = 0
+for v in vectors:
+    if v['reset'] == 1:
+        out_q = 0
+        out_ena = 0
+    else:
+        out_q = state
+        out_ena = compute_ena(state)
+    results.append({q: out_q, ena: out_ena})
+    # posedge
+    if v['reset'] == 1:
+        state = 0
+    else:
+        state = bcd_inc(state)
+```
+
+Wait, but if reset=1, the output is forced to 0, but the state before the edge might be non-zero. The edge then sets state=0. So next cycle state=0. Good.
+
+Let me verify R1: 
+- Cycle 1: reset=1 → out q=0,ena=0. Edge: state=0.
+- Cycle 2: reset=0 → out q=0,ena=0. Edge: state=1.
+- Cycle 3: reset=0 → out q=1,ena=0. ✓
+
+R4 example (illustrative): if state were 9 at some cycle with reset=0, out q=9,ena=1. Next edge: state=16. Next cycle out q=16,ena=0. Next edge: state=17. Next cycle out q=17,ena=0. ✓
+
+R5: state=99, reset=0 → out q=99,ena=3. Edge: state=100. Next out q=100,ena=0. ✓
+
+R6: state=999 → out q=999,ena=7. Edge: state=1000. Next out q=1000,ena=0. ✓
+
+R7: state=9999 → out q=9999,ena=7. Edge: state=0. Next out q=0,ena=0. ✓
+
+Great, this model works for all illustrative examples.
+
+Now, one more check: the "visible: next_cycle" for R2/R3 (q increment) and R4/R5/R6 (ena). In my model, the q increment is visible next cycle (since output is pre-edge state). ✓. The ena is visible same cycle as the q that triggers it (combinational). But the rule says "next_cycle" for ena. Hmm.
+
+Wait, R4: condition "q[3:0]==9", visible next_cycle. In my model, when q=9 (output), ena=1 (same cycle). So ena is visible same cycle as q=9. But the rule says next_cycle. Maybe "next_cycle" means the ena indicates what happens next cycle (the increment). That's a semantic description, not a timing one. I'll keep ena combinational.
+
+Actually, let me reconsider: maybe ena is registered. If ena at cycle i = f(state at cycle i-1), then:
+- R4: q=9 at cycle i. ena at cycle i = f(state at i-1). If state at i-1 was 8, ena=0. But expected ena=1. So ena is NOT registered. It's combinational from current q. Confirmed.
+
+OK, final implementation. All four models get the same code since rules are identical.
+
+Let me write it cleanly:
+
+```python
+def reference(vectors):
+    def ena_of(s):
+        o = s & 15
+        t = (s >> 4) & 15
+        h = (s >> 8) & 15
+        e = 0
+        if o == 9:
+            e = 1
+            if t == 9:
+                e = 3
+                if h == 9:
+                    e = 7
+        return e
+    
+    def inc(s):
+        o = s & 15
+        t = (s >> 4) & 15
+        h = (s >> 8) & 15
+        k = (s >> 12) & 15
+        o += 1
+        if o == 10:
+            o = 0
+            t += 1
+            if t == 10:
+                t = 0
+                h += 1
+                if h == 10:
+                    h = 0
+                    k += 1
+                    if k == 10:
+                        k = 0
+        return o | (t << 4) | (h << 8) | (k << 12)
+    
+    st = 0
+    out = []
+    for v in vectors:
+        r = v.get("reset", 0)
+        if r == 1:
+            out.append({"q": 0, "ena": 0})
+            st = 0
+        else:
+            out.append({"q": st, "ena": ena_of(st)})
+            st = inc(st)
+    return out
+```
+
+Wait, there's a subtle issue: when reset=1, I set st=0 for the next cycle. But the output is forced to 0. That's correct.
+
+But what if reset=1 and the state was already 0? Same result.
+
+Let me double check the ena_of function: for o=9,t=9,h=9 → e=7. For o=9,t=9,h≠9 → e=3. For o=9,t≠9 → e=1. For o≠9 → e=0. Correct.
+
+Now, the task says "return JSON {models:{id: Python source string}}". So I need to produce a JSON with four model IDs, each mapping to the Python source string.
+
+The four IDs are:
+- 6f0b83455311f1c4f6
+- 09ab8a785a70599f7a
+- 6e5159ea5087df0206
+- 3f0f6d2c64eb9b27d7
+
+All get the same source string (since rules are identical). But wait — should they differ? The task says "implement its exact state semantics independently". If the semantics are identical, the implementations are identical. That's fine.
+
+But let me reconsider whether the differing examples imply different semantics. The examples for R5/R6 in models 2,3,4 show hex-increment (99→256, 999→4096). If those were the intended semantics, the counter would be a hex counter for the upper digits when lower digits are 9. But that contradicts the BCD spec. I believe those are bugs in the example data. The rules clearly say BCD.
+
+Actually, wait. Let me re-read the task: "For every assigned item, implement its exact state semantics independently with the same interface." The "state semantics" are defined by the states and rules. The rules are identical. So identical implementation.
+
+But maybe the task wants us to match the examples too, treating them as part of the spec. If so, models 2,3,4 would have different behavior. But that would be bizarre — a counter that's BCD for ones but hex for tens/hundreds? Let me check model 2's R5: 99→256. 99 in BCD is 0x63. 256 is 0x100. So tens went from 9 to 0 and hundreds went from 0 to 1, but the result is 0x100 not 0x100 in BCD (which would be 100 decimal = 0x64). So 256 = 0x100 means the tens digit became 0x10? No, 256 = 0x100, which in BCD would be... 0x100 is not valid BCD (tens digit = 0x10 = 16, invalid). So the example is just wrong/hex.
+
+I'm confident these are example bugs. I'll implement correct BCD for all four.
+
+Actually, let me reconsider one more time. The task might be testing whether we notice the differences and implement them. But the "uncertain" field only flags R7, not R5/R6. If R5/R6 were intentionally different, they'd be flagged uncertain. Since they're not, the differences are just noise. Implement BCD.
+
+Final answer: all four models get the same source string.
+
+Let me format the JSON properly. The source string needs to be a valid Python string (with escaped newlines or as a single line). I'll use a multi-line string with \n escapes in JSON.
+
+Actually, in JSON, I can just put the Python code as a string with \n for newlines. Let me write it compactly.
+
+Let me also make sure there's no executable top-level code — just the function definition. Good.
+
+One more consideration: the function signature. The task says "Each string must define reference(vectors) returning every width-valid output each cycle." So the function is named `reference`. Good.
+
+Let me also handle the case where vectors might have 'reset' as a key always. I use v.get("reset", 0) to be safe.
+
+Let me finalize the code:
+
+```python
+def reference(vectors):
+    def ena_of(s):
+        o = s & 15
+        t = (s >> 4) & 15
+        h = (s >> 8) & 15
+        if o != 9:
+            return 0
+        if t != 9:
+            return 1
+        if h != 9:
+            return 3
+        return 7
+    def inc(s):
+        o = s & 15
+        t = (s >> 4) & 15
+        h = (s >> 8) & 15
+        k = (s >> 12) & 15
+        o += 1
+        if o == 10:
+            o = 0
+            t += 1
+            if t == 10:
+                t = 0
+                h += 1
+                if h == 10:
+                    h = 0
+                    k += 1
+                    if k == 10:
+                        k = 0
+        return o | (t << 4) | (h << 8) | (k << 12)
+    st = 0
+    out = []
+    for v in vectors:
+        if v.get("reset", 0) == 1:
+            out.append({"q": 0, "ena": 0})
+            st = 0
+        else:
+            out.append({"q": st, "ena": ena_of(st)})
+            st = inc(st)
+    return out
+```
+
+This looks good. Let me produce the JSON.
+
+Actually, I realize I should double-check the ena_of logic once more. The ena bits:
+- bit 0: tens should increment = ones==9
+- bit 1: hundreds should increment = ones==9 and tens==9
+- bit 2: thousands should increment = ones==9 and tens==9 and hundreds==9
+
+My ena_of:
+- if o != 9: return 0 (no bits set) ✓
+- if t != 9: return 1 (only bit 0) ✓
+- if h != 9: return 3 (bits 0,1) ✓
+- return 7 (bits 0,1,2) ✓
+
+Correct.
+
+Now let me write the JSON output. I'll use the same string for all four IDs.
+
+Let me make sure the JSON is valid. I'll use \n for newlines in the string.
+
+Actually, I'll write the Python code as a single string with \n. Let me construct it carefully.
+
+The JSON structure:
+```json
+{"models": {"6f0b83455311f1c4f6": "...", "09ab8a785a70599f7a": "...", "6e5159ea5087df0206": "...", "3f0f6d2c64eb9b27d7": "..."}}
+```
+
+Each "..." is the same Python source string.
+
+Let me write it out. I'll use a compact but readable version.
+
+One thing: the task says "no imports, no I/O, and no executable top-level code." My code only defines a function. Good.
+
+Let me also consider: should the function handle the case where vectors is empty? It returns []. Fine.
+
+Should it handle reset values other than 0/1? I use ==1, so any non-1 is treated as 0. Fine.
+
+Let me finalize.
+
+Actually, I want to reconsider the reset behavior one more time. The spec says "synchronous active-high reset" and "update_during_reset: false" for the state. "update_during_reset: false" means the state does NOT update during reset (it's held at 0). So when reset=1, state stays 0 (or becomes 0). My model sets st=0 on reset. Good.
+
+But "update_during_reset: false" might mean the state doesn't change at all during reset (stays at whatever it was)? No, reset sets it to 0. The "update" refers to the normal counting update. So during reset, no counting, just reset to 0. My model does that.
+
+OK, I'm confident. Let me write the final JSON.
+
+Let me also double check: the output for the reset cycle. The reset rule says "visible: same_cycle" with values q=0,ena=0. My model outputs q=0,ena=0 when reset=1. ✓
+
+And the state after the reset edge is 0. ✓
+
+One more: what if reset=1 for multiple cycles? Each cycle outputs 0,0 and state stays 0. ✓
+
+What if reset goes 1→0? The cycle with reset=0 outputs the current state (which is 0 from the reset), then increments. So the first non-reset cycle outputs 0, then next outputs 1. This matches R1: reset=1,0,0 → 0,0,1. ✓
+
+Great.
+
+Let me write the final answer.
+
+I'll make the Python code a bit more compact to fit nicely in JSON.
+
+```python
+def reference(vectors):
+    def ena_of(s):
+        o=s&15; t=(s>>4)&15; h=(s>>8)&15
+        if o!=9: return 0
+        if t!=9: return 1
+        if h!=9: return 3
+        return 7
+    def inc(s):
+        o=s&15; t=(s>>4)&15; h=(s>>8)&15; k=(s>>12)&15
+        o+=1
+        if o==10:
+            o=0; t+=1
+            if t==10:
+                t=0; h+=1
+                if h==10:
+                    h=0; k+=1
+                    if k==10: k=0
+        return o|(t<<4)|(h<<8)|(k<<12)
+    st=0; out=[]
+    for v in vectors:
+        if v.get("reset",0)==1:
+            out.append({"q":0,"ena":0}); st=0
+        else:
+            out.append({"q":st,"ena":ena_of(st)}); st=inc(st)
+    return out
+```
+
+This is clean. Let me put it in JSON with \n.
+
+Actually, for JSON, I need to escape the newlines as \n and quotes as \". Let me write it as a single-line string with \n.
+
+Let me produce the final JSON. I'll write the Python source as a single string with \n separators.
+
+Final check on the ena_of: for o=9,t=9,h=9, returns 7. For o=9,t=9,h=0, returns 3. For o=9,t=0,h=0, returns 1. For o=0, returns 0. ✓
+
+I'm ready.</think>```json
+{"models":{"6f0b83455311f1c4f6":"def reference(vectors):\n    def ena_of(s):\n        o=s&15; t=(s>>4)&15; h=(s>>8)&15\n        if o!=9: return 0\n        if t!=9: return 1\n        if h!=9: return 3\n        return 7\n    def inc(s):\n        o=s&15; t=(s>>4)&15; h=(s>>8)&15; k=(s>>12)&15\n        o+=1\n        if o==10:\n            o=0; t+=1\n            if t==10:\n                t=0; h+=1\n                if h==10:\n                    h=0; k+=1\n                    if k==10: k=0\n        return o|(t<<4)|(h<<8)|(k<<12)\n    st=0; out=[]\n    for v in vectors:\n        if v.get(\"reset\",0)==1:\n            out.append({\"q\":0,\"ena\":0}); st=0\n        else:\n            out.append({\"q\":st,\"ena\":ena_of(st)}); st=inc(st)\n    return out","09ab8a785a70599f7a":"def reference(vectors):\n    def ena_of(s):\n        o=s&15; t=(s>>4)&15; h=(s>>8)&15\n        if o!=9: return 0\n        if t!=9: return 1\n        if h!=9: return 3\n        return 7\n    def inc(s):\n        o=s&15; t=(s>>4)&15; h=(s>>8)&15; k=(s>>12)&15\n        o+=1\n        if o==10:\n            o=0; t+=1\n            if t==10:\n                t=0; h+=1\n                if h==10:\n                    h=0; k+=1\n                    if k==10: k=0\n        return o|(t<<4)|(h<<8)|(k<<12)\n    st=0; out=[]\n    for v in vectors:\n        if v.get(\"reset\",0)==1:\n            out.append({\"q\":0,\"ena\":0}); st=0\n        else:\n            out.append({\"q\":st,\"ena\":ena_of(st)}); st=inc(st)\n    return out","6e5159ea5087df0206":"def reference(vectors):\n    def ena_of(s):\n        o=s&15; t=(s>>4)&15; h=(s>>8)&15\n        if o!=9: return 0\n        if t!=9: return 1\n        if h!=9: return 3\n        return 7\n    def inc(s):\n        o=s&15; t=(s>>4)&15; h=(s>>8)&15; k=(s>>12)&15\n        o+=1\n        if o==10:\n            o=0; t+=1\n            if t==10:\n                t=0; h+=1\n                if h==10:\n                    h=0; k+=1\n                    if k==10: k=0\n        return o|(t<<4)|(h<<8)|(k<<12)\n    st=0; out=[]\n    for v in vectors:\n        if v.get(\"reset\",0)==1:\n            out.append({\"q\":0,\"ena\":0}); st=0\n        else:\n            out.append({\"q\":st,\"ena\":ena_of(st)}); st=inc(st)\n    return out","3f0f6d2c64eb9b27d7":"def reference(vectors):\n    def ena_of(s):\n        o=s&15; t=(s>>4)&15; h=(s>>8)&15\n        if o!=9: return 0\n        if t!=9: return 1\n        if h!=9: return 3\n        return 7\n    def inc(s):\n        o=s&15; t=(s>>4)&15; h=(s>>8)&15; k=(s>>12)&15\n        o+=1\n        if o==10:\n            o=0; t+=1\n            if t==10:\n                t=0; h+=1\n                if h==10:\n                    h=0; k+=1\n                    if k==10: k=0\n        return o|(t<<4)|(h<<8)|(k<<12)\n    st=0; out=[]\n    for v in vectors:\n        if v.get(\"reset\",0)==1:\n            out.append({\"q\":0,\"ena\":0}); st=0\n        else:\n            out.append({\"q\":st,\"ena\":ena_of(st)}); st=inc(st)\n    return out"}}
+```

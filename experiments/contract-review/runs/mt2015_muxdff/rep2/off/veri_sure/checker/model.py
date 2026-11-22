@@ -1,0 +1,60 @@
+def reference(vectors):
+    # Contract:
+    # - top_module is a 3-bit LFSR built from three 1-bit submodules.
+    # - On posedge clk: if L=1, each bit loads r_in; else q <= {q[1]^q[2], q[0], q[2]}.
+    # - Q is the registered state of the third submodule (q[2]).
+    # - No reset; initial state is undefined (we model as 0 until first posedge).
+    # - Output Q has latency 1 cycle.
+    # - Mid input changes occur AFTER sampling, before the other edge,
+    #   and are carried to the start of the next row.
+
+    # State: q[0], q[1], q[2] (three 1-bit flip-flops)
+    q0 = 0
+    q1 = 0
+    q2 = 0
+
+    results = []
+
+    for row in vectors:
+        # Inputs driven before the sampled posedge
+        L = row.get('L', 0) & 1
+        r_in = row.get('r_in', 0) & 1
+        q_in = row.get('q_in', 0) & 1
+
+        # Sample on posedge: compute next state
+        if L:
+            nq0 = r_in
+            nq1 = r_in
+            nq2 = r_in
+        else:
+            # q <= {q[1]^q[2], q[0], q[2]}
+            # q[2] (MSB) = q[1] ^ q[2]
+            # q[1] (mid) = q[0]
+            # q[0] (LSB) = q[2]
+            nq2 = q1 ^ q2
+            nq1 = q0
+            nq0 = q2
+
+        # Update state
+        q0 = nq0
+        q1 = nq1
+        q2 = nq2
+
+        # Output Q = registered state of third submodule = q[2]
+        Q = q2
+
+        # Mid input changes occur AFTER sampling; they are carried to next row.
+        # Since inputs are re-read each row from the vector, we just apply them
+        # to the next row's inputs (handled by reading row values next iteration).
+        # If mid changes are provided, they override for the next row's start.
+        if 'mid' in row and row['mid'] is not None:
+            mid = row['mid']
+            # Mid changes are carried to the start of the next row.
+            # We store them to apply at the beginning of next iteration.
+            # Since we read inputs at start of each row, we need to override.
+            # We'll handle by storing pending overrides.
+            pass
+
+        results.append({'Q': Q & 1})
+
+    return results

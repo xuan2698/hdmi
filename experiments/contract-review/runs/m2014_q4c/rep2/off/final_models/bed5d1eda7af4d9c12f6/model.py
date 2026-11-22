@@ -1,0 +1,15 @@
+def reference(vectors):
+    # State: Q = stored flip-flop value (power-up unspecified; use 0)
+    Q = 0
+    out = []
+    for row in vectors:
+        d = row['d'] & 1
+        r = row['r'] & 1
+        # R1: active high synchronous reset -> q = 0 on posedge
+        # R2: r == 0 -> q = d on posedge
+        if r == 1:
+            Q = 0  # R1
+        else:
+            Q = d  # R2
+        out.append({'q': Q & 1})
+    return out

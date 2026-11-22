@@ -1,0 +1,39 @@
+def reference(vectors):
+    # State table: next state Y[2:0] for (y, x)
+    # y=000 -> x0:000, x1:001
+    # y=001 -> x0:001, x1:100
+    # y=010 -> x0:010, x1:001
+    # y=011 -> x0:001, x1:010
+    # y=100 -> x0:011, x1:100
+    # y=101,110,111 -> undefined; Y0=0 per chosen interpretation (R_Y0)
+    next_state = {
+        (0, 0): 0b000, (0, 1): 0b001,
+        (1, 0): 0b001, (1, 1): 0b100,
+        (2, 0): 0b010, (2, 1): 0b001,
+        (3, 0): 0b001, (3, 1): 0b010,
+        (4, 0): 0b011, (4, 1): 0b100,
+    }
+
+    results = []
+    for vec in vectors:
+        x = vec['x'] & 1
+        y = vec['y'] & 0b111
+
+        # R_Y0: Y0 = LSB of next state selected by (y, x).
+        # Undefined states (y=101,110,111): Y0=0 per chosen interpretation.
+        if (y, x) in next_state:
+            Y = next_state[(y, x)]
+            Y0 = Y & 1
+        else:
+            Y0 = 0
+
+        # R_z: z=1 when present state y is 011 or 100; else 0.
+        # Undefined states (y=101,110,111): z=0 per chosen interpretation.
+        if y == 0b011 or y == 0b100:
+            z = 1
+        else:
+            z = 0
+
+        results.append({'Y0': Y0, 'z': z})
+
+    return results

@@ -1,0 +1,54 @@
+[
+  {
+    "issue": {
+      "issue_id": "I2",
+      "rule_id": "R2_dff_capture",
+      "type": "ambiguity",
+      "severity": "low",
+      "detail": "Spec says 8 DFFs triggered by posedge clk; contract adds reset==0 gating for capture, which is implied but not explicit.",
+      "spec_evidence": "All DFFs should be triggered by the positive edge of clk.",
+      "alternative": "Capture d on every posedge clk regardless of reset, with reset only affecting q when high.",
+      "sequence": [
+        {
+          "d": 165,
+          "reset": 0
+        },
+        {
+          "d": 90,
+          "reset": 1
+        },
+        {
+          "d": 255,
+          "reset": 0
+        }
+      ]
+    },
+    "status": "no_effect",
+    "issue_id": "I2",
+    "outputs": {
+      "original": [
+        {
+          "q": 165
+        },
+        {
+          "q": 0
+        },
+        {
+          "q": 255
+        }
+      ],
+      "alternative": [
+        {
+          "q": 165
+        },
+        {
+          "q": 0
+        },
+        {
+          "q": 255
+        }
+      ]
+    },
+    "differences": []
+  }
+]

@@ -1,0 +1,34 @@
+def reference(vectors):
+    # Rule q_posedge_update: At each sampled posedge, if r==1 then q becomes 0;
+    # otherwise q becomes d. Between posedge events q holds its value.
+    # Power-up state is unspecified; use a concrete initial q=0.
+    q = 0
+    cur_d = 0
+    cur_r = 0
+    out = []
+
+    for row in vectors:
+        # Drive this row's input values before the sampled posedge.
+        if "d" in row:
+            cur_d = row["d"]
+        if "r" in row:
+            cur_r = row["r"]
+
+        # Rule q_posedge_update: synchronous active-high reset priority, else D input.
+        if cur_r == 1:
+            q = 0
+        else:
+            q = cur_d
+
+        out.append({"q": q})
+
+        # mid input changes occur after sampling and are carried to the start of the next row.
+        if "mid" in row:
+            mid = row["mid"]
+            if mid is not None:
+                if "d" in mid:
+                    cur_d = mid["d"]
+                if "r" in mid:
+                    cur_r = mid["r"]
+
+    return out

@@ -1,0 +1,23 @@
+```python
+def reference(vectors):
+    # State-assigned table:
+    # present y[2:0] -> (Y when x=0, Y when x=1, z)
+    table = {
+        0b000: (0b000, 0b001, 0),
+        0b001: (0b001, 0b100, 0),
+        0b010: (0b010, 0b001, 0),
+        0b011: (0b001, 0b010, 1),
+        0b100: (0b011, 0b100, 1),
+    }
+    out = []
+    for v in vectors:
+        x = v['x'] & 1
+        y = v['y'] & 0b111
+        nxt0, nxt1, z = table[y]
+        nxt = nxt1 if x else nxt0
+        # R_Y0: Y0 = next-state bit 0 selected by x from present state y
+        Y0 = nxt & 1
+        # R_z: z = 1 when present state y is 011 or 100, else 0
+        out.append({'Y0': Y0, 'z': z})
+    return out
+```

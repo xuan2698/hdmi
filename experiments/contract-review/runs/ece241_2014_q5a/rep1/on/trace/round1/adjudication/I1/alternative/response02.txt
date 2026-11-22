@@ -1,0 +1,86 @@
+def reference(vectors):
+    result = []
+    state = 'A'
+    cur_areset = 0  # active-low reset asserted at power-up
+    cur_x = 0
+    for row in vectors:
+        # Apply driven input values before the sampled edge
+        if type(row) is dict:
+            if 'areset' in row:
+                cur_areset = row['areset']
+            if 'x' in row:
+                cur_x = row['x']
+
+        # rule reset_async_z0: active-low reset forces state A and z=0
+        if cur_areset == 0:
+            state = 'A'
+
+        # posedge state transitions
+        if cur_areset == 1:
+            if state == 'A':
+                if cur_x == 0:
+                    state = 'A'  # A_x0_to_A_z0
+                else:
+                    state = 'C'  # A_x1_to_C_z1
+            elif state == 'B':
+                if cur_x == 0:
+                    state = 'C'  # B_x0_to_C_z1
+                else:
+                    state = 'B'  # B_x1_to_B_z0
+            elif state == 'C':
+                if cur_x == 0:
+                    state = 'C'  # C_x0_to_C_z1
+                else:
+                    state = 'B'  # C_x1_to_B_z0
+
+        # Moore output after posedge
+        z = 1 if state == 'C' else 0
+        result.append({'z': z})
+
+        # Process optional mid changes after sampling
+        if type(row) is dict and 'mid' in row:
+            mid = row['mid']
+            if type(mid) is dict:
+                if 'areset' in mid:
+                    cur_areset = mid['areset']
+                    if cur_areset == 0:
+                        state = 'A'  # async reset via mid
+                if 'x' in mid:
+                    cur_x = mid['x']
+            elif type(mid) is list:
+                for m in mid:
+                    if type(m) is dict:
+                        if 'areset' in m:
+                            cur_areset = m['areset']
+                            if cur_areset == 0:
+                                state = 'A'
+                        if 'x' in m:
+                            cur_x = m['x']
+                    elif type(m) is tuple and len(m) >= 2:
+                        key = m[0]
+                        val = m[1]
+                        if key == 'areset':
+                            cur_areset = val
+                            if cur_areset == 0:
+                                state = 'A'
+                        elif key == 'x':
+                            cur_x = val
+                    elif type(m) is list and len(m) == 2:
+                        key = m[0]
+                        val = m[1]
+                        if key == 'areset':
+                            cur_areset = val
+                            if cur_areset == 0:
+                                state = 'A'
+                        elif key == 'x':
+                            cur_x = val
+            elif type(mid) is tuple and len(mid) >= 2:
+                key = mid[0]
+                val = mid[1]
+                if key == 'areset':
+                    cur_areset = val
+                    if cur_areset == 0:
+                        state = 'A'
+                elif key == 'x':
+                    cur_x = val
+    return result

@@ -1,0 +1,16 @@
+def reference(vectors):
+    # State: Q initializes to 1 at time 0 (per candidate interpretation)
+    Q = 1
+    out = []
+    for row in vectors:
+        d = row['d'] & 1
+        r = row['r'] & 1
+        # posedge sampling: apply rules by priority
+        # R1: r == 1 -> q = 0 (priority 1)
+        # R2: r == 0 -> q = d (priority 2)
+        if r == 1:
+            Q = 0  # R1
+        else:
+            Q = d  # R2
+        out.append({'q': Q & 1})
+    return out

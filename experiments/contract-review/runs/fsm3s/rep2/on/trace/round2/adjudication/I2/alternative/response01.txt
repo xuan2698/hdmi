@@ -1,0 +1,70 @@
+def reference(vectors):
+    # Rule global: initial state A at time zero per candidate interpretation.
+    state = "A"
+    cur_in = 0
+    cur_reset = 0
+    results = []
+
+    for row in vectors:
+        if row is None:
+            row = {}
+
+        # Drive row input values before the sampled posedge edge.
+        if "in" in row:
+            cur_in = 1 if row["in"] else 0
+        if "reset" in row:
+            cur_reset = 1 if row["reset"] else 0
+        if "inputs" in row and isinstance(row["inputs"], dict):
+            d = row["inputs"]
+            if "in" in d:
+                cur_in = 1 if d["in"] else 0
+            if "reset" in d:
+                cur_reset = 1 if d["reset"] else 0
+
+        # Rule sync_reset: synchronous active-high reset forces state A.
+        # Rule transition_and_moore_output: update state from transition table.
+        if cur_reset:
+            state = "A"
+        else:
+            if state == "A":
+                state = "B" if cur_in else "A"
+            elif state == "B":
+                state = "B" if cur_in else "C"
+            elif state == "C":
+                state = "D" if cur_in else "A"
+            elif state == "D":
+                state = "B" if cur_in else "C"
+            else:
+                state = "A"
+
+        # Moore output after the posedge has settled.
+        results.append({"out": 1 if state == "D" else 0})
+
+        # Optional mid input changes occur after sampling and are carried
+        # to the start of the next row, affecting the next sampled posedge.
+        if "mid" in row:
+            m = row["mid"]
+            mids = m if isinstance(m, (list, tuple)) else [m]
+            for mm in mids:
+                if isinstance(mm, dict):
+                    if "in" in mm:
+                        cur_in = 1 if mm["in"] else 0
+                    if "reset" in mm:
+                        cur_reset = 1 if mm["reset"] else 0
+                    if "inputs" in mm and isinstance(mm["inputs"], dict):
+                        d = mm["inputs"]
+                        if "in" in d:
+                            cur_in = 1 if d["in"] else 0
+                        if "reset" in d:
+                            cur_reset = 1 if d["reset"] else 0
+
+        if "mid_in" in row:
+            cur_in = 1 if row["mid_in"] else 0
+        if "mid_reset" in row:
+            cur_reset = 1 if row["mid_reset"] else 0
+        if "in_mid" in row:
+            cur_in = 1 if row["in_mid"] else 0
+        if "reset_mid" in row:
+            cur_reset = 1 if row["reset_mid"] else 0
+
+    return results

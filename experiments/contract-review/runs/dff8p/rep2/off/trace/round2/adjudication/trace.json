@@ -1,0 +1,76 @@
+[
+  {
+    "issue": {
+      "issue_id": "I4",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec says synchronous reset active high, but does not specify whether reset is sampled at negedge only (synchronous) and whether q updates same cycle. Contract says visible same_cycle. Alternative: reset is asynchronous or visible next cycle. Distinguishing sequence: first negedge with reset=1, then check q immediately after negedge vs after next negedge.",
+      "spec_evidence": "active high synchronous reset",
+      "alternative": "Reset is asynchronous active high, so q becomes 0x34 immediately when reset=1, not only at negedge.",
+      "sequence": [
+        {
+          "d": 0,
+          "reset": 1
+        },
+        {
+          "d": 0,
+          "reset": 0
+        }
+      ]
+    },
+    "status": "no_effect",
+    "issue_id": "I4",
+    "outputs": {
+      "original": [
+        {
+          "q": 52
+        },
+        {
+          "q": 0
+        }
+      ],
+      "alternative": [
+        {
+          "q": 52
+        },
+        {
+          "q": 0
+        }
+      ]
+    },
+    "differences": []
+  },
+  {
+    "issue": {
+      "issue_id": "I5",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "low",
+      "detail": "Spec does not state initial power-up value before any negedge. Contract states reset value 0x34 but only on reset. Alternative: initial q is undefined or 0 until first reset. Distinguishing sequence: start simulation with reset=0 and d=0xAA, apply negedge; if initial q=0x34 vs 0 vs undefined.",
+      "spec_evidence": "",
+      "alternative": "Initial q is 0x00 before any reset or clock edge.",
+      "sequence": [
+        {
+          "d": 170,
+          "reset": 0
+        }
+      ]
+    },
+    "status": "no_effect",
+    "issue_id": "I5",
+    "outputs": {
+      "original": [
+        {
+          "q": 170
+        }
+      ],
+      "alternative": [
+        {
+          "q": 170
+        }
+      ]
+    },
+    "differences": []
+  }
+]

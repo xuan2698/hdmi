@@ -1,0 +1,38 @@
+def reference(vectors):
+    Q = 0  # Q_reg state, initial concrete value for unspecified power-up
+    cur = {"L": 0, "q_in": 0, "r_in": 0}
+    result = []
+
+    for row in vectors:
+        mid = None
+
+        # Drive row inputs before the sampled posedge edge.
+        for k, v in row.items():
+            if k == "mid":
+                mid = v
+            else:
+                cur[k] = int(v) & 1
+
+        L = cur.get("L", 0) & 1
+        q_in = cur.get("q_in", 0) & 1
+        r_in = cur.get("r_in", 0) & 1
+
+        if L == 1:
+            # Rule load_L_high: At posedge clk, if L == 1 then Q_next = r_in
+            Q_next = r_in
+        else:
+            # Rule feedback_L_low: At posedge clk, if L == 0 then Q_next = q_in
+            Q_next = q_in
+
+        # Q_reg updated on posedge clk
+        Q = Q_next & 1
+        result.append({"Q": Q})
+
+        # Optional mid input changes occur AFTER sampling, before the other edge,
+        # and are carried to the start of the next row.
+        if mid is not None:
+            if isinstance(mid, dict):
+                for k, v in mid.items():
+                    cur[k] = int(v) & 1
+
+    return result

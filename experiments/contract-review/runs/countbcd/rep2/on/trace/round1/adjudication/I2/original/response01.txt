@@ -1,0 +1,57 @@
+```python
+def reference(vectors):
+    # R_RESET: synchronous active-high reset state, initially zero.
+    q = 0
+    reset = 0
+    result = []
+
+    for row in vectors:
+        # Inputs driven before the sampled posedge.
+        if isinstance(row, dict) and "reset" in row:
+            reset = int(row["reset"]) & 1
+
+        # Sampled posedge: R_RESET has priority over counting.
+        if reset:
+            # R_RESET: reset == 1 at sampled posedge forces q = 0x0000.
+            q = 0
+        else:
+            # R_COUNT_BCD: increment 4-digit packed BCD modulo 10000.
+            ones = q & 0xF
+            tens = (q >> 4) & 0xF
+            hundreds = (q >> 8) & 0xF
+            thousands = (q >> 12) & 0xF
+
+            ones += 1
+            if ones == 10:
+                ones = 0
+                tens += 1
+                if tens == 10:
+                    tens = 0
+                    hundreds += 1
+                    if hundreds == 10:
+                        hundreds = 0
+                        thousands += 1
+                        if thousands == 10:
+                            thousands = 0
+
+            q = (thousands << 12) | (hundreds << 8) | (tens << 4) | ones
+
+        # R_ENA_COMB: combinational enable from the current/post-edge BCD q.
+        ena = 0
+        if (q & 0xF) == 9:
+            ena += 1
+        if (q & 0xFF) == 0x99:
+            ena += 2
+        if (q & 0xFFF) == 0x999:
+            ena += 4
+
+        result.append({"q": q & 0xFFFF, "ena": ena & 0x7})
+
+        # Optional mid changes occur after sampling and persist to the next row.
+        if isinstance(row, dict):
+            mid = row.get("mid")
+            if isinstance(mid, dict) and "reset" in mid:
+                reset = int(mid["reset"]) & 1
+
+    return result
+```

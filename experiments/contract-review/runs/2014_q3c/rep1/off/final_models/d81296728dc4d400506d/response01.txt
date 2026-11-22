@@ -1,0 +1,78 @@
+```python
+def reference(vectors):
+    # Contract implementation.
+    # R_Y0: Y0 = next-state bit 0 of Y[2:0] selected by x from present state y,
+    #       for present states 000-100; states 101-111 unspecified (don't-care).
+    # R_z:  z = 1 when present state y is 011 or 100, else 0,
+    #       for present states 000-100; states 101-111 unspecified (don't-care).
+    # Mid input changes occur AFTER sampling, before the other edge, and are
+    # carried to the start of the next row. We model each row's inputs as
+    # driven before the sampled edge; mid changes update the carried inputs
+    # for the next row.
+
+    # Next-state table: next_state[y][x] -> Y[2:0]
+    # Only present states 000-100 are specified.
+    next_state = {
+        0b000: {0: 0b000, 1: 0b001},
+        0b001: {0: 0b001, 1: 0b100},
+        0b010: {0: 0b010, 1: 0b001},
+        0b011: {0: 0b001, 1: 0b010},
+        0b100: {0: 0b011, 1: 0b100},
+    }
+
+    # z table for specified present states
+    z_table = {
+        0b000: 0,
+        0b001: 0,
+        0b010: 0,
+        0b011: 1,
+        0b100: 1,
+    }
+
+    results = []
+    # Carried inputs from mid changes (start with None meaning use row's value)
+    carried_x = None
+    carried_y = None
+
+    for row in vectors:
+        # Determine inputs for this row: mid changes from previous row take
+        # precedence at the start of this row.
+        if carried_x is not None:
+            x = carried_x
+        else:
+            x = row.get("x", 0)
+        if carried_y is not None:
+            y = carried_y
+        else:
+            y = row.get("y", 0)
+
+        # R_Y0: compute Y0 from next-state bit 0
+        if y in next_state:
+            Y = next_state[y][x & 1]
+            Y0 = Y & 1
+        else:
+            # Unspecified state: don't-care. Choose 0 as concrete value.
+            Y0 = 0
+
+        # R_z: compute z
+        if y in z_table:
+            z = z_table[y]
+        else:
+            # Unspecified state: don't-care. Choose 0 as concrete value.
+            z = 0
+
+        results.append({"Y0": Y0 & 1, "z": z & 1})
+
+        # Process mid changes: they occur AFTER sampling, before the other edge,
+        # and are carried to the start of the next row.
+        carried_x = None
+        carried_y = None
+        if "mid" in row and isinstance(row["mid"], dict):
+            mid = row["mid"]
+            if "x" in mid:
+                carried_x = mid["x"]
+            if "y" in mid:
+                carried_y = mid["y"]
+
+    return results
+```

@@ -1,0 +1,23 @@
+def reference(vectors):
+    # Contract implementation.
+    # State: Q = stored flip-flop value, driven to q.
+    # Power-up: Q=1 (per candidate interpretation for unresolved power-up).
+    # R1_sync_reset: on posedge clk, if r==1 then Q<=0 (priority 1).
+    # R2_capture_d: on posedge clk, if r==0 then Q<=d (priority 2).
+    # Mid changes occur AFTER sampling, before the other edge, carried to next row.
+    Q = 1  # power-up Q=1 (candidate interpretation)
+    out = []
+    for row in vectors:
+        d = row['d'] & 1
+        r = row['r'] & 1
+        # Sample at posedge clk (values driven before edge).
+        if r == 1:
+            # R1_sync_reset
+            Q = 0
+        else:
+            # R2_capture_d
+            Q = d
+        out.append({'q': Q & 1})
+        # Mid changes (if any) occur after sampling; they are carried to next row
+        # via the row's own values, so nothing extra to do here.
+    return out

@@ -1,0 +1,27 @@
+```python
+def reference(vectors):
+    # Contract implementation.
+    # State: 3-bit counter q. No reset; initial value unspecified.
+    # R1: on posedge, if a==1, q holds (next_cycle visible).
+    # R2: on posedge, if a==0, q increments by 1 mod 8 (next_cycle visible).
+    # Mid changes occur after sampling, before other edge, carried to next row.
+    # Initial q: chosen as 4 to match observed behavior at first posedge with a=1
+    # (uncertain global interpretation: "q initial value is 4 (observed at 5ns)").
+
+    q = 4  # R1/R2 initial state per selected uncertain interpretation
+    out = []
+    for row in vectors:
+        a = row.get('a', 0)
+        # Sample at posedge: apply transition based on current a
+        if a == 1:
+            # R1: hold
+            pass
+        else:
+            # R2: increment mod 8
+            q = (q + 1) & 0x7
+        out.append({'q': q & 0x7})
+        # Mid changes (if any) occur after sampling; carried to next row.
+        # Since vectors provide 'a' per row, mid changes are already reflected
+        # in the next row's 'a' value; nothing extra to do here.
+    return out
+```

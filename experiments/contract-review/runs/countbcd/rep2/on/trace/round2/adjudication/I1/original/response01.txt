@@ -1,0 +1,96 @@
+```python
+def reference(vectors):
+    # R_ENA_COMB: combinational enable from current q.
+    def ena_of(q):
+        e = 0
+        if (q & 0xF) == 9:
+            e += 1
+        if (q & 0xFF) == 0x99:
+            e += 2
+        if (q & 0xFFF) == 0x999:
+            e += 4
+        return e
+
+    # R_COUNT_BCD: increment packed BCD modulo 10000.
+    def bcd_inc(q):
+        d0 = q & 0xF
+        d1 = (q >> 4) & 0xF
+        d2 = (q >> 8) & 0xF
+        d3 = (q >> 12) & 0xF
+
+        d0 += 1
+        if d0 == 10:
+            d0 = 0
+            d1 += 1
+            if d1 == 10:
+                d1 = 0
+                d2 += 1
+                if d2 == 10:
+                    d2 = 0
+                    d3 += 1
+                    if d3 == 10:
+                        d3 = 0
+
+        return (d3 << 12) | (d2 << 8) | (d1 << 4) | d0
+
+    q = 0
+    cur_reset = 0
+    outs = []
+
+    for row in vectors:
+        if isinstance(row, dict):
+            if 'reset' in row:
+                sampled_reset = int(row['reset']) & 1
+            else:
+                sampled_reset = cur_reset & 1
+        elif isinstance(row, (list, tuple)):
+            sampled_reset = (int(row[0]) & 1) if row else 0
+        else:
+            sampled_reset = int(row) & 1
+
+        # R_RESET: synchronous active-high reset forces q to 0.
+        if sampled_reset:
+            q = 0
+        else:
+            q = bcd_inc(q) & 0xFFFF
+
+        # R_ENA_COMB: visible after the sampled posedge settles.
+        ena = ena_of(q)
+        outs.append({'q': q, 'ena': ena})
+
+        # Carry the sampled input and apply mid changes after sampling.
+        cur_reset = sampled_reset
+        if isinstance(row, dict):
+            mid = row.get('mid', None)
+            if isinstance(mid, dict):
+                for k, v in mid.items():
+                    if str(k).lower() == 'reset':
+                        cur_reset = int(v) & 1
+            elif mid is not None:
+                try:
+                    cur_reset = int(mid) & 1
+                except (ValueError, TypeError):
+                    if isinstance(mid, (list, tuple)):
+                        if len(mid) == 1:
+                            try:
+                                cur_reset = int(mid[0]) & 1
+                            except (ValueError, TypeError):
+                                pass
+                        else:
+                            for item in mid:
+                                if isinstance(item, (list, tuple)) and len(item) == 2:
+                                    k, v = item
+                                    if str(k).lower() == 'reset':
+                                        cur_reset = int(v) & 1
+                                elif isinstance(item, dict) and 'reset' in item:
+                                    cur_reset = int(item['reset']) & 1
+
+            for k, v in row.items():
+                lk = str(k).lower()
+                if lk == 'mid':
+                    continue
+                if lk in ('mid_reset', 'reset_mid', 'after_reset', 'reset_after'):
+                    cur_reset = int(v) & 1
+
+    return outs
+```

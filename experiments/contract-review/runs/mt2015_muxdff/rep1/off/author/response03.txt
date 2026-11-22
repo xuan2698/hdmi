@@ -1,0 +1,86 @@
+{
+  "ports": {
+    "inputs": {
+      "r_in": 1,
+      "L": 1
+    },
+    "outputs": {
+      "Q": 1
+    },
+    "clock": "clk"
+  },
+  "states": [
+    {
+      "name": "Q_state",
+      "meaning": "The 1-bit register Q in top_module, updated on posedge clk. When L=1, Q loads r_in; when L=0, Q holds its value because the 2-1 mux selects the flipflop feedback.",
+      "update_time": "posedge clk",
+      "update_during_reset": false
+    }
+  ],
+  "rules": [
+    {
+      "id": "load_rule",
+      "outputs": ["Q"],
+      "condition": "L == 1",
+      "edge": "posedge",
+      "visible": "next_cycle",
+      "priority": 1,
+      "spec_quote": "if (L) begin q <= r; end",
+      "uncertain": false,
+      "example": {
+        "vectors": [
+          {"r_in": 1, "L": 1},
+          {"r_in": 0, "L": 1},
+          {"r_in": 1, "L": 1}
+        ],
+        "expected": [
+          {"Q": 0},
+          {"Q": 1},
+          {"Q": 0}
+        ]
+      }
+    },
+    {
+      "id": "hold_rule",
+      "outputs": ["Q"],
+      "condition": "L == 0",
+      "edge": "posedge",
+      "visible": "next_cycle",
+      "priority": 2,
+      "spec_quote": "q <= {q[1] ^ q[2], q[0], q[2]};",
+      "uncertain": true,
+      "example": {
+        "vectors": [
+          {"r_in": 0, "L": 0},
+          {"r_in": 1, "L": 0},
+          {"r_in": 0, "L": 0}
+        ],
+        "expected": [
+          {"Q": 0},
+          {"Q": 0},
+          {"Q": 0}
+        ]
+      }
+    }
+  ],
+  "reset": {
+    "kind": "none",
+    "name": null,
+    "active": "none",
+    "values": {
+      "Q": null
+    },
+    "first_released_cycle": "not applicable"
+  },
+  "mid": "Optional mid input changes occur AFTER sampling, before the other edge, and are carried to the start of the next row.",
+  "uncertain": [
+    {
+      "rule_id": "hold_rule",
+      "note": "The public spec is for a 3-bit shift register; the requested hierarchical 1-bit submodule cannot implement the shift expression. With a 1-bit flipflop and 2-1 mux, L=0 selects feedback, so Q holds. This is an inference from the hierarchical design request, not verbatim spec text.",
+      "candidates": [
+        "Q holds its previous value when L=0 (mux selects flipflop feedback)",
+        "Q toggles or shifts according to a 1-bit reduction of the original expression"
+      ]
+    }
+  ]
+}

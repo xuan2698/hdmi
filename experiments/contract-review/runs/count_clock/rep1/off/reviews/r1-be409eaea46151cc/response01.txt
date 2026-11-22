@@ -1,0 +1,180 @@
+{
+  "coverage": {
+    "S01": ["R1_reset", "R2_hold", "R3_seconds", "R4_seconds_roll", "R5_minutes_roll", "R6_hours_roll_am_to_pm", "R7_hours_roll_pm_to_am"],
+    "S02": ["R2_hold", "R3_seconds", "R4_seconds_roll", "R5_minutes_roll", "R6_hours_roll_am_to_pm", "R7_hours_roll_pm_to_am"],
+    "S03": ["R1_reset", "R3_seconds", "R4_seconds_roll", "R5_minutes_roll", "R6_hours_roll_am_to_pm", "R7_hours_roll_pm_to_am"],
+    "S04": ["R1_reset"]
+  },
+  "issues": [
+    {
+      "issue_id": "I1",
+      "rule_id": "R1_reset",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "Reset expected hh=18 (0x12) but spec says 12:00 AM; 0x12 is 12 in BCD, so hh should be 0x12 not 18 decimal? Actually 18 decimal = 0x12 hex, so hh=18 is correct BCD 12. No issue.",
+      "spec_evidence": "",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I2",
+      "rule_id": "R5_minutes_roll",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "R5 condition excludes hh==0x11 && pm==0, but example shows hh=18 (0x12) not 0x11; example vectors do not match condition (hh=18, pm=0).",
+      "spec_evidence": "hours (01-12), minutes (00-59), and seconds (00-59)",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I3",
+      "rule_id": "R6_hours_roll_am_to_pm",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "R6 condition requires hh==0x11 (11) but example expected hh=18 (0x12) after roll; condition and example inconsistent.",
+      "spec_evidence": "The signal \"pm\" is asserted if the clock is PM, or is otherwise AM",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I4",
+      "rule_id": "R7_hours_roll_pm_to_am",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "R7 condition requires hh==0x11 (11) but example expected hh=18 (0x12) after roll; condition and example inconsistent.",
+      "spec_evidence": "resets the clock to \"12:00 AM.\"",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I5",
+      "rule_id": "R3_seconds",
+      "type": "consistency",
+      "severity": "medium",
+      "detail": "R3 example starts from ss=0 and increments to 1,2,3; but initial state after reset is ss=0, so first ena should give ss=1, consistent. However example vectors do not show initial state; expected first row ss=1 implies prior ss=0, ok.",
+      "spec_evidence": "",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I6",
+      "rule_id": "R4_seconds_roll",
+      "type": "consistency",
+      "severity": "medium",
+      "detail": "R4 example expected mm=1, ss=0 then ss=1,2; but condition requires ss==0x59 and mm!=0x59; example does not show ss=0x59 before roll, so example vectors do not exercise condition.",
+      "spec_evidence": "minutes (00-59), and seconds (00-59)",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I7",
+      "rule_id": "R5_minutes_roll",
+      "type": "consistency",
+      "severity": "medium",
+      "detail": "R5 example expected mm=0, ss=0 then ss=1,2; but condition requires ss==0x59 && mm==0x59; example does not show that prior state.",
+      "spec_evidence": "hours (01-12), minutes (00-59), and seconds (00-59)",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I8",
+      "rule_id": "R6_hours_roll_am_to_pm",
+      "type": "consistency",
+      "severity": "medium",
+      "detail": "R6 example expected pm=1, hh=18, mm=0, ss=0 then ss=1,2; but condition requires ss==0x59 && mm==0x59 && hh==0x11 && pm==0; example does not show that prior state.",
+      "spec_evidence": "The signal \"pm\" is asserted if the clock is PM, or is otherwise AM",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I9",
+      "rule_id": "R7_hours_roll_pm_to_am",
+      "type": "consistency",
+      "severity": "medium",
+      "detail": "R7 example expected pm=0, hh=18, mm=0, ss=0 then ss=1,2; but condition requires ss==0x59 && mm==0x59 && hh==0x11 && pm==1; example does not show that prior state.",
+      "spec_evidence": "resets the clock to \"12:00 AM.\"",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I10",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "high",
+      "detail": "Spec says hours 01-12, but contract uses hh=0x12 for 12 and hh=0x01 for 1; unclear if 12 is represented as 0x12 or 0x00? Contract reset uses 0x12, so 12 is 0x12. But hours roll from 12 to 1: after 12:59:59 PM, next is 1:00:00 PM? Contract R7 sets hh=0x12 (12) and pm=0, which is 12:00 AM, not 1:00 AM. Spec says 12-hour clock with am/pm; typical behavior: 12:59:59 PM -> 1:00:00 PM, not 12:00:00 AM. Contract R7 rolls PM 12:59:59 to AM 12:00:00, which is wrong; should go to 1:00:00 PM? Actually 12-hour clock: 12:59:59 PM -> 1:00:00 PM (pm stays 1, hh=1). Contract R7 sets pm=0, hh=12, which is 12:00 AM, a 12-hour jump. This is a major semantic error.",
+      "spec_evidence": "Create a set of counters suitable for use as a 12-hour clock (with am/pm indicator).",
+      "alternative": "After 12:59:59 PM, next is 1:00:00 PM (pm=1, hh=0x01, mm=0, ss=0), not 12:00:00 AM.",
+      "sequence": [
+        {"reset":0,"ena":1,"mid":{"hh":18,"mm":89,"ss":89,"pm":1}},
+        {"reset":0,"ena":1},
+        {"reset":0,"ena":1}
+      ]
+    },
+    {
+      "issue_id": "I11",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "high",
+      "detail": "Spec says hours 01-12, but contract uses hh=0x12 for 12 and hh=0x01 for 1; unclear how hours increment from 12 to 1. Contract R6 rolls AM 12:59:59 to PM 12:00:00 (pm=1, hh=12), but typical 12-hour clock: 12:59:59 AM -> 1:00:00 AM (pm=0, hh=1). Contract R6 sets pm=1, hh=12, which is 12:00 PM, a 12-hour jump. This is a major semantic error.",
+      "spec_evidence": "Create a set of counters suitable for use as a 12-hour clock (with am/pm indicator).",
+      "alternative": "After 12:59:59 AM, next is 1:00:00 AM (pm=0, hh=0x01, mm=0, ss=0), not 12:00:00 PM.",
+      "sequence": [
+        {"reset":0,"ena":1,"mid":{"hh":18,"mm":89,"ss":89,"pm":0}},
+        {"reset":0,"ena":1},
+        {"reset":0,"ena":1}
+      ]
+    },
+    {
+      "issue_id": "I12",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Contract does not specify how hours increment within 1-12 (e.g., 1->2, ..., 11->12). Rules only cover roll at 12:59:59. Missing rules for normal hour increment.",
+      "spec_evidence": "hours (01-12)",
+      "alternative": "Need rules for hh increment when ss==0x59 && mm==0x59 && hh!=0x12, e.g., 1:59:59 -> 2:00:00.",
+      "sequence": [
+        {"reset":0,"ena":1,"mid":{"hh":1,"mm":89,"ss":89,"pm":0}},
+        {"reset":0,"ena":1},
+        {"reset":0,"ena":1}
+      ]
+    },
+    {
+      "issue_id": "I13",
+      "rule_id": "global",
+      "type": "coverage",
+      "severity": "medium",
+      "detail": "No rule covers hour increment from 1 to 11 (e.g., 1:59:59 -> 2:00:00). Only roll at 12:59:59 is covered.",
+      "spec_evidence": "hours (01-12)",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I14",
+      "rule_id": "global",
+      "type": "coverage",
+      "severity": "medium",
+      "detail": "No rule covers minute increment when ss==0x59 and mm!=0x59? R4 covers that. But no rule covers hour increment when mm==0x59 and ss==0x59 and hh!=0x12? R5 covers that but condition excludes hh==0x11 && pm==0, which is 11:59:59 AM? Actually hh=0x11 is 11, so 11:59:59 AM should roll to 12:00:00 PM (pm=1, hh=12). R5 excludes that, so missing rule for 11:59:59 AM -> 12:00:00 PM.",
+      "spec_evidence": "hours (01-12)",
+      "alternative": "Need rule for 11:59:59 AM -> 12:00:00 PM (pm=1, hh=0x12, mm=0, ss=0).",
+      "sequence": [
+        {"reset":0,"ena":1,"mid":{"hh":17,"mm":89,"ss":89,"pm":0}},
+        {"reset":0,"ena":1},
+        {"reset":0,"ena":1}
+      ]
+    },
+    {
+      "issue_id": "I15",
+      "rule_id": "global",
+      "type": "coverage",
+      "severity": "medium",
+      "detail": "No rule covers 11:59:59 PM -> 12:00:00 AM (pm=0, hh=0x12, mm=0, ss=0). R5 excludes hh==0x11 && pm==0 only, but for pm=1, hh=0x11, R5 condition includes it? R5 condition: !(hh==0x11 && pm==0). For pm=1, hh=0x11, condition true, so R5 applies and sets hh=18 (0x12), pm unchanged? R5 outputs ss,mm,hh but not pm, so pm stays 1, giving 12:00:00 PM, which is wrong; should be 12:00:00 AM (pm=0). So R5 incorrectly handles 11:59:59 PM.",
+      "spec_evidence": "hours (01-12)",
+      "alternative": "11:59:59 PM should roll to 12:00:00 AM (pm=0, hh=0x12, mm=0, ss=0).",
+      "sequence": [
+        {"reset":0,"ena":1,"mid":{"hh":17,"mm":89,"ss":89,"pm":1}},
+        {"reset":0,"ena":1},
+        {"reset":0,"ena":1}
+      ]
+    }
+  ]
+}

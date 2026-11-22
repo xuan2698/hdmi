@@ -1,0 +1,64 @@
+{
+  "coverage": {
+    "S01": [
+      "R1_sync_reset",
+      "R2_capture_d"
+    ]
+  },
+  "issues": [
+    {
+      "issue_id": "I1",
+      "rule_id": "R1_sync_reset",
+      "type": "consistency",
+      "severity": "medium",
+      "detail": "Rule example expected q=1 on third vector (d=1,r=0) but no prior r=0 posedge captured d; initial state unspecified, so q=1 is not derivable from rule fields.",
+      "spec_evidence": "active high synchronous reset (reset output to 0)",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I2",
+      "rule_id": "R2_capture_d",
+      "type": "consistency",
+      "severity": "medium",
+      "detail": "Rule example expected q=0 on first vector (d=0,r=0) assumes initial Q=0, but contract does not specify power-up state; example contradicts unspecified initial state.",
+      "spec_evidence": "Implement a simple D flip flop",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I3",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Initial state of Q before first posedge is unspecified; two semantics (Q=0 vs Q=1 at power-up) yield different first-cycle outputs when r=0.",
+      "spec_evidence": "",
+      "alternative": "Power-up Q=1 instead of Q=0.",
+      "sequence": [
+        {
+          "d": 0,
+          "r": 0
+        }
+      ]
+    },
+    {
+      "issue_id": "I4",
+      "rule_id": "R1_sync_reset",
+      "type": "ambiguity",
+      "severity": "low",
+      "detail": "Rule says visible same_cycle for synchronous reset; alternative interpretation could make reset visible only after the posedge (next cycle), changing output timing.",
+      "spec_evidence": "active high synchronous reset (reset output to 0)",
+      "alternative": "Reset output becomes 0 one cycle after the posedge with r=1 (registered reset).",
+      "sequence": [
+        {
+          "d": 1,
+          "r": 1
+        },
+        {
+          "d": 0,
+          "r": 0
+        }
+      ]
+    }
+  ]
+}

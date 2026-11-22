@@ -1,0 +1,70 @@
+{
+  "ports": {
+    "inputs": {"r": 3, "L": 1},
+    "outputs": {"q": 3},
+    "clock": "clk"
+  },
+  "states": [
+    {
+      "name": "q_state",
+      "meaning": "3-bit register q holding the current output value",
+      "update_time": "posedge clk",
+      "update_during_reset": false
+    }
+  ],
+  "rules": [
+    {
+      "id": "load_rule",
+      "outputs": ["q"],
+      "condition": "L == 1",
+      "edge": "posedge",
+      "visible": "next_cycle",
+      "priority": 1,
+      "spec_quote": "if (L) begin q <= r;",
+      "uncertain": false,
+      "example": {
+        "vectors": [
+          {"r": 5, "L": 1},
+          {"r": 2, "L": 1},
+          {"r": 7, "L": 0}
+        ],
+        "expected": [
+          {"q": 0},
+          {"q": 5},
+          {"q": 2}
+        ]
+      }
+    },
+    {
+      "id": "shift_rule",
+      "outputs": ["q"],
+      "condition": "L == 0",
+      "edge": "posedge",
+      "visible": "next_cycle",
+      "priority": 2,
+      "spec_quote": "q <= {q[1] ^ q[2], q[0], q[2]};",
+      "uncertain": false,
+      "example": {
+        "vectors": [
+          {"r": 0, "L": 0},
+          {"r": 0, "L": 0},
+          {"r": 0, "L": 0}
+        ],
+        "expected": [
+          {"q": 0},
+          {"q": 0},
+          {"q": 0}
+        ]
+      }
+    }
+  ],
+  "reset": {
+    "kind": "none",
+    "name": null,
+    "active": "none",
+    "values": {"q": null},
+    "first_released_cycle": "0"
+  },
+  "mid": "Optional mid input changes occur AFTER sampling, before the other edge, and are carried to the start of the next row.",
+  "uncertain": []
+}

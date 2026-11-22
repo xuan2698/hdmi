@@ -1,0 +1,22 @@
+```python
+def reference(vectors):
+    # State: Q register, reset value 0x34
+    # R1_sync_reset / R3_reset_value: active high synchronous reset at negedge -> q = 0x34
+    # R2_dff_capture: at negedge with reset==0, q <= d
+    # Candidate interpretation for global: reset is asynchronous active high,
+    # so q becomes 0x34 immediately when reset=1 (applied before sampling).
+    q = 0x34  # power-up value (reset value)
+    out = []
+    for row in vectors:
+        d = row.get('d', 0) & 0xFF
+        reset = row.get('reset', 0) & 0x1
+        # Candidate interpretation: asynchronous active high reset
+        # q becomes 0x34 immediately when reset=1
+        if reset == 1:
+            q = 0x34  # R1_sync_reset, R3_reset_value (async interpretation)
+        else:
+            # R2_dff_capture: negedge capture of d when reset==0
+            q = d & 0xFF
+        out.append({'q': q & 0xFF})
+    return out
+```

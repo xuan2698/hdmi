@@ -1,0 +1,60 @@
+```json
+{
+  "module_name": "top_module",
+  "io": [
+    {
+      "name": "clk",
+      "dir": "input",
+      "width": 1,
+      "description": "Clock input; all state updates occur on the posedge of clk."
+    },
+    {
+      "name": "L",
+      "dir": "input",
+      "width": 1,
+      "description": "Load enable. When high at a posedge, the three 1-bit state elements load from r_in; when low, they shift/xor according to the LFSR feedback."
+    },
+    {
+      "name": "r_in",
+      "dir": "input",
+      "width": 1,
+      "description": "Serial data input used to load each 1-bit state element when L is high."
+    },
+    {
+      "name": "q_in",
+      "dir": "input",
+      "width": 1,
+      "description": "Feedback input to each 1-bit submodule (used as the XOR feedback term when L is low)."
+    },
+    {
+      "name": "Q",
+      "dir": "output",
+      "width": 1,
+      "description": "Registered output of the third (last) 1-bit submodule; reflects the state of the LFSR after the most recent posedge of clk."
+    }
+  ],
+  "clocking": {
+    "clock": {
+      "name": "clk",
+      "edge": "posedge"
+    },
+    "reset": null
+  },
+  "timing": {
+    "outputs": {
+      "Q": {
+        "latency_cycles": 1
+      }
+    }
+  },
+  "functional_summary": {
+    "overview": "top_module is a 3-bit LFSR built hierarchically from three identical 1-bit submodules, each containing a flip-flop and a 2-to-1 multiplexer. Each submodule selects between loading r_in (when L=1) and computing the next LFSR state bit (when L=0). The three submodules are chained so that the overall 3-bit state q[2:0] updates as q <= L ? {r,r,r} : {q[1]^q[2], q[0], q[2]} on each posedge of clk. The output Q is the registered value of the last submodule (corresponding to q[2]).",
+    "rules": [
+      "On each posedge of clk, if L is 1, each 1-bit submodule loads its flip-flop with r_in.",
+      "On each posedge of clk, if L is 0, each 1-bit submodule updates its flip-flop with the value selected by its 2-to-1 multiplexer: the first submodule uses q_in XOR the third submodule's state, the second uses the first submodule's state, and the third uses the third submodule's own previous state.",
+      "The output Q equals the registered state of the third submodule and updates one clock cycle after the corresponding inputs are sampled.",
+      "There is no reset; initial state is undefined until the first posedge of clk."
+    ]
+  }
+}
+```

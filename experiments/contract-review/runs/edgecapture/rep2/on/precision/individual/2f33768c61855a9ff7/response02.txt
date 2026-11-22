@@ -1,0 +1,43 @@
+def reference(vectors):
+    # Initialize concrete state despite unspecified power-up.
+    out = 0
+    prev_in = 0
+    cur_reset = 0
+    cur_in = 0
+    MASK = 0xFFFFFFFF
+    result = []
+
+    for row in vectors:
+        # Apply row-driven values before the sampled posedge.
+        # Explicit row values override values carried from a previous mid change.
+        if "reset" in row:
+            cur_reset = row["reset"] & 1
+        if "in" in row:
+            cur_in = row["in"] & MASK
+
+        if cur_reset:
+            # reset_clear (priority 2): active-high synchronous reset clears out.
+            out = 0
+            # prev_in tracks in on every posedge including reset cycles.
+            prev_in = cur_in & MASK
+        else:
+            # capture_fall (priority 1): set bits where previous in was 1 and current in is 0.
+            # hold_state (priority 0): bits without a 1-to-0 transition retain their value.
+            fall = prev_in & ((~cur_in) & MASK)
+            out = (out | fall) & MASK
+            prev_in = cur_in & MASK
+
+        # Output is visible same cycle after the posedge; concrete unsigned 32-bit value.
+        result.append({"out": out & MASK})
+
+        # Mid changes happen after sampling and become start values for the next row
+        # unless the next row explicitly overrides them.
+        if "mid" in row:
+            mid = row["mid"]
+            if mid is not None:
+                if "reset" in mid:
+                    cur_reset = mid["reset"] & 1
+                if "in" in mid:
+                    cur_in = mid["in"] & MASK
+
+    return result

@@ -1,0 +1,46 @@
+def reference(vectors):
+    # State q_reg: 8-bit D flip-flop output state visible as q.
+    q_reg = 0
+    held = {"d": 0, "reset": 0}
+    result = []
+
+    for row in vectors:
+        # Inputs are driven before the negedge sample. Missing values carry forward.
+        if "d" in row:
+            held["d"] = int(row["d"]) & 0xFF
+        if "reset" in row:
+            held["reset"] = int(row["reset"]) & 0x1
+
+        d_val = held["d"]
+        reset_val = held["reset"]
+
+        # At the negedge clk sample, update the synchronous DFF state.
+        # Rule sync_reset_to_0x34: active-high synchronous reset has priority,
+        # so reset == 1 loads q with 0x34 regardless of d.
+        # Rule load_d_on_negedge: reset == 0 loads q with d on the negedge.
+        # q is visible in the same cycle.
+        if reset_val == 1:
+            q_reg = 0x34
+        else:
+            q_reg = d_val & 0xFF
+
+        result.append({"q": q_reg & 0xFF})
+
+        # Mid input changes occur after the negedge sample and before the other edge.
+        # They are carried to the start of the next row and do not affect this sample.
+        mid = row.get("mid")
+        if isinstance(mid, dict):
+            mid_changes = [mid]
+        elif isinstance(mid, (list, tuple)):
+            mid_changes = mid
+        else:
+            mid_changes = []
+
+        for changes in mid_changes:
+            if isinstance(changes, dict):
+                if "d" in changes:
+                    held["d"] = int(changes["d"]) & 0xFF
+                if "reset" in changes:
+                    held["reset"] = int(changes["reset"]) & 0x1
+
+    return result

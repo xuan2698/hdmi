@@ -1,0 +1,21 @@
+def reference(vectors):
+    # Rule sync_reset_to_0x34: at negedge with reset high, q loads 0x34 (52).
+    # Rule load_d_on_negedge: at negedge with reset low, q loads d.
+    q_reg = 0  # concrete power-up state; overwritten at first sampled negedge
+    out = []
+    for row in vectors:
+        try:
+            d = row["d"]
+            reset = row["reset"]
+        except:
+            # fallback for list/tuple row format
+            d = row[0]
+            reset = row[1]
+        # negedge sample: synchronous reset/data mux
+        if reset:
+            q_reg = 52  # 0x34
+        else:
+            q_reg = d & 255  # 8-bit D flip-flop load
+        # mid changes occur after this sample and do not affect the already-sampled q
+        out.append({"q": q_reg})
+    return out

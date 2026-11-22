@@ -1,0 +1,54 @@
+{
+  "coverage": {
+    "S01": ["R2_COUNT_INC", "R3_WRAP"],
+    "S02": ["R1_SYNC_RESET"]
+  },
+  "issues": [
+    {
+      "issue_id": "I1",
+      "rule_id": "R3_WRAP",
+      "type": "grounding",
+      "severity": "high",
+      "detail": "R3_WRAP example does not exercise wrap; expected values 0,1,2,3 never reach q=9.",
+      "spec_evidence": "counts from 0 through 9, inclusive, with a period of 10",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I2",
+      "rule_id": "R2_COUNT_INC",
+      "type": "consistency",
+      "severity": "medium",
+      "detail": "R2 and R3 both match when reset==0 and q==9; same priority 1 but conflicting implied next values (10 vs 0).",
+      "spec_evidence": "counts from 0 through 9, inclusive, with a period of 10",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I3",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Initial q before any reset is unspecified; first output after reset release depends on whether reset was applied.",
+      "spec_evidence": "The reset input is active high synchronous, and should reset the counter to 0.",
+      "alternative": "Counter may start at 0 without requiring reset, so first posedge with reset==0 yields q=1 instead of unspecified.",
+      "sequence": [
+        {"reset": 0},
+        {"reset": 0}
+      ]
+    },
+    {
+      "issue_id": "I4",
+      "rule_id": "R1_SYNC_RESET",
+      "type": "ambiguity",
+      "severity": "low",
+      "detail": "visible same_cycle for synchronous reset is ambiguous: q=0 may appear after the posedge or combinationally while reset high.",
+      "spec_evidence": "The reset input is active high synchronous, and should reset the counter to 0.",
+      "alternative": "Reset is sampled at posedge; q retains prior value until the clock edge, then becomes 0.",
+      "sequence": [
+        {"reset": 1},
+        {"reset": 0}
+      ]
+    }
+  ]
+}

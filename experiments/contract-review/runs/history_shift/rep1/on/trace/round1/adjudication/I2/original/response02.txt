@@ -1,0 +1,68 @@
+```python
+def reference(vectors):
+    # State: 32-bit global branch history shift register.
+    history = 0
+    # Persistent inputs after mid-cycle changes from the previous row.
+    persist = {}
+    outputs = []
+
+    for row in vectors:
+        # Start with carried mid-cycle input changes.
+        inputs = {}
+        for k, v in persist.items():
+            inputs[k] = v
+
+        # Overlay the current row's driven inputs before the sampled edge.
+        mid = None
+        for k, v in row.items():
+            if k == "mid":
+                mid = v
+            else:
+                inputs[k] = v
+
+        # Extract inputs with defaults (unsigned, within widths).
+        areset = inputs.get("areset", 0) & 1
+        predict_valid = inputs.get("predict_valid", 0) & 1
+        predict_taken = inputs.get("predict_taken", 0) & 1
+        train_mispredicted = inputs.get("train_mispredicted", 0) & 1
+        train_taken = inputs.get("train_taken", 0) & 1
+        train_history = inputs.get("train_history", 0) & 0xFFFFFFFF
+
+        # Rule reset_async: asynchronous reset has highest priority.
+        if areset:
+            history = 0
+        # Rule mispredict_rollback: misprediction takes precedence over prediction.
+        elif train_mispredicted:
+            # Load history before the mispredicted branch concatenated with actual taken.
+            history = ((train_history << 1) | train_taken) & 0xFFFFFFFF
+        # Rule predict_shift: shift in predict_taken from the LSB side.
+        elif predict_valid:
+            history = ((history << 1) | predict_taken) & 0xFFFFFFFF
+        # Rule hold_no_update: no update events => hold previous value.
+
+        # Output after the sampled edge (same-cycle visible).
+        outputs.append({"predict_history": history & 0xFFFFFFFF})
+
+        # Prepare persistent inputs for the next row, then apply mid-cycle changes.
+        persist = {}
+        for k, v in inputs.items():
+            persist[k] = v
+
+        if mid is not None:
+            # Accept mid changes as a dict, a list/tuple of (name, value) pairs,
+            # or a list of dicts, without using isinstance.
+            if type(mid) is dict:
+                for k, v in mid.items():
+                    persist[k] = v
+            elif type(mid) is list:
+                for item in mid:
+                    if type(item) is dict:
+                        for k, v in item.items():
+                            persist[k] = v
+                    elif (type(item) is tuple or type(item) is list) and len(item) == 2:
+                        persist[item[0]] = item[1]
+            elif type(mid) is tuple and len(mid) == 2:
+                persist[mid[0]] = mid[1]
+
+    return outputs
+```

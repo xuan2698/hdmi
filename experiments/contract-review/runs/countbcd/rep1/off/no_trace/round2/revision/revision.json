@@ -1,0 +1,129 @@
+{
+  "responses": [
+    {
+      "issue_id": "I1",
+      "decision": "accept",
+      "reason": "R3 condition only checks ones==9 but its example requires tens to increment (q=9 -> q=16); the condition must include the tens increment so the rule matches the example.",
+      "spec_quote": "q[3:0] is the ones digit",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R3_ones_wrap",
+            "condition"
+          ],
+          "value": "reset == 0 and q[3:0] == 9 and q[7:4] != 9"
+        }
+      ]
+    },
+    {
+      "issue_id": "I2",
+      "decision": "accept",
+      "reason": "R4 example asserts ena=1 at the q=9 row with next_cycle visibility, which is inconsistent; make ena visible same_cycle so the enable is asserted on the cycle the tens digit is about to increment.",
+      "spec_quote": "For digits [3:1], also output an enable signal indicating when each of the upper three digits should be incremented.",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R4_ena_tens",
+            "visible"
+          ],
+          "value": "same_cycle"
+        }
+      ]
+    },
+    {
+      "issue_id": "I3",
+      "decision": "accept",
+      "reason": "R5 example requires hundreds to increment (q=99 -> q=256) and ena=3 at q=99; align visibility to same_cycle so the enable matches the carry condition.",
+      "spec_quote": "For digits [3:1], also output an enable signal indicating when each of the upper three digits should be incremented.",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R5_ena_hundreds",
+            "visible"
+          ],
+          "value": "same_cycle"
+        }
+      ]
+    },
+    {
+      "issue_id": "I4",
+      "decision": "accept",
+      "reason": "R6 example requires thousands to increment (q=999 -> q=4096) and ena=7 at q=999; align visibility to same_cycle so the enable matches the carry condition.",
+      "spec_quote": "For digits [3:1], also output an enable signal indicating when each of the upper three digits should be incremented.",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R6_ena_thousands",
+            "visible"
+          ],
+          "value": "same_cycle"
+        }
+      ]
+    },
+    {
+      "issue_id": "I5",
+      "decision": "rebut",
+      "reason": "R7 is already marked uncertain=true with candidate interpretations, satisfying the flagging requirement for absent verbatim evidence.",
+      "spec_quote": "Build a 4-digit BCD (binary-coded decimal) counter.",
+      "edits": []
+    },
+    {
+      "issue_id": "I6",
+      "decision": "rebut",
+      "reason": "Contract already records this ambiguity in the uncertain global entry with both candidate orderings.",
+      "spec_quote": "For digits [3:1], also output an enable signal indicating when each of the upper three digits should be incremented.",
+      "edits": []
+    },
+    {
+      "issue_id": "I7",
+      "decision": "rebut",
+      "reason": "Contract already records this ambiguity in the uncertain global entry with both candidates.",
+      "spec_quote": "Include a synchronous active-high reset.",
+      "edits": []
+    },
+    {
+      "issue_id": "I8",
+      "decision": "rebut",
+      "reason": "R1 and R2 examples are consistent: R1 shows q=0 at reset row then q=0 on the first released cycle, R2 shows q=0 then q=1; no conflict.",
+      "spec_quote": "q[3:0] is the ones digit",
+      "edits": []
+    },
+    {
+      "issue_id": "I9",
+      "decision": "accept",
+      "reason": "R8 condition leaves a gap when ones==9 but upper digits are not all 9; broaden the default to cover all non-carry cases.",
+      "spec_quote": "For digits [3:1], also output an enable signal indicating when each of the upper three digits should be incremented.",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R8_ena_default",
+            "condition"
+          ],
+          "value": "reset == 0 and not (q[3:0] == 9 and q[7:4] == 9 and q[11:8] == 9)"
+        }
+      ]
+    },
+    {
+      "issue_id": "I10",
+      "decision": "accept",
+      "reason": "R3 condition must reflect the BCD carry chain so the tens digit increments on ones wrap, matching the derived counter behavior.",
+      "spec_quote": "Each decimal digit is encoded using 4 bits: q[3:0] is the ones digit, q[7:4] is the tens digit, etc.",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R3_ones_wrap",
+            "condition"
+          ],
+          "value": "reset == 0 and q[3:0] == 9 and q[7:4] != 9"
+        }
+      ],
+      "already_applied_by_earlier_issue": true
+    }
+  ]
+}

@@ -1,0 +1,80 @@
+```python
+def reference(vectors):
+    # Deterministic power-up choice: state A, z=0 (even if unspecified).
+    state = "A"
+    current = {"areset": 0, "x": 0}
+    result = []
+
+    for row in vectors:
+        # Drive row values before the sampled posedge.
+        for key in ("areset", "x"):
+            if key in row:
+                current[key] = row[key]
+
+        # Rule reset_async_z0: active-high asynchronous reset forces A and z=0.
+        if current.get("areset", 0) == 1:
+            state = "A"
+
+        # Sample after posedge has settled.
+        if current.get("areset", 0) == 1:
+            # Rule reset_async_z0: reset has priority, state stays A, z=0.
+            state = "A"
+            z = 0
+        else:
+            x = current.get("x", 0)
+
+            if state == "A":
+                if x == 0:
+                    # Rule A_x0_to_A_z0
+                    state = "A"
+                    z = 0
+                else:
+                    # Rule A_x1_to_C_z1
+                    state = "C"
+                    z = 1
+            elif state == "B":
+                if x == 0:
+                    # Rule B_x0_to_C_z1
+                    state = "C"
+                    z = 1
+                else:
+                    # Rule B_x1_to_B_z0
+                    state = "B"
+                    z = 0
+            elif state == "C":
+                if x == 0:
+                    # Rule C_x0_to_C_z1
+                    state = "C"
+                    z = 1
+                else:
+                    # Rule C_x1_to_B_z0
+                    state = "B"
+                    z = 0
+            else:
+                state = "A"
+                z = 0
+
+        result.append({"z": z})
+
+        # Optional mid changes occur AFTER sampling and persist forward.
+        mid = row.get("mid")
+        if mid is not None:
+            if isinstance(mid, dict):
+                changes = [mid]
+            elif isinstance(mid, list):
+                changes = mid
+            else:
+                changes = []
+
+            for change in changes:
+                if isinstance(change, dict):
+                    for key in ("areset", "x"):
+                        if key in change:
+                            current[key] = change[key]
+
+                    # Rule reset_async_z0: asynchronous reset can assert after sampling.
+                    if current.get("areset", 0) == 1:
+                        state = "A"
+
+    return result
+```

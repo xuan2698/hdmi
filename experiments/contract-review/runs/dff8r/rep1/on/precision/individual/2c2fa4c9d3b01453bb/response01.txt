@@ -1,0 +1,54 @@
+def reference(vectors):
+    # State: q_reg is the 8-bit D flip-flop output register.
+    q_reg = 0
+    current_d = 0
+    current_reset = 0
+    outputs = []
+
+    for row in vectors:
+        # Each row's values are driven before the sampled positive edge.
+        if isinstance(row, dict):
+            d_val = row.get('d', current_d)
+            reset_val = row.get('reset', current_reset)
+        else:
+            d_val = current_d
+            reset_val = current_reset
+
+        d_val &= 0xFF
+        reset_val &= 0x1
+
+        # Rule r_posedge_q_sync_reset: at the positive edge of clk,
+        # active-high synchronous reset dominates, setting q <= 0;
+        # otherwise q <= d.
+        if reset_val == 1:
+            q_reg = 0
+        else:
+            q_reg = d_val
+        q_reg &= 0xFF
+
+        outputs.append({'q': q_reg})
+
+        # Mid input changes occur AFTER sampling and are carried to the
+        # start of the next row.
+        current_d = d_val
+        current_reset = reset_val
+
+        if isinstance(row, dict):
+            mid = row.get('mid')
+            if isinstance(mid, dict):
+                if 'd' in mid:
+                    current_d = mid['d'] & 0xFF
+                if 'reset' in mid:
+                    current_reset = mid['reset'] & 0x1
+
+            # Support common alternate mid-change encodings.
+            if 'd_mid' in row:
+                current_d = row['d_mid'] & 0xFF
+            if 'reset_mid' in row:
+                current_reset = row['reset_mid'] & 0x1
+            if 'mid_d' in row:
+                current_d = row['mid_d'] & 0xFF
+            if 'mid_reset' in row:
+                current_reset = row['mid_reset'] & 0x1
+
+    return outputs

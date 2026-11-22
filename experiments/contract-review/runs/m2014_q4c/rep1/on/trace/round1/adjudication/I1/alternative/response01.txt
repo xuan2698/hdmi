@@ -1,0 +1,52 @@
+```python
+def reference(vectors):
+    # Concrete initial state for unspecified power-up.
+    q = 0
+    carried = {}
+    outputs = []
+
+    for row in vectors:
+        # At the start of a row, carried mid changes from the previous cycle are
+        # present, then the row's driven values are applied before the sampled
+        # posedge.
+        cur = carried.copy()
+        if isinstance(row, dict):
+            for k, v in row.items():
+                if k == 'mid' or k == 'clk':
+                    continue
+                cur[k] = v
+
+        d = int(cur.get('d', 0)) & 1
+        r = int(cur.get('r', 0)) & 1
+
+        # q_posedge_update: candidate interpretation applies a negedge-triggered
+        # D flip-flop.  After the sampled posedge settles, q holds; it does not
+        # update on the rising edge.
+        outputs.append({'q': q & 1})
+
+        # Mid changes occur after sampling and before the other (falling) edge.
+        mid = row.get('mid', {}) if isinstance(row, dict) else {}
+        if isinstance(mid, dict):
+            for k, v in mid.items():
+                cur[k] = v
+        elif isinstance(mid, (list, tuple)):
+            for change in mid:
+                if isinstance(change, dict):
+                    for k, v in change.items():
+                        cur[k] = v
+
+        d = int(cur.get('d', 0)) & 1
+        r = int(cur.get('r', 0)) & 1
+
+        # q_posedge_update: negedge-triggered D flip-flop with active-high
+        # synchronous reset.  At the falling edge: if r == 1, q becomes 0;
+        # otherwise q becomes d.
+        if r == 1:
+            q = 0
+        else:
+            q = d
+
+        carried = cur
+
+    return outputs
+```

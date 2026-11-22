@@ -1,0 +1,58 @@
+[
+  {
+    "issue": {
+      "issue_id": "I4",
+      "rule_id": "R_Y0",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec table only defines next states for y=000..100; y=101,110,111 undefined. Rule condition also omits them, leaving Y0/z unspecified for those states.",
+      "spec_evidence": "// 100 | 011, 100 | 1",
+      "alternative": "Treat undefined states as don't-care, e.g. Y0=0,z=0 for y=101.",
+      "sequence": [
+        {
+          "x": 0,
+          "y": 5
+        }
+      ]
+    },
+    "status": "not_executable",
+    "issue_id": "I4",
+    "outputs": {
+      "alternative": [
+        {
+          "Y0": 0,
+          "z": 0
+        }
+      ]
+    },
+    "differences": []
+  },
+  {
+    "issue": {
+      "issue_id": "I5",
+      "rule_id": "R_z",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "z depends only on present state per rule, but spec S06/S07 list z per row; for undefined states 101-111 z is unspecified.",
+      "spec_evidence": "// 011 | 001, 010 | 1",
+      "alternative": "z=0 for all undefined states.",
+      "sequence": [
+        {
+          "x": 1,
+          "y": 6
+        }
+      ]
+    },
+    "status": "not_executable",
+    "issue_id": "I5",
+    "outputs": {
+      "alternative": [
+        {
+          "Y0": 0,
+          "z": 0
+        }
+      ]
+    },
+    "differences": []
+  }
+]

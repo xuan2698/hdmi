@@ -1,0 +1,37 @@
+def reference(vectors):
+    # State q: single-bit stored state.
+    q = 0
+    d = 0
+    r = 0
+    outs = []
+    for row in vectors:
+        # Drive inputs before the sampled posedge.
+        if 'd' in row:
+            d = row['d']
+        if 'r' in row:
+            r = row['r']
+        # At the sampled posedge clk:
+        # sync_active_high_reset: r == 1 updates q to 0 regardless of d.
+        # d_capture_when_not_reset: r == 0 updates q to sampled d.
+        if r == 1:
+            q = 0
+        else:
+            q = d
+        # Output q visible same cycle after edge settled.
+        outs.append({'q': q})
+        # Apply mid changes after sampling; carried to start of next row.
+        if 'mid' in row:
+            mid = row['mid']
+            if 'd' in mid:
+                d = mid['d']
+            if 'r' in mid:
+                r = mid['r']
+        if 'mid_d' in row:
+            d = row['mid_d']
+        if 'mid_r' in row:
+            r = row['mid_r']
+        if 'd_mid' in row:
+            d = row['d_mid']
+        if 'r_mid' in row:
+            r = row['r_mid']
+    return outs

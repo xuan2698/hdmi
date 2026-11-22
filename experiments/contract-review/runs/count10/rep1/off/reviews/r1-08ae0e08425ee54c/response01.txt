@@ -1,0 +1,64 @@
+{
+  "coverage": {
+    "S01": ["R2_COUNT_INC", "R3_WRAP"],
+    "S02": ["R1_SYNC_RESET"]
+  },
+  "issues": [
+    {
+      "issue_id": "I1",
+      "rule_id": "R2_COUNT_INC",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "R2 example expected q=1..4 from reset=0 without initial state; contradicts R1 example where reset=1 then reset=0 yields q=0, implying q starts at 0 and first reset=0 posedge should give q=1 only if prior q=0. R2 example omits reset history and assumes q starts at 0, but R1 example shows reset=0 after reset gives q=0, not q=1.",
+      "spec_evidence": "counts from 0 through 9, inclusive, with a period of 10",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I2",
+      "rule_id": "R3_WRAP",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "R3 example expected q=0,1,2 from reset=0 without showing q=9 prior; wrap rule condition requires q==9, but example does not demonstrate wrap and contradicts R2 increment behavior if starting from 0.",
+      "spec_evidence": "counts from 0 through 9, inclusive, with a period of 10",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I3",
+      "rule_id": "R1_SYNC_RESET",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "R1 example shows reset=1, reset=1, reset=0 expected q=0,0,0. Under synchronous reset, first posedge with reset=0 should increment from 0 to 1, not remain 0. Alternative semantics: reset=0 posedge increments q.",
+      "spec_evidence": "The reset input is active high synchronous, and should reset the counter to 0.",
+      "alternative": "Synchronous reset only forces q=0 on posedges where reset=1; on first posedge with reset=0, q increments from 0 to 1.",
+      "sequence": [
+        {"reset": 1},
+        {"reset": 1},
+        {"reset": 0}
+      ]
+    },
+    {
+      "issue_id": "I4",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec does not define initial q value before any reset or clock. Contract assumes q starts at 0 implicitly via examples, but no explicit initialization rule.",
+      "spec_evidence": "",
+      "alternative": "Initial q is undefined until first reset; first reset=0 posedge may produce any value or require reset first.",
+      "sequence": [
+        {"reset": 0}
+      ]
+    },
+    {
+      "issue_id": "I5",
+      "rule_id": "R2_COUNT_INC",
+      "type": "grounding",
+      "severity": "low",
+      "detail": "R2 spec_quote 'counts from 0 through 9, inclusive, with a period of 10' supports counting but not the specific increment-by-1 behavior; spec does not explicitly state increment step.",
+      "spec_evidence": "counts from 0 through 9, inclusive, with a period of 10",
+      "alternative": "",
+      "sequence": []
+    }
+  ]
+}

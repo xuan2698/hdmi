@@ -1,0 +1,151 @@
+def reference(vectors):
+    # Contract implementation.
+    # State: count (16-bit BCD), initialized to 0.
+    # Outputs sampled at posedge clk after settling.
+    # reset is synchronous active-high: on posedge with reset==1, q<=0, ena<=0.
+    # Otherwise BCD increment with enables.
+    # Mid changes occur AFTER sampling, before other edge, carried to next row.
+    # We model: for each row, we first apply any pending mid change (from previous row),
+    # then sample outputs based on current state (which reflects prior posedges),
+    # then compute next state at posedge using current inputs.
+
+    q = 0  # current state value (BCD packed)
+    ena = 0
+    pending = None  # pending mid change to apply before this row's sampling
+
+    results = []
+    for row in vectors:
+        # Apply pending mid change (occurs after previous sampling, before this row)
+        if pending is not None:
+            # mid changes affect inputs; here only reset is an input
+            # We treat pending as a dict of input overrides applied to this row's inputs
+            # But contract says mid changes are carried to start of next row.
+            # So merge: pending overrides row values.
+            merged = dict(row)
+            merged.update(pending)
+            row = merged
+            pending = None
+
+        reset = row.get('reset', 0)
+
+        # Sample outputs based on current state (before this posedge's update)
+        # R1_reset: synchronous reset visible same cycle? "visible":"same_cycle"
+        # For synchronous reset, outputs reflect reset at the posedge.
+        # Our model: outputs are the state after the posedge.
+        # So we need to compute the state AFTER this posedge, then output it.
+        # But mid changes happen after sampling... Let's re-read.
+        #
+        # "Each row's values are driven before the sampled edge."
+        # "Optional mid input changes occur AFTER sampling, before the other edge,
+        #  and are carried to the start of the next row."
+        #
+        # So: row inputs are driven before posedge. At posedge, we sample outputs
+        # (which are the registered state after update). Then mid changes may occur
+        # after sampling, affecting next row.
+        #
+        # So for each row: compute next state from current state + row inputs (reset).
+        # Output = next state (q) and ena computed from current state (pre-update)
+        # because ena indicates when upper digits should be incremented at this edge.
+        #
+        # Wait: ena is an output indicating when each upper digit should be incremented.
+        # It's combinational based on current q (before increment). Visible next_cycle
+        # per rules, but actually it's the enable for the increment happening at this edge.
+        # The examples: q=9 -> ena=1 at same row. So ena is based on current q.
+        #
+        # Let's check R4 example: vectors reset=0,0,0 -> expected q=9,ena=1 then q=10,ena=0.
+        # Row 1: q=9, ena=1. So ena reflects current q (9), and q output is 9.
+        # That means q output is the CURRENT state (before this edge's increment)?
+        # But R2 example: reset=0,0,0 -> q=1,2,3. Starting from 0, first row q=1.
+        # So q output is the state AFTER the posedge.
+        #
+        # Contradiction? Let's reconcile: R4 example starts at q=9 already.
+        # So row 1: current state=9, ena=1 (based on current), q output after edge = 10?
+        # But expected q=9. Hmm.
+        #
+        # Actually maybe the vectors represent inputs, and expected is the output
+        # AFTER the posedge. For R4: to get q=9 at row 1, the state before row 1
+        # must be 8, and after posedge becomes 9. ena=1 means at this edge,
+        # tens digit increments (because ones was 9 before edge). So ena is based on
+        # pre-edge state (8? no, ones=8, not 9).
+        #
+        # Let me reconsider: ena=1 at row where q=9 means: at the NEXT edge, tens
+        # will increment. So ena is combinational from current q (post-edge value 9).
+        # So ena is based on the OUTPUT q (post-edge state).
+        #
+        # Check R5: q=99, ena=3. 99 -> ones=9, tens=9. ena[0]=1 (tens inc),
+        # ena[1]=1 (hundreds inc), ena[2]=0. That's 3. Yes, ena based on post-edge q.
+        #
+        # So: q output = state after posedge. ena output = combinational from q output
+        # (the post-edge state), indicating which upper digits will increment at next edge.
+        #
+        # But wait, ena is "visible":"next_cycle" per rules. Hmm, but example shows
+        # same row. Let's just follow examples: ena computed from q output.
+        #
+        # Actually re-reading: "For digits [3:1], also output an enable signal
+        # indicating when each of the upper three digits should be incremented."
+        # This is the carry chain. ena[0] = (ones==9), ena[1] = (ones==9 && tens==9),
+        # ena[2] = (ones==9 && tens==9 && hundreds==9). Based on current q.
+        #
+        # And q output is the registered value after posedge.
+        # So ena should be based on the q value BEFORE the posedge (the value that
+        # determines the increment). But examples show ena based on q output...
+        #
+        # R4: q=9, ena=1. If q=9 is post-edge, then pre-edge was 8, ena would be 0.
+        # So ena must be based on post-edge q=9. That means ena is the enable for
+        # the NEXT increment. OK, so ena = f(q_output).
+        #
+        # Let's verify R5: q=99, ena=3. f(99): ones=9 -> ena[0]=1; ones=9,tens=9 ->
+        # ena[1]=1; ones=9,tens=9,hundreds=9? hundreds=0, so ena[2]=0. Total=3. ✓
+        #
+        # R6: q=999, ena=7. f(999): 1+1+1=7. ✓
+        #
+        # R7: q=9999, ena=7. f(9999): 1+1+1=7. ✓
+        #
+        # So ena = f(q_output). Good.
+
+        # Compute next state at posedge
+        if reset == 1:
+            # R1_reset: synchronous reset
+            next_q = 0
+        else:
+            # BCD increment
+            ones = q & 0xF
+            tens = (q >> 4) & 0xF
+            hundreds = (q >> 8) & 0xF
+            thousands = (q >> 12) & 0xF
+
+            if q == 0x9999:
+                # R7_full_wrap
+                next_q = 0
+            else:
+                ones += 1
+                if ones == 10:
+                    ones = 0
+                    tens += 1
+                    if tens == 10:
+                        tens = 0
+                        hundreds += 1
+                        if hundreds == 10:
+                            hundreds = 0
+                            thousands += 1
+                            if thousands == 10:
+                                thousands = 0
+                next_q = (thousands << 12) | (hundreds << 8) | (tens << 4) | ones
+
+        q = next_q
+
+        # Compute ena from q output (post-edge state)
+        ones = q & 0xF
+        tens = (q >> 4) & 0xF
+        hundreds = (q >> 8) & 0xF
+        ena0 = 1 if ones == 9 else 0
+        ena1 = 1 if (ones == 9 and tens == 9) else 0
+        ena2 = 1 if (ones == 9 and tens == 9 and hundreds == 9) else 0
+        ena = ena0 | (ena1 << 1) | (ena2 << 2)
+
+        results.append({"q": q, "ena": ena})
+
+        # Mid changes: none specified in this contract beyond reset, which is
+        # a regular input. No pending mid changes to track here.
+
+    return results

@@ -1,0 +1,37 @@
+{
+  "responses": [
+    {
+      "issue_id": "I1",
+      "decision": "accept",
+      "reason": "The public specification does not state clk edge polarity, so the contract should record the posedge metadata as an uncertain interpretation rather than an established spec rule.",
+      "spec_quote": "Include a synchronous active high reset that resets the FSM to state A.",
+      "edits": [
+        {
+          "path": [
+            "uncertain"
+          ],
+          "value": [
+            {
+              "rule_id": "global",
+              "note": "The state before the first sampled synchronous reset is not specified by the public specification; reset forces state A.",
+              "candidates": [
+                "State A at time zero",
+                "State C at time zero",
+                "An unknown/arbitrary state at time zero"
+              ]
+            },
+            {
+              "rule_id": "global",
+              "note": "The public specification does not specify clk edge polarity; the contract's posedge metadata is not grounded by a spec quote and should be treated as uncertain.",
+              "candidates": [
+                "Transitions occur on posedge clk",
+                "Transitions occur on negedge clk",
+                "Transitions occur on either edge or edge polarity is unspecified"
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

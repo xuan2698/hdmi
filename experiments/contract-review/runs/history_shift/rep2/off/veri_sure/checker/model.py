@@ -1,0 +1,34 @@
+def reference(vectors):
+    # Contract:
+    # - areset is async active-high: forces predict_history = 0 regardless of clock.
+    # - On posedge (areset deasserted):
+    #     if train_mispredicted: predict_history <= (train_history << 1) | train_taken
+    #     elif predict_valid:    predict_history <= (predict_history << 1) | predict_taken
+    #     else:                  hold
+    # - Misprediction takes precedence over prediction.
+    # - predict_history[0] is youngest branch.
+    # - Output latency 0: predict_history reflects state after the sampled edge.
+    # - Mid input changes occur AFTER sampling, before the other edge, carried to next row.
+    MASK = (1 << 32) - 1
+    state = 0  # power-up unspecified; use 0 as concrete value
+    out = []
+    for row in vectors:
+        # Apply any mid changes that were carried from previous row (already in row)
+        # Determine reset (async, active high) — takes effect immediately
+        areset = row.get('areset', 0)
+        if areset:
+            state = 0
+        else:
+            # Sample on posedge
+            tm = row.get('train_mispredicted', 0)
+            pv = row.get('predict_valid', 0)
+            if tm:
+                th = row.get('train_history', 0) & MASK
+                tt = row.get('train_taken', 0) & 1
+                state = ((th << 1) | tt) & MASK
+            elif pv:
+                pt = row.get('predict_taken', 0) & 1
+                state = ((state << 1) | pt) & MASK
+            # else hold
+        out.append({'predict_history': state & MASK})
+    return out

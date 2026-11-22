@@ -1,0 +1,38 @@
+def reference(vectors):
+    # State: 32-bit global branch history shift register.
+    # bit 0 is the youngest branch direction.
+    history = 0  # power-up unspecified; use 0 as concrete value
+    out = []
+
+    for row in vectors:
+        areset = row["areset"]
+        predict_valid = row["predict_valid"]
+        predict_taken = row["predict_taken"]
+        train_mispredicted = row["train_mispredicted"]
+        train_taken = row["train_taken"]
+        train_history = row["train_history"]
+
+        # R1_async_reset: asynchronous reset forces history to 0 (visible same cycle)
+        if areset == 1:
+            history = 0
+            out.append({"predict_history": history & 0xFFFFFFFF})
+            continue
+
+        # Compute next state at posedge clk.
+        # R2_mispredict_priority: misprediction takes precedence over prediction.
+        if train_mispredicted == 1:
+            # history = train_history concatenated with train_taken
+            # train_history is the history before the mispredicted branch;
+            # train_taken is the actual result (youngest bit).
+            next_history = ((train_history << 1) | (train_taken & 1)) & 0xFFFFFFFF
+        elif predict_valid == 1:
+            # R3_predict_shift: shift in predict_taken from LSB side.
+            next_history = ((history << 1) | (predict_taken & 1)) & 0xFFFFFFFF
+        else:
+            # R4_hold: hold current value.
+            next_history = history
+
+        history = next_history
+        out.append({"predict_history": history & 0xFFFFFFFF})
+
+    return out

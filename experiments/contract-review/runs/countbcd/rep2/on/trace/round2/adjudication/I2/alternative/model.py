@@ -1,0 +1,57 @@
+def reference(vectors):
+    q = 0
+    reset_val = 0
+    out = []
+    for row in vectors:
+        # Drive inputs before the sampled posedge.
+        if "reset" in row:
+            reset_val = row["reset"] & 1
+
+        # R_RESET: synchronous active-high reset at posedge forces q to 0.
+        if reset_val:
+            q_next = 0
+        else:
+            # R_COUNT_BCD: increment packed BCD modulo 10000.
+            ones = q & 15
+            tens = (q >> 4) & 15
+            hundreds = (q >> 8) & 15
+            thousands = (q >> 12) & 15
+
+            ones = ones + 1
+            if ones == 10:
+                ones = 0
+                tens = tens + 1
+                if tens == 10:
+                    tens = 0
+                    hundreds = hundreds + 1
+                    if hundreds == 10:
+                        hundreds = 0
+                        thousands = thousands + 1
+                        if thousands == 10:
+                            thousands = 0
+
+            q_next = (thousands << 12) | (hundreds << 8) | (tens << 4) | ones
+
+        # R_ENA_COMB: chosen interpretation ena[2]=ones==9,
+        # ena[1]=lower2==99, ena[0]=lower3==999 (MSB=tens carry).
+        ones = q_next & 15
+        tens = (q_next >> 4) & 15
+        hundreds = (q_next >> 8) & 15
+        ena = 0
+        if ones == 9:
+            ena = ena | 4
+            if tens == 9:
+                ena = ena | 2
+                if hundreds == 9:
+                    ena = ena | 1
+
+        out.append({"q": q_next, "ena": ena})
+        q = q_next
+
+        # Optional mid changes occur after sampling and affect the next row.
+        if "mid" in row:
+            mid = row["mid"]
+            if "reset" in mid:
+                reset_val = mid["reset"] & 1
+
+    return out

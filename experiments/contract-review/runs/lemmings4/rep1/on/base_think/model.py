@@ -1,0 +1,75 @@
+def reference(vectors):
+    st=0
+    c=0
+    ins={'areset':0,'bump_left':0,'bump_right':0,'ground':0,'dig':0}
+    out=[]
+    for row in vectors:
+        for k in ins:
+            if k in row:
+                ins[k]=row[k]
+        if ins['areset']:
+            st=0
+            c=0
+        a=ins['areset']
+        bl=ins['bump_left']
+        br=ins['bump_right']
+        g=ins['ground']
+        dg=ins['dig']
+        if a:
+            st=0
+            c=0
+        elif st==6:
+            pass
+        elif st==0:
+            if not g:
+                st=2
+                c=1
+            elif dg:
+                st=4
+                c=0
+            elif bl:
+                st=1
+        elif st==1:
+            if not g:
+                st=3
+                c=1
+            elif dg:
+                st=5
+                c=0
+            elif br:
+                st=0
+        elif st==2:
+            if g:
+                if c>20:
+                    st=6
+                else:
+                    st=0
+                c=0
+            else:
+                c+=1
+        elif st==3:
+            if g:
+                if c>20:
+                    st=6
+                else:
+                    st=1
+                c=0
+            else:
+                c+=1
+        elif st==4:
+            if not g:
+                st=2
+                c=1
+        elif st==5:
+            if not g:
+                st=3
+                c=1
+        out.append({'walk_left':1 if st==0 else 0,'walk_right':1 if st==1 else 0,'aaah':1 if st==2 or st==3 else 0,'digging':1 if st==4 or st==5 else 0})
+        if 'mid' in row:
+            for k,v in row['mid'].items():
+                if k in ins:
+                    ins[k]=v
+            if ins['areset']:
+                st=0
+                c=0
+    return out

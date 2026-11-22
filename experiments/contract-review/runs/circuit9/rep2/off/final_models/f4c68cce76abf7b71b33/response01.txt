@@ -1,0 +1,39 @@
+```python
+def reference(vectors):
+    # Contract rules:
+    # R1: on posedge, if a == 1, q holds (next_cycle). priority 1.
+    # R2: on posedge, if a == 0, q increments by 1 mod 8 (next_cycle). priority 2.
+    # Reset: none. Initial q = 4 (per chosen candidate interpretation).
+    # Mid changes occur AFTER sampling, before the other edge, carried to next row.
+    # Sample after posedge has settled; each row's values driven before sampled edge.
+
+    q = 4  # initial value per candidate interpretation (global uncertain resolution)
+    results = []
+
+    for row in vectors:
+        clk = row.get("clk")
+        a = row.get("a")
+
+        # Determine if this row samples on a posedge.
+        # Rows are sampled after the posedge edge has settled.
+        # We treat each row as a sampling event at its clock edge.
+        # If clk == 1, this row represents a posedge sample.
+        if clk == 1:
+            # R1: a == 1 -> hold
+            if a == 1:
+                pass  # q unchanged
+            # R2: a == 0 -> increment mod 8
+            else:
+                q = (q + 1) % 8
+
+        # Mid changes: occur AFTER sampling, before the other edge.
+        # They are carried to the start of the next row, so we apply them
+        # to the state for the next iteration. Since mid changes affect
+        # inputs (a), and inputs are provided per-row, we don't need to
+        # modify q here. The next row's 'a' already reflects the mid change.
+        # (No state change from mid input changes in this design.)
+
+        results.append({"q": q & 0x7})
+
+    return results
+```

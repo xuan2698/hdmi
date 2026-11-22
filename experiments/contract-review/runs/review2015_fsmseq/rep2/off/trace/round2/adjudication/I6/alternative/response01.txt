@@ -1,0 +1,61 @@
+```python
+def reference(vectors):
+    # Contract implementation.
+    # R1: reset == 1 -> start_shifting = 0 (sync reset, same_cycle, priority 1)
+    # R2: reset == 0 and state == S4 -> start_shifting = 1 (priority 2)
+    # R3: reset == 0 and state == S3 and data == 1 -> start_shifting = 1 (priority 3)
+    # R4: reset == 0 and not S4 and not (S3 and data==1) -> start_shifting = 0 (priority 4)
+    # Interpretation: after S4, FSM remains in S4 and ignores data until reset.
+    # States: S0, S1, S2, S3, S4
+    # Transitions (posedge, when reset==0):
+    #   S0: data==1 -> S1 else S0
+    #   S1: data==1 -> S2 else S0
+    #   S2: data==1 -> S2 else S3
+    #   S3: data==1 -> S4 else S0
+    #   S4: stay S4
+    # Reset (sync, active high): state -> S0, start_shifting -> 0
+
+    state = "S0"
+    start_shifting = 0
+    results = []
+
+    for row in vectors:
+        reset = row["reset"] & 1
+        data = row["data"] & 1
+
+        # Compute outputs visible same_cycle based on current state and inputs
+        # R1: reset == 1 -> start_shifting = 0
+        if reset == 1:
+            out = 0
+        # R2: reset == 0 and state == S4 -> 1
+        elif state == "S4":
+            out = 1
+        # R3: reset == 0 and state == S3 and data == 1 -> 1
+        elif state == "S3" and data == 1:
+            out = 1
+        # R4: otherwise 0
+        else:
+            out = 0
+
+        results.append({"start_shifting": out})
+
+        # Update state at posedge (after sampling)
+        if reset == 1:
+            state = "S0"
+            start_shifting = 0
+        else:
+            if state == "S0":
+                state = "S1" if data == 1 else "S0"
+            elif state == "S1":
+                state = "S2" if data == 1 else "S0"
+            elif state == "S2":
+                state = "S2" if data == 1 else "S3"
+            elif state == "S3":
+                state = "S4" if data == 1 else "S0"
+            elif state == "S4":
+                state = "S4"
+            if state == "S4":
+                start_shifting = 1
+
+    return results
+```

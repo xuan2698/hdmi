@@ -1,0 +1,83 @@
+```python
+def reference(vectors):
+    # R_RESET, R_COUNT_BCD, R_ENA_COMB
+    q = 0
+    reset_state = 0
+
+    def dec_bcd(val):
+        # Convert packed BCD to integer, decrement modulo 10000, convert back
+        d0 = val & 0xF
+        d1 = (val >> 4) & 0xF
+        d2 = (val >> 8) & 0xF
+        d3 = (val >> 12) & 0xF
+        num = d0 + 10 * d1 + 100 * d2 + 1000 * d3
+        num = (num - 1) % 10000
+        d0 = num % 10
+        d1 = (num // 10) % 10
+        d2 = (num // 100) % 10
+        d3 = (num // 1000) % 10
+        return d0 | (d1 << 4) | (d2 << 8) | (d3 << 12)
+
+    out = []
+    for row in vectors:
+        row_reset = None
+        mid_changes = {}
+
+        if isinstance(row, dict):
+            if 'reset' in row:
+                row_reset = row['reset']
+            elif 'reset_pre' in row:
+                row_reset = row['reset_pre']
+            if 'inputs' in row and isinstance(row['inputs'], dict):
+                if 'reset' in row['inputs']:
+                    row_reset = row['inputs']['reset']
+                elif 'reset_pre' in row['inputs']:
+                    row_reset = row['inputs']['reset_pre']
+            if 'mid' in row and isinstance(row['mid'], dict):
+                mid_changes.update(row['mid'])
+            if 'reset_mid' in row:
+                mid_changes['reset'] = row['reset_mid']
+            if 'mid_reset' in row:
+                mid_changes['reset'] = row['mid_reset']
+        elif isinstance(row, (list, tuple)):
+            if len(row) >= 1:
+                row_reset = row[0]
+            if len(row) >= 2:
+                if isinstance(row[1], dict):
+                    mid_changes.update(row[1])
+                elif isinstance(row[1], (int, bool)):
+                    mid_changes['reset'] = row[1]
+        elif isinstance(row, (int, bool)):
+            row_reset = row
+
+        if row_reset is not None:
+            reset_state = int(row_reset)
+
+        # At posedge: R_RESET and R_COUNT_BCD (decrement interpretation)
+        if reset_state == 1:
+            q_next = 0  # R_RESET
+        else:
+            q_next = dec_bcd(q)  # R_COUNT_BCD
+        q = q_next
+
+        # R_ENA_COMB: combinational from current q
+        ena = 0
+        if (q & 0xF) == 9:
+            ena |= 1
+        if (q & 0xFF) == 0x99:
+            ena |= 2
+        if (q & 0xFFF) == 0x999:
+            ena |= 4
+
+        out.append({'q': q, 'ena': ena})
+
+        # Apply mid changes after sampling (carried to next row)
+        if 'reset' in mid_changes:
+            reset_state = int(mid_changes['reset'])
+        elif 'reset_mid' in mid_changes:
+            reset_state = int(mid_changes['reset_mid'])
+        elif 'mid_reset' in mid_changes:
+            reset_state = int(mid_changes['mid_reset'])
+
+    return out
+```

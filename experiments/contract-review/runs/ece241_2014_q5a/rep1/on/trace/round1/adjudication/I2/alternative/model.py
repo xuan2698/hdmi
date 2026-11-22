@@ -1,0 +1,73 @@
+def reference(vectors):
+    # Initial state: after reset the machine is in A; power-up assumed A.
+    state = "A"
+    cur_areset = 0
+    cur_x = 0
+    result = []
+
+    for row in vectors:
+        # Drive row values before the sampled edge. Row values override carried mid changes.
+        if "areset" in row:
+            cur_areset = row["areset"]
+        if "x" in row:
+            cur_x = row["x"]
+
+        # reset_async_z0: areset==1 asynchronously forces state A and output z=0.
+        if cur_areset == 1:
+            state = "A"
+            z = 0
+        else:
+            # global candidate interpretation: Moore output reflects current state before the edge.
+            if state == "C":
+                z = 1
+            else:
+                z = 0
+
+            # Posedge state transitions when areset==0.
+            if state == "A":
+                if cur_x == 0:
+                    # A_x0_to_A_z0: A --x=0--> A
+                    state = "A"
+                else:
+                    # A_x1_to_C_z1: A --x=1--> C (next state; output above is pre-edge)
+                    state = "C"
+            elif state == "B":
+                if cur_x == 0:
+                    # B_x0_to_C_z1: B --x=0--> C (next state; output above is pre-edge)
+                    state = "C"
+                else:
+                    # B_x1_to_B_z0: B --x=1--> B
+                    state = "B"
+            elif state == "C":
+                if cur_x == 0:
+                    # C_x0_to_C_z1: C --x=0--> C
+                    state = "C"
+                else:
+                    # C_x1_to_B_z0: C --x=1--> B
+                    state = "B"
+
+        result.append({"z": z})
+
+        # mid changes occur after sampling and persist to the start of the next row.
+        if "mid" in row:
+            mid = row["mid"]
+            if mid is not None:
+                # Support mid as a dictionary or as a list of dictionaries.
+                if "areset" in mid or "x" in mid:
+                    if "areset" in mid:
+                        cur_areset = mid["areset"]
+                        if cur_areset == 1:
+                            # Asynchronous reset triggered by a mid change.
+                            state = "A"
+                    if "x" in mid:
+                        cur_x = mid["x"]
+                else:
+                    for m in mid:
+                        if "areset" in m:
+                            cur_areset = m["areset"]
+                            if cur_areset == 1:
+                                state = "A"
+                        if "x" in m:
+                            cur_x = m["x"]
+
+    return result

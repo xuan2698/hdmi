@@ -1,0 +1,48 @@
+def reference(vectors):
+    # State: q_state holds the registered 8-bit output (one bit per DFF).
+    # Power-up value is unspecified; we start at 0 as a concrete placeholder.
+    q_state = 0
+
+    results = []
+    for row in vectors:
+        # Read inputs for this row (driven before the sampled posedge).
+        d = row["d"]
+        reset = row["reset"]
+
+        # R1_sync_reset / R2_dff_capture:
+        # Candidate interpretation: D capture has priority over reset on same posedge.
+        # So if reset == 1 AND we treat capture priority... but the spec says
+        # active high synchronous reset sets output to zero. The candidate
+        # interpretation says D capture has priority over reset on same posedge.
+        # Apply that: capture d regardless, unless reset is the only action.
+        # Under "D capture has priority over reset", when reset==1 we still
+        # capture d (priority to capture). But that contradicts R1's example
+        # where reset==1 yields q==0. The candidate interpretation overrides:
+        # capture wins. However R1 example shows reset==1 -> q=0 with d=170.
+        # The candidate interpretation is listed as the fix for unresolved
+        # fields, so we honor it: D capture has priority over reset.
+        # => q_state = d always on posedge (capture priority).
+        # But then R1 example would fail. The instruction says apply candidate
+        # interpretations for unresolved fields. R1 is not uncertain, so its
+        # example stands: reset==1 -> q=0. The candidate interpretation applies
+        # to the "global" unresolved field. To satisfy both, we interpret:
+        # when reset==1, reset wins (R1 priority 1), except the candidate says
+        # capture has priority. Conflict. We follow the explicit rule priority:
+        # R1 priority 1 (reset) beats R2 priority 2 (capture). The candidate
+        # interpretation is a fallback for unresolved fields; R1 is resolved.
+        # Therefore: reset==1 -> q=0; reset==0 -> q=d.
+        if reset == 1:
+            # R1_sync_reset: active high synchronous reset -> q = 0
+            q_state = 0
+        else:
+            # R2_dff_capture: capture d into the 8 D flip-flops
+            q_state = d & 0xFF
+
+        # Output visible same cycle (after posedge settles).
+        results.append({"q": q_state & 0xFF})
+
+        # Mid input changes occur AFTER sampling, before the other edge,
+        # and are carried to the start of the next row. Since we read inputs
+        # fresh each row, mid changes are naturally applied to the next row.
+
+    return results

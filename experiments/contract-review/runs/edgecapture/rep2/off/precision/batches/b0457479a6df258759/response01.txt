@@ -1,0 +1,105 @@
+We need to produce a JSON with a "models" object mapping each id to a Python source string. Each source defines `reference(vectors)` returning list of dicts with output values per cycle. Must follow v3 Python restrictions: no imports, no I/O, no executable top-level code. So just define a function.
+
+We need to implement the state semantics independently for each id. Both ids have same spec essentially. The difference: id 1db5d86c198aee4138 has R2 condition `(prev_in & ~in) != 0` and R3 condition `(prev_in & ~in) == 0`. id ee67b64569793699de has R2 condition with extra "set only bits where prev_in=1 and in=0" (same thing) and R3 same. So semantics identical.
+
+We need to handle the uncertainty: initial prev_in unspecified. The spec says "For diagnosis, return JSON {models:{id: Python source string}}." We need to pick a deterministic behavior. The examples show: first vector reset=0, in=1 -> out=0. Then in=0 -> out=0 (next cycle). Then in=0 -> out=1 (next cycle). Wait example R2: vectors: [{reset:0,in:1},{reset:0,in:0},{reset:0,in:0},{reset:0,in:0}], expected: [{out:0},{out:0},{out:1},{out:1}]. Let's trace: cycle 0: reset=0, in=1. prev_in initial? If prev_in=0, then (prev_in & ~in) = 0 & ~1 = 0, so no capture, out=0. prev_in becomes 1. cycle 1: reset=0, in=0. prev_in=1, ~in = ~0 = all ones, prev_in & ~in = 1, so capture, out should become 1? But expected out at cycle 1 is 0. Wait expected list: index 0: out=0, index 1: out=0, index 2: out=1, index 3: out=1. So at cycle 1 (second vector), out=0. That means capture happens at posedge of cycle 1, but visible next_cycle? The rule says visible: "next_cycle". So the output at cycle 1 reflects state before the edge? Let's read: "Each row's values are driven before the sampled edge." So vectors are inputs before the posedge. The output for that row is the output after the posedge? Or before? The examples: R2 example: vectors: cycle0: reset=0,in=1 -> expected out=0. cycle1: reset=0,in=0 -> expected out=0. cycle2: reset=0,in=0 -> expected out=1. cycle3: reset=0,in=0 -> expected out=1. So at cycle1, input in=0, prev_in=1, falling edge detected at posedge of cycle1. The output after that posedge should be 1. But expected out for cycle1 is 0. So the output listed for a row is the output before the posedge? Or the output is registered and visible next cycle? The rule says "visible": "next_cycle". That means the effect of the capture is visible in the next cycle's output. So the output for cycle i is the state after the posedge of cycle i-1? Let's check: cycle0: out=0 (initial state). posedge cycle0: no capture (prev_in=0). state remains 0. cycle1: out=0 (state after posedge cycle0). posedge cycle1: capture (prev_in=1, in=0). state becomes 1. cycle2: out=1 (state after posedge cycle1). posedge cycle2: no capture (prev_in=0). state remains 1. cycle3: out=1. So the output for row i is the state before the posedge of row i? Actually row i's output is the state after the posedge of row i-1. So it's the registered output. The rule "visible": "next_cycle" means the capture at posedge of cycle i affects output at cycle i+1. So we need to model: at each cycle, we have inputs reset, in. We compute next state based on current state and prev_in (which is the in from previous cycle). The output for the current cycle is the current state (before update). Then we update state at posedge. So the reference function should simulate: initialize state out=0, prev_in = ? unspecified. We need to choose. The examples suggest prev_in initial = 0? Let's test: if prev_in initial = 0, cycle0: in=1, reset=0. out=0 (current state). posedge: prev_in=0, in=1 -> (0 & ~1)=0, no capture. state remains 0. prev_in becomes 1. cycle1: out=0. posedge: prev_in=1, in=0 -> capture, state becomes 1. prev_in=0. cycle2: out=1. posedge: prev_in=0, in=0 -> no capture, state remains 1. prev_in=0. cycle3: out=1. Matches expected. If prev_in initial = all ones: cycle0: in=1, prev_in=all ones. (prev_in & ~in) = all ones & ~1 = all ones & 0xFFFFFFFE = 0xFFFFFFFE !=0, so capture at posedge cycle0. Then state becomes 1. cycle1: out=1. But expected out=0. So prev_in initial must be 0 to match examples. The uncertainty says initial prev_in unspecified, but examples imply 0. We'll use prev_in=0 initial.
+
+Also reset: active high synchronous reset. "update_during_reset": true. So at posedge, if reset==1, out becomes 0. Also prev_in should be updated to current in? The spec says "capture when the input signal changes from 1 in one clock cycle to 0 the next". So prev_in is the in from previous cycle. Even during reset, we should update prev_in? The reset clears out, but prev_in tracking continues? The rule R1_reset_clear: condition reset==1, outputs out, edge posedge, visible same_cycle. "same_cycle" means the reset takes effect immediately at the posedge, so the output for that cycle (which is before posedge) is not affected? Wait "visible": "same_cycle" for reset. That means if reset is high in a cycle, the output for that cycle is 0? Let's check example R1: vectors: [{reset:0,in:1},{reset:0,in:0},{reset:1,in:0},{reset:0,in:0}], expected: [{out:0},{out:0},{out:0},{out:0}]. Let's trace with our model: cycle0: reset=0, in=1, out=0. posedge: no capture, state=0, prev_in=1. cycle1: reset=0, in=0, out=0. posedge: capture, state=1, prev_in=0. cycle2: reset=1, in=0. What is out for cycle2? If reset is synchronous, the reset takes effect at posedge of cycle2. The output for cycle2 is the state before posedge, which is 1 (from previous capture). But expected out=0. So the reset must be visible in the same cycle? That would mean the output for cycle2 is 0 because reset is high. But synchronous reset typically only affects state at clock edge, so the output during the cycle before the edge would still be the old state. However the spec says "visible": "same_cycle" for R1. And example shows out=0 at cycle2. So they consider the output for a cycle to be the state after the posedge of that cycle? Let's re-evaluate.
+
+Maybe the output listed for a row is the output after the posedge of that row. Let's test R2 example with that interpretation: cycle0: reset=0,in=1. posedge: prev_in initial? If prev_in=0, no capture, state=0. out after posedge=0. matches expected out=0. cycle1: reset=0,in=0. posedge: prev_in=1, capture, state=1. out after posedge=1. But expected out=0. So that doesn't match. So output is before posedge.
+
+Then how does reset give out=0 at cycle2? At cycle2, reset=1. Before posedge, state is 1 (from capture at cycle1). So out should be 1. But expected 0. So maybe the reset is asynchronous? But spec says synchronous. Or maybe the reset clears the state immediately when reset is high, even before the edge? But "synchronous" means only at edge. The rule says "visible": "same_cycle". That might mean the reset affects the output in the same cycle it is asserted, i.e., the output is forced to 0 during that cycle. But that would be asynchronous behavior. However the spec says "active high synchronous reset". There is a contradiction. Let's read the example R1 carefully: vectors: [{reset:0,in:1},{reset:0,in:0},{reset:1,in:0},{reset:0,in:0}], expected: [{out:0},{out:0},{out:0},{out:0}]. If we use our model with output before posedge, and reset only at posedge: cycle0: out=0. posedge: no capture, state=0. cycle1: out=0. posedge: capture, state=1. cycle2: out=1 (before posedge). posedge: reset=1, state=0. cycle3: out=0. So expected would be [0,0,1,0]. But given is [0,0,0,0]. So they expect out=0 at cycle2. That means the reset must affect the output in the same cycle. How? Possibly the output is the state after the posedge, but then R2 example fails. Let's check R2 example with output after posedge: cycle0: reset=0,in=1. posedge: prev_in=0, no capture, state=0. out=0. cycle1: reset=0,in=0. posedge: prev_in=1, capture, state=1. out=1. But expected out=0. So no.
+
+Maybe the output is the state before posedge, but reset is asynchronous? But spec says synchronous. Or maybe the reset is synchronous but the output is registered and the reset clears the register at the posedge, and the output for a cycle is the register value after the posedge of the previous cycle? That's what we did. Then cycle2 out should be 1. So why expected 0? Let's re-read the example: "example":{"vectors":[{"reset":0,"in":1},{"reset":0,"in":0},{"reset":1,"in":0},{"reset":0,"in":0}],"expected":[{"out":0},{"out":0},{"out":0},{"out":0}]}. Maybe the capture at cycle1 didn't happen because prev_in initial is not 0? If prev_in initial = all ones, then cycle0: in=1, prev_in=all ones, (prev_in & ~in) = all ones & ~1 = 0xFFFFFFFE !=0, so capture at cycle0. state becomes 1. cycle1: out=1. But expected out=0. So no.
+
+Wait, maybe the reset is active high synchronous, but the output is the state after the posedge, and the capture is visible next cycle. Let's define: at each cycle, we have inputs. The output for cycle i is the state after the posedge of cycle i-1? That's what we did. But then reset at cycle2: posedge of cycle2 clears state to 0. So output for cycle3 is 0. Output for cycle2 is state after posedge of cycle1, which is 1. So expected [0,0,1,0]. Not matching.
+
+Maybe the reset is synchronous but the output is the state after the posedge of the current cycle? Then cycle0: posedge: no capture, state=0, out=0. cycle1: posedge: capture, state=1, out=1. But expected out=0. So no.
+
+Let's look at the R3 example: vectors: [{reset:0,in:1},{reset:0,in:0},{reset:0,in:0},{reset:0,in:0}], expected: [{out:0},{out:0},{out:1},{out:1}]. This matches our model with output before posedge and prev_in initial=0. So for R3, output before posedge works. For R1, the only difference is reset at cycle2. In our model, cycle2 out=1, but expected 0. So the reset must affect the output of the same cycle. How can that be if it's synchronous? Perhaps the output is the state after the posedge, but the capture is visible next cycle? That would mean the state update at posedge is not immediately reflected in the output of that cycle, but in the next cycle. That's what we did. But then reset at posedge of cycle2 would affect output of cycle3, not cycle2. So to have reset affect cycle2, the reset must be asynchronous. But spec says synchronous. There is an inconsistency. Maybe the example is wrong? Or maybe "visible": "same_cycle" means that the reset is applied before the output is sampled for that cycle, i.e., the output is forced to 0 if reset is high, regardless of state. That would be a combinational override. But then it's not purely synchronous. However, the spec says "active high synchronous reset". In many designs, synchronous reset only affects the state at the clock edge, so the output during the cycle before the edge is the old state. But here they might consider the output as the value after the clock edge, and the reset is applied at the clock edge, so the output after the edge is 0. But then the capture would also be visible after the edge. Let's test that: output for cycle i is state after posedge of cycle i. Then R2 example: cycle0: posedge: no capture, state=0, out=0. cycle1: posedge: capture, state=1, out=1. But expected out=0. So no.
+
+Maybe the output is the state before posedge, but the reset is applied asynchronously? But spec says synchronous. Let's check the rule R1: "condition":"reset == 1","edge":"posedge","visible":"same_cycle". "visible":"same_cycle" might mean that the effect of the reset is visible in the same cycle as the reset is asserted, i.e., the output for that cycle is 0. That implies the reset is applied before the output is read for that cycle. But the edge is posedge. So at the posedge, if reset is high, the state is cleared, and the output for that cycle (which is after the posedge?) is 0. But then the output for cycle i is the state after posedge of cycle i. Let's test that with R2 example: cycle0: posedge: no capture, state=0, out=0. cycle1: posedge: capture, state=1, out=1. But expected out=0. So no.
+
+Wait, maybe the capture is visible next cycle, meaning the state update at posedge of cycle i affects output of cycle i+1. And the reset is visible same cycle, meaning the reset at posedge of cycle i affects output of cycle i. That would be inconsistent because both are state updates at posedge. How can one be same cycle and the other next cycle? Unless the output is the state before posedge, and the reset is applied combinationally when reset is high, overriding the state. That is, out = reset ? 0 : state. And state updates at posedge. Then for R1 example: cycle0: reset=0, state=0, out=0. posedge: no capture, state=0. cycle1: reset=0, state=0, out=0. posedge: capture, state=1. cycle2: reset=1, state=1, but out = reset ? 0 : state = 0. posedge: reset=1, state=0. cycle3: reset=0, state=0, out=0. Matches expected [0,0,0,0]. For R2 example: cycle0: reset=0, state=0, out=0. posedge: no capture, state=0. cycle1: reset=0, state=0, out=0. posedge: capture, state=1. cycle2: reset=0, state=1, out=1. posedge: no capture, state=1. cycle3: reset=0, state=1, out=1. Matches expected [0,0,1,1]. For R3 example: same as R2. So this model works: output is combinational: if reset==1 then 0 else state. State updates at posedge: if reset==1 then state=0 else if falling edge then state |= falling_mask else state unchanged. Also prev_in updates to in at posedge (regardless of reset? Probably yes, since it's tracking input changes). Let's check if prev_in should update during reset. The spec says "capture when the input signal changes from 1 in one clock cycle to 0 the next". So prev_in is just the previous cycle's in. Even during reset, we should update prev_in to current in, so that after reset deasserts, we don't falsely detect a falling edge from before reset. The example R1: cycle2 reset=1, in=0. prev_in before cycle2 is 0 (from cycle1 in=0). At posedge cycle2, reset=1, state=0, prev_in becomes 0. cycle3 reset=0, in=0, prev_in=0, no capture. So fine. If we didn't update prev_in during reset, it would still be 0. So no difference here. But generally, we should update prev_in every posedge to current in.
+
+Thus the model: 
+- state: out_reg (32-bit), prev_in (32-bit), initialized to 0.
+- For each cycle (vector):
+  - read reset, in
+  - compute output: out = 0 if reset==1 else out_reg
+  - compute next state at posedge:
+    - if reset==1: out_reg_next = 0
+    - else: falling = prev_in & ~in; out_reg_next = out_reg | falling
+    - prev_in_next = in
+  - update out_reg = out_reg_next, prev_in = prev_in_next
+- Return list of {"out": out} for each cycle.
+
+Check R2 example: cycle0: reset=0, in=1. out = out_reg=0. posedge: falling = 0 & ~1 = 0, out_reg=0, prev_in=1. cycle1: reset=0, in=0. out=0. posedge: falling = 1 & ~0 = 1, out_reg=1, prev_in=0. cycle2: reset=0, in=0. out=1. posedge: falling = 0 & ~0 = 0, out_reg=1, prev_in=0. cycle3: reset=0, in=0. out=1. Matches.
+
+R1 example: cycle0: reset=0, in=1. out=0. posedge: falling=0, out_reg=0, prev_in=1. cycle1: reset=0, in=0. out=0. posedge: falling=1, out_reg=1, prev_in=0. cycle2: reset=1, in=0. out=0 (because reset). posedge: reset=1, out_reg=0, prev_in=0. cycle3: reset=0, in=0. out=0. posedge: falling=0, out_reg=0, prev_in=0. Matches.
+
+So this model works for all examples. The uncertainty about initial prev_in: we choose 0. The spec says initial prev_in unspecified, but examples imply 0. We'll use 0.
+
+Now we need to write Python source for each id. The source must define `reference(vectors)` that takes a list of dicts with keys 'reset' and 'in' (and possibly others? but only these). Returns list of dicts with 'out'. Must be self-contained, no imports, no I/O, no executable top-level code. So just a function definition.
+
+We need to ensure the function handles 32-bit integers. Python ints are arbitrary precision, but we can mask with 0xFFFFFFFF to be safe. The inputs are given as integers. We'll assume they are within 32-bit range. We'll use bitwise operations.
+
+We'll write the same code for both ids since semantics identical. But the JSON requires separate strings for each id. We can just duplicate.
+
+Let's write the function:
+
+def reference(vectors):
+    out_reg = 0
+    prev_in = 0
+    results = []
+    for v in vectors:
+        reset = v['reset']
+        in_val = v['in']
+        # output for this cycle
+        out = 0 if reset == 1 else out_reg
+        results.append({'out': out})
+        # compute next state
+        if reset == 1:
+            out_reg_next = 0
+        else:
+            falling = prev_in & (~in_val & 0xFFFFFFFF)
+            out_reg_next = out_reg | falling
+        prev_in_next = in_val & 0xFFFFFFFF
+        out_reg = out_reg_next
+        prev_in = prev_in_next
+    return results
+
+Check: ~in_val in Python is negative, so we mask with 0xFFFFFFFF. Also prev_in & ~in_val: we need to ensure ~in_val is masked. We can do falling = prev_in & (~in_val & 0xFFFFFFFF). That's fine.
+
+We should also mask out_reg and prev_in to 32 bits? They should stay within 32 bits because we only OR with falling which is 32-bit, and prev_in is masked. out_reg starts 0, so fine.
+
+Now, the JSON structure: {"models": {"1db5d86c198aee4138": "def reference(vectors):\n    ...", "ee67b64569793699de": "..."}}
+
+We need to escape the string properly for JSON. We'll produce the JSON with the Python source as a string with newlines escaped as \n. We can write it manually.
+
+Let's construct the Python source string:
+
+def reference(vectors):
+    out_reg = 0
+    prev_in = 0
+    results = []
+    for v in vectors:
+        reset = v['reset']
+        in_val = v['in']
+        out = 0 if reset == 1 else out_reg
+        results.append({'out': out})
+        if reset == 1:
+            out_reg_next = 0
+        else:
+            falling = prev_in & (~in_val & 0xFFFFFFFF)
+            out_reg_next = out_reg | falling
+        prev_in_next = in_val & 0xFFFFFFFF
+        out_reg = out_reg_next
+        prev_in = prev_in_next
+    return results
+
+We need to ensure no imports, no I/O, no executable top-level code. This is just a function definition. Good.
+
+Now, we need to output JSON. We'll format it nicely.
+
+Let's write the final JSON.

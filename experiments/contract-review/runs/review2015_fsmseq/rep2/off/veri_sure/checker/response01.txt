@@ -1,0 +1,46 @@
+```python
+def reference(vectors):
+    # FSM states: 0=none, 1=matched "1", 2=matched "11", 3=matched "110", 4=matched "1101"
+    state = 0
+    start_shifting = 0
+    out = []
+    for row in vectors:
+        clk = row.get('clk', 0)
+        reset = row.get('reset', 0)
+        data = row.get('data', 0)
+        # Outputs are registered; report current value (before this edge's update)
+        out.append({'start_shifting': start_shifting})
+        # Process rising edge
+        if clk == 1:
+            if reset == 1:
+                state = 0
+                start_shifting = 0
+            else:
+                if start_shifting == 1:
+                    # stays 1
+                    pass
+                else:
+                    if state == 0:
+                        state = 1 if data == 1 else 0
+                    elif state == 1:
+                        state = 2 if data == 1 else 1 if data == 1 else 0
+                        # recompute cleanly
+                        if data == 1:
+                            state = 2
+                        else:
+                            state = 0
+                    elif state == 2:
+                        if data == 0:
+                            state = 3
+                        else:
+                            state = 2
+                    elif state == 3:
+                        if data == 1:
+                            state = 4
+                            start_shifting = 1
+                        else:
+                            state = 0
+                    elif state == 4:
+                        start_shifting = 1
+    return out
+```

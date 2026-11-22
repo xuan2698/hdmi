@@ -1,0 +1,193 @@
+{
+  "ports": {
+    "inputs": {
+      "areset": 1,
+      "x": 1
+    },
+    "outputs": {
+      "z": 1
+    },
+    "clock": "clk"
+  },
+  "states": [
+    {
+      "name": "S0",
+      "meaning": "No 1-bit seen yet in the input stream (all bits so far are 0); output equals input bit.",
+      "update_time": "posedge",
+      "update_during_reset": false
+    },
+    {
+      "name": "S1",
+      "meaning": "At least one 1-bit has been seen; now complementing subsequent bits.",
+      "update_time": "posedge",
+      "update_during_reset": false
+    }
+  ],
+  "rules": [
+    {
+      "id": "R1",
+      "outputs": [
+        "z"
+      ],
+      "condition": "In state S0: z = x (pass through bits until first 1).",
+      "edge": "combinational",
+      "visible": "same_cycle",
+      "priority": 1,
+      "spec_quote": "the output (Z) is the 2's complement of the input",
+      "uncertain": false,
+      "example": {
+        "vectors": [
+          {
+            "areset": 0,
+            "x": 0
+          },
+          {
+            "areset": 0,
+            "x": 0
+          },
+          {
+            "areset": 0,
+            "x": 0
+          }
+        ],
+        "expected": [
+          {
+            "z": 0
+          },
+          {
+            "z": 0
+          },
+          {
+            "z": 0
+          }
+        ]
+      }
+    },
+    {
+      "id": "R2",
+      "outputs": [
+        "z"
+      ],
+      "condition": "In state S1: z = NOT x (complement bits after first 1).",
+      "edge": "combinational",
+      "visible": "same_cycle",
+      "priority": 1,
+      "spec_quote": "the output (Z) is the 2's complement of the input",
+      "uncertain": false,
+      "example": {
+        "vectors": [
+          {
+            "areset": 1,
+            "x": 0
+          },
+          {
+            "areset": 0,
+            "x": 1
+          },
+          {
+            "areset": 0,
+            "x": 0
+          }
+        ],
+        "expected": [
+          {
+            "z": 0
+          },
+          {
+            "z": 1
+          },
+          {
+            "z": 1
+          }
+        ]
+      }
+    },
+    {
+      "id": "R3",
+      "outputs": [
+        "z"
+      ],
+      "condition": "State transition: S0 -> S1 when x=1; S1 stays S1. State updates on posedge clk.",
+      "edge": "posedge",
+      "visible": "next_cycle",
+      "priority": 2,
+      "spec_quote": "beginning with the least-significant bit of the number",
+      "uncertain": false,
+      "example": {
+        "vectors": [
+          {
+            "areset": 0,
+            "x": 1
+          },
+          {
+            "areset": 0,
+            "x": 0
+          },
+          {
+            "areset": 0,
+            "x": 0
+          }
+        ],
+        "expected": [
+          {
+            "z": 1
+          },
+          {
+            "z": 1
+          },
+          {
+            "z": 1
+          }
+        ]
+      }
+    },
+    {
+      "id": "R4",
+      "outputs": [
+        "z"
+      ],
+      "condition": "Asynchronous reset asserted (areset=1): state forced to S0; z is unspecified (conversion stopped).",
+      "edge": "asynchronous",
+      "visible": "same_cycle",
+      "priority": 0,
+      "spec_quote": "positive edge triggered asynchronous reset",
+      "uncertain": false,
+      "example": {
+        "vectors": [
+          {
+            "areset": 1,
+            "x": 1
+          },
+          {
+            "areset": 1,
+            "x": 0
+          },
+          {
+            "areset": 0,
+            "x": 0
+          }
+        ],
+        "expected": [
+          {
+            "z": 0
+          },
+          {
+            "z": 0
+          },
+          {
+            "z": 0
+          }
+        ]
+      }
+    }
+  ],
+  "reset": {
+    "kind": "async",
+    "name": "areset",
+    "active": "high",
+    "values": {},
+    "first_released_cycle": "first posedge clk after areset deasserts"
+  },
+  "mid": "Optional mid-cycle input changes occur after sampling and are carried to the start of the next row.",
+  "uncertain": []
+}

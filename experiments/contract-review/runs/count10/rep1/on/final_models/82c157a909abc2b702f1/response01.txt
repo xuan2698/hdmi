@@ -1,0 +1,55 @@
+```python
+def reference(vectors):
+    # Initial state and inputs. Power-up q is unspecified; use 0 for concrete output.
+    q = 0
+    reset = 0  # initial reset value (inactive)
+
+    results = []
+
+    for row in vectors:
+        # Apply row inputs before the sampled posedge.
+        # Unspecified inputs retain their previous value (including prior mid changes).
+        if isinstance(row, dict):
+            for k, v in row.items():
+                if k == "mid":
+                    continue
+                if k.endswith("_mid") or k.startswith("mid_"):
+                    continue
+                if k == "reset":
+                    reset = v
+
+        # POSEDGE update
+        if reset == 1:
+            # rule sync_reset_to_zero
+            q = 0
+        else:
+            # rule count_modulo_10
+            q = (q + 1) % 10
+
+        # Output visible after the posedge.
+        results.append({"q": q})
+
+        # Apply optional mid changes AFTER sampling, before the other edge.
+        # These changes carry to the start of the next row.
+        if isinstance(row, dict):
+            # Format: {"mid": {"reset": value}}
+            if "mid" in row and isinstance(row["mid"], dict):
+                for k, v in row["mid"].items():
+                    if k == "reset":
+                        reset = v
+
+            # Format: {"reset_mid": value} or {"mid_reset": value}
+            for k, v in row.items():
+                if k == "mid":
+                    continue
+                if k.endswith("_mid"):
+                    name = k[:-4]
+                    if name == "reset":
+                        reset = v
+                elif k.startswith("mid_"):
+                    name = k[4:]
+                    if name == "reset":
+                        reset = v
+
+    return results
+```

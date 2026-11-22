@@ -1,0 +1,65 @@
+def reference(vectors):
+    history = 0
+    cur = {}
+    outputs = []
+    for row in vectors:
+        # Extract optional mid-cycle changes
+        mid = None
+        if 'mid' in row:
+            mid = row['mid']
+        elif 'mid_changes' in row:
+            mid = row['mid_changes']
+        elif '_mid' in row:
+            mid = row['_mid']
+
+        # rule reset_async: detect rising edge of areset due to row inputs
+        old_areset = cur.get('areset', 0)
+        new_areset = old_areset
+        for k, v in row.items():
+            if k in ('mid', 'mid_changes', '_mid', 'clk'):
+                continue
+            cur[k] = v
+            if k == 'areset':
+                new_areset = v
+
+        reset_this_cycle = False
+        if old_areset == 0 and new_areset == 1:
+            # rule reset_async: rising edge of areset asynchronously resets history, priority 0
+            history = 0
+            reset_this_cycle = True
+
+        if not reset_this_cycle:
+            # rule mispredict_rollback: priority 1
+            if cur.get('train_mispredicted', 0) == 1:
+                th = cur.get('train_history', 0) & 0xFFFFFFFF
+                tt = cur.get('train_taken', 0) & 1
+                history = ((th << 1) | tt) & 0xFFFFFFFF
+            # rule predict_shift: priority 2
+            elif cur.get('predict_valid', 0) == 1:
+                pt = cur.get('predict_taken', 0) & 1
+                history = ((history << 1) | pt) & 0xFFFFFFFF
+            # rule hold_no_update: priority 3, no change
+            else:
+                pass
+
+        outputs.append({'predict_history': history & 0xFFFFFFFF})
+
+        # Process mid-cycle changes after sampling; they affect only future state
+        if mid is not None:
+            mid_list = mid if isinstance(mid, list) else [mid]
+            for m in mid_list:
+                if not isinstance(m, dict):
+                    continue
+                mid_old_areset = cur.get('areset', 0)
+                mid_new_areset = mid_old_areset
+                for k, v in m.items():
+                    if k == 'clk':
+                        continue
+                    cur[k] = v
+                    if k == 'areset':
+                        mid_new_areset = v
+                if mid_old_areset == 0 and mid_new_areset == 1:
+                    # rule reset_async: asynchronous reset from mid change, affects next cycle only
+                    history = 0
+
+    return outputs

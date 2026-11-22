@@ -1,0 +1,76 @@
+```python
+def reference(vectors):
+    # Initial state: A (reset state), Moore output z=0
+    state = 'A'
+    current_areset = 0
+    current_x = 0
+    out = []
+
+    for row in vectors:
+        # Determine the values driven before the sampled posedge.
+        areset = row['areset'] if 'areset' in row else current_areset
+        x = row['x'] if 'x' in row else current_x
+
+        # reset_async_z0: areset==1 asynchronously forces state A and z=0
+        if areset == 1:
+            state = 'A'
+
+        # Posedge transition (edge samples after it has settled)
+        if areset == 1:
+            # reset_async_z0: reset has priority over any transition
+            state = 'A'
+        else:
+            if state == 'A':
+                if x == 0:
+                    # A_x0_to_A_z0
+                    state = 'A'
+                else:
+                    # A_x1_to_C_z1
+                    state = 'C'
+            elif state == 'B':
+                if x == 0:
+                    # B_x0_to_C_z1
+                    state = 'C'
+                else:
+                    # B_x1_to_B_z0
+                    state = 'B'
+            elif state == 'C':
+                if x == 0:
+                    # C_x0_to_C_z1
+                    state = 'C'
+                else:
+                    # C_x1_to_B_z0
+                    state = 'B'
+
+        # Moore output after the sampled posedge
+        z = 1 if state == 'C' else 0
+        out.append({'z': z})
+
+        # Inputs after sampling are the driven values of this row
+        current_areset = areset
+        current_x = x
+
+        # Optional mid changes occur after sampling, before the next edge.
+        mid = row.get('mid', None)
+        if mid is not None:
+            if isinstance(mid, dict):
+                mids = [mid]
+            elif isinstance(mid, list):
+                mids = mid
+            else:
+                mids = []
+
+            for change in mids:
+                if not isinstance(change, dict):
+                    continue
+                for key, value in change.items():
+                    if key == 'areset':
+                        current_areset = value
+                        if value == 1:
+                            # reset_async_z0: asynchronous reset forces state A and z=0
+                            state = 'A'
+                    elif key == 'x':
+                        current_x = value
+
+    return out
+```

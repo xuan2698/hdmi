@@ -1,0 +1,71 @@
+def reference(vectors):
+    # Named Moore states: A reset/no 1 seen (z=0), B first 1 seen with z=0, C first 1 seen with z=1.
+    state = "A"
+    z = 0
+
+    # Concrete power-up choice: active-low reset is asserted until changed. Inputs persist unless overridden.
+    current = {"areset": 0, "x": 0}
+    result = []
+
+    for row in vectors:
+        # Drive ordinary input values before the sampled posedge. "mid" is not a port.
+        for key in row:
+            if key != "mid":
+                current[key] = row[key]
+
+        # reset_async_z0: candidate interpretation is active-low reset; areset==0 at any time asynchronously forces state A and z=0.
+        if current.get("areset", 0) == 0:
+            state = "A"
+            z = 0
+        else:
+            x = current.get("x", 0)
+
+            if state == "A":
+                if x == 0:
+                    # A_x0_to_A_z0
+                    state = "A"
+                    z = 0
+                else:
+                    # A_x1_to_C_z1
+                    state = "C"
+                    z = 1
+            elif state == "B":
+                if x == 0:
+                    # B_x0_to_C_z1
+                    state = "C"
+                    z = 1
+                else:
+                    # B_x1_to_B_z0
+                    state = "B"
+                    z = 0
+            else:  # state == "C"
+                if x == 0:
+                    # C_x0_to_C_z1
+                    state = "C"
+                    z = 1
+                else:
+                    # C_x1_to_B_z0
+                    state = "B"
+                    z = 0
+
+        result.append({"z": z})
+
+        # Optional mid changes occur after sampling and persist to the start of the next row.
+        mid = row.get("mid") if isinstance(row, dict) else None
+        if mid is not None:
+            if isinstance(mid, dict):
+                mids = [mid]
+            else:
+                mids = mid
+
+            for change in mids:
+                if isinstance(change, dict):
+                    for key, value in change.items():
+                        current[key] = value
+
+                # reset_async_z0: active-low reset also acts asynchronously for mid-cycle changes.
+                if current.get("areset", 0) == 0:
+                    state = "A"
+                    z = 0
+
+    return result

@@ -1,0 +1,56 @@
+```python
+def reference(vectors):
+    # State: q is the registered D flip-flop output, initialized to 0.
+    q = 0
+    # Carried input values from previous mid changes, initialized to 0.
+    carried_d = 0
+    carried_r = 0
+    outputs = []
+
+    for row in vectors:
+        # Determine input values driven before the sampled posedge.
+        if "d" in row:
+            d = row["d"] & 1
+        else:
+            d = carried_d
+
+        if "r" in row:
+            r = row["r"] & 1
+        else:
+            r = carried_r
+
+        # At the sampled posedge:
+        if r == 1:
+            # Rule sync_reset_high: active high synchronous reset forces q to 0.
+            q = 0
+        else:
+            # Rule d_capture_when_reset_inactive: q captures d when reset inactive.
+            q = d & 1
+
+        # Output visible same cycle after edge settled.
+        outputs.append({"q": q})
+
+        # After sampling, update carried values to the driven inputs.
+        carried_d = d
+        carried_r = r
+
+        # Process optional mid input changes (after sampling, before other edge).
+        if "mid" in row:
+            mid = row["mid"]
+            if isinstance(mid, dict):
+                if "d" in mid:
+                    carried_d = mid["d"] & 1
+                if "r" in mid:
+                    carried_r = mid["r"] & 1
+
+        # Alternate mid representation: mid_d, mid_r or d_mid, r_mid.
+        for k in ("d", "r"):
+            for mid_key in ("mid_" + k, k + "_mid"):
+                if mid_key in row:
+                    if k == "d":
+                        carried_d = row[mid_key] & 1
+                    else:
+                        carried_r = row[mid_key] & 1
+
+    return outputs
+```

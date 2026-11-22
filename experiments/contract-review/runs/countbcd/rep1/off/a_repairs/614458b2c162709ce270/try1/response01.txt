@@ -1,0 +1,78 @@
+```python
+def reference(vectors):
+    # Contract implementation for 4-digit BCD counter.
+    # State: count (16-bit BCD), initialized to 0.
+    # Outputs: q (16-bit), ena (3-bit).
+    # Synchronous active-high reset.
+    # R1_reset: reset==1 -> q=0, ena=0 (same cycle, priority 1)
+    # R2_ones_increment: reset==0 and q[3:0]!=9 -> q increments ones (next cycle)
+    # R3_ones_wrap: reset==0 and q[3:0]==9 -> ones wraps, carry (next cycle)
+    # R4_ena_tens: reset==0 and q[3:0]==9 -> ena[0]=1 (next cycle)
+    # R5_ena_hundreds: reset==0 and q[3:0]==9 and q[7:4]==9 -> ena[1]=1 (next cycle)
+    # R6_ena_thousands: reset==0 and q[3:0]==9 and q[7:4]==9 and q[11:8]==9 -> ena[2]=1 (next cycle)
+    # R7_full_wrap: reset==0 and q==0x9999 -> q wraps to 0 (next cycle)
+
+    count = 0  # named state: 4-digit BCD counter value
+    results = []
+
+    for vec in vectors:
+        reset = vec.get('reset', 0)
+
+        # Compute outputs based on current state (before posedge update)
+        # R1_reset: reset visible same cycle
+        if reset == 1:
+            q_out = 0
+            ena_out = 0
+        else:
+            q_out = count
+            # ena signals indicate when upper digits should be incremented
+            # based on current digit values (combinational from state)
+            ones = count & 0xF
+            tens = (count >> 4) & 0xF
+            hundreds = (count >> 8) & 0xF
+            thousands = (count >> 12) & 0xF
+            ena0 = 1 if ones == 9 else 0  # R4_ena_tens
+            ena1 = 1 if (ones == 9 and tens == 9) else 0  # R5_ena_hundreds
+            ena2 = 1 if (ones == 9 and tens == 9 and hundreds == 9) else 0  # R6_ena_thousands
+            ena_out = (ena2 << 2) | (ena1 << 1) | ena0
+
+        results.append({'q': q_out & 0xFFFF, 'ena': ena_out & 0x7})
+
+        # Update state at posedge clk (synchronous)
+        if reset == 1:
+            # R1_reset: synchronous reset
+            count = 0
+        else:
+            # R7_full_wrap: full wrap at 9999
+            if count == 0x9999:
+                count = 0
+            else:
+                # BCD increment
+                ones = count & 0xF
+                tens = (count >> 4) & 0xF
+                hundreds = (count >> 8) & 0xF
+                thousands = (count >> 12) & 0xF
+
+                if ones != 9:
+                    # R2_ones_increment
+                    ones += 1
+                else:
+                    # R3_ones_wrap
+                    ones = 0
+                    if tens != 9:
+                        tens += 1
+                    else:
+                        tens = 0
+                        if hundreds != 9:
+                            hundreds += 1
+                        else:
+                            hundreds = 0
+                            if thousands != 9:
+                                thousands += 1
+                            else:
+                                thousands = 0
+
+                count = (thousands << 12) | (hundreds << 8) | (tens << 4) | ones
+
+    return results
+```

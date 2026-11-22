@@ -1,0 +1,137 @@
+{
+  "responses": [
+    {
+      "issue_id": "C1",
+      "decision": "accept",
+      "reason": "Contract lacks hierarchical top_module/three-instance coverage; record it in the state meaning.",
+      "spec_quote": "// You want to create a hierarchical Verilog design where a flipflop and 2-1 multiplexer are in a submodule, and that submodule is instantiated three times in this code.",
+      "edits": [
+        {
+          "path": [
+            "states",
+            "Q_reg",
+            "meaning"
+          ],
+          "value": "Registered output bit Q in the hierarchical top_module; the flipflop plus 2-1 multiplexer submodule is instantiated three times for the public q[2:0] slices."
+        }
+      ]
+    },
+    {
+      "issue_id": "C2",
+      "decision": "accept",
+      "reason": "Public q is 3-bit and implemented as three slices; clarify the fixed 1-bit contract exposes the q[2] slice.",
+      "spec_quote": "output reg [2:0] q",
+      "edits": [
+        {
+          "path": [
+            "states",
+            "Q_reg",
+            "meaning"
+          ],
+          "value": "Registered state for the hierarchical design: top_module instantiates the flipflop plus 2-1 multiplexer submodule three times for the public 3-bit q[2:0]. The fixed 1-bit contract port Q represents the q[2] slice, so L=0 holds Q; q_in is not used for feedback."
+        }
+      ]
+    },
+    {
+      "issue_id": "C3",
+      "decision": "accept",
+      "reason": "Replace q_in feedback with the public q feedback transform, specialized to the exposed q[2] slice as a hold.",
+      "spec_quote": "q <= {q[1] ^ q[2], q[0], q[2]};",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "feedback_L_low",
+            "condition"
+          ],
+          "value": "At posedge clk, if L == 0 then the registered q_next is q_next = {q[1]^q[2], q[0], q[2]}; for the exposed q[2] slice, Q_next = Q (hold). q_in is not used as the L-low data source."
+        }
+      ]
+    },
+    {
+      "issue_id": "G1",
+      "decision": "accept",
+      "reason": "Current quote does not evidence the L-low feedback assignment; use the exact feedback assignment.",
+      "spec_quote": "q <= {q[1] ^ q[2], q[0], q[2]};",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "feedback_L_low",
+            "spec_quote"
+          ],
+          "value": "q <= {q[1] ^ q[2], q[0], q[2]};"
+        }
+      ]
+    },
+    {
+      "issue_id": "G2",
+      "decision": "accept",
+      "reason": "Current quote only covers the if condition; use the exact load assignment for grounding.",
+      "spec_quote": "q <= r;",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "load_L_high",
+            "spec_quote"
+          ],
+          "value": "q <= r;"
+        }
+      ]
+    },
+    {
+      "issue_id": "A1",
+      "decision": "accept",
+      "reason": "Clarify q_in is not the L-low data source and update the example to hold Q on L=0 for the q[2] slice.",
+      "spec_quote": "q <= {q[1] ^ q[2], q[0], q[2]};",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "feedback_L_low",
+            "condition"
+          ],
+          "value": "At posedge clk, if L == 0 then the registered q_next is q_next = {q[1]^q[2], q[0], q[2]}; for the exposed q[2] slice, Q_next = Q (hold). q_in is not used as the L-low data source."
+        },
+        {
+          "path": [
+            "rules",
+            "feedback_L_low",
+            "example"
+          ],
+          "value": {
+            "vectors": [
+              {
+                "L": 1,
+                "q_in": 0,
+                "r_in": 0
+              },
+              {
+                "L": 0,
+                "q_in": 1,
+                "r_in": 0
+              },
+              {
+                "L": 0,
+                "q_in": 0,
+                "r_in": 1
+              }
+            ],
+            "expected": [
+              {
+                "Q": 0
+              },
+              {
+                "Q": 0
+              },
+              {
+                "Q": 0
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

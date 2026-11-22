@@ -1,0 +1,50 @@
+def reference(vectors):
+    # Rule sync_reset: synchronous active high reset implemented below.
+    # Rule transition_and_moore_output: state transition and Moore output implemented below.
+    # Interpretation: State A at time zero.
+    state = 'A'
+    in_val = 0
+    reset_val = 0
+    outputs = []
+    for row in vectors:
+        # Apply row's values driven before the sampled posedge.
+        if 'in' in row:
+            in_val = row['in']
+        if 'reset' in row:
+            reset_val = row['reset']
+        # At posedge: synchronous reset has priority (sync_reset).
+        if reset_val == 1:
+            state = 'A'
+        else:
+            # transition_and_moore_output: transition based on current state and in_val.
+            if state == 'A':
+                if in_val == 0:
+                    state = 'A'
+                else:
+                    state = 'B'
+            elif state == 'B':
+                if in_val == 0:
+                    state = 'C'
+                else:
+                    state = 'B'
+            elif state == 'C':
+                if in_val == 0:
+                    state = 'A'
+                else:
+                    state = 'D'
+            elif state == 'D':
+                if in_val == 0:
+                    state = 'C'
+                else:
+                    state = 'B'
+        # Moore output after edge: 1 for state D, else 0.
+        out_val = 1 if state == 'D' else 0
+        outputs.append({'out': out_val})
+        # Apply optional mid input changes after sampling, carried to next row.
+        if 'mid' in row and isinstance(row['mid'], dict):
+            mid = row['mid']
+            if 'in' in mid:
+                in_val = mid['in']
+            if 'reset' in mid:
+                reset_val = mid['reset']
+    return outputs

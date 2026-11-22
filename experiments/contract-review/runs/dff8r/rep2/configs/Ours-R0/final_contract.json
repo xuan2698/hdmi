@@ -1,0 +1,113 @@
+{
+  "ports": {
+    "inputs": {
+      "d": 8,
+      "reset": 1
+    },
+    "outputs": {
+      "q": 8
+    },
+    "clock": "clk"
+  },
+  "states": [
+    {
+      "name": "q_state",
+      "meaning": "Registered 8-bit output value; each bit is a D flip-flop output",
+      "update_time": "posedge clk",
+      "update_during_reset": true
+    }
+  ],
+  "rules": [
+    {
+      "id": "R1_sync_reset",
+      "outputs": [
+        "q"
+      ],
+      "condition": "reset == 1",
+      "edge": "posedge",
+      "visible": "same_cycle",
+      "priority": 1,
+      "spec_quote": "active high synchronous reset setting the output to zero",
+      "uncertain": false,
+      "example": {
+        "vectors": [
+          {
+            "d": 170,
+            "reset": 1
+          },
+          {
+            "d": 85,
+            "reset": 0
+          },
+          {
+            "d": 15,
+            "reset": 1
+          }
+        ],
+        "expected": [
+          {
+            "q": 0
+          },
+          {
+            "q": 85
+          },
+          {
+            "q": 0
+          }
+        ]
+      }
+    },
+    {
+      "id": "R2_dff_capture",
+      "outputs": [
+        "q"
+      ],
+      "condition": "reset == 0",
+      "edge": "posedge",
+      "visible": "same_cycle",
+      "priority": 2,
+      "spec_quote": "Create 8 D flip-flops",
+      "uncertain": false,
+      "example": {
+        "vectors": [
+          {
+            "d": 1,
+            "reset": 0
+          },
+          {
+            "d": 2,
+            "reset": 0
+          },
+          {
+            "d": 255,
+            "reset": 0
+          }
+        ],
+        "expected": [
+          {
+            "q": 1
+          },
+          {
+            "q": 2
+          },
+          {
+            "q": 255
+          }
+        ]
+      }
+    }
+  ],
+  "reset": {
+    "kind": "sync",
+    "name": "reset",
+    "active": "high",
+    "values": {
+      "q": 0
+    },
+    "first_released_cycle": "first posedge clk with reset == 0"
+  },
+  "mid": "Optional mid input changes occur AFTER sampling, before the other edge, and are carried to the start of the next row.",
+  "uncertain": [],
+  "remaining_uncertain_fields": {},
+  "selected_interpretations": []
+}

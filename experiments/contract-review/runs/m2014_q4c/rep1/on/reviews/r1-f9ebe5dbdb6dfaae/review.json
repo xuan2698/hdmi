@@ -1,0 +1,28 @@
+{
+  "coverage": {
+    "S01": [
+      "q_posedge_update"
+    ]
+  },
+  "issues": [
+    {
+      "issue_id": "I1",
+      "rule_id": "q_posedge_update",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec does not state clock-edge polarity; contract hard-codes posedge without uncertainty.",
+      "spec_evidence": "Implement a simple D flip flop with active high synchronous reset (reset output to 0).",
+      "alternative": "Negedge-triggered D flip-flop: q updates on falling clk edge instead of rising; after the second row at a posedge, q would remain 0 rather than become 1.",
+      "sequence": [
+        {
+          "d": 0,
+          "r": 1
+        },
+        {
+          "d": 1,
+          "r": 0
+        }
+      ]
+    }
+  ]
+}

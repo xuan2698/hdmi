@@ -1,0 +1,40 @@
+```python
+def reference(vectors):
+    # Contract rules implemented:
+    # R1_async_reset: areset==1 -> predict_history=0, asynchronous, same cycle
+    # R2_mispredict_priority: areset==0 && train_mispredicted==1 -> history = (train_history<<1 | train_taken) & mask, next cycle
+    # R3_predict_shift: areset==0 && !train_mispredicted && predict_valid==1 -> history = (history<<1 | predict_taken) & mask, next cycle
+    # R4_hold: areset==0 && !train_mispredicted && !predict_valid -> hold, next cycle
+    MASK = (1 << 32) - 1
+    history = 0  # power-up unspecified; use 0
+    out = []
+    for row in vectors:
+        areset = row.get("areset", 0)
+        predict_valid = row.get("predict_valid", 0)
+        predict_taken = row.get("predict_taken", 0)
+        train_mispredicted = row.get("train_mispredicted", 0)
+        train_taken = row.get("train_taken", 0)
+        train_history = row.get("train_history", 0)
+
+        # R1_async_reset: asynchronous reset visible same cycle
+        if areset == 1:
+            history = 0
+            out.append({"predict_history": history & MASK})
+            continue
+
+        # Output is current history value (before this edge's update)
+        out.append({"predict_history": history & MASK})
+
+        # Compute next state at posedge
+        if train_mispredicted == 1:
+            # R2_mispredict_priority
+            history = ((train_history << 1) | (train_taken & 1)) & MASK
+        elif predict_valid == 1:
+            # R3_predict_shift
+            history = ((history << 1) | (predict_taken & 1)) & MASK
+        else:
+            # R4_hold
+            pass
+
+    return out
+```

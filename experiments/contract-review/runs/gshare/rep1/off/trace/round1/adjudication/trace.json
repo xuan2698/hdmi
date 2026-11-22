@@ -1,0 +1,188 @@
+[
+  {
+    "issue": {
+      "issue_id": "I2",
+      "rule_id": "R5_train_mispredict_ghr_recover",
+      "type": "ambiguity",
+      "severity": "high",
+      "detail": "Spec says recover GHR to state immediately after mispredicting branch, but contract does not define whether train_history is that state or pre-branch state; example only checks zero.",
+      "spec_evidence": "recover the branch history register to the state immediately after the mispredicting branch completes execution.",
+      "alternative": "GHR becomes train_history (given state after branch) versus GHR becomes {train_history[5:0], train_taken}.",
+      "sequence": [
+        {
+          "areset": 0,
+          "predict_valid": 0,
+          "predict_pc": 0,
+          "train_valid": 1,
+          "train_taken": 1,
+          "train_mispredicted": 1,
+          "train_history": 42,
+          "train_pc": 5
+        },
+        {
+          "areset": 0,
+          "predict_valid": 1,
+          "predict_pc": 0,
+          "train_valid": 0,
+          "train_taken": 0,
+          "train_mispredicted": 0,
+          "train_history": 0,
+          "train_pc": 0
+        }
+      ]
+    },
+    "status": "effect",
+    "issue_id": "I2",
+    "outputs": {
+      "original": [
+        {
+          "predict_taken": 0,
+          "predict_history": 0
+        },
+        {
+          "predict_taken": 0,
+          "predict_history": 85
+        }
+      ],
+      "alternative": [
+        {
+          "predict_taken": 0,
+          "predict_history": 0
+        },
+        {
+          "predict_taken": 0,
+          "predict_history": 42
+        }
+      ]
+    },
+    "differences": [
+      {
+        "cycle": 2,
+        "original": {
+          "predict_taken": 0,
+          "predict_history": 85
+        },
+        "alternative": {
+          "predict_taken": 0,
+          "predict_history": 42
+        }
+      }
+    ]
+  },
+  {
+    "issue": {
+      "issue_id": "I3",
+      "rule_id": "R4_train_pht_update",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec does not define 2-bit counter update direction/limits; contract omits counter transition semantics.",
+      "spec_evidence": "Update the pattern history table (PHT) to train the branch predictor to predict this branch more accurately next time.",
+      "alternative": "On taken increment saturating at 3, on not-taken decrement saturating at 0; prediction taken iff counter>=2.",
+      "sequence": [
+        {
+          "areset": 0,
+          "predict_valid": 0,
+          "predict_pc": 0,
+          "train_valid": 1,
+          "train_taken": 1,
+          "train_mispredicted": 0,
+          "train_history": 0,
+          "train_pc": 0
+        },
+        {
+          "areset": 0,
+          "predict_valid": 1,
+          "predict_pc": 0,
+          "train_valid": 0,
+          "train_taken": 0,
+          "train_mispredicted": 0,
+          "train_history": 0,
+          "train_pc": 0
+        }
+      ]
+    },
+    "status": "no_effect",
+    "issue_id": "I3",
+    "outputs": {
+      "original": [
+        {
+          "predict_taken": 0,
+          "predict_history": 0
+        },
+        {
+          "predict_taken": 0,
+          "predict_history": 0
+        }
+      ],
+      "alternative": [
+        {
+          "predict_taken": 0,
+          "predict_history": 0
+        },
+        {
+          "predict_taken": 0,
+          "predict_history": 0
+        }
+      ]
+    },
+    "differences": []
+  },
+  {
+    "issue": {
+      "issue_id": "I4",
+      "rule_id": "R7_predict_sees_pre_train_pht",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Rule condition requires same PHT index but does not specify how to determine same index when train_history differs from current GHR; spec only says same PHT entry.",
+      "spec_evidence": "If training and prediction of the same PHT entry happen at the same time, the prediction sees the PHT state before training",
+      "alternative": "Same index computed using train_pc xor train_history for training and predict_pc xor current GHR for prediction.",
+      "sequence": [
+        {
+          "areset": 0,
+          "predict_valid": 1,
+          "predict_pc": 0,
+          "train_valid": 1,
+          "train_taken": 1,
+          "train_mispredicted": 0,
+          "train_history": 1,
+          "train_pc": 1
+        },
+        {
+          "areset": 0,
+          "predict_valid": 0,
+          "predict_pc": 0,
+          "train_valid": 0,
+          "train_taken": 0,
+          "train_mispredicted": 0,
+          "train_history": 0,
+          "train_pc": 0
+        }
+      ]
+    },
+    "status": "no_effect",
+    "issue_id": "I4",
+    "outputs": {
+      "original": [
+        {
+          "predict_taken": 0,
+          "predict_history": 0
+        },
+        {
+          "predict_taken": 0,
+          "predict_history": 0
+        }
+      ],
+      "alternative": [
+        {
+          "predict_taken": 0,
+          "predict_history": 0
+        },
+        {
+          "predict_taken": 0,
+          "predict_history": 0
+        }
+      ]
+    },
+    "differences": []
+  }
+]

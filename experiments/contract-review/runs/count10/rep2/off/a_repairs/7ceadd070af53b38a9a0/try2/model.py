@@ -1,0 +1,20 @@
+def reference(vectors):
+    # State: COUNT holds current count 0..9
+    # R1_SYNC_RESET: reset==1 on posedge -> q=0 (priority 1)
+    # R2_COUNT_UP_WRAP: reset==0 on posedge -> q=(q+1)%10 (priority 2)
+    # Mid changes occur AFTER sampling, before other edge, carried to next row.
+    # Power-up unspecified: start at 0.
+    count = 0
+    results = []
+    for row in vectors:
+        # Apply any mid changes from previous row are already carried in row's inputs
+        reset = row.get("reset", 0)
+        # Sample at posedge: compute next state based on current inputs
+        # R1_SYNC_RESET
+        if reset == 1:
+            count = 0
+        else:
+            # R2_COUNT_UP_WRAP
+            count = (count + 1) % 10
+        results.append({"q": count & 0xF})
+    return results

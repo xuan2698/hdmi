@@ -1,0 +1,55 @@
+```python
+def reference(vectors):
+    # Contract:
+    # - clk posedge samples inputs; outputs are registered (latency 1 cycle).
+    # - reset is synchronous active-high: on posedge with reset=1, q=0, ena=0.
+    # - Otherwise BCD increment; ena reflects current digit==9 conditions.
+    # - Each row: inputs driven before sampled edge; mid changes occur AFTER
+    #   sampling, before next edge, carried to start of next row.
+    # We model state as (q, ena) that updates on each posedge.
+
+    def is_digit_9(v):
+        return v == 9
+
+    def inc_digit(d):
+        return 0 if d == 9 else d + 1
+
+    def compute_next(q, reset):
+        if reset:
+            return 0, 0
+        d0 = q & 0xF
+        d1 = (q >> 4) & 0xF
+        d2 = (q >> 8) & 0xF
+        d3 = (q >> 12) & 0xF
+        # enables based on current digits
+        e0 = 1 if d0 == 9 else 0
+        e1 = 1 if (d1 == 9 and d0 == 9) else 0
+        e2 = 1 if (d2 == 9 and d1 == 9 and d0 == 9) else 0
+        ena = (e2 << 2) | (e1 << 1) | e0
+        # next digits
+        nd0 = inc_digit(d0)
+        nd1 = inc_digit(d1) if d0 == 9 else d1
+        nd2 = inc_digit(d2) if (d1 == 9 and d0 == 9) else d2
+        nd3 = inc_digit(d3) if (d2 == 9 and d1 == 9 and d0 == 9) else d3
+        nq = (nd3 << 12) | (nd2 << 8) | (nd1 << 4) | nd0
+        return nq, ena
+
+    # State: outputs after last sampled edge (registered values)
+    q_state = 0
+    ena_state = 0
+
+    results = []
+    for row in vectors:
+        # Inputs for this row's sampled edge
+        reset = row.get("reset", 0)
+        # Sample at posedge: compute next state from current state and inputs
+        nq, nena = compute_next(q_state, reset)
+        # Outputs are registered: they reflect the state AFTER this edge
+        q_state = nq
+        ena_state = nena
+        # Mid changes occur after sampling; they affect next row's inputs only.
+        # (We don't need to store them separately since next row provides inputs.)
+        results.append({"q": q_state & 0xFFFF, "ena": ena_state & 0x7})
+
+    return results
+```

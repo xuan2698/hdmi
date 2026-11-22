@@ -1,0 +1,111 @@
+{
+  "ports": {
+    "inputs": {
+      "d": 8,
+      "reset": 1
+    },
+    "outputs": {
+      "q": 8
+    },
+    "clock": "clk"
+  },
+  "states": [
+    {
+      "name": "q",
+      "meaning": "8-bit registered output; holds its value except at posedge clk, where active-high synchronous reset clears it to 0 or otherwise captures d.",
+      "update_time": "posedge clk after inputs have settled",
+      "update_during_reset": true
+    }
+  ],
+  "rules": [
+    {
+      "id": "sync_reset_clears_q",
+      "outputs": [
+        "q"
+      ],
+      "condition": "posedge clk and reset == 1; q becomes 0",
+      "edge": "posedge",
+      "visible": "same_cycle",
+      "priority": 1,
+      "spec_quote": "active high synchronous reset setting the output to zero",
+      "uncertain": false,
+      "example": {
+        "vectors": [
+          {
+            "d": 42,
+            "reset": 1
+          },
+          {
+            "d": 87,
+            "reset": 0
+          },
+          {
+            "d": 200,
+            "reset": 1
+          }
+        ],
+        "expected": [
+          {
+            "q": 0
+          },
+          {
+            "q": 87
+          },
+          {
+            "q": 0
+          }
+        ]
+      }
+    },
+    {
+      "id": "load_d_on_posedge_when_not_reset",
+      "outputs": [
+        "q"
+      ],
+      "condition": "posedge clk and reset == 0; q becomes d",
+      "edge": "posedge",
+      "visible": "same_cycle",
+      "priority": 2,
+      "spec_quote": "Create 8 D flip-flops",
+      "uncertain": false,
+      "example": {
+        "vectors": [
+          {
+            "d": 0,
+            "reset": 1
+          },
+          {
+            "d": 170,
+            "reset": 0
+          },
+          {
+            "d": 85,
+            "reset": 0
+          }
+        ],
+        "expected": [
+          {
+            "q": 0
+          },
+          {
+            "q": 170
+          },
+          {
+            "q": 85
+          }
+        ]
+      }
+    }
+  ],
+  "reset": {
+    "kind": "sync",
+    "name": "reset",
+    "active": "high",
+    "values": {
+      "q": 0
+    },
+    "first_released_cycle": "first sampled posedge with reset == 0"
+  },
+  "mid": "mid holds post-sample changes to nonclock inputs; they are applied after the current sampled edge and carried to the start of the next row.",
+  "uncertain": []
+}

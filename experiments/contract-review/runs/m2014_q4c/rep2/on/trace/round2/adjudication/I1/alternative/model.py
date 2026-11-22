@@ -1,0 +1,46 @@
+def reference(vectors):
+    # Global candidate interpretation: Negative-edge-triggered DFF with active-high synchronous reset.
+    q = 0
+    d = 0
+    r = 0
+    out = []
+    for row in vectors:
+        # Apply row values driven before the sampled negedge.
+        if 'd' in row:
+            d = row['d']
+        if 'r' in row:
+            r = row['r']
+
+        # Rule sync_reset_high: At sampled negedge, r == 1 forces q to 0.
+        # Rule d_capture_when_reset_inactive: At sampled negedge, r == 0 captures d.
+        if r == 1:
+            q = 0
+        else:
+            q = d & 1
+
+        out.append({'q': q})
+
+        # Optional mid input changes occur AFTER sampling, before the other edge,
+        # and are carried to the start of the next row.
+        if 'mid' in row:
+            mid = row['mid']
+            try:
+                d = mid['d']
+            except:
+                pass
+            try:
+                r = mid['r']
+            except:
+                pass
+
+        # Support alternate mid key encodings.
+        if 'mid_d' in row:
+            d = row['mid_d']
+        if 'mid_r' in row:
+            r = row['mid_r']
+        if 'd_mid' in row:
+            d = row['d_mid']
+        if 'r_mid' in row:
+            r = row['r_mid']
+
+    return out

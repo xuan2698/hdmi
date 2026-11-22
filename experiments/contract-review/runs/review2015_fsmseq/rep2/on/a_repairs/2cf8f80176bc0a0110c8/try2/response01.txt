@@ -1,0 +1,50 @@
+def reference(vectors):
+    state = "S0"
+    start_shifting = 0
+    cur_reset = 0
+    cur_data = 0
+    out = []
+    for row in vectors:
+        if "reset" in row:
+            cur_reset = row["reset"]
+        if "data" in row:
+            cur_data = row["data"]
+
+        reset = cur_reset
+        data = cur_data
+
+        if reset == 1:
+            # R_RESET: sync active-high reset overrides all other rules
+            state = "S0"
+            start_shifting = 0
+        else:
+            if state == "S3" and data == 1:
+                # R_DETECT: current state S3 and data 1 detects 1101
+                state = "SF"
+                start_shifting = 1
+            elif state == "SF":
+                # R_HOLD: sequence found, hold start_shifting forever until reset
+                state = "SF"
+                start_shifting = 1
+            elif state in ("S0", "S1", "S2", "S3"):
+                # R_PROGRESS: advance the 1101 prefix-matching search state
+                if state == "S0":
+                    state = "S1" if data == 1 else "S0"
+                elif state == "S1":
+                    state = "S2" if data == 1 else "S0"
+                elif state == "S2":
+                    state = "S2" if data == 1 else "S3"
+                elif state == "S3":
+                    state = "S0"
+                start_shifting = 0
+
+        out.append({"start_shifting": int(start_shifting) & 1})
+
+        mid = row.get("mid")
+        if isinstance(mid, dict):
+            if "reset" in mid:
+                cur_reset = mid["reset"]
+            if "data" in mid:
+                cur_data = mid["data"]
+
+    return out

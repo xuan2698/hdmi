@@ -1,0 +1,197 @@
+{
+  "ports": {
+    "inputs": {"reset": 1},
+    "outputs": {"ena": 3, "q": 16},
+    "clock": "clk"
+  },
+  "states": [
+    {
+      "name": "count",
+      "meaning": "4-digit BCD counter value; q[3:0]=ones, q[7:4]=tens, q[11:8]=hundreds, q[15:12]=thousands",
+      "update_time": "posedge clk",
+      "update_during_reset": false
+    }
+  ],
+  "rules": [
+    {
+      "id": "R1_reset",
+      "outputs": ["q", "ena"],
+      "condition": "reset == 1",
+      "edge": "posedge",
+      "visible": "same_cycle",
+      "priority": 1,
+      "spec_quote": "Include a synchronous active-high reset.",
+      "uncertain": false,
+      "example": {
+        "vectors": [
+          {"reset": 1},
+          {"reset": 1},
+          {"reset": 0}
+        ],
+        "expected": [
+          {"q": 0, "ena": 0},
+          {"q": 0, "ena": 0},
+          {"q": 0, "ena": 0}
+        ]
+      }
+    },
+    {
+      "id": "R2_ones_increment",
+      "outputs": ["q"],
+      "condition": "reset == 0 and q[3:0] != 9",
+      "edge": "posedge",
+      "visible": "next_cycle",
+      "priority": 2,
+      "spec_quote": "Build a 4-digit BCD counter.",
+      "uncertain": true,
+      "example": {
+        "vectors": [
+          {"reset": 0},
+          {"reset": 0},
+          {"reset": 0}
+        ],
+        "expected": [
+          {"q": 1, "ena": 0},
+          {"q": 2, "ena": 0},
+          {"q": 3, "ena": 0}
+        ]
+      }
+    },
+    {
+      "id": "R3_ones_wrap",
+      "outputs": ["q"],
+      "condition": "reset == 0 and q[3:0] == 9",
+      "edge": "posedge",
+      "visible": "next_cycle",
+      "priority": 2,
+      "spec_quote": "Each decimal digit is encoded using 4 bits",
+      "uncertain": false,
+      "example": {
+        "vectors": [
+          {"reset": 0},
+          {"reset": 0},
+          {"reset": 0}
+        ],
+        "expected": [
+          {"q": 9, "ena": 0},
+          {"q": 16, "ena": 0},
+          {"q": 17, "ena": 0}
+        ]
+      }
+    },
+    {
+      "id": "R4_ena_tens",
+      "outputs": ["ena"],
+      "condition": "reset == 0 and q[3:0] == 9",
+      "edge": "posedge",
+      "visible": "same_cycle",
+      "priority": 3,
+      "spec_quote": "For digits [3:1], also output an enable signal indicating when each of the upper three digits should be incremented.",
+      "uncertain": false,
+      "example": {
+        "vectors": [
+          {"reset": 0},
+          {"reset": 0},
+          {"reset": 0}
+        ],
+        "expected": [
+          {"q": 8, "ena": 0},
+          {"q": 9, "ena": 1},
+          {"q": 16, "ena": 0}
+        ]
+      }
+    },
+    {
+      "id": "R5_ena_hundreds",
+      "outputs": ["ena"],
+      "condition": "reset == 0 and q[3:0] == 9 and q[7:4] == 9",
+      "edge": "posedge",
+      "visible": "same_cycle",
+      "priority": 3,
+      "spec_quote": "For digits [3:1], also output an enable signal indicating when each of the upper three digits should be incremented.",
+      "uncertain": false,
+      "example": {
+        "vectors": [
+          {"reset": 0},
+          {"reset": 0},
+          {"reset": 0}
+        ],
+        "expected": [
+          {"q": 152, "ena": 1},
+          {"q": 153, "ena": 2},
+          {"q": 160, "ena": 0}
+        ]
+      }
+    },
+    {
+      "id": "R6_ena_thousands",
+      "outputs": ["ena"],
+      "condition": "reset == 0 and q[3:0] == 9 and q[7:4] == 9 and q[11:8] == 9",
+      "edge": "posedge",
+      "visible": "same_cycle",
+      "priority": 3,
+      "spec_quote": "For digits [3:1], also output an enable signal indicating when each of the upper three digits should be incremented.",
+      "uncertain": false,
+      "example": {
+        "vectors": [
+          {"reset": 0},
+          {"reset": 0},
+          {"reset": 0}
+        ],
+        "expected": [
+          {"q": 2552, "ena": 3},
+          {"q": 2553, "ena": 4},
+          {"q": 2560, "ena": 0}
+        ]
+      }
+    },
+    {
+      "id": "R7_full_wrap",
+      "outputs": ["q"],
+      "condition": "reset == 0 and q == 9999",
+      "edge": "posedge",
+      "visible": "next_cycle",
+      "priority": 2,
+      "spec_quote": "Build a 4-digit BCD counter.",
+      "uncertain": true,
+      "example": {
+        "vectors": [
+          {"reset": 0},
+          {"reset": 0},
+          {"reset": 0}
+        ],
+        "expected": [
+          {"q": 9998, "ena": 0},
+          {"q": 9999, "ena": 3},
+          {"q": 0, "ena": 0}
+        ]
+      }
+    }
+  ],
+  "reset": {
+    "kind": "sync",
+    "name": "reset",
+    "active": "high",
+    "values": {"q": 0, "ena": 0},
+    "first_released_cycle": "first posedge with reset==0"
+  },
+  "mid": "Optional mid input changes occur AFTER sampling, before the other edge, and are carried to the start of the next row.",
+  "uncertain": [
+    {
+      "rule_id": "R2_ones_increment",
+      "note": "The quoted phrase 'Build a 4-digit BCD counter.' does not explicitly state that the ones digit increments by one when it is not 9; this is inferred from counter semantics.",
+      "candidates": [
+        "Ones digit increments by 1 modulo 10 on each enabled clock when not 9.",
+        "Ones digit increments by 1 only when an external enable is asserted (not present in interface)."
+      ]
+    },
+    {
+      "rule_id": "R7_full_wrap",
+      "note": "The quoted phrase 'Build a 4-digit BCD counter.' does not explicitly state that the counter wraps from 9999 to 0000; this is inferred from 4-digit counter semantics.",
+      "candidates": [
+        "Counter wraps from 9999 to 0000 on the next clock.",
+        "Counter saturates at 9999 and does not wrap."
+      ]
+    }
+  ]
+}

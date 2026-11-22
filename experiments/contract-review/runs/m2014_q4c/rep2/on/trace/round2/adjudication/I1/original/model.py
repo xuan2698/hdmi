@@ -1,0 +1,37 @@
+def reference(vectors):
+    # Initial registered output value (concrete, unsigned, width 1).
+    q = 0
+
+    # Current input values carried between sampled edges.
+    cur_d = 0
+    cur_r = 0
+
+    results = []
+
+    for row in vectors:
+        # Drive row's input values before the sampled posedge.
+        # Missing values retain their carried value from prior mid changes.
+        if 'd' in row:
+            cur_d = row['d']
+        if 'r' in row:
+            cur_r = row['r']
+
+        # Rule sync_reset_high: active-high synchronous reset at posedge.
+        # Rule d_capture_when_reset_inactive: when reset inactive, capture d.
+        if cur_r == 1:
+            q = 0
+        else:
+            q = cur_d & 1  # keep within 1-bit unsigned width
+
+        results.append({'q': q})
+
+        # Optional mid input changes occur AFTER sampling, before the other edge,
+        # and are carried to the start of the next row.
+        if 'mid' in row:
+            mid = row['mid']
+            if 'd' in mid:
+                cur_d = mid['d']
+            if 'r' in mid:
+                cur_r = mid['r']
+
+    return results

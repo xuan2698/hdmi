@@ -1,0 +1,132 @@
+{
+  "coverage": {
+    "S01": [
+      "unrelated"
+    ],
+    "S02": [
+      "unrelated"
+    ],
+    "S03": [
+      "load_L_high"
+    ],
+    "S04": [
+      "load_L_high",
+      "feedback_L_low"
+    ],
+    "S05": [
+      "load_L_high",
+      "feedback_L_low"
+    ],
+    "S06": [
+      "load_L_high",
+      "feedback_L_low"
+    ],
+    "S07": [
+      "unrelated"
+    ],
+    "S08": [
+      "load_L_high",
+      "feedback_L_low"
+    ],
+    "S09": [
+      "load_L_high"
+    ],
+    "S10": [
+      "load_L_high"
+    ],
+    "S11": [
+      "feedback_L_low"
+    ],
+    "S12": [
+      "missing"
+    ],
+    "S13": [
+      "unrelated"
+    ],
+    "S14": [
+      "unrelated"
+    ],
+    "S15": [
+      "unrelated"
+    ],
+    "S16": [
+      "missing"
+    ],
+    "S17": [
+      "missing"
+    ]
+  },
+  "issues": [
+    {
+      "issue_id": "C1",
+      "rule_id": "global",
+      "type": "coverage",
+      "severity": "high",
+      "detail": "Missing hierarchical top_module with a flop/mux submodule instantiated three times; contract only gives one 1-bit register/mux.",
+      "spec_evidence": "// You want to create a hierarchical Verilog design where a flipflop and 2-1 multiplexer are in a submodule, and that submodule is instantiated three times in this code.",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "C2",
+      "rule_id": "global",
+      "type": "coverage",
+      "severity": "high",
+      "detail": "Spec data width is 3-bit r/q; contract uses 1-bit r_in/Q and an extra q_in, with no 3-bit state or three bit-slices.",
+      "spec_evidence": "//     output reg [2:0] q",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "C3",
+      "rule_id": "feedback_L_low",
+      "type": "coverage",
+      "severity": "high",
+      "detail": "L-low feedback transform from S12 is absent; rule does Q_next=q_in instead of q_next={q[1]^q[2],q[0],q[2]} or corresponding wiring.",
+      "spec_evidence": "//         q <= {q[1] ^ q[2], q[0], q[2]};",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "G1",
+      "rule_id": "feedback_L_low",
+      "type": "grounding",
+      "severity": "medium",
+      "detail": "spec_quote \"2-1 multiplexer\" does not evidence Q_next=q_in; no verbatim S12 quote is supplied and uncertain=false.",
+      "spec_evidence": "//         q <= {q[1] ^ q[2], q[0], q[2]};",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "G2",
+      "rule_id": "load_L_high",
+      "type": "grounding",
+      "severity": "low",
+      "detail": "spec_quote only covers \"if (L) begin\"; the assignment Q_next=r_in lacks verbatim quote support and uncertain=false.",
+      "spec_evidence": "//         q <= r;",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "A1",
+      "rule_id": "feedback_L_low",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "q_in meaning is unconstrained: independent external mux data vs current-Q feedback changes L-low output.",
+      "spec_evidence": "",
+      "alternative": "q_in is the current registered Q feedback and should not be an arbitrary external sample, so L=0 with q_in=1 should use current Q=0 and hold Q=0, not set Q=1.",
+      "sequence": [
+        {
+          "L": 1,
+          "q_in": 0,
+          "r_in": 0
+        },
+        {
+          "L": 0,
+          "q_in": 1,
+          "r_in": 0
+        }
+      ]
+    }
+  ]
+}

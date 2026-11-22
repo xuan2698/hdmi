@@ -1,0 +1,84 @@
+{
+  "coverage": {
+    "S01": [
+      "R1_reset_clear",
+      "R2_capture_falling",
+      "R3_hold"
+    ]
+  },
+  "issues": [
+    {
+      "issue_id": "I1",
+      "rule_id": "R2_capture_falling",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "Rule condition uses prev_in & ~in (any falling bit) but example expects full 0xFFFFFFFF capture from all-ones to all-zeros; condition would also capture on partial falls, which example does not distinguish but is consistent only for full fall. No contradiction per se, but condition is broader than example; example does not test partial fall.",
+      "spec_evidence": "capture when the input signal changes from 1 in one clock cycle to 0 the next",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I2",
+      "rule_id": "R2_capture_falling",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec says capture per bit when that bit falls; contract condition (prev_in & ~in) != 0 triggers capture of all falling bits simultaneously, which matches per-bit semantics, but alternative semantics could be 'capture only if any bit falls and then set all bits' vs 'set only falling bits'. Contract sets only falling bits via out |= prev_in & ~in implied by example? Example full fall cannot distinguish.",
+      "spec_evidence": "For each bit in a 32-bit vector, capture when the input signal changes from 1 in one clock cycle to 0 the next.",
+      "alternative": "On any falling edge of any bit, set all 32 output bits to 1 (global sticky) rather than per-bit sticky.",
+      "sequence": [
+        {
+          "reset": 0,
+          "in": 4294967295
+        },
+        {
+          "reset": 0,
+          "in": 4294967294
+        },
+        {
+          "reset": 0,
+          "in": 4294967294
+        }
+      ]
+    },
+    {
+      "issue_id": "I3",
+      "rule_id": "R3_hold",
+      "type": "consistency",
+      "severity": "medium",
+      "detail": "R3_hold example uses in=1 then in=3 (bit0 stays 1, bit1 rises) and expects out=0 throughout; consistent with no falling bits. However R3 condition (prev_in & ~in)==0 includes cases where bits rise; hold is correct. No contradiction, but example does not exercise hold after a capture.",
+      "spec_evidence": "the output will remain 1 until the register is reset",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I4",
+      "rule_id": "R1_reset_clear",
+      "type": "consistency",
+      "severity": "low",
+      "detail": "R1 example vectors show reset=1 with in=0xFFFFFFFF then reset=1 with in=0 then reset=0 with in=0, expected out=0 each cycle. With sync reset, out=0 on reset cycles is correct; after deassert with in=0 and prev_in=0, no fall, out stays 0. Consistent.",
+      "spec_evidence": "active high synchronous reset",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I5",
+      "rule_id": "global",
+      "type": "grounding",
+      "severity": "low",
+      "detail": "Contract states update_during_reset true and reset first_released_cycle 'cycle after reset deasserts at posedge'; spec only says active high synchronous reset, which implies reset sampled at posedge and out cleared same cycle. No verbatim evidence for 'first_released_cycle' phrasing but semantics consistent.",
+      "spec_evidence": "active high synchronous reset",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I6",
+      "rule_id": "R2_capture_falling",
+      "type": "spec_example",
+      "severity": "low",
+      "detail": "Derived outputs for R2 example: cycle1 reset=0 in=0xFFFFFFFF prev_in unknown/0 -> out=0; cycle2 in=0 prev=0xFFFFFFFF -> out=0xFFFFFFFF; cycle3 in=0 prev=0 -> hold 0xFFFFFFFF; cycle4 hold. Matches expected.",
+      "spec_evidence": "",
+      "alternative": "",
+      "sequence": []
+    }
+  ]
+}

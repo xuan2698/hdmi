@@ -1,0 +1,36 @@
+```python
+def reference(vectors):
+    # q_posedge_update: D flip-flop with active-high synchronous reset.
+    # Concrete initial state for unspecified power-up.
+    q = 0
+    d_in = 0
+    r_in = 0
+    out = []
+
+    for row in vectors:
+        # Drive the row's inputs before the sampled posedge.
+        # These override any values carried from a previous row's mid changes.
+        if 'd' in row:
+            d_in = row['d'] & 1
+        if 'r' in row:
+            r_in = row['r'] & 1
+
+        # q_posedge_update: At each sampled posedge, if r==1 then q becomes 0;
+        # otherwise q becomes d. Between posedge events q holds its value.
+        if r_in == 1:
+            q = 0
+        else:
+            q = d_in
+        out.append({'q': q & 1})
+
+        # Process optional mid input changes AFTER sampling.
+        # They are carried to the start of the next row.
+        if 'mid' in row:
+            mid = row['mid']
+            if 'd' in mid:
+                d_in = mid['d'] & 1
+            if 'r' in mid:
+                r_in = mid['r'] & 1
+
+    return out
+```

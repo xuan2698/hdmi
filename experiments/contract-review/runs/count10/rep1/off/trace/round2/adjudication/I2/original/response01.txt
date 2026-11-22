@@ -1,0 +1,34 @@
+```python
+def reference(vectors):
+    # Contract implementation for a synchronous active-high-reset decade counter.
+    # State: COUNT (0..9). Output q = COUNT.
+    # R1_SYNC_RESET: reset==1 at posedge -> q=0 (same cycle visible).
+    # R2_COUNT_INC: reset==0 at posedge -> q increments (same cycle visible).
+    # R3_WRAP: reset==0 and q==9 -> q wraps to 0 (same cycle visible).
+    # Mid changes occur AFTER sampling, before the other edge, carried to next row.
+
+    count = 0  # power-up unspecified; use 0 as concrete value
+    results = []
+
+    for row in vectors:
+        # Values driven before the sampled posedge edge.
+        reset = row.get("reset", 0)
+
+        # R1_SYNC_RESET: synchronous active-high reset takes priority.
+        if reset == 1:
+            count = 0
+        else:
+            # R2_COUNT_INC / R3_WRAP: increment modulo 10.
+            if count == 9:
+                count = 0  # R3_WRAP
+            else:
+                count = count + 1  # R2_COUNT_INC
+
+        # Output visible same cycle after posedge settles.
+        results.append({"q": count & 0xF})
+
+        # Mid changes occur AFTER sampling; they are carried to next row,
+        # so no action needed here (next row's reset is read fresh).
+
+    return results
+```

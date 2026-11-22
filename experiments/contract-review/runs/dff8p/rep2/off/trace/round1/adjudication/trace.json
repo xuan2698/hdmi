@@ -1,0 +1,44 @@
+[
+  {
+    "issue": {
+      "issue_id": "I3",
+      "rule_id": "R1_sync_reset",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec says synchronous reset active high; contract sets reset value 0x34. Ambiguity: does reset override d on same negedge? R1 priority 1 over R2 priority 2 implies yes, but no explicit spec statement on priority.",
+      "spec_evidence": "active high synchronous reset",
+      "alternative": "Reset does not override d; d is captured and reset only affects next cycle.",
+      "sequence": [
+        {
+          "d": 5,
+          "reset": 1
+        },
+        {
+          "d": 7,
+          "reset": 0
+        }
+      ]
+    },
+    "status": "no_effect",
+    "issue_id": "I3",
+    "outputs": {
+      "original": [
+        {
+          "q": 52
+        },
+        {
+          "q": 7
+        }
+      ],
+      "alternative": [
+        {
+          "q": 52
+        },
+        {
+          "q": 7
+        }
+      ]
+    },
+    "differences": []
+  }
+]

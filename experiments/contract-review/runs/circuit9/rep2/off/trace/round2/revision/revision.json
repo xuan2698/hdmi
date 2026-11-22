@@ -1,0 +1,56 @@
+{
+  "responses": [
+    {
+      "issue_id": "I1",
+      "decision": "rebut",
+      "reason": "R1's condition a==1 with hold behavior is directly supported by the waveform: q stays 4 across all a=1 posedges (5ns,15ns,25ns,35ns). The issue's cited 55ns/65ns changes occur with a=0, which is R2's domain, not R1's.",
+      "spec_quote": "15ns            1               1               4",
+      "edits": []
+    },
+    {
+      "issue_id": "I2",
+      "decision": "rebut",
+      "reason": "R2's condition a==0 with increment is supported by 55ns,65ns,75ns,85ns where q goes 5,6,0,1. The hold at 4 during a=1 is R1's domain, not R2's.",
+      "spec_quote": "55ns            1               0               5",
+      "edits": []
+    },
+    {
+      "issue_id": "I3",
+      "decision": "accept",
+      "reason": "Spec shows q=x at 0ns with no reset; initial value is unspecified, so add an uncertain entry clarifying the initial state rather than inventing a reset.",
+      "spec_quote": "0ns             0               1               x",
+      "edits": [
+        {
+          "path": [
+            "uncertain"
+          ],
+          "value": [
+            {
+              "rule_id": "global",
+              "note": "Initial value of q is unspecified (x at 0ns); no reset exists. First posedge with a=1 at 5ns yields q=4, which is not derivable from a hold rule, so the pre-first-edge value is unknown.",
+              "candidates": [
+                "q initial value is unknown/x until first posedge with a=0",
+                "q initial value is 4 (observed at 5ns)",
+                "q initial value is 0"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "issue_id": "I5",
+      "decision": "rebut",
+      "reason": "At 45ns the sampled q is 4, which is the value held from the prior a=1 posedges; the increment from a=0 first appears at 55ns. The waveform is consistent with hold-on-a=1 and increment-on-a=0 sampled at the posedge.",
+      "spec_quote": "45ns            1               0               4",
+      "edits": []
+    },
+    {
+      "issue_id": "I6",
+      "decision": "rebut",
+      "reason": "R2's example is a hypothetical three-cycle a=0 sequence (5,6,7); the spec's 45ns row reflects the transition from a prior a=1 hold, not a contradiction of the increment rule. The 55ns,65ns,75ns,85ns rows confirm increment on a=0.",
+      "spec_quote": "55ns            1               0               5",
+      "edits": []
+    }
+  ]
+}

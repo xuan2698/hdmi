@@ -1,0 +1,36 @@
+def reference(vectors):
+    # State table: next state Y[2:0] for (y, x)
+    # R_Y0: Y0 = LSB of next state selected by present state y and input x.
+    # R_z: z = 1 when y is 011 or 100; z = 0 otherwise.
+    # Unresolved R_z: z = 0 for undefined states (101, 110, 111).
+    # Unresolved R_Y0: Y0 = 0 for undefined states (candidate interpretation).
+    next_state = {
+        (0, 0): 0b000, (0, 1): 0b001,
+        (1, 0): 0b001, (1, 1): 0b100,
+        (2, 0): 0b010, (2, 1): 0b001,
+        (3, 0): 0b001, (3, 1): 0b010,
+        (4, 0): 0b011, (4, 1): 0b100,
+    }
+
+    results = []
+    for vec in vectors:
+        x = vec["x"] & 1
+        y = vec["y"] & 0b111
+
+        # R_Y0: combinational, same cycle. Y0 = LSB of next state.
+        if (y, x) in next_state:
+            Y0 = next_state[(y, x)] & 1
+        else:
+            # Unresolved R_Y0: candidate interpretation Y0=0 for undefined states.
+            Y0 = 0
+
+        # R_z: combinational, same cycle. z=1 for y=011 or 100, else 0.
+        # Unresolved R_z: z=0 for undefined states.
+        if y == 0b011 or y == 0b100:
+            z = 1
+        else:
+            z = 0
+
+        results.append({"Y0": Y0, "z": z})
+
+    return results

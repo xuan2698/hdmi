@@ -1,0 +1,32 @@
+```python
+def reference(vectors):
+    # Initial state: power-up unspecified, choose concrete 0 (S0)
+    q = 0
+    # Current input values, initially all 0
+    inputs = {'reset': 0}
+    result = []
+    for row in vectors:
+        # Each row's values are driven before the sampled edge.
+        # Apply row inputs except mid to current inputs.
+        mid_changes = None
+        for key, val in row.items():
+            if key == 'mid':
+                mid_changes = val
+            else:
+                inputs[key] = val
+        # Sample at posedge: update state
+        # Rule sync_reset_high: active high synchronous reset forces q=0
+        if inputs.get('reset', 0) == 1:
+            q = 0  # sync_reset_high
+        else:
+            # Rule count_decade_mod10: increment mod 10
+            q = (q + 1) % 10  # count_decade_mod10
+        result.append({'q': q})
+        # Optional mid input changes occur AFTER sampling, before the other edge,
+        # and are carried to the start of the next row.
+        if mid_changes is not None:
+            if isinstance(mid_changes, dict):
+                for key, val in mid_changes.items():
+                    inputs[key] = val
+    return result
+```

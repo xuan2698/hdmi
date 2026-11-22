@@ -1,0 +1,24 @@
+```python
+def reference(vectors):
+    # R_Y0: Y0 = next-state bit 0 of Y[2:0] selected by x from present state y
+    # R_z: z = 1 when present state y is 011 or 100, else 0
+    # State table: y -> (Y_x0, Y_x1)
+    next_state = {
+        0: (0, 1),  # 000 -> 000, 001
+        1: (1, 4),  # 001 -> 001, 100
+        2: (2, 1),  # 010 -> 010, 001
+        3: (1, 2),  # 011 -> 001, 010
+        4: (3, 4),  # 100 -> 011, 100
+    }
+    out = []
+    for row in vectors:
+        x = row["x"]
+        y = row["y"]
+        # R_Y0: combinational next-state bit 0
+        Y = next_state[y][x]
+        Y0 = Y & 1
+        # R_z: combinational output
+        z = 1 if y in (3, 4) else 0
+        out.append({"Y0": Y0, "z": z})
+    return out
+```

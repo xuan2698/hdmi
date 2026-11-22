@@ -1,0 +1,86 @@
+{
+  "coverage": {
+    "S01": "unrelated",
+    "S02": "missing",
+    "S03": "missing",
+    "S04": ["load_L_high", "feedback_L_low"],
+    "S05": ["load_L_high", "feedback_L_low"],
+    "S06": "missing",
+    "S07": "unrelated",
+    "S08": ["load_L_high", "feedback_L_low"],
+    "S09": ["load_L_high"],
+    "S10": ["load_L_high"],
+    "S11": ["feedback_L_low"],
+    "S12": ["feedback_L_low"],
+    "S13": "unrelated",
+    "S14": "unrelated",
+    "S15": "unrelated",
+    "S16": "missing",
+    "S17": "missing"
+  },
+  "issues": [
+    {
+      "issue_id": "I1",
+      "rule_id": "global",
+      "type": "coverage",
+      "severity": "high",
+      "detail": "Contract models only 1-bit Q=q[2]; omits 3-bit q/r and q[1:0], so full_module behavior is not covered.",
+      "spec_evidence": "//     output reg [2:0] q",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I2",
+      "rule_id": "feedback_L_low",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "Rule says L=0 holds Q, but S12 makes next q[2]=q[1]^q[2], so Q toggles whenever q[1]=1.",
+      "spec_evidence": "//         q <= {q[1] ^ q[2], q[0], q[2]};",
+      "alternative": "Q_next = q[1] ^ Q, not Q",
+      "sequence": []
+    },
+    {
+      "issue_id": "I3",
+      "rule_id": "feedback_L_low",
+      "type": "ambiguity",
+      "severity": "high",
+      "detail": "Hidden q[1] is omitted and q_in is unused; if q_in is meant as q[1], Q behaves differently on L=0.",
+      "spec_evidence": "//         q <= {q[1] ^ q[2], q[0], q[2]};",
+      "alternative": "Use q_in as q[1]: Q_next = q_in ^ Q when L=0.",
+      "sequence": [
+        {"L": 1, "q_in": 0, "r_in": 0},
+        {"L": 0, "q_in": 1, "r_in": 0}
+      ]
+    },
+    {
+      "issue_id": "I4",
+      "rule_id": "global",
+      "type": "consistency",
+      "severity": "medium",
+      "detail": "Contract adds input q_in absent from spec and marks it unused; interface does not match the specified module ports.",
+      "spec_evidence": "",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I5",
+      "rule_id": "global",
+      "type": "coverage",
+      "severity": "high",
+      "detail": "Spec requires a submodule containing a flipflop and 2-1 mux, instantiated three times, plus top_module; contract has no such structure.",
+      "spec_evidence": "// You want to create a hierarchical Verilog design where a flipflop and 2-1 multiplexer are in a submodule, and that submodule is instantiated three times in this code.",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I6",
+      "rule_id": "global",
+      "type": "grounding",
+      "severity": "low",
+      "detail": "spec_quote strings omit the indexed comment/indent text, so they are not exact verbatim spec segments.",
+      "spec_evidence": "//         q <= r;",
+      "alternative": "",
+      "sequence": []
+    }
+  ]
+}

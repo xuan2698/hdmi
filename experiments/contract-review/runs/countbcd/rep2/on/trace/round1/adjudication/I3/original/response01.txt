@@ -1,0 +1,70 @@
+```python
+def reference(vectors):
+    # Initialize state. Power-up unspecified, choose 0 for deterministic output.
+    q_reg = 0
+    current_inputs = {'reset': 0}
+    results = []
+
+    for row in vectors:
+        # Apply inputs driven before the sampled posedge.
+        # Skip mid-change encodings.
+        for key, val in row.items():
+            if key == 'mid' or key.endswith('_mid'):
+                continue
+            current_inputs[key] = val
+
+        # Sample the posedge using current input values.
+        reset_val = current_inputs.get('reset', 0)
+
+        # R_RESET: synchronous active-high reset forces q = 0x0000.
+        if reset_val != 0:
+            q_reg = 0
+        else:
+            # R_COUNT_BCD: increment 4-digit BCD value, wrapping 9999 -> 0000.
+            digits = [
+                (q_reg >> 0) & 0xF,
+                (q_reg >> 4) & 0xF,
+                (q_reg >> 8) & 0xF,
+                (q_reg >> 12) & 0xF
+            ]
+            carry = 1
+            for i in range(4):
+                if carry:
+                    if digits[i] == 9:
+                        digits[i] = 0
+                        carry = 1
+                    else:
+                        digits[i] += 1
+                        carry = 0
+                else:
+                    break
+            q_reg = (digits[0] << 0) | (digits[1] << 4) | (digits[2] << 8) | (digits[3] << 12)
+
+        # R_ENA_COMB: combinational enable signals from current q.
+        ena = 0
+        if (q_reg & 0xF) == 9:
+            ena += 1
+        if (q_reg & 0xFF) == 0x99:
+            ena += 2
+        if (q_reg & 0xFFF) == 0x999:
+            ena += 4
+
+        # Record outputs after the edge has settled.
+        results.append({
+            'q': q_reg & 0xFFFF,
+            'ena': ena & 0x7
+        })
+
+        # Apply optional mid input changes AFTER sampling.
+        # Support both nested {'mid': {...}} and suffix keys like 'reset_mid'.
+        if 'mid' in row and isinstance(row['mid'], dict):
+            for key, val in row['mid'].items():
+                current_inputs[key] = val
+        for key, val in row.items():
+            if key.endswith('_mid'):
+                base = key[:-4]
+                if base:
+                    current_inputs[base] = val
+
+    return results
+```

@@ -1,0 +1,188 @@
+[
+  {
+    "issue": {
+      "issue_id": "I7",
+      "rule_id": "R6_hours_roll_am_pm",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec does not state whether 12:00 AM is noon or midnight; contract assumes 12:00 AM is midnight and toggles pm at 12:59:59.",
+      "spec_evidence": "The signal \"pm\" is asserted if the clock is PM, or is otherwise AM.",
+      "alternative": "Treat 12:00 AM as noon (12:00 PM) and toggle pm at 11:59:59.",
+      "sequence": [
+        {
+          "reset": 1,
+          "ena": 0
+        },
+        {
+          "reset": 0,
+          "ena": 1
+        },
+        {
+          "reset": 0,
+          "ena": 1
+        }
+      ]
+    },
+    "status": "effect",
+    "issue_id": "I7",
+    "outputs": {
+      "original": [
+        {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 0
+        },
+        {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 0
+        },
+        {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 1
+        }
+      ],
+      "alternative": [
+        {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 0
+        },
+        {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 1
+        },
+        {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 2
+        }
+      ]
+    },
+    "differences": [
+      {
+        "cycle": 2,
+        "original": {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 0
+        },
+        "alternative": {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 1
+        }
+      },
+      {
+        "cycle": 3,
+        "original": {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 1
+        },
+        "alternative": {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 2
+        }
+      }
+    ]
+  },
+  {
+    "issue": {
+      "issue_id": "I8",
+      "rule_id": "R3_seconds",
+      "type": "ambiguity",
+      "severity": "low",
+      "detail": "Spec does not define behavior for invalid BCD states; contract assumes valid states only.",
+      "spec_evidence": "ss are two BCD (Binary-Coded Decimal) digits each for hours (01-12), minutes (00-59), and seconds (00-59).",
+      "alternative": "On invalid BCD, wrap to 00 or hold.",
+      "sequence": [
+        {
+          "reset": 0,
+          "ena": 1
+        },
+        {
+          "reset": 0,
+          "ena": 1
+        }
+      ]
+    },
+    "status": "effect",
+    "issue_id": "I8",
+    "outputs": {
+      "original": [
+        {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 1
+        },
+        {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 2
+        }
+      ],
+      "alternative": [
+        {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 0
+        },
+        {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 1
+        }
+      ]
+    },
+    "differences": [
+      {
+        "cycle": 1,
+        "original": {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 1
+        },
+        "alternative": {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 0
+        }
+      },
+      {
+        "cycle": 2,
+        "original": {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 2
+        },
+        "alternative": {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 1
+        }
+      }
+    ]
+  }
+]

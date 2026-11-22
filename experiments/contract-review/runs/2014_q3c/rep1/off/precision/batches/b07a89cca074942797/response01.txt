@@ -1,0 +1,49 @@
+Looking at the state table:
+
+| y | x=0 → Y | x=1 → Y | z |
+|---|---------|---------|---|
+| 000 | 000 | 001 | 0 |
+| 001 | 001 | 100 | 0 |
+| 010 | 010 | 001 | 0 |
+| 011 | 001 | 010 | 1 |
+| 100 | 011 | 100 | 1 |
+
+**Y0 (next-state bit 0):**
+- y=000: x=0→0, x=1→1
+- y=001: x=0→1, x=1→0
+- y=010: x=0→0, x=1→1
+- y=011: x=0→1, x=1→0
+- y=100: x=0→1, x=1→0
+
+**z:** 1 for y=011, 100; else 0.
+
+For unspecified states (101-111), I'll use 0 (a valid don't-care choice).
+
+```python
+def reference(vectors):
+    results = []
+    for v in vectors:
+        x = v['x']
+        y = v['y']
+        # z: 1 for y=011 or y=100
+        z = 1 if (y == 3 or y == 4) else 0
+        # Y0: next-state bit 0
+        if y == 0:
+            Y0 = x  # x=0->0, x=1->1
+        elif y == 1:
+            Y0 = 1 - x  # x=0->1, x=1->0
+        elif y == 2:
+            Y0 = x  # x=0->0, x=1->1
+        elif y == 3:
+            Y0 = 1 - x  # x=0->1, x=1->0
+        elif y == 4:
+            Y0 = 1 - x  # x=0->1, x=1->0
+        else:
+            Y0 = 0  # unspecified states
+        results.append({'Y0': Y0, 'z': z})
+    return results
+```
+
+```json
+{"models":{"43a34a4cba31d35d9d":"def reference(vectors):\n    results = []\n    for v in vectors:\n        x = v['x']\n        y = v['y']\n        z = 1 if (y == 3 or y == 4) else 0\n        if y == 0:\n            Y0 = x\n        elif y == 1:\n            Y0 = 1 - x\n        elif y == 2:\n            Y0 = x\n        elif y == 3:\n            Y0 = 1 - x\n        elif y == 4:\n            Y0 = 1 - x\n        else:\n            Y0 = 0\n        results.append({'Y0': Y0, 'z': z})\n    return results","f42bf7954e14b198c8":"def reference(vectors):\n    results = []\n    for v in vectors:\n        x = v['x']\n        y = v['y']\n        z = 1 if (y == 3 or y == 4) else 0\n        if y == 0:\n            Y0 = x\n        elif y == 1:\n            Y0 = 1 - x\n        elif y == 2:\n            Y0 = x\n        elif y == 3:\n            Y0 = 1 - x\n        elif y == 4:\n            Y0 = 1 - x\n        else:\n            Y0 = 0\n        results.append({'Y0': Y0, 'z': z})\n    return results"}}
+```

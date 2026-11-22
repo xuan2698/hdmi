@@ -1,0 +1,55 @@
+```json
+{
+  "module_name": "top_module",
+  "io": [
+    {
+      "name": "clk",
+      "dir": "input",
+      "width": 1,
+      "description": "Clock input; all state updates occur on the posedge."
+    },
+    {
+      "name": "r",
+      "dir": "input",
+      "width": 3,
+      "description": "3-bit parallel load data input."
+    },
+    {
+      "name": "L",
+      "dir": "input",
+      "width": 1,
+      "description": "Load enable: when high, q <= r on the posedge; when low, q shifts/LFSR-updates."
+    },
+    {
+      "name": "q",
+      "dir": "output",
+      "width": 3,
+      "description": "3-bit registered output state."
+    }
+  ],
+  "clocking": {
+    "clock": {
+      "name": "clk",
+      "edge": "posedge"
+    },
+    "reset": null
+  },
+  "timing": {
+    "outputs": {
+      "q": {
+        "latency_cycles": 1
+      }
+    }
+  },
+  "functional_summary": {
+    "overview": "Hierarchical design: top_module instantiates three 1-bit submodules (each containing a flipflop and a 2-to-1 multiplexer) to form a 3-bit register with load and LFSR-style feedback. On each posedge of clk, if L=1 then q <= r; otherwise q <= {q[1]^q[2], q[0], q[2]}.",
+    "rules": [
+      "On posedge clk with L=1: q[2:0] <= r[2:0] (parallel load).",
+      "On posedge clk with L=0: q[2] <= q[1] ^ q[2], q[1] <= q[0], q[0] <= q[2] (feedback shift).",
+      "Output q updates one clock cycle after inputs are sampled at the posedge.",
+      "No reset; initial state is undefined until first clock edge.",
+      "Each bit of q is produced by a submodule containing a D flipflop and a 2-to-1 mux selecting between r[i] (when L=1) and the feedback term (when L=0)."
+    ]
+  }
+}
+```

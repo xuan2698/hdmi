@@ -1,0 +1,30 @@
+def reference(vectors):
+    # Initial registered state. Power-up unspecified, but first posedge determines it.
+    q = 0
+    # Current input state carried across rows to support mid changes.
+    current = {'d': 0, 'r': 0}
+    result = []
+    for row in vectors:
+        # Drive row's inputs before the sampled posedge. These override carried mid values.
+        for key in ('d', 'r'):
+            if key in row:
+                current[key] = row[key] & 1
+        # Sample at posedge after inputs settled.
+        d = current['d']
+        r = current['r']
+        # Rule sync_reset_high: active high synchronous reset forces q to 0.
+        if r == 1:
+            q = 0
+        else:
+            # Rule d_capture_when_reset_inactive: capture d when reset inactive.
+            q = d
+        # Output q is visible same cycle after edge.
+        result.append({'q': q & 1})
+        # Process optional mid input changes after sampling, before next edge.
+        if 'mid' in row:
+            mid = row['mid']
+            if isinstance(mid, dict):
+                for key in ('d', 'r'):
+                    if key in mid:
+                        current[key] = mid[key] & 1
+    return result

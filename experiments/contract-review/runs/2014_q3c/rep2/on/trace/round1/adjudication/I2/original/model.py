@@ -1,0 +1,39 @@
+def reference(vectors):
+    # valid_y_0_to_4: Y0 = (~x & y[0]) | (~x & y[2]) | (x & ~y[2] & ~y[0]); z = y[2] | (y[1] & y[0])
+    # unused_y_gt_4: same minimized expressions applied for y>4 as per uncertain candidate.
+    out = []
+    cur_x = 0
+    cur_y = 0
+    for v in vectors:
+        if "x" in v:
+            cur_x = v["x"] & 1
+        if "y" in v:
+            cur_y = v["y"] & 7
+
+        xbit = cur_x
+        y0 = cur_y & 1
+        y1 = (cur_y >> 1) & 1
+        y2 = (cur_y >> 2) & 1
+
+        nx = 1 - xbit
+        ny2 = 1 - y2
+        ny0 = 1 - y0
+
+        Y0 = (nx & y0) | (nx & y2) | (xbit & ny2 & ny0)
+        Y0 = Y0 & 1
+        z = y2 | (y1 & y0)
+        z = z & 1
+
+        out.append({"Y0": Y0, "z": z})
+
+        # Optional mid input changes occur after sampling, before the other edge,
+        # and are carried to the start of the next row.
+        if "mid" in v:
+            mid = v["mid"]
+            if mid is not None:
+                if "x" in mid:
+                    cur_x = mid["x"] & 1
+                if "y" in mid:
+                    cur_y = mid["y"] & 7
+
+    return out

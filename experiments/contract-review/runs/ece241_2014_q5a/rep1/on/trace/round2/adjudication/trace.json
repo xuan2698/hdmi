@@ -1,0 +1,115 @@
+[
+  {
+    "issue": {
+      "issue_id": "I1",
+      "rule_id": "reset_async_z0",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec does not define reset active level; contract fixes active-high and marks uncertainty.",
+      "spec_evidence": "The circuit requires a positive edge triggered asynchronous reset.",
+      "alternative": "Reset is active-low: assert on areset==0 and release on areset==1.",
+      "sequence": [
+        {
+          "areset": 0,
+          "x": 0
+        },
+        {
+          "areset": 1,
+          "x": 1
+        },
+        {
+          "areset": 0,
+          "x": 0
+        },
+        {
+          "areset": 0,
+          "x": 0
+        }
+      ]
+    },
+    "status": "effect",
+    "issue_id": "I1",
+    "outputs": {
+      "original": [
+        {
+          "z": 0
+        },
+        {
+          "z": 0
+        },
+        {
+          "z": 0
+        },
+        {
+          "z": 0
+        }
+      ],
+      "alternative": [
+        {
+          "z": 0
+        },
+        {
+          "z": 1
+        },
+        {
+          "z": 0
+        },
+        {
+          "z": 0
+        }
+      ]
+    },
+    "differences": [
+      {
+        "cycle": 2,
+        "original": {
+          "z": 0
+        },
+        "alternative": {
+          "z": 1
+        }
+      }
+    ]
+  },
+  {
+    "issue": {
+      "issue_id": "I2",
+      "rule_id": "reset_async_z0",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec says conversion stops on reset but does not define z during reset; contract forces z=0.",
+      "spec_evidence": "The conversion begins when Reset is released and stops when Reset is asserted.",
+      "alternative": "Reset only stops conversion and holds the last output/state, so z does not change while areset is asserted.",
+      "sequence": [
+        {
+          "areset": 1,
+          "x": 0
+        },
+        {
+          "areset": 0,
+          "x": 1
+        },
+        {
+          "areset": 1,
+          "x": 0
+        }
+      ]
+    },
+    "status": "not_executable",
+    "issue_id": "I2",
+    "outputs": {
+      "alternative": [
+        {
+          "z": 0
+        },
+        {
+          "z": 1
+        },
+        {
+          "z": 1
+        }
+      ]
+    },
+    "differences": []
+  }
+]

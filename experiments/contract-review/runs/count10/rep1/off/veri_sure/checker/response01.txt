@@ -1,0 +1,25 @@
+```python
+def reference(vectors):
+    # Decade counter, active-high synchronous reset, posedge clk.
+    # Output q has 1-cycle latency: value sampled after posedge reflects
+    # the state updated at that posedge.
+    q = 0  # power-up state (unspecified in spec; use 0)
+    out = []
+    for row in vectors:
+        clk = row.get('clk', 0)
+        reset = row.get('reset', 0)
+        # Determine if this row samples a posedge.
+        # Convention: row values are driven before the sampled edge.
+        # We treat each row as a clock cycle where a posedge occurs
+        # if clk is 1 (rising edge relative to previous clk=0).
+        prev_clk = row.get('_prev_clk', 0)
+        posedge = (prev_clk == 0 and clk == 1)
+        if posedge:
+            if reset:
+                q = 0
+            else:
+                q = 0 if q == 9 else q + 1
+        out.append({'q': q & 0xF})
+        row['_prev_clk'] = clk
+    return out
+```

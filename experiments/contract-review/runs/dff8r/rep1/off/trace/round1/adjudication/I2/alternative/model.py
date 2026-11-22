@@ -1,0 +1,33 @@
+def reference(vectors):
+    # State: q_state holds the registered 8-bit output value between clock edges.
+    # Initial power-up value is unspecified; we choose 0 as a concrete value.
+    q_state = 0
+
+    results = []
+
+    for row in vectors:
+        d = row.get('d', 0)
+        reset = row.get('reset', 0)
+
+        # R1_sync_reset: active high synchronous reset setting output to zero.
+        # R2_dff_capture: capture d on every posedge clk regardless of reset,
+        #   with reset only affecting q when high (candidate interpretation).
+        # Priority: reset (1) overrides capture (2).
+        # Both rules are visible same_cycle at posedge clk.
+        if reset == 1:
+            # R1_sync_reset
+            q_state = 0
+        else:
+            # R2_dff_capture
+            q_state = d & 0xFF
+
+        # Output q reflects the registered value after the sampled posedge.
+        results.append({'q': q_state & 0xFF})
+
+        # Mid input changes occur AFTER sampling, before the other edge,
+        # and are carried to the start of the next row. Since we process
+        # rows sequentially and mid changes only affect the next row's
+        # inputs (which are provided in the next row's dict), no action
+        # is needed here beyond noting the contract.
+
+    return results

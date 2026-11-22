@@ -1,0 +1,23 @@
+```python
+def reference(vectors):
+    # Contract:
+    # - Sequential circuit, 3-bit counter q.
+    # - On posedge of clk: if a==1 hold q (R1); if a==0 increment q mod 8 (R2).
+    # - No reset; power-up value unspecified -> use 0 as concrete initial value.
+    # - Each row: values driven before sampled posedge; sample after posedge settles.
+    # - Mid input changes occur AFTER sampling, before other edge, carried to next row.
+    # - Return dict per row with every output as concrete unsigned int within bit width.
+
+    q = 0  # initial concrete value (power-up unspecified)
+    out = []
+    for row in vectors:
+        a = row.get('a', 0)
+        # R1: a == 1 -> hold q on posedge
+        # R2: a == 0 -> increment q on posedge
+        if a == 1:
+            q = q  # hold
+        else:
+            q = (q + 1) & 0x7  # 3-bit wrap
+        out.append({'q': q & 0x7})
+    return out
+```

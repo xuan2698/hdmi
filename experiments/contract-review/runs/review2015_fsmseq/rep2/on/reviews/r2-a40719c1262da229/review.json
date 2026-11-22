@@ -1,0 +1,53 @@
+{
+  "coverage": {
+    "S01": [
+      "R_PROGRESS",
+      "R_DETECT"
+    ],
+    "S02": [
+      "R_DETECT",
+      "R_HOLD",
+      "R_RESET"
+    ],
+    "S03": [
+      "R_RESET"
+    ]
+  },
+  "issues": [
+    {
+      "issue_id": "I1",
+      "rule_id": "R_DETECT",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec does not fix whether start_shifting asserts on the detecting posedge (row 5) or one cycle later (row 6); contract chooses same-cycle and marks R_DETECT uncertain.",
+      "spec_evidence": "When the sequence is found, it should set start_shifting to 1, forever, until reset.",
+      "alternative": "start_shifting asserts one clock after the posedge that samples the final 1 of 1101",
+      "sequence": [
+        {
+          "reset": 1,
+          "data": 0
+        },
+        {
+          "reset": 0,
+          "data": 1
+        },
+        {
+          "reset": 0,
+          "data": 1
+        },
+        {
+          "reset": 0,
+          "data": 0
+        },
+        {
+          "reset": 0,
+          "data": 1
+        },
+        {
+          "reset": 0,
+          "data": 0
+        }
+      ]
+    }
+  ]
+}

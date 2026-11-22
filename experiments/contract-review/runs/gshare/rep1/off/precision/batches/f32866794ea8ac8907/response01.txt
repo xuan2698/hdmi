@@ -1,0 +1,373 @@
+Looking at this problem, I need to build a gshare branch predictor with:
+- 7-bit PC, 7-bit GHR, XOR hash into 7-bit index
+- 128-entry PHT of 2-bit saturating counters
+- Async active-high reset
+- Prediction interface and training interface
+
+Let me analyze the key semantics:
+
+1. **Prediction (combinational)**: When `predict_valid=1`, output `predict_taken` = MSB of PHT[pc ^ ghr], and `predict_history` = current ghr (before update).
+
+2. **GHR update on predict (posedge)**: When `predict_valid=1` and no mispredict training, shift in the predicted direction: `ghr = {ghr[5:0], predict_taken}`.
+
+3. **PHT training (posedge)**: When `train_valid=1`, update PHT[train_pc ^ train_history] based on `train_taken` (saturating 2-bit counter).
+
+4. **GHR recovery on mispredict (posedge)**: When `train_valid=1 && train_mispredicted=1`, `ghr = train_history` (the state after the mispredicting branch).
+
+5. **Priority**: Training (mispredict) takes precedence over prediction for GHR update.
+
+6. **Reset**: Async, clears ghr=0 and pht=0.
+
+For the PHT counter: 2-bit saturating. `predict_taken` = counter[1] (MSB). Increment on taken, decrement on not-taken, saturating at 0 and 3.
+
+Let me think about the GHR update on predict. The spec says "The branch history register is then updated (at the next positive clock edge) for the predicted branch." So on predict, ghr shifts in the predicted direction. But if training with mispredict happens, training takes precedence.
+
+What about training without mispredict? The spec says training takes precedence only when mispredicting. So if `train_valid=1 && train_mispredicted=0 && predict_valid=1`, the prediction's GHR update should still happen (since training doesn't modify GHR unless mispredicted).
+
+Wait, let me re-read: "If training for a misprediction and a prediction (for a different, younger instruction) occurs in the same cycle, both operations will want to modify the branch history register. When this happens, training takes precedence."
+
+So only mispredict training conflicts with prediction for GHR. Non-mispredict training doesn't touch GHR.
+
+So GHR update logic:
+- If `train_valid && train_mispredicted`: ghr = train_history (recovery)
+- Else if `predict_valid`: ghr = {ghr[5:0], predict_taken}
+
+For PHT: always update on train_valid (regardless of mispredict).
+
+Now, the "uncertain" R2: when predict_valid=0, what are outputs? The examples show 0. I'll go with 0 (zero) since that's what the examples show. Actually, let me reconsider — the examples show predict_history=0 and predict_taken=0 when predict_valid=0. But that could be because ghr=0 and pht=0 in those examples. Hmm. The safest interpretation matching examples: output 0 when predict_valid=0. But actually, "held" would also give 0 in those examples since state is 0.
+
+Let me think about what's more natural. The spec says "When a branch prediction is requested (predict_valid = 1)... produces the predicted branch direction and state of the branch history register." It doesn't say what happens when not requested. Given the examples show 0, and the reset values are 0, I'll output 0 when predict_valid=0. Actually, let me reconsider — many implementations would just always output the combinational value regardless of valid. But the examples are consistent with either. 
+
+Hmm, but the "uncertain" note lists two candidates: "retain previous values" or "zero when predict_valid is 0". Since the examples show 0 and initial state is 0, both work. I'll go with zero when predict_valid=0 since that's simpler and matches the example outputs directly.
+
+Wait, but actually if we "retain previous values" and previous was 0, that also gives 0. Let me just pick zero-when-invalid as it's cleaner and matches examples.
+
+Actually, let me reconsider. The most common hardware behavior: outputs are combinational functions of state and inputs. `predict_taken = pht[pc^ghr][1]` and `predict_history = ghr` regardless of predict_valid. But the spec ties it to predict_valid. Given the uncertainty, and that examples show 0, I'll output 0 when predict_valid=0.
+
+Hmm, but there's a subtlety. If we output 0 when predict_valid=0, but the state is nonzero, that's a specific choice. Let me go with it since examples support it.
+
+Now let me write the reference function. The vectors are given as list of dicts with inputs. I need to simulate cycle by cycle.
+
+The protocol: "Each row's values are driven before the sampled edge." So each vector represents inputs at a cycle, and we sample after posedge. The outputs are combinational (same cycle) based on current state and inputs.
+
+Wait, but there's also "mid" changes: "Optional mid input changes occur AFTER sampling, before the other edge, and are carried to the start of the next row." This is complex. Let me think about the standard simulation model.
+
+Typically in these problems: each vector is one cycle. Inputs are set, then posedge occurs, then we sample outputs. The "mid" refers to inputs changing mid-cycle (between posedges) which affect the next cycle's starting state.
+
+Actually, I think the model is: for each vector, we have inputs. We compute combinational outputs based on current state + inputs. Then at posedge, we update state. The "mid" changes would be additional input changes that happen after the posedge but before the next posedge — these would affect the next cycle's combinational outputs but not the state update at this posedge.
+
+Hmm, this is getting complicated. Let me look at the structure. The vectors are just a list of input dicts. I think the simplest interpretation: each vector = one cycle's inputs (stable at posedge). We compute outputs combinationally, then update state at posedge.
+
+But "mid" suggests there might be additional info. Since the vectors don't seem to have mid info in the examples, I'll treat each vector as the inputs at the posedge sampling point.
+
+Actually wait — re-reading: "Optional mid input changes occur AFTER sampling, before the other edge, and are carried to the start of the next row." This means: after we sample outputs at posedge, inputs might change (mid), and those changed inputs are what the next row starts with. But the next row's vector already specifies inputs... 
+
+I think the model is: the vector gives inputs at the start of the cycle (before posedge). We compute combinational outputs. At posedge, state updates. Then mid changes happen (if any) — but since vectors specify next row's inputs, the mid changes are just... the next row's inputs? No.
+
+Let me just go with the standard model: for each vector, set inputs, compute combinational outputs (based on current state and inputs), then posedge updates state. This is the most common interpretation and matches the examples.
+
+Let me verify with R1 example:
+- Cycle 1: areset=0, predict_valid=1, predict_pc=5, ghr=0, pht=0. predict_taken = pht[5^0][1] = pht[5][1] = 0. predict_history = ghr = 0. ✓
+- At posedge: ghr = {0, 0} = 0 (predict_taken=0). pht unchanged.
+- Cycle 2: predict_valid=1, predict_pc=9. predict_taken = pht[9^0][1] = 0. predict_history = 0. ✓
+
+Good.
+
+R5 example:
+- Cycle 1: train_valid=1, train_mispredicted=1, train_history=42, train_pc=5, train_taken=1. predict_valid=0.
+  - Outputs: predict_valid=0 → predict_taken=0, predict_history=0. ✓
+  - At posedge: pht[5^42] incremented (train_taken=1). ghr = train_history = 42.
+- Cycle 2: all zeros. predict_valid=0 → outputs 0,0. ✓
+
+Good.
+
+R6 example:
+- Cycle 1: predict_valid=1, predict_pc=5, train_valid=1, train_mispredicted=1, train_history=42, train_pc=9, train_taken=1.
+  - Outputs: predict_valid=1 → predict_taken = pht[5^0][1] = 0, predict_history = ghr = 0. ✓
+  - At posedge: pht[9^42] incremented. ghr = train_history = 42 (training takes precedence).
+- Cycle 2: outputs 0,0. ✓
+
+Good.
+
+Now let me write the code.
+
+```python
+def reference(vectors):
+    # State
+    ghr = 0
+    pht = [0] * 128  # 2-bit counters, init 0
+    
+    results = []
+    
+    for v in vectors:
+        areset = v['areset']
+        predict_valid = v['predict_valid']
+        predict_pc = v['predict_pc']
+        train_valid = v['train_valid']
+        train_taken = v['train_taken']
+        train_mispredicted = v['train_mispredicted']
+        train_history = v['train_history']
+        train_pc = v['train_pc']
+        
+        if areset:
+            # Async reset: outputs 0, state reset
+            ghr = 0
+            pht = [0] * 128
+            results.append({'predict_taken': 0, 'predict_history': 0})
+            continue
+        
+        # Combinational outputs
+        if predict_valid:
+            idx = (predict_pc ^ ghr) & 0x7F
+            predict_taken = (pht[idx] >> 1) & 1
+            predict_history = ghr & 0x7F
+        else:
+            predict_taken = 0
+            predict_history = 0
+        
+        results.append({'predict_taken': predict_taken, 'predict_history': predict_history})
+        
+        # Posedge state updates
+        # PHT update on train
+        if train_valid:
+            idx = (train_pc ^ train_history) & 0x7F
+            c = pht[idx]
+            if train_taken:
+                if c < 3:
+                    c += 1
+            else:
+                if c > 0:
+                    c -= 1
+            pht[idx] = c
+        
+        # GHR update
+        if train_valid and train_mispredicted:
+            ghr = train_history & 0x7F
+        elif predict_valid:
+            ghr = ((ghr << 1) | predict_taken) & 0x7F
+    
+    return results
+```
+
+Wait, I need to double check the PHT index for training. The spec says "indexed by xor of pc[6:0] and ghr". For training, we use `train_pc` and `train_history`. So `train_pc ^ train_history`. Yes.
+
+For prediction, `predict_pc ^ ghr`. Yes.
+
+Let me double check the counter update. 2-bit saturating counter. `predict_taken` = MSB. So counter values 0,1 → not taken; 2,3 → taken. Increment on taken, decrement on not-taken. Saturate at 0 and 3. Yes.
+
+Now, one concern: the "mid" changes. Let me re-read the protocol description once more.
+
+"Each row's values are driven before the sampled edge. Optional mid input changes occur AFTER sampling, before the other edge, and are carried to the start of the next row."
+
+Hmm. So the sequence per row is:
+1. Inputs driven (from vector)
+2. Posedge occurs, we sample outputs
+3. Mid changes happen (inputs change)
+4. Next row starts with these mid-changed inputs
+
+But the next row's vector specifies inputs... So maybe the mid changes are already reflected in the next row's vector? Or maybe the mid changes are separate and the next row's vector is what's driven at the start of the next cycle?
+
+I think the model is: the vector gives the inputs that are stable at the posedge. The "mid" changes are additional transitions that happen between posedges, but since the next vector gives the next posedge's inputs, the mid changes are just intermediate. For a purely synchronous model (which this is, since all state updates are at posedge), mid changes don't affect anything — they only matter if there were async logic depending on them, which there isn't (except areset, which is async).
+
+Wait, areset is async. So if areset changes mid-cycle, it would immediately reset. But the vectors give areset at posedge time. Hmm.
+
+Actually, I think for this problem, the mid changes are just describing that inputs can change between posedges, and the next row's vector captures the state at the next posedge. Since all our state updates are at posedge and outputs are combinational from current state + current inputs, the mid changes don't affect our simulation — we just process each vector as the inputs at that posedge.
+
+But wait — the async reset. If areset goes high mid-cycle, it resets immediately. Then at the next posedge, state is already reset. But the next vector would show areset=0 (deasserted) and we'd process normally. Hmm, but the reset would have happened mid-cycle, so the state at the next posedge is reset.
+
+Actually, I think the vectors are designed such that areset is high for a full cycle when it's high. Let me not overthink this. The standard model: process each vector, if areset=1 reset state and output 0, else compute outputs and update state at posedge.
+
+But there's a subtlety with async reset: if areset=1 in vector N, the reset happens "immediately" (async), so outputs are 0 and state is reset. Then at posedge (still in cycle N), state stays reset (reset is still high). Then in cycle N+1, areset=0, we start from reset state. This matches my code.
+
+But what if areset goes high mid-cycle N (after posedge N)? Then at posedge N, areset was 0, so normal update. Then areset goes high, resetting state. Then at posedge N+1, areset might be 0 again (if it was a brief pulse). The state would be reset. But my code processes vector N+1 with areset=0 and uses the state from after vector N's posedge update — which is wrong if reset happened mid-cycle.
+
+Hmm, this is the "mid" complication. But without explicit mid info in the vectors, I can't model this. I'll assume the vectors give areset stable at posedge, and if areset=1 at posedge, reset happens (which is consistent with async reset being high at that time).
+
+Actually, for async reset, if areset=1 at the sampling point (posedge), the reset has already taken effect (async), so outputs are 0 and state is reset. My code handles this.
+
+Let me also consider: what if areset=1 and predict_valid=1? The reset takes priority (priority 0). Outputs 0. State reset. My code handles this.
+
+OK, I think my code is correct. Let me also handle the case where predict_valid=0 but we still need to output something. I chose 0. Let me reconsider whether "held" might be intended.
+
+Looking at R2 example: both cycles have predict_valid=0, and expected outputs are 0,0. With ghr=0 and pht=0, both "held" (from initial 0) and "zero" give 0. So the example doesn't disambiguate.
+
+The uncertain note says candidates are "retain previous values" or "zero when predict_valid is 0". I'll go with zero since it's cleaner and the spec ties outputs to predict_valid.
+
+Hmm, but actually, let me reconsider. In real hardware, the outputs would typically be combinational functions of state regardless of valid. But the spec explicitly says "When a branch prediction is requested (predict_valid = 1)... produces...". This suggests outputs are only meaningful when predict_valid=1. For predict_valid=0, it's undefined. The examples show 0. I'll output 0.
+
+Actually, wait. Let me reconsider once more. If we output 0 when predict_valid=0, but the state is nonzero, that's a specific choice. But if we "hold" previous values, we'd need to track previous outputs. Given the examples show 0 and initial state is 0, and the simplest implementation is to output 0 when invalid, I'll go with that.
+
+Hmm, but actually there's a risk. What if the test vectors have predict_valid=0 with nonzero state, and expect the combinational value (not 0)? The spec is ambiguous. Let me think about which is more likely intended.
+
+The phrase "produces the predicted branch direction and state of the branch history register used to make the prediction" — this describes what happens when predict_valid=1. When predict_valid=0, there's no prediction being made, so the outputs are don't-care. The testbench probably checks outputs only when predict_valid=1, or expects 0.
+
+Given the examples show 0, I'll output 0 when predict_valid=0. This is my best guess.
+
+Actually, let me reconsider one more time. Looking at the structure of these problems, the "expected" outputs are what the reference model should produce. If the testbench only checks when predict_valid=1, then my choice doesn't matter for those cycles. If it checks always, then I need to match. The examples show 0 for predict_valid=0, so I'll match that.
+
+Let me finalize the code. I'll also make sure to handle the case where areset is high — outputs 0 regardless of other inputs.
+
+One more thing: the "mid" changes. I'll ignore them since they're not in the vector format. The vectors are just input dicts.
+
+Let me also double-check: for the PHT update, should it happen even when areset=1? No — reset takes priority. My code does `continue` after reset, so PHT update is skipped. Good.
+
+Also, should PHT update happen when train_valid=1 but areset=1? No, reset wins. Good.
+
+Let me also verify: when train_valid=1 && train_mispredicted=1 && predict_valid=1, the PHT update uses train_pc and train_history (not predict_pc). Yes, my code does that.
+
+And GHR: training takes precedence, so ghr = train_history. My code does that.
+
+When train_valid=1 && train_mispredicted=0 && predict_valid=1: PHT updates, and GHR updates from prediction (since training doesn't touch GHR unless mispredicted). My code: `if train_valid and train_mispredicted` is false, so `elif predict_valid` → ghr shifts. Good.
+
+When train_valid=1 && train_mispredicted=0 && predict_valid=0: PHT updates, GHR unchanged. My code: neither branch → ghr unchanged. Good.
+
+When train_valid=0 && predict_valid=1: GHR shifts. Good.
+
+When train_valid=0 && predict_valid=0: nothing. Good.
+
+I think the code is correct. Let me write it cleanly.
+
+Actually, I realize I should double check the PHT index masking. `predict_pc` is 7 bits, `ghr` is 7 bits, XOR is 7 bits, index 0-127. Good. `train_pc` and `train_history` similarly.
+
+Let me also make sure the output dict has exactly the right keys: `predict_taken` and `predict_history`. Yes.
+
+Final code:
+
+```python
+def reference(vectors):
+    ghr = 0
+    pht = [0] * 128
+    results = []
+    for v in vectors:
+        areset = v['areset']
+        predict_valid = v['predict_valid']
+        predict_pc = v['predict_pc']
+        train_valid = v['train_valid']
+        train_taken = v['train_taken']
+        train_mispredicted = v['train_mispredicted']
+        train_history = v['train_history']
+        train_pc = v['train_pc']
+        
+        if areset:
+            ghr = 0
+            pht = [0] * 128
+            results.append({'predict_taken': 0, 'predict_history': 0})
+            continue
+        
+        if predict_valid:
+            idx = (predict_pc ^ ghr) & 0x7F
+            predict_taken = (pht[idx] >> 1) & 1
+            predict_history = ghr & 0x7F
+        else:
+            predict_taken = 0
+            predict_history = 0
+        
+        results.append({'predict_taken': predict_taken, 'predict_history': predict_history})
+        
+        if train_valid:
+            idx = (train_pc ^ train_history) & 0x7F
+            c = pht[idx]
+            if train_taken:
+                if c < 3:
+                    c += 1
+            else:
+                if c > 0:
+                    c -= 1
+            pht[idx] = c
+        
+        if train_valid and train_mispredicted:
+            ghr = train_history & 0x7F
+        elif predict_valid:
+            ghr = ((ghr << 1) | predict_taken) & 0x7F
+    
+    return results
+```
+
+This looks good. Let me write the final JSON response.
+
+Wait, I should double-check the "mid" handling once more. The problem says "Optional mid input changes occur AFTER sampling, before the other edge, and are carried to the start of the next row." 
+
+I think this means: the vector's inputs are what's present at the sampling edge (posedge). After sampling, inputs might change (mid), and those changed inputs are what the next row starts with. But the next row's vector specifies its own inputs... 
+
+Oh, I see. Maybe the model is: the vector gives inputs at the START of the cycle (before posedge). The posedge samples outputs. Then mid changes happen. Then the next cycle starts with the mid-changed inputs, which are given by the next vector.
+
+But that doesn't quite work either, because the next vector's inputs would be the mid-changed ones, and then there'd be another posedge...
+
+I think the cleanest interpretation: each vector = inputs stable at the posedge of that cycle. We compute outputs (combinational, based on state + inputs), then posedge updates state. Mid changes are irrelevant for our synchronous model (except async reset, which we handle by checking areset at the sampling point).
+
+Actually, for async reset, if areset goes high mid-cycle, it resets immediately. Then at the next posedge, state is reset. But the next vector might show areset=0 (if it was a brief pulse). In that case, my code would process the next vector with areset=0 and use the state from after the previous posedge update — which is wrong because reset happened mid-cycle.
+
+But without explicit mid info, I can't model this. I'll assume the vectors are designed such that areset is stable at posedge. This is the standard assumption.
+
+OK, I'm confident in my code. Let me write the final answer.
+
+Actually, one more consideration: the problem says "For every assigned item, implement its exact state semantics independently with the same interface." There are 4 items (4 different model IDs). They all have the same spec but slightly different state descriptions. Let me check if there are any differences:
+
+1. `1ab2c2b089c4f5c388`: ghr is "7-bit global branch history register", pht is "128-entry table of 2-bit saturating counters indexed by xor of pc[6:0] and ghr"
+2. `efe50e696590efea57`: same as above
+3. `0fa2b652d0bc5b5f69`: ghr adds "on mispredict training recovery, ghr is loaded with train_history (the state immediately after the mispredicting branch)"
+4. `90c1d63c2e3dd41e52`: ghr adds "predict_history outputs the current ghr value before any predicted-branch update; on mispredict training recovery, ghr is loaded with train_history"
+
+These are all consistent with my implementation. The differences are just clarifications. So I can use the same code for all 4.
+
+Let me write the final JSON. I'll use the same code string for all 4 model IDs.
+
+Actually, let me reconsider the predict_history output. The spec says "produces the predicted branch direction and state of the branch history register used to make the prediction." So predict_history = ghr (the value used to index the PHT). This is the current ghr before any update. My code does this. Good.
+
+For model 4, it explicitly says "predict_history outputs the current ghr value before any predicted-branch update" — confirms my implementation.
+
+OK, final answer. Let me write it as a JSON with 4 model IDs, each with the same Python source string.
+
+Let me make sure the code is valid Python with no imports, no I/O, no executable top-level code. The function `reference(vectors)` is defined. Good.
+
+Let me also make sure I handle the case where vectors might have missing keys gracefully. I'll assume all keys are present as per the port spec.
+
+Final code (same for all 4):
+
+```python
+def reference(vectors):
+    ghr = 0
+    pht = [0] * 128
+    results = []
+    for v in vectors:
+        areset = v['areset']
+        predict_valid = v['predict_valid']
+        predict_pc = v['predict_pc']
+        train_valid = v['train_valid']
+        train_taken = v['train_taken']
+        train_mispredicted = v['train_mispredicted']
+        train_history = v['train_history']
+        train_pc = v['train_pc']
+        if areset:
+            ghr = 0
+            pht = [0] * 128
+            results.append({'predict_taken': 0, 'predict_history': 0})
+            continue
+        if predict_valid:
+            idx = (predict_pc ^ ghr) & 0x7F
+            predict_taken = (pht[idx] >> 1) & 1
+            predict_history = ghr & 0x7F
+        else:
+            predict_taken = 0
+            predict_history = 0
+        results.append({'predict_taken': predict_taken, 'predict_history': predict_history})
+        if train_valid:
+            idx = (train_pc ^ train_history) & 0x7F
+            c = pht[idx]
+            if train_taken:
+                if c < 3:
+                    c += 1
+            else:
+                if c > 0:
+                    c -= 1
+            pht[idx] = c
+        if train_valid and train_mispredicted:
+            ghr = train_history & 0x7F
+        elif predict_valid:
+            ghr = ((ghr << 1) | predict_taken) & 0x7F
+    return results
+```
+
+This should be correct. Let me write the JSON.```json
+{"models":{"1ab2c2b089c4f5c388":"def reference(vectors):\n    ghr = 0\n    pht = [0] * 128\n    results = []\n    for v in vectors:\n        areset = v['areset']\n        predict_valid = v['predict_valid']\n        predict_pc = v['predict_pc']\n        train_valid = v['train_valid']\n        train_taken = v['train_taken']\n        train_mispredicted = v['train_mispredicted']\n        train_history = v['train_history']\n        train_pc = v['train_pc']\n        if areset:\n            ghr = 0\n            pht = [0] * 128\n            results.append({'predict_taken': 0, 'predict_history': 0})\n            continue\n        if predict_valid:\n            idx = (predict_pc ^ ghr) & 0x7F\n            predict_taken = (pht[idx] >> 1) & 1\n            predict_history = ghr & 0x7F\n        else:\n            predict_taken = 0\n            predict_history = 0\n        results.append({'predict_taken': predict_taken, 'predict_history': predict_history})\n        if train_valid:\n            idx = (train_pc ^ train_history) & 0x7F\n            c = pht[idx]\n            if train_taken:\n                if c < 3:\n                    c += 1\n            else:\n                if c > 0:\n                    c -= 1\n            pht[idx] = c\n        if train_valid and train_mispredicted:\n            ghr = train_history & 0x7F\n        elif predict_valid:\n            ghr = ((ghr << 1) | predict_taken) & 0x7F\n    return results\n","efe50e696590efea57":"def reference(vectors):\n    ghr = 0\n    pht = [0] * 128\n    results = []\n    for v in vectors:\n        areset = v['areset']\n        predict_valid = v['predict_valid']\n        predict_pc = v['predict_pc']\n        train_valid = v['train_valid']\n        train_taken = v['train_taken']\n        train_mispredicted = v['train_mispredicted']\n        train_history = v['train_history']\n        train_pc = v['train_pc']\n        if areset:\n            ghr = 0\n            pht = [0] * 128\n            results.append({'predict_taken': 0, 'predict_history': 0})\n            continue\n        if predict_valid:\n            idx = (predict_pc ^ ghr) & 0x7F\n            predict_taken = (pht[idx] >> 1) & 1\n            predict_history = ghr & 0x7F\n        else:\n            predict_taken = 0\n            predict_history = 0\n        results.append({'predict_taken': predict_taken, 'predict_history': predict_history})\n        if train_valid:\n            idx = (train_pc ^ train_history) & 0x7F\n            c = pht[idx]\n            if train_taken:\n                if c < 3:\n                    c += 1\n            else:\n                if c > 0:\n                    c -= 1\n            pht[idx] = c\n        if train_valid and train_mispredicted:\n            ghr = train_history & 0x7F\n        elif predict_valid:\n            ghr = ((ghr << 1) | predict_taken) & 0x7F\n    return results\n","0fa2b652d0bc5b5f69":"def reference(vectors):\n    ghr = 0\n    pht = [0] * 128\n    results = []\n    for v in vectors:\n        areset = v['areset']\n        predict_valid = v['predict_valid']\n        predict_pc = v['predict_pc']\n        train_valid = v['train_valid']\n        train_taken = v['train_taken']\n        train_mispredicted = v['train_mispredicted']\n        train_history = v['train_history']\n        train_pc = v['train_pc']\n        if areset:\n            ghr = 0\n            pht = [0] * 128\n            results.append({'predict_taken': 0, 'predict_history': 0})\n            continue\n        if predict_valid:\n            idx = (predict_pc ^ ghr) & 0x7F\n            predict_taken = (pht[idx] >> 1) & 1\n            predict_history = ghr & 0x7F\n        else:\n            predict_taken = 0\n            predict_history = 0\n        results.append({'predict_taken': predict_taken, 'predict_history': predict_history})\n        if train_valid:\n            idx = (train_pc ^ train_history) & 0x7F\n            c = pht[idx]\n            if train_taken:\n                if c < 3:\n                    c += 1\n            else:\n                if c > 0:\n                    c -= 1\n            pht[idx] = c\n        if train_valid and train_mispredicted:\n            ghr = train_history & 0x7F\n        elif predict_valid:\n            ghr = ((ghr << 1) | predict_taken) & 0x7F\n    return results\n","90c1d63c2e3dd41e52":"def reference(vectors):\n    ghr = 0\n    pht = [0] * 128\n    results = []\n    for v in vectors:\n        areset = v['areset']\n        predict_valid = v['predict_valid']\n        predict_pc = v['predict_pc']\n        train_valid = v['train_valid']\n        train_taken = v['train_taken']\n        train_mispredicted = v['train_mispredicted']\n        train_history = v['train_history']\n        train_pc = v['train_pc']\n        if areset:\n            ghr = 0\n            pht = [0] * 128\n            results.append({'predict_taken': 0, 'predict_history': 0})\n            continue\n        if predict_valid:\n            idx = (predict_pc ^ ghr) & 0x7F\n            predict_taken = (pht[idx] >> 1) & 1\n            predict_history = ghr & 0x7F\n        else:\n            predict_taken = 0\n            predict_history = 0\n        results.append({'predict_taken': predict_taken, 'predict_history': predict_history})\n        if train_valid:\n            idx = (train_pc ^ train_history) & 0x7F\n            c = pht[idx]\n            if train_taken:\n                if c < 3:\n                    c += 1\n            else:\n                if c > 0:\n                    c -= 1\n            pht[idx] = c\n        if train_valid and train_mispredicted:\n            ghr = train_history & 0x7F\n        elif predict_valid:\n            ghr = ((ghr << 1) | predict_taken) & 0x7F\n    return results\n"}}
+```

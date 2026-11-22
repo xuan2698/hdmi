@@ -1,0 +1,26 @@
+def reference(vectors):
+    out = []
+    for row in vectors:
+        x = row['x'] & 1
+        y = row['y'] & 7
+
+        # Y0_comb: For y in {0,1,2,3}: Y0 = (x XOR (y & 1)) & 1;
+        # for y == 4: Y0 = (NOT x) & 1; unused states default to 0.
+        if y <= 3:
+            Y0 = (x ^ (y & 1)) & 1
+        elif y == 4:
+            Y0 = (x ^ 1) & 1
+        else:
+            Y0 = 0
+
+        # z_comb: For y in {0,1,2}: z = 0; for y in {3,4}: z = 1.
+        # Candidate interpretation: add default z=0 for y=5,6,7.
+        if y == 0 or y == 1 or y == 2:
+            z = 0
+        elif y == 3 or y == 4:
+            z = 1
+        else:
+            z = 0
+
+        out.append({'Y0': Y0 & 1, 'z': z & 1})
+    return out

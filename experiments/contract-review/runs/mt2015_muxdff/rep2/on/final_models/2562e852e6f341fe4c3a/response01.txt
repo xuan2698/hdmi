@@ -1,0 +1,25 @@
+```python
+def reference(vectors):
+    # Contract requires concrete values even though power-up Q is unspecified.
+    # Use Q=0 as the concrete initial registered state.
+    Q = 0
+    outputs = []
+
+    for row in vectors:
+        L = int(row.get("L", 0)) & 1
+        q_in = int(row.get("q_in", 0)) & 1
+        r_in = int(row.get("r_in", 0)) & 1
+
+        # Sample at posedge clk after the edge has settled.
+        if L == 1:
+            # load_L_high: if L == 1 then Q_next = r_in.
+            Q_next = r_in
+        else:
+            # feedback_L_low: if L == 0 then Q_next = q_in ^ Q.
+            Q_next = (q_in ^ Q) & 1
+
+        Q = Q_next & 1
+        outputs.append({"Q": Q})
+
+    return outputs
+```

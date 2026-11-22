@@ -1,0 +1,81 @@
+```python
+def reference(vectors):
+    # Named state for the D flip-flop and current input values
+    q_state = 0
+    cur_d = 0
+    cur_r = 0
+    outputs = []
+
+    for row in vectors:
+        # Load pre-edge driven input values for this cycle
+        if isinstance(row, dict):
+            if 'd' in row:
+                cur_d = row['d'] & 1
+            if 'r' in row:
+                cur_r = row['r'] & 1
+        else:
+            # Fallback for sequence-style vectors: [d, r, ...]
+            try:
+                if len(row) >= 1:
+                    cur_d = row[0] & 1
+                if len(row) >= 2:
+                    cur_r = row[1] & 1
+            except Exception:
+                pass
+
+        # At the sampled posedge, update q_state
+        # Rule sync_reset_high: active-high synchronous reset forces q to 0
+        if cur_r == 1:
+            q_state = 0  # sync_reset_high (priority 2)
+        else:
+            # Rule d_capture_when_reset_inactive: q captures d when r == 0
+            q_state = cur_d & 1  # d_capture_when_reset_inactive (priority 1)
+
+        # Output is visible in the same cycle
+        outputs.append({'q': q_state})
+
+        # Process optional mid input changes AFTER sampling; they carry to the next row
+        if isinstance(row, dict):
+            # Support row['mid'] as a dict or list of dicts
+            if 'mid' in row:
+                mids = row['mid']
+                if isinstance(mids, dict):
+                    mids_list = [mids]
+                elif isinstance(mids, list):
+                    mids_list = mids
+                else:
+                    mids_list = []
+                for mid in mids_list:
+                    if isinstance(mid, dict):
+                        for k, v in mid.items():
+                            if k == 'd':
+                                cur_d = v & 1
+                            elif k == 'r':
+                                cur_r = v & 1
+
+            # Support keys like 'd_mid', 'r_mid', 'mid_d', 'mid_r'
+            for k, v in row.items():
+                if k == 'mid':
+                    continue
+                if k.endswith('_mid'):
+                    sig = k[:-4]
+                    if sig == 'd':
+                        cur_d = v & 1
+                    elif sig == 'r':
+                        cur_r = v & 1
+                elif k.startswith('mid_'):
+                    sig = k[4:]
+                    if sig == 'd':
+                        cur_d = v & 1
+                    elif sig == 'r':
+                        cur_r = v & 1
+                # Additional common aliases for mid changes
+                elif k in ('mid_changes', 'mid_change', 'after') and isinstance(v, dict):
+                    for kk, vv in v.items():
+                        if kk == 'd':
+                            cur_d = vv & 1
+                        elif kk == 'r':
+                            cur_r = vv & 1
+
+    return outputs
+```

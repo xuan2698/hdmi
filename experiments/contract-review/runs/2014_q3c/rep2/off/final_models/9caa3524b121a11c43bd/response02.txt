@@ -1,0 +1,25 @@
+```python
+def reference(vectors):
+    # R_Y0, R_z: combinational next-state LSB and output z from present state y and input x.
+    # Table: (y, x) -> (Y[2:0], z)
+    table = {
+        (0, 0): (0b000, 0),
+        (0, 1): (0b001, 0),
+        (1, 0): (0b001, 0),
+        (1, 1): (0b100, 0),
+        (2, 0): (0b010, 0),
+        (2, 1): (0b001, 0),
+        (3, 0): (0b001, 1),
+        (3, 1): (0b010, 1),
+        (4, 0): (0b011, 1),
+        (4, 1): (0b100, 1),
+    }
+    out = []
+    for v in vectors:
+        x = v["x"] & 1
+        y = v["y"] & 0b111
+        nxt, z = table[(y, x)]
+        Y0 = nxt & 1
+        out.append({"Y0": Y0, "z": z})
+    return out
+```

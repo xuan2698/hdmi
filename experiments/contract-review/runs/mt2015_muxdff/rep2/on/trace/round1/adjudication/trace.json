@@ -1,0 +1,56 @@
+[
+  {
+    "issue": {
+      "issue_id": "A1",
+      "rule_id": "feedback_L_low",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "q_in meaning is unconstrained: independent external mux data vs current-Q feedback changes L-low output.",
+      "spec_evidence": "",
+      "alternative": "q_in is the current registered Q feedback and should not be an arbitrary external sample, so L=0 with q_in=1 should use current Q=0 and hold Q=0, not set Q=1.",
+      "sequence": [
+        {
+          "L": 1,
+          "q_in": 0,
+          "r_in": 0
+        },
+        {
+          "L": 0,
+          "q_in": 1,
+          "r_in": 0
+        }
+      ]
+    },
+    "status": "effect",
+    "issue_id": "A1",
+    "outputs": {
+      "original": [
+        {
+          "Q": 0
+        },
+        {
+          "Q": 1
+        }
+      ],
+      "alternative": [
+        {
+          "Q": 0
+        },
+        {
+          "Q": 0
+        }
+      ]
+    },
+    "differences": [
+      {
+        "cycle": 2,
+        "original": {
+          "Q": 1
+        },
+        "alternative": {
+          "Q": 0
+        }
+      }
+    ]
+  }
+]

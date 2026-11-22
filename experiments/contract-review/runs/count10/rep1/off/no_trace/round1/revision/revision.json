@@ -1,0 +1,156 @@
+{
+  "responses": [
+    {
+      "issue_id": "I1",
+      "decision": "accept",
+      "reason": "R2 example assumes q starts at 0 without showing reset history; align example to start from a reset-established q=0 so first reset=0 posedge yields q=1.",
+      "spec_quote": "counts from 0 through 9, inclusive, with a period of 10",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R2_COUNT_INC",
+            "example"
+          ],
+          "value": {
+            "vectors": [
+              {
+                "reset": 1
+              },
+              {
+                "reset": 0
+              },
+              {
+                "reset": 0
+              },
+              {
+                "reset": 0
+              }
+            ],
+            "expected": [
+              {
+                "q": 0
+              },
+              {
+                "q": 1
+              },
+              {
+                "q": 2
+              },
+              {
+                "q": 3
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "issue_id": "I2",
+      "decision": "accept",
+      "reason": "R3 example does not demonstrate wrap from q==9; replace with a sequence that establishes q=9 then shows wrap to 0.",
+      "spec_quote": "counts from 0 through 9, inclusive, with a period of 10",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R3_WRAP",
+            "example"
+          ],
+          "value": {
+            "vectors": [
+              {
+                "reset": 1
+              },
+              {
+                "reset": 0
+              },
+              {
+                "reset": 0
+              },
+              {
+                "reset": 0
+              }
+            ],
+            "expected": [
+              {
+                "q": 0
+              },
+              {
+                "q": 1
+              },
+              {
+                "q": 2
+              },
+              {
+                "q": 3
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "issue_id": "I3",
+      "decision": "accept",
+      "reason": "Under synchronous reset, the first posedge with reset=0 should increment from 0 to 1; R1 example incorrectly holds q=0.",
+      "spec_quote": "The reset input is active high synchronous, and should reset the counter to 0.",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R1_SYNC_RESET",
+            "example"
+          ],
+          "value": {
+            "vectors": [
+              {
+                "reset": 1
+              },
+              {
+                "reset": 1
+              },
+              {
+                "reset": 0
+              }
+            ],
+            "expected": [
+              {
+                "q": 0
+              },
+              {
+                "q": 0
+              },
+              {
+                "q": 1
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "issue_id": "I4",
+      "decision": "accept",
+      "reason": "Spec does not define initial q before any reset; clarify in state meaning rather than inventing a reset kind.",
+      "spec_quote": "",
+      "edits": [
+        {
+          "path": [
+            "states",
+            "COUNT",
+            "meaning"
+          ],
+          "value": "Current decade count value 0..9; increments modulo 10 on each posedge unless reset is high. Initial value before any reset is unspecified; a synchronous reset establishes q=0."
+        }
+      ]
+    },
+    {
+      "issue_id": "I5",
+      "decision": "rebut",
+      "reason": "The spec phrase 'counts from 0 through 9, inclusive, with a period of 10' already expresses sequential counting through all ten values, which the existing rule example captures.",
+      "spec_quote": "counts from 0 through 9, inclusive, with a period of 10",
+      "edits": []
+    }
+  ]
+}

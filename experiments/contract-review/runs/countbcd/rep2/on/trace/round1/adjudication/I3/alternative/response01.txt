@@ -1,0 +1,84 @@
+```python
+def reference(vectors):
+    # R_ENA_COMB: compute the 3-bit enable from the current packed BCD q.
+    def calc_ena(q):
+        ena = 0
+        if (q & 15) == 9:
+            ena += 1
+        if (q & 255) == 0x99:
+            ena += 2
+        if (q & 4095) == 0x999:
+            ena += 4
+        return ena
+
+    # R_COUNT_BCD: decrement the 4-digit packed BCD value by 1, wrapping
+    # 0000 to 9999, per the candidate interpretation.
+    def bcd_dec(q):
+        d0 = q & 0xF
+        d1 = (q >> 4) & 0xF
+        d2 = (q >> 8) & 0xF
+        d3 = (q >> 12) & 0xF
+        if d0 > 0:
+            d0 -= 1
+        else:
+            d0 = 9
+            if d1 > 0:
+                d1 -= 1
+            else:
+                d1 = 9
+                if d2 > 0:
+                    d2 -= 1
+                else:
+                    d2 = 9
+                    if d3 > 0:
+                        d3 -= 1
+                    else:
+                        d3 = 9
+        return d0 | (d1 << 4) | (d2 << 8) | (d3 << 12)
+
+    q = 0
+    reset_val = 0
+    outs = []
+
+    for row in vectors:
+        # Inputs are driven before the sampled posedge.  Explicit row values
+        # override any mid-change carried from the previous row.
+        if isinstance(row, dict):
+            if 'reset' in row:
+                reset_val = row['reset']
+            if 'inputs' in row and isinstance(row['inputs'], dict):
+                if 'reset' in row['inputs']:
+                    reset_val = row['inputs']['reset']
+
+        # R_RESET: synchronous active-high reset forces q to 0.
+        if reset_val == 1:
+            q_next = 0
+        else:
+            # R_COUNT_BCD: decrement by 1 each non-reset posedge.
+            q_next = bcd_dec(q)
+        q = q_next
+
+        # R_ENA_COMB: combinational from the updated q.
+        ena = calc_ena(q)
+        outs.append({'ena': ena, 'q': q})
+
+        # Optional mid changes occur after sampling and before the next edge.
+        # They are carried to the start of the next row.
+        if isinstance(row, dict):
+            if 'mid' in row and isinstance(row['mid'], dict):
+                if 'reset' in row['mid']:
+                    reset_val = row['mid']['reset']
+            if 'reset_mid' in row:
+                reset_val = row['reset_mid']
+            if 'mid_reset' in row:
+                reset_val = row['mid_reset']
+            if 'inputs' in row and isinstance(row['inputs'], dict):
+                inp = row['inputs']
+                if 'reset_mid' in inp:
+                    reset_val = inp['reset_mid']
+                if 'mid' in inp and isinstance(inp['mid'], dict):
+                    if 'reset' in inp['mid']:
+                        reset_val = inp['mid']['reset']
+
+    return outs
+```

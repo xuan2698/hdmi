@@ -1,0 +1,76 @@
+{
+  "coverage": {
+    "S01": [
+      "R1_sync_reset",
+      "R2_dff_capture"
+    ],
+    "S02": [
+      "R3_reset_value"
+    ],
+    "S03": [
+      "R1_sync_reset",
+      "R2_dff_capture"
+    ]
+  },
+  "issues": [
+    {
+      "issue_id": "I1",
+      "rule_id": "R1_sync_reset",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "R1 example expected q=52 on second vector (reset=1) but first vector reset=0 with d=10 should capture 10, not 52; reset value only applies when reset=1 at negedge, and first vector has reset=0.",
+      "spec_evidence": "active high synchronous reset",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I2",
+      "rule_id": "R3_reset_value",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "R3 example expected q=0 on third vector (reset=0, d=0) but prior reset=1 should set q=52; with reset=0 and d=0, q should capture 0, which matches, but the example's first two vectors both reset=1 yield 52, then third reset=0 d=0 yields 0 — actually consistent. Re-evaluate: R3 example is consistent. Issue withdrawn.",
+      "spec_evidence": "",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I3",
+      "rule_id": "R1_sync_reset",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec says synchronous reset active high; contract sets reset value 0x34. Ambiguity: does reset override d on same negedge? R1 priority 1 over R2 priority 2 implies yes, but no explicit spec statement on priority.",
+      "spec_evidence": "active high synchronous reset",
+      "alternative": "Reset does not override d; d is captured and reset only affects next cycle.",
+      "sequence": [
+        {
+          "d": 5,
+          "reset": 1
+        },
+        {
+          "d": 7,
+          "reset": 0
+        }
+      ]
+    },
+    {
+      "issue_id": "I4",
+      "rule_id": "global",
+      "type": "grounding",
+      "severity": "medium",
+      "detail": "Contract states update_during_reset true and visible same_cycle, but spec only says synchronous reset; no verbatim evidence that reset is visible same cycle vs next cycle.",
+      "spec_evidence": "active high synchronous reset",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I5",
+      "rule_id": "R2_dff_capture",
+      "type": "spec_example",
+      "severity": "low",
+      "detail": "R2 example vectors all reset=0, expected q=1,2,3; consistent with negedge capture. No issue.",
+      "spec_evidence": "",
+      "alternative": "",
+      "sequence": []
+    }
+  ]
+}

@@ -1,0 +1,61 @@
+def reference(vectors):
+    # Contract rules implemented:
+    # R1: reset == 1 -> start_shifting = 0 (sync reset, same_cycle)
+    # R2: reset == 0 and state == S4 -> start_shifting = 1
+    # R3: reset == 0 and state == S3 and data == 1 -> start_shifting = 1
+    # R4: reset == 0 and not S4 and not (S3 and data==1) -> start_shifting = 0
+    # States: S0 (no prefix), S1 (matched '1'), S2 (matched '11'),
+    #         S3 (matched '110'), S4 (found 1101, latched)
+    # Output is combinational (same_cycle) based on current state and data.
+
+    S0, S1, S2, S3, S4 = 0, 1, 2, 3, 4
+    state = S0
+    out = []
+
+    for row in vectors:
+        reset = row.get('reset', 0) & 1
+        data = row.get('data', 0) & 1
+
+        # R1: synchronous reset forces start_shifting low
+        if reset == 1:
+            start_shifting = 0
+        else:
+            # R2: latched found state
+            if state == S4:
+                start_shifting = 1
+            # R3: detecting 1101 on this cycle
+            elif state == S3 and data == 1:
+                start_shifting = 1
+            # R4: otherwise not shifting
+            else:
+                start_shifting = 0
+
+        out.append({'start_shifting': start_shifting})
+
+        # State update at posedge (after sampling)
+        if reset == 1:
+            state = S0
+        else:
+            if state == S0:
+                state = S1 if data == 1 else S0
+            elif state == S1:
+                state = S2 if data == 1 else S1 if data == 1 else (S1 if data == 1 else S0)
+                # explicit: S1 on '1' -> S2; on '0' -> S0
+                if data == 1:
+                    state = S2
+                else:
+                    state = S0
+            elif state == S2:
+                if data == 1:
+                    state = S2
+                else:
+                    state = S3
+            elif state == S3:
+                if data == 1:
+                    state = S4
+                else:
+                    state = S0
+            elif state == S4:
+                state = S4
+
+    return out

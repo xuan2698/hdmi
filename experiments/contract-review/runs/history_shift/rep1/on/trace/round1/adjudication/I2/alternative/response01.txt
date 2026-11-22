@@ -1,0 +1,53 @@
+def reference(vectors):
+    mask = 0xFFFFFFFF
+    history = 0
+    cur = {
+        'areset': 0,
+        'predict_valid': 0,
+        'predict_taken': 0,
+        'train_mispredicted': 0,
+        'train_taken': 0,
+        'train_history': 0,
+    }
+    outs = []
+    for row in vectors:
+        if row is None:
+            row = {}
+        mid = None
+        # Inputs driven before the sampled posedge.
+        for k in cur:
+            if k in row:
+                value = row[k]
+                if k == 'train_history':
+                    cur[k] = value & mask
+                else:
+                    cur[k] = value & 1
+        if 'mid' in row:
+            mid = row['mid']
+        # rule reset_async: asynchronous reset dominates and holds history at zero.
+        if cur['areset'] & 1:
+            history = 0
+        else:
+            if cur['train_mispredicted'] & 1:
+                # rule mispredict_rollback: misprediction has priority over prediction.
+                history = (((cur['train_history'] & mask) << 1) | (cur['train_taken'] & 1)) & mask
+            elif cur['predict_valid'] & 1:
+                # rule predict_shift: shift predict_taken in from the LSB side.
+                history = ((history << 1) | (cur['predict_taken'] & 1)) & mask
+            else:
+                # rule hold_no_update: candidate interpretation clears history to 0 on posedge with no update.
+                history = 0
+        outs.append({'predict_history': history & mask})
+        # Optional mid-cycle changes occur after sampling and are carried forward.
+        if isinstance(mid, dict):
+            for k in cur:
+                if k in mid:
+                    value = mid[k]
+                    if k == 'train_history':
+                        cur[k] = value & mask
+                    else:
+                        cur[k] = value & 1
+            if cur['areset'] & 1:
+                # rule reset_async: mid-cycle assertion of areset also asynchronously clears history.
+                history = 0
+    return outs

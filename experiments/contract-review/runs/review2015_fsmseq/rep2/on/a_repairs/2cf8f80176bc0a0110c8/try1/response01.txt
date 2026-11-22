@@ -1,0 +1,59 @@
+def reference(vectors):
+    S0, S1, S2, S3, SF = 'S0', 'S1', 'S2', 'S3', 'SF'
+    state = S0
+    cur_reset = 0
+    cur_data = 0
+    result = []
+
+    for row in vectors:
+        # Apply row inputs before the sampled posedge
+        if 'reset' in row:
+            cur_reset = int(row['reset'])
+        if 'data' in row:
+            cur_data = int(row['data'])
+
+        # Determine next state and output at the sampled posedge
+        if cur_reset == 1:
+            # R_RESET: reset == 1 overrides all other rules
+            next_state = S0
+            out = 0
+        else:
+            if state == SF:
+                # R_HOLD: current state == SF, hold start_shifting at 1
+                next_state = SF
+                out = 1
+            elif state == S3 and cur_data == 1:
+                # R_DETECT: current state == S3 and data == 1 detects 1101
+                next_state = SF
+                out = 1
+            else:
+                # R_PROGRESS: search for sequence 1101
+                if state == S0:
+                    next_state = S1 if cur_data == 1 else S0
+                elif state == S1:
+                    next_state = S2 if cur_data == 1 else S0
+                elif state == S2:
+                    next_state = S3 if cur_data == 0 else S2
+                elif state == S3:
+                    # data == 1 handled by R_DETECT, so here data == 0
+                    next_state = S0
+                else:
+                    next_state = S0
+                out = 0
+
+        # Update state at posedge clk
+        state = next_state
+
+        # Output is visible same_cycle after posedge
+        result.append({'start_shifting': out})
+
+        # Apply optional mid changes after sampling, before the next row
+        if 'mid' in row and row['mid'] is not None:
+            mid = row['mid']
+            if isinstance(mid, dict):
+                if 'reset' in mid:
+                    cur_reset = int(mid['reset'])
+                if 'data' in mid:
+                    cur_data = int(mid['data'])
+
+    return result

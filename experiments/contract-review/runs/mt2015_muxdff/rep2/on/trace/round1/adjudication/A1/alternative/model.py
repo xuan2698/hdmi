@@ -1,0 +1,60 @@
+def reference(vectors):
+    # State: Q_reg is the registered output bit. Initial concrete value is 0 for unspecified power-up.
+    Q_reg = 0
+    # Inputs held from the previous edge, before optional mid-cycle changes.
+    pending_L = 0
+    pending_q_in = 0
+    pending_r_in = 0
+    results = []
+
+    for row in vectors:
+        # Each row's driven values occur before the sampled posedge and override held/pending values.
+        if "L" in row:
+            L = row["L"] & 1
+        else:
+            L = pending_L
+        if "q_in" in row:
+            q_in = row["q_in"] & 1
+        else:
+            q_in = pending_q_in
+        if "r_in" in row:
+            r_in = row["r_in"] & 1
+        else:
+            r_in = pending_r_in
+
+        # rule load_L_high: At posedge clk, if L == 1, Q_next = r_in.
+        # rule feedback_L_low: Candidate interpretation: q_in is current registered Q feedback,
+        # so L == 0 uses current Q_reg and holds it, not an arbitrary external q_in sample.
+        if L:
+            Q_next = r_in
+        else:
+            Q_next = Q_reg
+
+        # Register update occurs on posedge; visible next cycle.
+        Q_reg = Q_next & 1
+        results.append({"Q": Q_reg})
+
+        # Optional mid input changes occur AFTER sampling, before the other edge,
+        # and are carried to the start of the next row.
+        pending_L = L
+        pending_q_in = q_in
+        pending_r_in = r_in
+
+        if "mid" in row:
+            mid = row["mid"]
+            if mid is not None:
+                if "L" in mid:
+                    pending_L = mid["L"] & 1
+                if "q_in" in mid:
+                    pending_q_in = mid["q_in"] & 1
+                if "r_in" in mid:
+                    pending_r_in = mid["r_in"] & 1
+
+        if "mid_L" in row:
+            pending_L = row["mid_L"] & 1
+        if "mid_q_in" in row:
+            pending_q_in = row["mid_q_in"] & 1
+        if "mid_r_in" in row:
+            pending_r_in = row["mid_r_in"] & 1
+
+    return results

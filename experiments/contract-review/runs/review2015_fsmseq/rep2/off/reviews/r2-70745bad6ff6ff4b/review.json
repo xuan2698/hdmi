@@ -1,0 +1,144 @@
+{
+  "coverage": {
+    "S01": [
+      "R3",
+      "R4"
+    ],
+    "S02": [
+      "R2"
+    ],
+    "S03": [
+      "R1"
+    ]
+  },
+  "issues": [
+    {
+      "issue_id": "I1",
+      "rule_id": "R2",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "R2 condition requires state==S4, but its example never reaches S4 (data 1,1,0,1 from reset=0 starts in S0 and does not match 1101), so expected all-zero is consistent with R4 not R2; rule field and example contradict.",
+      "spec_evidence": "it should set start_shifting to 1, forever, until reset",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I2",
+      "rule_id": "R3",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "R3 condition is state==S3 and data==1, but its example data 1,1,0,1 from S0 never reaches S3, so expected all-zero does not exercise R3; rule field and example contradict.",
+      "spec_evidence": "searches for the sequence 1101",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I3",
+      "rule_id": "R2",
+      "type": "grounding",
+      "severity": "medium",
+      "detail": "R2 claims same_cycle visibility for latching start_shifting when state==S4, but spec does not state registered vs combinational; contract itself lists this as uncertain, yet R2 marks uncertain=false.",
+      "spec_evidence": "it should set start_shifting to 1, forever, until reset",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I4",
+      "rule_id": "R3",
+      "type": "grounding",
+      "severity": "medium",
+      "detail": "R3 claims same_cycle visibility for detecting 1101, but spec does not state registered vs combinational; contract uncertain note applies, yet R3 marks uncertain=false.",
+      "spec_evidence": "searches for the sequence 1101",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I5",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec does not state whether start_shifting is registered (next_cycle) or combinational (same_cycle) relative to detecting posedge; contract lists both candidates but rules assert same_cycle.",
+      "spec_evidence": "",
+      "alternative": "start_shifting is registered: it becomes 1 on the posedge after the detecting posedge (next_cycle visibility).",
+      "sequence": [
+        {
+          "reset": 0,
+          "data": 1
+        },
+        {
+          "reset": 0,
+          "data": 1
+        },
+        {
+          "reset": 0,
+          "data": 0
+        },
+        {
+          "reset": 0,
+          "data": 1
+        },
+        {
+          "reset": 0,
+          "data": 0
+        }
+      ]
+    },
+    {
+      "issue_id": "I6",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "low",
+      "detail": "Spec says 'forever, until reset' but does not state whether the FSM continues searching after S4 or remains latched; contract S4 meaning notes this ambiguity.",
+      "spec_evidence": "forever, until reset",
+      "alternative": "After S4 the FSM remains in S4 and ignores data until reset (latched forever).",
+      "sequence": [
+        {
+          "reset": 0,
+          "data": 1
+        },
+        {
+          "reset": 0,
+          "data": 1
+        },
+        {
+          "reset": 0,
+          "data": 0
+        },
+        {
+          "reset": 0,
+          "data": 1
+        },
+        {
+          "reset": 0,
+          "data": 0
+        },
+        {
+          "reset": 0,
+          "data": 1
+        },
+        {
+          "reset": 0,
+          "data": 1
+        },
+        {
+          "reset": 0,
+          "data": 0
+        },
+        {
+          "reset": 0,
+          "data": 1
+        }
+      ]
+    },
+    {
+      "issue_id": "I7",
+      "rule_id": "R1",
+      "type": "spec_example",
+      "severity": "low",
+      "detail": "R1 example reset=1,data=0 then reset=1,data=1 then reset=0,data=0 expects start_shifting 0,0,0; consistent with sync active-high reset clearing output, but does not demonstrate release behavior.",
+      "spec_evidence": "Reset is active high synchronous.",
+      "alternative": "",
+      "sequence": []
+    }
+  ]
+}

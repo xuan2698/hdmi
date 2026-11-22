@@ -1,0 +1,77 @@
+{
+  "ports": {
+    "inputs": {
+      "d": 1,
+      "r": 1
+    },
+    "outputs": {
+      "q": 1
+    },
+    "clock": "clk"
+  },
+  "states": [
+    {
+      "name": "q",
+      "meaning": "Single-bit stored state presented as output q; it is forced to 0 by synchronous active-high reset and otherwise captures d at the sampled posedge.",
+      "update_time": "posedge clk after the sampled edge has settled",
+      "update_during_reset": true
+    }
+  ],
+  "rules": [
+    {
+      "id": "sync_active_high_reset",
+      "outputs": ["q"],
+      "condition": "At the sampled posedge clk, r == 1; q is updated to 0 regardless of d.",
+      "edge": "posedge",
+      "visible": "same_cycle",
+      "priority": 2,
+      "spec_quote": "active high synchronous reset (reset output to 0)",
+      "uncertain": false,
+      "example": {
+        "vectors": [
+          {"d": 1, "r": 1},
+          {"d": 0, "r": 1},
+          {"d": 1, "r": 1}
+        ],
+        "expected": [
+          {"q": 0},
+          {"q": 0},
+          {"q": 0}
+        ]
+      }
+    },
+    {
+      "id": "d_capture_when_not_reset",
+      "outputs": ["q"],
+      "condition": "At the sampled posedge clk, r == 0; q is updated to the sampled value of d.",
+      "edge": "posedge",
+      "visible": "same_cycle",
+      "priority": 1,
+      "spec_quote": "Implement a simple D flip flop",
+      "uncertain": false,
+      "example": {
+        "vectors": [
+          {"d": 0, "r": 0},
+          {"d": 1, "r": 0},
+          {"d": 0, "r": 0}
+        ],
+        "expected": [
+          {"q": 0},
+          {"q": 1},
+          {"q": 0}
+        ]
+      }
+    }
+  ],
+  "reset": {
+    "kind": "sync",
+    "name": "r",
+    "active": "high",
+    "values": {
+      "q": 0
+    },
+    "first_released_cycle": "first sampled posedge clk with r == 0; on that edge q follows d"
+  },
+  "mid": "Mid changes to d or r occur after the sampled posedge and before the other edge, are carried to the start of the next row, and affect q only at the next sampled posedge.",
+  "uncertain": []
+}

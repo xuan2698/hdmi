@@ -1,0 +1,125 @@
+{
+  "ports": {
+    "inputs": {
+      "x": 1,
+      "y": 3
+    },
+    "outputs": {
+      "Y0": 1,
+      "z": 1
+    },
+    "clock": "clk"
+  },
+  "states": [],
+  "rules": [
+    {
+      "id": "valid_y_0_to_4",
+      "outputs": [
+        "Y0",
+        "z"
+      ],
+      "condition": "y <= 4 && Y0 == ((~x & y[0]) | (~x & y[2]) | (x & ~y[2] & ~y[0])) && z == (y[2] | (y[1] & y[0]))",
+      "edge": "combinational",
+      "visible": "same_cycle",
+      "priority": 1,
+      "spec_quote": "Present state y[2:0] | Next state Y[2:0] x=0, Next state Y[2:0] x=1 | Output z",
+      "uncertain": false,
+      "example": {
+        "vectors": [
+          {
+            "x": 0,
+            "y": 0
+          },
+          {
+            "x": 1,
+            "y": 2
+          },
+          {
+            "x": 0,
+            "y": 3
+          },
+          {
+            "x": 1,
+            "y": 4
+          }
+        ],
+        "expected": [
+          {
+            "Y0": 0,
+            "z": 0
+          },
+          {
+            "Y0": 1,
+            "z": 0
+          },
+          {
+            "Y0": 1,
+            "z": 1
+          },
+          {
+            "Y0": 0,
+            "z": 1
+          }
+        ]
+      }
+    },
+    {
+      "id": "unused_y_gt_4",
+      "outputs": [
+        "Y0",
+        "z"
+      ],
+      "condition": "y > 4 && Y0 == ((~x & y[0]) | (~x & y[2]) | (x & ~y[2] & ~y[0])) && z == (y[2] | (y[1] & y[0]))",
+      "edge": "combinational",
+      "visible": "same_cycle",
+      "priority": 2,
+      "spec_quote": "",
+      "uncertain": true,
+      "example": {
+        "vectors": [
+          {
+            "x": 0,
+            "y": 5
+          },
+          {
+            "x": 1,
+            "y": 6
+          }
+        ],
+        "expected": [
+          {
+            "Y0": 1,
+            "z": 1
+          },
+          {
+            "Y0": 0,
+            "z": 1
+          }
+        ]
+      }
+    }
+  ],
+  "reset": {
+    "kind": "none",
+    "name": null,
+    "active": "none",
+    "values": {
+      "Y0": null,
+      "z": null
+    },
+    "first_released_cycle": "not_applicable"
+  },
+  "mid": "Optional mid changes occur after sampling and before the other edge, carried to the start of the next row; examples use direct vectors only.",
+  "uncertain": [
+    {
+      "rule_id": "unused_y_gt_4",
+      "note": "The table does not list present states y=101,110,111; their Y0 and z behavior is not specified. The rule adopts one don't-care minimization candidate.",
+      "candidates": [
+        "treat unused present states as don't-cares and use minimized expressions",
+        "treat unused present states as undefined",
+        "treat unused present states as zero next-state bits with z=0",
+        "treat unused present states as all next-state bits one with z=1"
+      ]
+    }
+  ]
+}

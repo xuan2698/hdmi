@@ -1,0 +1,25 @@
+def reference(vectors):
+    q = 0
+    d_now = 0
+    r_now = 0
+    results = []
+    for row in vectors:
+        if 'd' in row:
+            d_now = row['d']
+        if 'r' in row:
+            r_now = row['r']
+        # Rule sync_active_high_reset: priority 2, synchronous active-high reset
+        if r_now == 1:
+            q = 0
+        else:
+            # Rule d_capture_when_not_reset: priority 1, capture d when not reset
+            q = d_now & 1
+        results.append({'q': q & 1})
+        # Mid changes occur after sampling and are carried to the next row
+        mid = row.get('mid')
+        if mid:
+            if 'd' in mid:
+                d_now = mid['d']
+            if 'r' in mid:
+                r_now = mid['r']
+    return results

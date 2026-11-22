@@ -1,0 +1,159 @@
+{
+  "ports": {
+    "inputs": {
+      "reset": 1,
+      "ena": 1
+    },
+    "outputs": {
+      "pm": 1,
+      "hh": 8,
+      "mm": 8,
+      "ss": 8
+    },
+    "clock": "clk"
+  },
+  "states": [
+    {
+      "name": "pm",
+      "meaning": "0 indicates AM, 1 indicates PM",
+      "update_time": "posedge clk after reset/ena priority",
+      "update_during_reset": true
+    },
+    {
+      "name": "hh",
+      "meaning": "packed BCD hour; integer value is the packed BCD byte, valid states 0x01 through 0x12 representing 01 through 12",
+      "update_time": "posedge clk after reset/ena priority",
+      "update_during_reset": true
+    },
+    {
+      "name": "mm",
+      "meaning": "packed BCD minute; integer value is the packed BCD byte, valid states 0x00 through 0x59",
+      "update_time": "posedge clk after reset/ena priority",
+      "update_during_reset": true
+    },
+    {
+      "name": "ss",
+      "meaning": "packed BCD second; integer value is the packed BCD byte, valid states 0x00 through 0x59",
+      "update_time": "posedge clk after reset/ena priority",
+      "update_during_reset": true
+    }
+  ],
+  "rules": [
+    {
+      "id": "R_RESET",
+      "outputs": [
+        "pm",
+        "hh",
+        "mm",
+        "ss"
+      ],
+      "condition": "reset == 1",
+      "edge": "posedge",
+      "visible": "same_cycle",
+      "priority": 3,
+      "spec_quote": "Reset is the active high synchronous signal",
+      "uncertain": false,
+      "example": {
+        "vectors": [
+          {
+            "reset": 1,
+            "ena": 0
+          },
+          {
+            "reset": 1,
+            "ena": 1
+          }
+        ],
+        "expected": [
+          {
+            "pm": 0,
+            "hh": 18,
+            "mm": 0,
+            "ss": 0
+          },
+          {
+            "pm": 0,
+            "hh": 18,
+            "mm": 0,
+            "ss": 0
+          }
+        ]
+      }
+    },
+    {
+      "id": "R_UPDATE",
+      "outputs": [
+        "pm",
+        "hh",
+        "mm",
+        "ss"
+      ],
+      "condition": "reset == 0; if ena == 0 then hold state; if ena == 1 then advance the 12-hour packed-BCD clock by one second: increment ss as packed BCD; if ss was 0x59 set ss=0x00 and increment mm as packed BCD; if mm was 0x59 set mm=0x00 and increment hh as packed BCD with 0x12 wrapping to 0x01; if the increment is from hh 0x11 with mm 0x59 and ss 0x59 to hh 0x12 and mm=0x00 and ss=0x00, also toggle pm; otherwise pm holds",
+      "edge": "posedge",
+      "visible": "same_cycle",
+      "priority": 2,
+      "spec_quote": "with a pulse on ena whenever your clock should increment",
+      "uncertain": false,
+      "example": {
+        "vectors": [
+          {
+            "reset": 1,
+            "ena": 0
+          },
+          {
+            "reset": 0,
+            "ena": 0
+          },
+          {
+            "reset": 0,
+            "ena": 1
+          },
+          {
+            "reset": 0,
+            "ena": 1
+          }
+        ],
+        "expected": [
+          {
+            "pm": 0,
+            "hh": 18,
+            "mm": 0,
+            "ss": 0
+          },
+          {
+            "pm": 0,
+            "hh": 18,
+            "mm": 0,
+            "ss": 0
+          },
+          {
+            "pm": 0,
+            "hh": 18,
+            "mm": 0,
+            "ss": 1
+          },
+          {
+            "pm": 0,
+            "hh": 18,
+            "mm": 0,
+            "ss": 2
+          }
+        ]
+      }
+    }
+  ],
+  "reset": {
+    "kind": "sync",
+    "name": "reset",
+    "active": "high",
+    "values": {
+      "pm": 0,
+      "hh": 18,
+      "mm": 0,
+      "ss": 0
+    },
+    "first_released_cycle": "first posedge with reset=0; if ena=1 on that edge, increment from 12:00:00 AM to 12:00:01 AM, otherwise hold 12:00:00 AM"
+  },
+  "mid": "Optional mid changes occur after sampling and before the other edge; they are carried to the start of the next row and do not affect the just-sampled posedge.",
+  "uncertain": []
+}

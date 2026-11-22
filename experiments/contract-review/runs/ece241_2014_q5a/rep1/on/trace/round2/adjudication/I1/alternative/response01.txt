@@ -1,0 +1,84 @@
+def reference(vectors):
+    # Initialize a concrete power-up state. Active-low reset starts asserted by default.
+    state = 'A'
+    sig = {'areset': 0, 'x': 0}
+    result = []
+
+    for row in vectors:
+        # Values driven before the sampled posedge edge.
+        if isinstance(row, dict):
+            if 'inputs' in row and isinstance(row['inputs'], dict):
+                for k in ('areset', 'x'):
+                    if k in row['inputs']:
+                        sig[k] = row['inputs'][k]
+            for k in ('areset', 'x'):
+                if k in row:
+                    sig[k] = row[k]
+
+        # reset_async_z0: active-low areset==0 asynchronously forces state A and z=0.
+        if sig.get('areset', 0) == 0:
+            state = 'A'
+
+        # Sample the posedge after inputs are settled. Reset has priority.
+        if sig.get('areset', 0) == 1:
+            x = sig.get('x', 0)
+            if state == 'A':
+                if x == 0:
+                    # A_x0_to_A_z0
+                    state = 'A'
+                else:
+                    # A_x1_to_C_z1
+                    state = 'C'
+            elif state == 'B':
+                if x == 0:
+                    # B_x0_to_C_z1
+                    state = 'C'
+                else:
+                    # B_x1_to_B_z0
+                    state = 'B'
+            else:  # state == 'C'
+                if x == 0:
+                    # C_x0_to_C_z1
+                    state = 'C'
+                else:
+                    # C_x1_to_B_z0
+                    state = 'B'
+        else:
+            # reset_async_z0: Moore output is z=0 while reset is asserted.
+            state = 'A'
+
+        # Moore output: A and B produce z=0; C produces z=1.
+        z = 1 if state == 'C' else 0
+        result.append({'z': z})
+
+        # Optional mid changes occur AFTER sampling and persist to the next row.
+        if isinstance(row, dict) and 'mid' in row and row['mid'] is not None:
+            mid = row['mid']
+            if isinstance(mid, dict):
+                for k in mid:
+                    v = mid[k]
+                    if k in ('areset', 'x'):
+                        sig[k] = v
+                        if k == 'areset' and v == 0:
+                            # reset_async_z0: asynchronous assertion after sampling.
+                            state = 'A'
+            elif isinstance(mid, (list, tuple)):
+                for item in mid:
+                    if isinstance(item, dict):
+                        for k in item:
+                            v = item[k]
+                            if k in ('areset', 'x'):
+                                sig[k] = v
+                                if k == 'areset' and v == 0:
+                                    # reset_async_z0: asynchronous assertion after sampling.
+                                    state = 'A'
+                    elif isinstance(item, (list, tuple)) and len(item) >= 2:
+                        k = item[0]
+                        v = item[1]
+                        if k in ('areset', 'x'):
+                            sig[k] = v
+                            if k == 'areset' and v == 0:
+                                # reset_async_z0: asynchronous assertion after sampling.
+                                state = 'A'
+
+    return result

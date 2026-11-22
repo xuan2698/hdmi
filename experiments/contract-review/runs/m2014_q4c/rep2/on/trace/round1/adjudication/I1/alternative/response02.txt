@@ -1,0 +1,61 @@
+def reference(vectors):
+    # Initial state: power-up unspecified; choose 0 for concrete output.
+    q = 0
+    d = 0
+    r = 0
+    out = []
+    for row in vectors:
+        # Drive inputs for this row before the sampled edge.
+        if "d" in row:
+            d = row["d"]
+        if "r" in row:
+            r = row["r"]
+
+        # Sampled edge: synchronous active-high reset has priority.
+        if r == 1:
+            # rule sync_reset_high
+            q = 0
+        else:
+            # rule d_capture_when_reset_inactive
+            q = d & 1
+
+        # Visible same cycle.
+        out.append({"q": q})
+
+        # Optional mid input changes AFTER sampling, carried to next row.
+        if "mid" in row:
+            mid = row["mid"]
+            handled = False
+            try:
+                if "d" in mid:
+                    d = mid["d"]
+                    handled = True
+                if "r" in mid:
+                    r = mid["r"]
+                    handled = True
+            except:
+                handled = False
+            if not handled:
+                try:
+                    for change in mid:
+                        try:
+                            if "d" in change:
+                                d = change["d"]
+                            if "r" in change:
+                                r = change["r"]
+                        except:
+                            try:
+                                if change[0] == "d":
+                                    d = change[1]
+                                if change[0] == "r":
+                                    r = change[1]
+                            except:
+                                pass
+                except:
+                    pass
+        # Alternative direct mid keys.
+        if "mid_d" in row:
+            d = row["mid_d"]
+        if "mid_r" in row:
+            r = row["mid_r"]
+    return out

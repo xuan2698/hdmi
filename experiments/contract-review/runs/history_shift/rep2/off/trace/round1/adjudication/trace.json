@@ -1,0 +1,71 @@
+[
+  {
+    "issue": {
+      "issue_id": "I3",
+      "rule_id": "R2_mispredict_priority",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec says misprediction loads train_history concatenated with train_taken, but does not explicitly state whether train_history is shifted left by 1 (concatenation) or used as-is with train_taken in LSB. Rule assumes shift-left concatenation; alternative is direct load of train_history with train_taken ignored or ORed.",
+      "spec_evidence": "This is the history before the mispredicted branch (train_history) concatenated with the actual result of the branch (train_taken).",
+      "alternative": "Load history = train_history (no shift), ignoring train_taken.",
+      "sequence": [
+        {
+          "areset": 0,
+          "predict_valid": 0,
+          "predict_taken": 0,
+          "train_mispredicted": 1,
+          "train_taken": 1,
+          "train_history": 2
+        },
+        {
+          "areset": 0,
+          "predict_valid": 0,
+          "predict_taken": 0,
+          "train_mispredicted": 0,
+          "train_taken": 0,
+          "train_history": 0
+        }
+      ]
+    },
+    "status": "effect",
+    "issue_id": "I3",
+    "outputs": {
+      "original": [
+        {
+          "predict_history": 5
+        },
+        {
+          "predict_history": 5
+        }
+      ],
+      "alternative": [
+        {
+          "predict_history": 2
+        },
+        {
+          "predict_history": 2
+        }
+      ]
+    },
+    "differences": [
+      {
+        "cycle": 1,
+        "original": {
+          "predict_history": 5
+        },
+        "alternative": {
+          "predict_history": 2
+        }
+      },
+      {
+        "cycle": 2,
+        "original": {
+          "predict_history": 5
+        },
+        "alternative": {
+          "predict_history": 2
+        }
+      }
+    ]
+  }
+]

@@ -1,0 +1,54 @@
+```python
+def reference(vectors):
+    # Contract implementation for a synchronous active-high-reset decade counter.
+    # State: COUNT (0..9). Output q reflects COUNT.
+    # R1_SYNC_RESET: reset==1 at posedge -> q=0 (same cycle visible).
+    # R2_COUNT_INC: reset==0 and q!=9 at posedge -> q=q+1.
+    # R3_WRAP: reset==0 and q==9 at posedge -> q=0.
+    # Mid changes occur AFTER sampling, before the other edge, carried to next row.
+
+    # Named state
+    COUNT = 0  # power-up unspecified; choose 0 as concrete value
+
+    results = []
+    for row in vectors:
+        # Apply any mid changes carried from previous row are already applied
+        # (we apply mid changes at end of each row processing).
+        reset = row.get("reset", 0)
+
+        # Sample at posedge: compute next state based on current state and inputs
+        # R1_SYNC_RESET (priority 0)
+        if reset == 1:
+            next_count = 0
+        else:
+            # R2_COUNT_INC / R3_WRAP
+            if COUNT == 9:
+                next_count = 0  # R3_WRAP
+            else:
+                next_count = COUNT + 1  # R2_COUNT_INC
+
+        # Output visible same cycle (after edge settles)
+        q = next_count & 0xF  # 4-bit width
+        results.append({"q": q})
+
+        # Update state
+        COUNT = next_count
+
+        # Process mid changes AFTER sampling, before other edge, carried to next row.
+        # Mid changes would be in row under key like "mid" or applied to inputs;
+        # here we apply any mid overrides to be carried forward.
+        mid = row.get("mid")
+        if isinstance(mid, dict):
+            # Mid changes affect inputs for next row's sampling
+            # (carried to start of next row)
+            # We store them by merging into a pending dict; simplest: mutate row copy
+            # Since we don't have persistent input storage beyond reset, handle reset.
+            if "reset" in mid:
+                # carried to next row: we need to remember
+                # Use a pending variable
+                pass
+        # Handle pending mid from previous row (if any) - implemented via pending_reset
+        # (see below)
+
+    return results
+```

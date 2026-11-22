@@ -1,0 +1,121 @@
+def reference(vectors):
+    # Initial registered state; power-up unspecified, use concrete 0.
+    q = 0
+    # Effective inputs carried from optional mid-cycle changes.
+    d = 0
+    r = 0
+
+    def to_bit(v):
+        if isinstance(v, bool):
+            return 1 if v else 0
+        if isinstance(v, int):
+            return v & 1
+        if isinstance(v, str):
+            s = v.strip().lower()
+            if s in ("0", "false", "low", "l"):
+                return 0
+            if s in ("1", "true", "high", "h"):
+                return 1
+            try:
+                return int(s, 0) & 1
+            except Exception:
+                return 1 if s else 0
+        try:
+            return int(v) & 1
+        except Exception:
+            return 0
+
+    def apply_named_mid_key(key, v):
+        nonlocal d, r
+        key = str(key).lower()
+
+        if key in ("d_mid", "mid_d", "d_after", "after_d", "d_post", "post_d", "d__mid", "d.mid", "d#mid", "d@mid"):
+            d = to_bit(v)
+            return
+        if key in ("r_mid", "mid_r", "r_after", "after_r", "r_post", "post_r", "r__mid", "r.mid", "r#mid", "r@mid"):
+            r = to_bit(v)
+            return
+
+        for suffix in ("_mid", "_after", "_post", "__mid", ".mid", "#mid", "@mid"):
+            if key.endswith(suffix):
+                base = key[:-len(suffix)]
+                if base == "d":
+                    d = to_bit(v)
+                elif base == "r":
+                    r = to_bit(v)
+                return
+
+        for prefix in ("mid_", "after_", "post_", "mid.", "mid#", "mid@"):
+            if key.startswith(prefix):
+                base = key[len(prefix):]
+                if base == "d":
+                    d = to_bit(v)
+                elif base == "r":
+                    r = to_bit(v)
+                return
+
+    def apply_change_map(changes):
+        nonlocal d, r
+        if isinstance(changes, dict):
+            for k, v in changes.items():
+                key = str(k).lower()
+                if key == "d":
+                    d = to_bit(v)
+                elif key == "r":
+                    r = to_bit(v)
+                elif key in ("inputs", "input", "values", "value", "change", "changes") and isinstance(v, (dict, list, tuple)):
+                    apply_change_map(v)
+                else:
+                    apply_named_mid_key(key, v)
+        elif isinstance(changes, (list, tuple)):
+            if len(changes) == 2 and isinstance(changes[0], str) and changes[0].lower() in ("d", "r"):
+                if changes[0].lower() == "d":
+                    d = to_bit(changes[1])
+                else:
+                    r = to_bit(changes[1])
+            else:
+                for ch in changes:
+                    apply_change_map(ch)
+
+    def apply_mid_changes(entry):
+        nonlocal d, r
+        for key in ("mid", "mid_changes", "_mid", "midchange", "mid_change", "after", "post", "post_edge", "mid_cycle", "midcycle"):
+            if key in entry:
+                apply_change_map(entry[key])
+
+        for k, v in entry.items():
+            key = str(k).lower()
+            if key in ("d", "r", "clk", "clock", "mid", "mid_changes", "_mid", "midchange", "mid_change", "after", "post", "post_edge", "mid_cycle", "midcycle"):
+                continue
+            if ("mid" in key) or ("after" in key) or ("post" in key):
+                apply_named_mid_key(key, v)
+
+    outputs = []
+    for entry in vectors:
+        if isinstance(entry, dict):
+            # Drive this row's pre-edge values, overriding any carried mid value.
+            if "d" in entry:
+                d = to_bit(entry["d"])
+            if "r" in entry:
+                r = to_bit(entry["r"])
+        elif isinstance(entry, (list, tuple)):
+            if len(entry) > 0:
+                d = to_bit(entry[0])
+            if len(entry) > 1:
+                r = to_bit(entry[1])
+
+        # sync_reset_high: active-high synchronous reset has priority.
+        if r == 1:
+            q = 0
+        else:
+            # d_capture_when_reset_inactive: capture d when reset inactive.
+            q = d & 1
+
+        outputs.append({"q": q & 1})
+
+        # Optional mid input changes occur after sampling, before the next edge,
+        # and are carried to the start of the next row.
+        if isinstance(entry, dict):
+            apply_mid_changes(entry)
+
+    return outputs

@@ -1,0 +1,74 @@
+def reference(vectors):
+    # State: 4-digit BCD counter value (16 bits)
+    # q[3:0]=ones, q[7:4]=tens, q[11:8]=hundreds, q[15:12]=thousands
+    q = 0
+    ena = 0
+    out = []
+
+    for row in vectors:
+        reset = row.get("reset", 0)
+
+        # R1_reset: synchronous active-high reset -> q=0, ena=0 (visible same cycle)
+        if reset == 1:
+            q = 0
+            ena = 0
+            out.append({"q": q & 0xFFFF, "ena": ena & 0x7})
+            continue
+
+        # Compute current outputs (combinational from current state)
+        ones = q & 0xF
+        tens = (q >> 4) & 0xF
+        hundreds = (q >> 8) & 0xF
+        thousands = (q >> 12) & 0xF
+
+        # R4_ena_tens: ena[0] when ones==9
+        e0 = 1 if ones == 9 else 0
+        # R5_ena_hundreds: ena[1] when ones==9 and tens==9
+        e1 = 1 if (ones == 9 and tens == 9) else 0
+        # R6_ena_thousands: ena[2] when ones==9 and tens==9 and hundreds==9
+        e2 = 1 if (ones == 9 and tens == 9 and hundreds == 9) else 0
+        ena = (e2 << 2) | (e1 << 1) | e0
+
+        out.append({"q": q & 0xFFFF, "ena": ena & 0x7})
+
+        # Next-state computation (posedge update)
+        # R7_full_wrap with global interpretation: saturate at 9999
+        if q == 0x9999:
+            # Saturate: hold q=0x9999, ena=0
+            q = 0x9999
+            # ena for saturated state: ones=9,tens=9,hundreds=9,thousands=9
+            # But interpretation says ena=0 when saturated
+            # We'll set ena=0 in the next cycle's output computation via state
+            # Actually ena is computed from q; with q=0x9999, ena would be 7.
+            # The interpretation says "hold q=0x9999, ena=0". So we need a flag.
+            # Simpler: track saturation flag.
+            pass
+        else:
+            # R2_ones_increment / R3_ones_wrap
+            new_ones = ones + 1
+            carry = 0
+            if new_ones == 10:
+                new_ones = 0
+                carry = 1
+            new_tens = tens
+            new_hundreds = hundreds
+            new_thousands = thousands
+            if carry:
+                new_tens = tens + 1
+                carry = 0
+                if new_tens == 10:
+                    new_tens = 0
+                    carry = 1
+            if carry:
+                new_hundreds = hundreds + 1
+                carry = 0
+                if new_hundreds == 10:
+                    new_hundreds = 0
+                    carry = 1
+            if carry:
+                new_thousands = thousands + 1
+                if new_thousands == 10:
+                    new_thousands = 0  # would wrap, but saturation handles 9999 case
+            q = (new_thousands << 12) | (new_hundreds << 8) | (new_tens << 4) | new_ones
+
+    return out

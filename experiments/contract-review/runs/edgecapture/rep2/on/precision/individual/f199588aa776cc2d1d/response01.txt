@@ -1,0 +1,48 @@
+def reference(vectors):
+    MASK = (1 << 32) - 1
+    out = 0
+    prev_in = 0
+    cur_reset = 0
+    cur_in = 0
+    results = []
+
+    for row in vectors:
+        # Row values are driven before the sampled posedge; carried mid values fill missing inputs.
+        if "reset" in row:
+            cur_reset = row["reset"] & 1
+        if "in" in row:
+            cur_in = row["in"] & MASK
+
+        sampled_reset = cur_reset
+        sampled_in = cur_in & MASK
+
+        if sampled_reset:
+            # reset_clear (priority 2): synchronous active-high reset clears out.
+            out = 0
+        else:
+            # capture_fall (priority 1) and hold_state (priority 0):
+            # set bits whose previous sampled input was 1 and current sampled input is 0; otherwise hold.
+            falls = (~sampled_in) & prev_in & MASK
+            out = (out | falls) & MASK
+
+        # prev_in tracks in on every posedge, including reset cycles.
+        prev_in = sampled_in
+
+        results.append({"out": out & MASK})
+
+        # mid changes occur after sampling and become starting values for the next row.
+        mid = row.get("mid")
+        if isinstance(mid, dict):
+            if "reset" in mid:
+                cur_reset = mid["reset"] & 1
+            if "in" in mid:
+                cur_in = mid["in"] & MASK
+        elif isinstance(mid, (list, tuple)):
+            for change in mid:
+                if isinstance(change, dict):
+                    if "reset" in change:
+                        cur_reset = change["reset"] & 1
+                    if "in" in change:
+                        cur_in = change["in"] & MASK
+
+    return results

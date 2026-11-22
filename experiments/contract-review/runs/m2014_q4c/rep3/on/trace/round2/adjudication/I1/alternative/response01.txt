@@ -1,0 +1,30 @@
+def reference(vectors):
+    # State: single-bit stored state q; power-up value chosen as 0.
+    q = 0
+    # Current input values, initially 0.
+    d = 0
+    r = 0
+    result = []
+    for row in vectors:
+        # Apply inputs driven before the sampled posedge.
+        if 'd' in row:
+            d = row['d']
+        if 'r' in row:
+            r = row['r']
+        # Rule sync_active_high_reset: at posedge, if r == 1, q is updated to 0.
+        # Rule d_capture_when_not_reset: at posedge, if r == 0, q captures d.
+        if r == 1:
+            q = 0
+        else:
+            q = d
+        # Output after the sampled edge has settled, before any mid changes.
+        result.append({'q': q})
+        # Process mid changes after sampling, to be carried to next row start.
+        mid = row.get('mid')
+        if mid:
+            if isinstance(mid, dict):
+                if 'd' in mid:
+                    d = mid['d']
+                if 'r' in mid:
+                    r = mid['r']
+    return result

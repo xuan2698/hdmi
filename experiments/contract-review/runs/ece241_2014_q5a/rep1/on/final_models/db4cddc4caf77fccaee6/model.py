@@ -1,0 +1,64 @@
+def reference(vectors):
+    # Moore state: A(z=0), B(z=0), C(z=1)
+    state = "A"
+    inputs = {"areset": 0, "x": 0}
+    result = []
+
+    for row in vectors:
+        # Drive row input values before the sampled posedge.
+        if "areset" in row:
+            inputs["areset"] = int(row["areset"]) & 1
+        if "x" in row:
+            inputs["x"] = int(row["x"]) & 1
+
+        # Rule reset_async_z0: asynchronous active-high reset forces state A and z=0.
+        if inputs["areset"] == 1:
+            state = "A"
+            z = 0
+        else:
+            x = inputs["x"]
+
+            if state == "A":
+                if x == 0:
+                    # Rule A_x0_to_A_z0
+                    state = "A"
+                    z = 0
+                else:
+                    # Rule A_x1_to_C_z1
+                    state = "C"
+                    z = 1
+            elif state == "B":
+                if x == 0:
+                    # Rule B_x0_to_C_z1
+                    state = "C"
+                    z = 1
+                else:
+                    # Rule B_x1_to_B_z0
+                    state = "B"
+                    z = 0
+            else:  # state == "C"
+                if x == 0:
+                    # Rule C_x0_to_C_z1
+                    state = "C"
+                    z = 1
+                else:
+                    # Rule C_x1_to_B_z0
+                    state = "B"
+                    z = 0
+
+        result.append({"z": z})
+
+        # Optional mid changes occur after sampling and persist to the next row.
+        mid = row.get("mid")
+        if mid:
+            if "areset" in mid:
+                inputs["areset"] = int(mid["areset"]) & 1
+            if "x" in mid:
+                inputs["x"] = int(mid["x"]) & 1
+
+            # Rule reset_async_z0: if reset becomes asserted during mid, state is forced to A.
+            # The current row's sampled output was already recorded above.
+            if inputs["areset"] == 1:
+                state = "A"
+
+    return result

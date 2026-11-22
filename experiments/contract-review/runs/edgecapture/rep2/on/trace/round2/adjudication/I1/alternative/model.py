@@ -1,0 +1,53 @@
+def reference(vectors):
+    # reset_clear: active-high synchronous reset clears out (rule reset_clear)
+    # capture_fall: sticky per-bit 1->0 capture (rule capture_fall)
+    # hold_state: otherwise hold previous out (rule hold_state)
+    # unresolved capture_fall interpretation: prev_in cleared/ignored while reset high
+    out = 0
+    prev_in = 0
+    cur_reset = 0
+    cur_in = 0
+    result = []
+
+    for row in vectors:
+        # Drive explicit row inputs before the sampled posedge.
+        if "reset" in row:
+            cur_reset = row["reset"]
+        if "in" in row:
+            cur_in = row["in"]
+
+        # Sample posedge after reset and in are settled.
+        reset = cur_reset & 1
+        din = cur_in & 0xFFFFFFFF
+
+        if reset == 1:
+            # Rule reset_clear: reset has priority and clears all out bits.
+            out = 0
+            # Chosen interpretation: reset-cycle 1s must not affect capture after release.
+            prev_in = 0
+        else:
+            # Rule capture_fall: set sticky bits for any sampled 1->0 transition.
+            fall = prev_in & (din ^ 0xFFFFFFFF)
+            # Rule hold_state: non-falling bits keep their previous out value.
+            out = (out | fall) & 0xFFFFFFFF
+            # prev_in tracks in after the normal posedge.
+            prev_in = din
+
+        result.append({"out": out & 0xFFFFFFFF})
+
+        # Apply optional mid changes after the sampled posedge; carry to next row.
+        if "mid" in row:
+            mid = row["mid"]
+            if mid is not None:
+                try:
+                    if "reset" in mid:
+                        cur_reset = mid["reset"]
+                except:
+                    pass
+                try:
+                    if "in" in mid:
+                        cur_in = mid["in"]
+                except:
+                    pass
+
+    return result

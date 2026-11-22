@@ -1,0 +1,21 @@
+def reference(vectors):
+    cur = {'x': 0, 'y': 0}
+    res = []
+    for row in vectors:
+        for k, v in row.items():
+            if k != 'mid':
+                cur[k] = v
+        x = cur['x']
+        y = cur['y']
+        if y in (0, 2):
+            Y0 = x
+        elif y in (1, 3, 4):
+            Y0 = 1 - x
+        else:
+            Y0 = 0
+        z = 1 if y in (3, 4) else 0
+        res.append({'Y0': Y0, 'z': z})
+        if 'mid' in row:
+            for k, v in row['mid'].items():
+                cur[k] = v
+    return res

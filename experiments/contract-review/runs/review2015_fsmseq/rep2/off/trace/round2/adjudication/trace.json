@@ -1,0 +1,196 @@
+[
+  {
+    "issue": {
+      "issue_id": "I5",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec does not state whether start_shifting is registered (next_cycle) or combinational (same_cycle) relative to detecting posedge; contract lists both candidates but rules assert same_cycle.",
+      "spec_evidence": "",
+      "alternative": "start_shifting is registered: it becomes 1 on the posedge after the detecting posedge (next_cycle visibility).",
+      "sequence": [
+        {
+          "reset": 0,
+          "data": 1
+        },
+        {
+          "reset": 0,
+          "data": 1
+        },
+        {
+          "reset": 0,
+          "data": 0
+        },
+        {
+          "reset": 0,
+          "data": 1
+        },
+        {
+          "reset": 0,
+          "data": 0
+        }
+      ]
+    },
+    "status": "effect",
+    "issue_id": "I5",
+    "outputs": {
+      "original": [
+        {
+          "start_shifting": 0
+        },
+        {
+          "start_shifting": 0
+        },
+        {
+          "start_shifting": 0
+        },
+        {
+          "start_shifting": 1
+        },
+        {
+          "start_shifting": 1
+        }
+      ],
+      "alternative": [
+        {
+          "start_shifting": 0
+        },
+        {
+          "start_shifting": 0
+        },
+        {
+          "start_shifting": 0
+        },
+        {
+          "start_shifting": 0
+        },
+        {
+          "start_shifting": 1
+        }
+      ]
+    },
+    "differences": [
+      {
+        "cycle": 4,
+        "original": {
+          "start_shifting": 1
+        },
+        "alternative": {
+          "start_shifting": 0
+        }
+      }
+    ]
+  },
+  {
+    "issue": {
+      "issue_id": "I6",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "low",
+      "detail": "Spec says 'forever, until reset' but does not state whether the FSM continues searching after S4 or remains latched; contract S4 meaning notes this ambiguity.",
+      "spec_evidence": "forever, until reset",
+      "alternative": "After S4 the FSM remains in S4 and ignores data until reset (latched forever).",
+      "sequence": [
+        {
+          "reset": 0,
+          "data": 1
+        },
+        {
+          "reset": 0,
+          "data": 1
+        },
+        {
+          "reset": 0,
+          "data": 0
+        },
+        {
+          "reset": 0,
+          "data": 1
+        },
+        {
+          "reset": 0,
+          "data": 0
+        },
+        {
+          "reset": 0,
+          "data": 1
+        },
+        {
+          "reset": 0,
+          "data": 1
+        },
+        {
+          "reset": 0,
+          "data": 0
+        },
+        {
+          "reset": 0,
+          "data": 1
+        }
+      ]
+    },
+    "status": "no_effect",
+    "issue_id": "I6",
+    "outputs": {
+      "original": [
+        {
+          "start_shifting": 0
+        },
+        {
+          "start_shifting": 0
+        },
+        {
+          "start_shifting": 0
+        },
+        {
+          "start_shifting": 1
+        },
+        {
+          "start_shifting": 1
+        },
+        {
+          "start_shifting": 1
+        },
+        {
+          "start_shifting": 1
+        },
+        {
+          "start_shifting": 1
+        },
+        {
+          "start_shifting": 1
+        }
+      ],
+      "alternative": [
+        {
+          "start_shifting": 0
+        },
+        {
+          "start_shifting": 0
+        },
+        {
+          "start_shifting": 0
+        },
+        {
+          "start_shifting": 1
+        },
+        {
+          "start_shifting": 1
+        },
+        {
+          "start_shifting": 1
+        },
+        {
+          "start_shifting": 1
+        },
+        {
+          "start_shifting": 1
+        },
+        {
+          "start_shifting": 1
+        }
+      ]
+    },
+    "differences": []
+  }
+]

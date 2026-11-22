@@ -1,0 +1,37 @@
+def reference(vectors):
+    # State: registered D flip-flop output q, 0 or 1.
+    q = 0
+    d = 0
+    r = 0
+    outputs = []
+
+    for row in vectors:
+        # Apply values driven before the sampled clock edge. Unmentioned inputs
+        # retain values carried from prior mid changes.
+        if isinstance(row, dict):
+            if "d" in row:
+                d = int(row["d"]) & 1
+            if "r" in row:
+                r = int(row["r"]) & 1
+
+        # Sampled active edge (negative-edge candidate preserves this per-row
+        # sample ordering; the contract's examples specify synchronous behavior).
+        # Rule sync_reset_high: priority 2; r == 1 forces q to 0.
+        if r == 1:
+            q = 0
+        else:
+            # Rule d_capture_when_reset_inactive: priority 1; r == 0 captures d.
+            q = d & 1
+
+        outputs.append({"q": q & 1})
+
+        # Optional mid input changes occur AFTER sampling, before the other edge,
+        # and are carried to the start of the next row.
+        if isinstance(row, dict) and isinstance(row.get("mid"), dict):
+            mid = row["mid"]
+            if "d" in mid:
+                d = int(mid["d"]) & 1
+            if "r" in mid:
+                r = int(mid["r"]) & 1
+
+    return outputs

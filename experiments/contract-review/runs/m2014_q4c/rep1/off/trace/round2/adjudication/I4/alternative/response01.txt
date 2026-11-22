@@ -1,0 +1,21 @@
+```python
+def reference(vectors):
+    # State: Q holds the stored flip-flop value (R1_sync_reset, R2_capture_d)
+    Q = 0  # power-up unspecified; concrete value chosen
+    out = []
+    for row in vectors:
+        d = row['d'] & 1
+        r = row['r'] & 1
+        # R1_sync_reset: active high synchronous reset, priority 1
+        # R2_capture_d: capture d when r == 0, priority 2
+        # Candidate interpretation (global): when r=1 and d=1, q captures d=1 instead of resetting.
+        if r == 1:
+            if d == 1:
+                Q = 1  # candidate interpretation override
+            else:
+                Q = 0  # R1_sync_reset
+        else:
+            Q = d  # R2_capture_d
+        out.append({'q': Q & 1})
+    return out
+```

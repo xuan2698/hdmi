@@ -1,0 +1,63 @@
+def reference(vectors):
+    # R_COUNT_BCD: concrete power-up value (unspecified in spec, use 0x0000)
+    q = 0
+    cur = {'reset': 0}
+    pending_mid = {}
+    results = []
+
+    for row in vectors:
+        # Apply mid changes carried from the previous row to the start of this row
+        for k, v in pending_mid.items():
+            cur[k] = v
+        pending_mid = {}
+
+        # Drive the row's input values before the sampled posedge
+        for k, v in row.items():
+            if k == 'mid':
+                continue
+            if k == 'reset':
+                cur[k] = v
+
+        # Sample after the posedge has settled.
+        # R_RESET has priority 10 over R_COUNT_BCD.
+        if cur.get('reset', 0) == 1:
+            # R_RESET: synchronous active-high reset forces q to 0x0000
+            q = 0
+        else:
+            # R_COUNT_BCD: increment packed BCD value modulo 10000
+            d0 = q & 0xF
+            d1 = (q >> 4) & 0xF
+            d2 = (q >> 8) & 0xF
+            d3 = (q >> 12) & 0xF
+            total = d0 + d1 * 10 + d2 * 100 + d3 * 1000
+            total = (total + 1) % 10000
+            d3 = total // 1000
+            d2 = (total // 100) % 10
+            d1 = (total // 10) % 10
+            d0 = total % 10
+            q = (d3 << 12) | (d2 << 8) | (d1 << 4) | d0
+
+        # R_ENA_COMB: combinational enables from current q
+        ena = 0
+        if (q & 0xF) == 9:
+            ena += 1
+        if (q & 0xFF) == 0x99:
+            ena += 2
+        if (q & 0xFFF) == 0x999:
+            ena += 4
+
+        results.append({'ena': ena, 'q': q})
+
+        # Process mid changes after sampling, carried to the next row
+        if 'mid' in row:
+            mid = row['mid']
+            if isinstance(mid, dict):
+                for k, v in mid.items():
+                    pending_mid[k] = v
+            elif isinstance(mid, list):
+                for m in mid:
+                    if isinstance(m, dict):
+                        for k, v in m.items():
+                            pending_mid[k] = v
+
+    return results

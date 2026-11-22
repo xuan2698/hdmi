@@ -1,0 +1,61 @@
+def reference(vectors):
+    # State: ss_lo, ss_hi, mm_lo, mm_hi, hh_lo, hh_hi, pm_reg
+    # BCD digits stored as integers.
+    # Initial (power-up) state: 12:00 AM
+    ss_lo, ss_hi = 0, 0
+    mm_lo, mm_hi = 0, 0
+    hh_lo, hh_hi = 2, 1   # 12
+    pm_reg = 0
+
+    out = []
+    for v in vectors:
+        reset = v.get('reset', 0)
+        ena = v.get('ena', 0)
+
+        # R1_reset: synchronous reset to 12:00 AM, priority over ena
+        if reset == 1:
+            ss_lo, ss_hi = 0, 0
+            mm_lo, mm_hi = 0, 0
+            hh_lo, hh_hi = 2, 1
+            pm_reg = 0
+        # R2_hold: no enable, hold state
+        elif ena == 0:
+            pass
+        else:
+            # R3_seconds / R4_seconds_roll / R5_minutes_roll / R6_hours_roll_am_pm
+            ss_val = ss_hi * 10 + ss_lo
+            mm_val = mm_hi * 10 + mm_lo
+            hh_val = hh_hi * 10 + hh_lo
+
+            if ss_val != 59:
+                # R3_seconds: increment seconds
+                ss_val += 1
+                ss_lo = ss_val % 10
+                ss_hi = ss_val // 10
+            else:
+                # seconds roll over
+                ss_lo, ss_hi = 0, 0
+                if mm_val != 59:
+                    # R4_seconds_roll: increment minutes
+                    mm_val += 1
+                    mm_lo = mm_val % 10
+                    mm_hi = mm_val // 10
+                else:
+                    # minutes roll over
+                    mm_lo, mm_hi = 0, 0
+                    if hh_val != 12:
+                        # R5_minutes_roll: increment hours
+                        hh_val += 1
+                        hh_lo = hh_val % 10
+                        hh_hi = hh_val // 10
+                    else:
+                        # R6_hours_roll_am_pm: 12 -> 1, toggle pm
+                        hh_lo, hh_hi = 1, 0
+                        pm_reg = 1 - pm_reg
+
+        hh = (hh_hi << 4) | hh_lo
+        mm = (mm_hi << 4) | mm_lo
+        ss = (ss_hi << 4) | ss_lo
+        out.append({'pm': pm_reg, 'hh': hh, 'mm': mm, 'ss': ss})
+
+    return out

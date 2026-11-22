@@ -1,0 +1,244 @@
+{
+  "ports": {
+    "inputs": {
+      "areset": 1,
+      "predict_valid": 1,
+      "predict_pc": 7,
+      "train_valid": 1,
+      "train_taken": 1,
+      "train_mispredicted": 1,
+      "train_history": 7,
+      "train_pc": 7
+    },
+    "outputs": {
+      "predict_taken": 1,
+      "predict_history": 7
+    },
+    "clock": "clk"
+  },
+  "states": [
+    {
+      "name": "ghr",
+      "meaning": "7-bit global branch history register. On posedge clk when areset=0: if train_valid and train_mispredicted then ghr <= ((train_history << 1) | train_taken) & 0x7F; else if predict_valid then ghr <= ((ghr << 1) | predict_taken) & 0x7F; else unchanged. Training misprediction has priority over same-cycle prediction. Shift-left/LSB-insert convention is inferred because shift direction is not specified.",
+      "update_time": "asynchronous areset=1 or posedge clk",
+      "update_during_reset": true
+    },
+    {
+      "name": "pht",
+      "meaning": "128 entries of 2-bit saturating counters. Index = pc[6:0] XOR history[6:0]. On posedge clk when areset=0 and train_valid=1, update entry at train_pc XOR train_history: if train_taken=1 increment unless 3; if train_taken=0 decrement unless 0. Same-cycle prediction reads the pre-edge PHT value. Reset to 0 is inferred because reset values are not specified.",
+      "update_time": "asynchronous areset=1 or posedge clk",
+      "update_during_reset": true
+    }
+  ],
+  "rules": [
+    {
+      "id": "R_RESET",
+      "outputs": [
+        "predict_taken",
+        "predict_history"
+      ],
+      "condition": "areset=1",
+      "edge": "asynchronous",
+      "visible": "same_cycle",
+      "priority": 20,
+      "spec_quote": "Reset is asynchronous active-high.",
+      "uncertain": true,
+      "example": {
+        "vectors": [
+          {
+            "areset": 1,
+            "predict_valid": 1,
+            "predict_pc": 7,
+            "train_valid": 1,
+            "train_taken": 1,
+            "train_mispredicted": 1,
+            "train_history": 3,
+            "train_pc": 9
+          },
+          {
+            "areset": 1,
+            "predict_valid": 0,
+            "predict_pc": 0,
+            "train_valid": 0,
+            "train_taken": 0,
+            "train_mispredicted": 0,
+            "train_history": 0,
+            "train_pc": 0
+          }
+        ],
+        "expected": [
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ]
+        ]
+      }
+    },
+    {
+      "id": "R_PRED",
+      "outputs": [
+        "predict_taken",
+        "predict_history"
+      ],
+      "condition": "areset=0 && predict_valid=1",
+      "edge": "combinational",
+      "visible": "same_cycle",
+      "priority": 10,
+      "spec_quote": "the branch predictor produces the predicted branch direction and state of the branch history register used to make the prediction.",
+      "uncertain": true,
+      "example": {
+        "vectors": [
+          {
+            "areset": 1,
+            "predict_valid": 0,
+            "predict_pc": 0,
+            "train_valid": 0,
+            "train_taken": 0,
+            "train_mispredicted": 0,
+            "train_history": 0,
+            "train_pc": 0
+          },
+          {
+            "areset": 0,
+            "predict_valid": 0,
+            "predict_pc": 0,
+            "train_valid": 1,
+            "train_taken": 1,
+            "train_mispredicted": 0,
+            "train_history": 0,
+            "train_pc": 5
+          },
+          {
+            "areset": 0,
+            "predict_valid": 0,
+            "predict_pc": 0,
+            "train_valid": 1,
+            "train_taken": 1,
+            "train_mispredicted": 0,
+            "train_history": 0,
+            "train_pc": 5
+          },
+          {
+            "areset": 0,
+            "predict_valid": 1,
+            "predict_pc": 5,
+            "train_valid": 1,
+            "train_taken": 0,
+            "train_mispredicted": 1,
+            "train_history": 0,
+            "train_pc": 5
+          }
+        ],
+        "expected": [
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            1,
+            0
+          ]
+        ]
+      }
+    },
+    {
+      "id": "R_DEFAULT",
+      "outputs": [
+        "predict_taken",
+        "predict_history"
+      ],
+      "condition": "areset=0 && predict_valid=0",
+      "edge": "combinational",
+      "visible": "same_cycle",
+      "priority": 5,
+      "spec_quote": "",
+      "uncertain": true,
+      "example": {
+        "vectors": [
+          {
+            "areset": 1,
+            "predict_valid": 0,
+            "predict_pc": 0,
+            "train_valid": 0,
+            "train_taken": 0,
+            "train_mispredicted": 0,
+            "train_history": 0,
+            "train_pc": 0
+          },
+          {
+            "areset": 0,
+            "predict_valid": 0,
+            "predict_pc": 0,
+            "train_valid": 0,
+            "train_taken": 0,
+            "train_mispredicted": 0,
+            "train_history": 0,
+            "train_pc": 0
+          }
+        ],
+        "expected": [
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ]
+        ]
+      }
+    }
+  ],
+  "reset": {
+    "kind": "async",
+    "name": "areset",
+    "active": "high",
+    "values": {
+      "predict_taken": 0,
+      "predict_history": 0
+    },
+    "first_released_cycle": "first posedge clk after areset deasserts"
+  },
+  "mid": "",
+  "uncertain": [
+    {
+      "rule_id": "R_RESET",
+      "note": "The specification states an asynchronous active-high reset but does not specify reset values for the PHT, GHR, or outputs.",
+      "candidates": [
+        "reset GHR, PHT, and outputs to 0",
+        "reset only GHR; PHT unknown",
+        "reset outputs unspecified or held during reset"
+      ]
+    },
+    {
+      "rule_id": "R_PRED",
+      "note": "The two-bit counter taken encoding, exact PHT reset value, and GHR shift direction are not specified; this rule uses inferred MSB-taken and shift-left/LSB-insert behavior.",
+      "candidates": [
+        "predict taken iff counter[1]=1 (>=2); shift left and insert LSB",
+        "predict taken iff counter==3; shift right and insert MSB",
+        "other two-bit counter encoding or shift direction"
+      ]
+    },
+    {
+      "rule_id": "R_DEFAULT",
+      "note": "Behavior when predict_valid=0 is not specified.",
+      "candidates": [
+        "predict_taken=0 and predict_history=current GHR",
+        "outputs held from last valid prediction",
+        "outputs undefined when predict_valid=0"
+      ]
+    }
+  ]
+}

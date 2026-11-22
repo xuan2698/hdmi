@@ -1,0 +1,154 @@
+{
+  "coverage": {
+    "S01": [
+      "unrelated"
+    ],
+    "S02": [
+      "unrelated"
+    ],
+    "S03": [
+      "load_L_high"
+    ],
+    "S04": [
+      "load_L_high",
+      "feedback_L_low"
+    ],
+    "S05": [
+      "load_L_high",
+      "feedback_L_low"
+    ],
+    "S06": [
+      "load_L_high",
+      "feedback_L_low"
+    ],
+    "S07": [
+      "unrelated"
+    ],
+    "S08": [
+      "load_L_high",
+      "feedback_L_low"
+    ],
+    "S09": [
+      "load_L_high"
+    ],
+    "S10": [
+      "load_L_high"
+    ],
+    "S11": [
+      "feedback_L_low"
+    ],
+    "S12": [
+      "feedback_L_low"
+    ],
+    "S13": [
+      "unrelated"
+    ],
+    "S14": [
+      "unrelated"
+    ],
+    "S15": [
+      "unrelated"
+    ],
+    "S16": [
+      "missing"
+    ],
+    "S17": [
+      "missing"
+    ]
+  },
+  "issues": [
+    {
+      "issue_id": "I1",
+      "rule_id": "global",
+      "type": "coverage",
+      "severity": "high",
+      "detail": "Contract exposes only 1-bit Q/r_in and models q[2]; spec has 3-bit r and q, so q[1:0] and r[1:0] behavior is missing.",
+      "spec_evidence": "//     output reg [2:0] q",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I2",
+      "rule_id": "feedback_L_low",
+      "type": "ambiguity",
+      "severity": "high",
+      "detail": "Contract adds q_in but says it is unused; spec feedback for q[2] needs q[1], so q_in could plausibly denote q[1].",
+      "spec_evidence": "//         q <= {q[1] ^ q[2], q[0], q[2]};",
+      "alternative": "Use q_in as q[1] for the exposed q[2] slice: Q_next = q_in ^ Q when L=0.",
+      "sequence": [
+        {
+          "L": 1,
+          "q_in": 1,
+          "r_in": 0
+        },
+        {
+          "L": 0,
+          "q_in": 1,
+          "r_in": 0
+        }
+      ]
+    },
+    {
+      "issue_id": "I3",
+      "rule_id": "feedback_L_low",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "Rule says L=0 makes q[2] hold (Q_next=Q), but spec gives q_next[2]=q[1]^q[2], which toggles when q[1]=1.",
+      "spec_evidence": "//         q <= {q[1] ^ q[2], q[0], q[2]};",
+      "alternative": "For the exposed q[2] slice, use Q_next = q[1]^Q (or q_in^Q if q_in denotes q[1]) when L=0.",
+      "sequence": [
+        {
+          "L": 1,
+          "q_in": 1,
+          "r_in": 0
+        },
+        {
+          "L": 0,
+          "q_in": 1,
+          "r_in": 0
+        }
+      ]
+    },
+    {
+      "issue_id": "I4",
+      "rule_id": "feedback_L_low",
+      "type": "spec_example",
+      "severity": "high",
+      "detail": "The L=0 example expects Q=0 after loading Q=0 with q_in=1; under spec formula with q_in as q[1], q_next[2]=1, so expected output is wrong.",
+      "spec_evidence": "//         q <= {q[1] ^ q[2], q[0], q[2]};",
+      "alternative": "If q_in represents q[1], expected second Q should be 1; otherwise the example must expose full q bits.",
+      "sequence": [
+        {
+          "L": 1,
+          "q_in": 1,
+          "r_in": 0
+        },
+        {
+          "L": 0,
+          "q_in": 1,
+          "r_in": 0
+        }
+      ]
+    },
+    {
+      "issue_id": "I5",
+      "rule_id": "global",
+      "type": "coverage",
+      "severity": "medium",
+      "detail": "Spec requires a hierarchical top_module with a flipflop/2-1 mux submodule instantiated three times; no rule or structural coverage implements this.",
+      "spec_evidence": "// You want to create a hierarchical Verilog design where a flipflop and 2-1 multiplexer are in a submodule, and that submodule is instantiated three times in this code.",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I6",
+      "rule_id": "load_L_high",
+      "type": "grounding",
+      "severity": "medium",
+      "detail": "Rule uses r_in with no spec mapping to r[2] for Q=q[2]; spec load is full q<=r.",
+      "spec_evidence": "//         q <= r;",
+      "alternative": "",
+      "sequence": []
+    }
+  ]
+}

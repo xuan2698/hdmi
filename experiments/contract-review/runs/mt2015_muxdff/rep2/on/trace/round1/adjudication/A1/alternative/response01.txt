@@ -1,0 +1,68 @@
+```python
+def reference(vectors):
+    # State: Q_reg is the registered output bit Q. Initialize to concrete 0.
+    Q_reg = 0
+    # Carry current input values across rows for optional mid-cycle changes.
+    current_L = 0
+    current_q_in = 0
+    current_r_in = 0
+    result = []
+
+    for row in vectors:
+        # Inputs are driven before the sampled posedge.
+        if "L" in row:
+            current_L = int(row["L"]) & 1
+        if "q_in" in row:
+            current_q_in = int(row["q_in"]) & 1
+        if "r_in" in row:
+            current_r_in = int(row["r_in"]) & 1
+
+        # load_L_high: At posedge clk, if L == 1 then Q_next = r_in.
+        # feedback_L_low: Candidate interpretation applies: q_in is the current
+        # registered Q feedback, so when L == 0 hold current Q_reg instead of
+        # loading an arbitrary q_in sample.
+        if current_L == 1:
+            Q_reg = current_r_in
+        else:
+            Q_reg = Q_reg  # hold current registered value
+        Q_reg &= 1
+
+        # Output is visible after the posedge settles.
+        result.append({"Q": Q_reg})
+
+        # Optional mid input changes occur AFTER sampling and are carried to
+        # the start of the next row.
+        mid = None
+        if "mid" in row:
+            mid = row["mid"]
+        elif "mid_changes" in row:
+            mid = row["mid_changes"]
+
+        if mid is not None:
+            if isinstance(mid, dict):
+                mid_items = [mid]
+            elif isinstance(mid, (list, tuple)):
+                mid_items = mid
+            else:
+                mid_items = []
+
+            for item in mid_items:
+                if isinstance(item, dict):
+                    for k, v in item.items():
+                        if k == "L":
+                            current_L = int(v) & 1
+                        elif k == "q_in":
+                            current_q_in = int(v) & 1
+                        elif k == "r_in":
+                            current_r_in = int(v) & 1
+                elif isinstance(item, (list, tuple)) and len(item) == 2:
+                    k, v = item
+                    if k == "L":
+                        current_L = int(v) & 1
+                    elif k == "q_in":
+                        current_q_in = int(v) & 1
+                    elif k == "r_in":
+                        current_r_in = int(v) & 1
+
+    return result
+```

@@ -1,0 +1,65 @@
+```python
+def reference(vectors):
+    # State: 4-digit BCD counter value (16-bit), initialized to 0
+    # Contract rules implemented below with comments.
+    count = 0
+    outputs = []
+
+    for vec in vectors:
+        reset = vec.get("reset", 0)
+
+        # R1_reset: synchronous active-high reset -> q=0, ena=0 visible same cycle
+        if reset == 1:
+            count = 0
+            q = 0
+            ena = 0
+            outputs.append({"q": q, "ena": ena})
+            continue
+
+        # Compute current outputs based on current state (before posedge update)
+        q = count
+        ones = q & 0xF
+        tens = (q >> 4) & 0xF
+        hundreds = (q >> 8) & 0xF
+        thousands = (q >> 12) & 0xF
+
+        # R4_ena_tens: tens enable when ones == 9
+        # R5_ena_hundreds: hundreds enable when ones==9 and tens==9
+        # R6_ena_thousands: thousands enable when ones==9 and tens==9 and hundreds==9
+        # Global interpretation: ena[2]=tens, ena[1]=hundreds, ena[0]=thousands (reverse order)
+        tens_en = 1 if ones == 9 else 0
+        hundreds_en = 1 if (ones == 9 and tens == 9) else 0
+        thousands_en = 1 if (ones == 9 and tens == 9 and hundreds == 9) else 0
+        ena = (tens_en << 2) | (hundreds_en << 1) | thousands_en
+
+        outputs.append({"q": q, "ena": ena})
+
+        # Compute next state (posedge update)
+        # R2_ones_increment / R3_ones_wrap / R7_full_wrap
+        if q == 0x9999:
+            # R7_full_wrap: wrap to 0000
+            count = 0
+        else:
+            # Increment BCD
+            new_ones = ones + 1
+            carry = 0
+            if new_ones > 9:
+                new_ones = 0
+                carry = 1
+            new_tens = tens + carry
+            carry = 0
+            if new_tens > 9:
+                new_tens = 0
+                carry = 1
+            new_hundreds = hundreds + carry
+            carry = 0
+            if new_hundreds > 9:
+                new_hundreds = 0
+                carry = 1
+            new_thousands = thousands + carry
+            if new_thousands > 9:
+                new_thousands = 0
+            count = (new_thousands << 12) | (new_hundreds << 8) | (new_tens << 4) | new_ones
+
+    return outputs
+```

@@ -1,0 +1,32 @@
+def reference(vectors):
+    # 8-bit D flip-flop output register
+    q = 0
+    # Current nonclock inputs carried between rows
+    d = 0
+    reset = 0
+    outs = []
+    for row in vectors:
+        # Drive nonclock inputs before the sampled positive edge
+        if 'd' in row:
+            d = row['d'] & 0xFF
+        if 'reset' in row:
+            reset = row['reset'] & 1
+        # rule sync_reset_clear: active-high synchronous reset priority 2
+        if reset == 1:
+            q = 0
+        # rule dff_capture_d: capture d on positive edge when reset is low
+        else:
+            q = d & 0xFF
+        outs.append({'q': q})
+        # Mid input changes occur after sampling and carry to the next row
+        if 'mid' in row:
+            mid = row['mid']
+            try:
+                if mid is not None:
+                    if 'd' in mid:
+                        d = mid['d'] & 0xFF
+                    if 'reset' in mid:
+                        reset = mid['reset'] & 1
+            except:
+                pass
+    return outs

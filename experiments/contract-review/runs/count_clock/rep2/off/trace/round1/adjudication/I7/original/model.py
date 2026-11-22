@@ -1,0 +1,86 @@
+def reference(vectors):
+    # Contract rules implemented:
+    # R1_reset: synchronous active-high reset -> 12:00 AM (hh=0x12, mm=0, ss=0, pm=0)
+    # R2_hold: when not reset and not ena, hold state
+    # R3_seconds: increment seconds when ena and ss != 0x59
+    # R4_seconds_roll: ss==0x59 and mm!=0x59 -> ss=0, mm++
+    # R5_minutes_roll: ss==0x59 and mm==0x59 and hh!=0x12 -> ss=0, mm=0, hh++
+    # R6_hours_roll_am_pm: ss==0x59 and mm==0x59 and hh==0x12 -> ss=0, mm=0, hh=1, pm toggles
+
+    # State registers (BCD digits)
+    ss_lo = 0
+    ss_hi = 0
+    mm_lo = 0
+    mm_hi = 0
+    hh_lo = 2  # 12 -> hh_hi=1, hh_lo=2
+    hh_hi = 1
+    pm_reg = 0
+
+    out = []
+
+    def pack(hi, lo):
+        return (hi << 4) | lo
+
+    for row in vectors:
+        reset = row.get('reset', 0)
+        ena = row.get('ena', 0)
+
+        # Sample current outputs before edge (values driven before sampled edge)
+        out.append({
+            'pm': pm_reg & 1,
+            'hh': pack(hh_hi, hh_lo) & 0xFF,
+            'mm': pack(mm_hi, mm_lo) & 0xFF,
+            'ss': pack(ss_hi, ss_lo) & 0xFF,
+        })
+
+        # Compute next state at posedge
+        if reset == 1:
+            # R1_reset
+            ss_lo = 0; ss_hi = 0
+            mm_lo = 0; mm_hi = 0
+            hh_lo = 2; hh_hi = 1
+            pm_reg = 0
+        elif ena == 1:
+            ss_val = pack(ss_hi, ss_lo)
+            mm_val = pack(mm_hi, mm_lo)
+            hh_val = pack(hh_hi, hh_lo)
+
+            if ss_val != 0x59:
+                # R3_seconds: increment seconds BCD
+                if ss_lo == 9:
+                    ss_lo = 0
+                    ss_hi += 1
+                else:
+                    ss_lo += 1
+            elif mm_val != 0x59:
+                # R4_seconds_roll
+                ss_lo = 0; ss_hi = 0
+                if mm_lo == 9:
+                    mm_lo = 0
+                    mm_hi += 1
+                else:
+                    mm_lo += 1
+            elif hh_val != 0x12:
+                # R5_minutes_roll
+                ss_lo = 0; ss_hi = 0
+                mm_lo = 0; mm_hi = 0
+                # increment hours 01..12
+                if hh_lo == 9:
+                    hh_lo = 0
+                    hh_hi += 1
+                elif hh_hi == 1 and hh_lo == 2:
+                    # 12 -> 1
+                    hh_hi = 0
+                    hh_lo = 1
+                else:
+                    hh_lo += 1
+            else:
+                # R6_hours_roll_am_pm: hh == 12 -> 1, toggle pm
+                ss_lo = 0; ss_hi = 0
+                mm_lo = 0; mm_hi = 0
+                hh_hi = 0
+                hh_lo = 1
+                pm_reg = 1 - pm_reg
+        # else R2_hold: no change
+
+    return out

@@ -1,0 +1,28 @@
+{
+  "coverage": {
+    "S01": [
+      "sync_reset_high",
+      "d_capture_when_reset_inactive"
+    ]
+  },
+  "issues": [
+    {
+      "issue_id": "I1",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "high",
+      "detail": "Spec does not specify clock edge; contract assumes posedge with uncertain false. Negedge-triggered DFF would capture mid-cycle d changes.",
+      "spec_evidence": "Implement a simple D flip flop with active high synchronous reset (reset output to 0).",
+      "alternative": "Negative-edge-triggered D flip-flop with active-high synchronous reset.",
+      "sequence": [
+        {
+          "d": 1,
+          "r": 0,
+          "mid": {
+            "d": 0
+          }
+        }
+      ]
+    }
+  ]
+}

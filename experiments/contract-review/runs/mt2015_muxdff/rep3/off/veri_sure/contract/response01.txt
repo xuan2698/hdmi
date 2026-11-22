@@ -1,0 +1,30 @@
+```json
+{
+  "module_name": "top_module",
+  "io": [
+    {"name": "clk", "dir": "input", "width": 1, "description": "Clock; all state updates on posedge."},
+    {"name": "r", "dir": "input", "width": 3, "description": "Load data bus; each bit r[i] feeds submodule i's r_in."},
+    {"name": "L", "dir": "input", "width": 1, "description": "Load enable; broadcast to all three submodules."},
+    {"name": "q", "dir": "output", "width": 3, "description": "State output; q[i] is submodule i's Q."}
+  ],
+  "clocking": {
+    "clock": {"name": "clk", "edge": "posedge"},
+    "reset": null
+  },
+  "timing": {
+    "outputs": {
+      "q": {"latency_cycles": 1}
+    }
+  },
+  "functional_summary": {
+    "overview": "Three instances of a 1-bit loadable LFSR-like flipflop/mux submodule. Each submodule holds one bit of state. On each posedge clk: if L=1, Q <= r_in; else Q <= q_in ^ Q (where q_in is the previous Q of the next submodule in the chain, wrapping). The three submodules form a 3-bit shift/xor register matching the reference full_module behavior.",
+    "rules": [
+      "Submodule i (i in {0,1,2}) has inputs r_in=r[i], L=L, q_in=q[(i+1) mod 3] (previous-cycle value), and output Q=q[i].",
+      "On posedge clk with L=1: q[i] <= r[i] for all i.",
+      "On posedge clk with L=0: q[0] <= q[1] ^ q[2], q[1] <= q[0], q[2] <= q[2] (using pre-edge values).",
+      "Output q reflects registered state; changes only after posedge clk (1-cycle latency from inputs sampled at that edge).",
+      "No reset; initial state is unspecified."
+    ]
+  }
+}
+```

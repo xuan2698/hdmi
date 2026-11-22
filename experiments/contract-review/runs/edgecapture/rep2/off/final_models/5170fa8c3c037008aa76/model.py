@@ -1,0 +1,28 @@
+def reference(vectors):
+    # R1_reset_clear: synchronous active-high reset clears out_reg
+    # R2_capture_falling: set bits where prev_in=1 and in=0 (falling edge)
+    # R3_hold: otherwise hold previous out_reg value
+    # Initial prev_in is unspecified; choose 0 at time 0 (one valid candidate).
+    out_reg = 0
+    prev_in = 0
+    results = []
+    for row in vectors:
+        reset = row["reset"] & 1
+        in_val = row["in"] & 0xFFFFFFFF
+        # posedge sampling: compute next state from current inputs and prev_in
+        if reset == 1:
+            # R1_reset_clear
+            next_out = 0
+        else:
+            falling = prev_in & ((~in_val) & 0xFFFFFFFF)
+            if falling != 0:
+                # R2_capture_falling
+                next_out = out_reg | falling
+            else:
+                # R3_hold
+                next_out = out_reg
+        out_reg = next_out & 0xFFFFFFFF
+        # mid changes occur AFTER sampling; carry to next row
+        prev_in = in_val
+        results.append({"out": out_reg})
+    return results

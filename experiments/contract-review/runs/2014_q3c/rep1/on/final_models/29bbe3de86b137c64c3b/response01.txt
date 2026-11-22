@@ -1,0 +1,24 @@
+def reference(vectors):
+    result = []
+    for vector in vectors:
+        x = vector["x"] & 1
+        y = vector["y"] & 7
+
+        # Y0_comb: y in {0,1,2,3}: Y0 = (x XOR (y & 1)) & 1; y == 4: Y0 = (NOT x) & 1.
+        if y in (0, 1, 2, 3):
+            Y0 = (x ^ (y & 1)) & 1
+        elif y == 4:
+            Y0 = (1 - x) & 1
+        else:
+            Y0 = 0  # Concrete fallback for unspecified y outside present states.
+
+        # z_comb: y in {0,1,2}: z = 0; y in {3,4}: z = 1.
+        if y in (0, 1, 2):
+            z = 0
+        elif y in (3, 4):
+            z = 1
+        else:
+            z = 0  # Concrete fallback for unspecified y outside present states.
+
+        result.append({"Y0": Y0 & 1, "z": z & 1})
+    return result

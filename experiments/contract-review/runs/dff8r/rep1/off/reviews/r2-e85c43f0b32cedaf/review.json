@@ -1,0 +1,78 @@
+{
+  "coverage": {
+    "S01": [
+      "R1_sync_reset",
+      "R2_dff_capture"
+    ],
+    "S02": [
+      "R1_sync_reset",
+      "R2_dff_capture"
+    ]
+  },
+  "issues": [
+    {
+      "issue_id": "I1",
+      "rule_id": "R1_sync_reset",
+      "type": "consistency",
+      "severity": "medium",
+      "detail": "Reset example's third vector has reset=0 but expected q=0, which matches neither reset (R1) nor capture of d=0 (R2) in a way that distinguishes; it is consistent with capture but the example is labeled under R1 and does not demonstrate reset release behavior.",
+      "spec_evidence": "active high synchronous reset setting the output to zero",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I2",
+      "rule_id": "R2_dff_capture",
+      "type": "consistency",
+      "severity": "low",
+      "detail": "R2 example vectors all have reset=0 and expected q equals d, but the first vector's expected q=165 assumes initial state is irrelevant because capture occurs; this is consistent but does not test the unspecified initial value.",
+      "spec_evidence": "Create 8 D flip-flops",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I3",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec says synchronous reset sets output to zero; contract says update_during_reset true and visible same_cycle. Alternative semantics: reset is synchronous but output updates only on next posedge after reset asserted (i.e., reset sampled at edge). Distinguishing sequence: first row reset=1,d=0 then second row reset=0,d=5; if reset is same-cycle visible, q after first edge is 0; if reset requires prior edge, q after first edge may be unspecified/old.",
+      "spec_evidence": "active high synchronous reset setting the output to zero",
+      "alternative": "Reset is sampled at posedge but output zeroing occurs on the following posedge (one-cycle delayed reset visibility).",
+      "sequence": [
+        {
+          "d": 0,
+          "reset": 1
+        },
+        {
+          "d": 5,
+          "reset": 0
+        }
+      ]
+    },
+    {
+      "issue_id": "I4",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "low",
+      "detail": "Contract states initial q before first posedge is unspecified; spec does not specify initial value. Alternative: initial q is zero. Distinguishing sequence: first row reset=0,d=7; if initial zero and capture, q=7 after edge; if unspecified, any value possible before edge but after edge q=7 regardless, so not distinguishing. Better: first row reset=1,d=7; if initial zero, q=0 after edge; if unspecified, q=0 after reset edge anyway. No distinguishing sequence for initial value given synchronous reset/capture on first edge.",
+      "spec_evidence": "",
+      "alternative": "Initial q is zero.",
+      "sequence": [
+        {
+          "d": 7,
+          "reset": 0
+        }
+      ]
+    },
+    {
+      "issue_id": "I5",
+      "rule_id": "global",
+      "type": "grounding",
+      "severity": "low",
+      "detail": "Spec does not mention 'mid' input changes or timing; contract adds mid semantics not grounded in spec.",
+      "spec_evidence": "",
+      "alternative": "",
+      "sequence": []
+    }
+  ]
+}

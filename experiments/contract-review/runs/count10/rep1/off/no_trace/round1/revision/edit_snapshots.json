@@ -1,0 +1,1212 @@
+[
+  {
+    "issue_id": "I1",
+    "before": {
+      "ports": {
+        "inputs": {
+          "reset": 1
+        },
+        "outputs": {
+          "q": 4
+        },
+        "clock": "clk"
+      },
+      "states": [
+        {
+          "name": "COUNT",
+          "meaning": "Current decade count value 0..9; increments modulo 10 on each posedge unless reset is high.",
+          "update_time": "posedge",
+          "update_during_reset": false
+        }
+      ],
+      "rules": [
+        {
+          "id": "R1_SYNC_RESET",
+          "outputs": [
+            "q"
+          ],
+          "condition": "reset == 1",
+          "edge": "posedge",
+          "visible": "same_cycle",
+          "priority": 0,
+          "spec_quote": "The reset input is active high synchronous, and should reset the counter to 0.",
+          "uncertain": false,
+          "example": {
+            "vectors": [
+              {
+                "reset": 1
+              },
+              {
+                "reset": 1
+              },
+              {
+                "reset": 0
+              }
+            ],
+            "expected": [
+              {
+                "q": 0
+              },
+              {
+                "q": 0
+              },
+              {
+                "q": 0
+              }
+            ]
+          }
+        },
+        {
+          "id": "R2_COUNT_INC",
+          "outputs": [
+            "q"
+          ],
+          "condition": "reset == 0",
+          "edge": "posedge",
+          "visible": "same_cycle",
+          "priority": 1,
+          "spec_quote": "counts from 0 through 9, inclusive, with a period of 10",
+          "uncertain": false,
+          "example": {
+            "vectors": [
+              {
+                "reset": 0
+              },
+              {
+                "reset": 0
+              },
+              {
+                "reset": 0
+              },
+              {
+                "reset": 0
+              }
+            ],
+            "expected": [
+              {
+                "q": 1
+              },
+              {
+                "q": 2
+              },
+              {
+                "q": 3
+              },
+              {
+                "q": 4
+              }
+            ]
+          }
+        },
+        {
+          "id": "R3_WRAP",
+          "outputs": [
+            "q"
+          ],
+          "condition": "reset == 0 and q == 9",
+          "edge": "posedge",
+          "visible": "same_cycle",
+          "priority": 1,
+          "spec_quote": "counts from 0 through 9, inclusive, with a period of 10",
+          "uncertain": false,
+          "example": {
+            "vectors": [
+              {
+                "reset": 0
+              },
+              {
+                "reset": 0
+              },
+              {
+                "reset": 0
+              }
+            ],
+            "expected": [
+              {
+                "q": 0
+              },
+              {
+                "q": 1
+              },
+              {
+                "q": 2
+              }
+            ]
+          }
+        }
+      ],
+      "reset": {
+        "kind": "sync",
+        "name": "reset",
+        "active": "high",
+        "values": {
+          "q": 0
+        },
+        "first_released_cycle": "first posedge with reset == 0"
+      },
+      "mid": "Optional mid input changes occur AFTER sampling, before the other edge, and are carried to the start of the next row.",
+      "uncertain": []
+    },
+    "after": {
+      "ports": {
+        "inputs": {
+          "reset": 1
+        },
+        "outputs": {
+          "q": 4
+        },
+        "clock": "clk"
+      },
+      "states": [
+        {
+          "name": "COUNT",
+          "meaning": "Current decade count value 0..9; increments modulo 10 on each posedge unless reset is high.",
+          "update_time": "posedge",
+          "update_during_reset": false
+        }
+      ],
+      "rules": [
+        {
+          "id": "R1_SYNC_RESET",
+          "outputs": [
+            "q"
+          ],
+          "condition": "reset == 1",
+          "edge": "posedge",
+          "visible": "same_cycle",
+          "priority": 0,
+          "spec_quote": "The reset input is active high synchronous, and should reset the counter to 0.",
+          "uncertain": false,
+          "example": {
+            "vectors": [
+              {
+                "reset": 1
+              },
+              {
+                "reset": 1
+              },
+              {
+                "reset": 0
+              }
+            ],
+            "expected": [
+              {
+                "q": 0
+              },
+              {
+                "q": 0
+              },
+              {
+                "q": 0
+              }
+            ]
+          }
+        },
+        {
+          "id": "R2_COUNT_INC",
+          "outputs": [
+            "q"
+          ],
+          "condition": "reset == 0",
+          "edge": "posedge",
+          "visible": "same_cycle",
+          "priority": 1,
+          "spec_quote": "counts from 0 through 9, inclusive, with a period of 10",
+          "uncertain": false,
+          "example": {
+            "vectors": [
+              {
+                "reset": 1
+              },
+              {
+                "reset": 0
+              },
+              {
+                "reset": 0
+              },
+              {
+                "reset": 0
+              }
+            ],
+            "expected": [
+              {
+                "q": 0
+              },
+              {
+                "q": 1
+              },
+              {
+                "q": 2
+              },
+              {
+                "q": 3
+              }
+            ]
+          }
+        },
+        {
+          "id": "R3_WRAP",
+          "outputs": [
+            "q"
+          ],
+          "condition": "reset == 0 and q == 9",
+          "edge": "posedge",
+          "visible": "same_cycle",
+          "priority": 1,
+          "spec_quote": "counts from 0 through 9, inclusive, with a period of 10",
+          "uncertain": false,
+          "example": {
+            "vectors": [
+              {
+                "reset": 0
+              },
+              {
+                "reset": 0
+              },
+              {
+                "reset": 0
+              }
+            ],
+            "expected": [
+              {
+                "q": 0
+              },
+              {
+                "q": 1
+              },
+              {
+                "q": 2
+              }
+            ]
+          }
+        }
+      ],
+      "reset": {
+        "kind": "sync",
+        "name": "reset",
+        "active": "high",
+        "values": {
+          "q": 0
+        },
+        "first_released_cycle": "first posedge with reset == 0"
+      },
+      "mid": "Optional mid input changes occur AFTER sampling, before the other edge, and are carried to the start of the next row.",
+      "uncertain": []
+    }
+  },
+  {
+    "issue_id": "I2",
+    "before": {
+      "ports": {
+        "inputs": {
+          "reset": 1
+        },
+        "outputs": {
+          "q": 4
+        },
+        "clock": "clk"
+      },
+      "states": [
+        {
+          "name": "COUNT",
+          "meaning": "Current decade count value 0..9; increments modulo 10 on each posedge unless reset is high.",
+          "update_time": "posedge",
+          "update_during_reset": false
+        }
+      ],
+      "rules": [
+        {
+          "id": "R1_SYNC_RESET",
+          "outputs": [
+            "q"
+          ],
+          "condition": "reset == 1",
+          "edge": "posedge",
+          "visible": "same_cycle",
+          "priority": 0,
+          "spec_quote": "The reset input is active high synchronous, and should reset the counter to 0.",
+          "uncertain": false,
+          "example": {
+            "vectors": [
+              {
+                "reset": 1
+              },
+              {
+                "reset": 1
+              },
+              {
+                "reset": 0
+              }
+            ],
+            "expected": [
+              {
+                "q": 0
+              },
+              {
+                "q": 0
+              },
+              {
+                "q": 0
+              }
+            ]
+          }
+        },
+        {
+          "id": "R2_COUNT_INC",
+          "outputs": [
+            "q"
+          ],
+          "condition": "reset == 0",
+          "edge": "posedge",
+          "visible": "same_cycle",
+          "priority": 1,
+          "spec_quote": "counts from 0 through 9, inclusive, with a period of 10",
+          "uncertain": false,
+          "example": {
+            "vectors": [
+              {
+                "reset": 1
+              },
+              {
+                "reset": 0
+              },
+              {
+                "reset": 0
+              },
+              {
+                "reset": 0
+              }
+            ],
+            "expected": [
+              {
+                "q": 0
+              },
+              {
+                "q": 1
+              },
+              {
+                "q": 2
+              },
+              {
+                "q": 3
+              }
+            ]
+          }
+        },
+        {
+          "id": "R3_WRAP",
+          "outputs": [
+            "q"
+          ],
+          "condition": "reset == 0 and q == 9",
+          "edge": "posedge",
+          "visible": "same_cycle",
+          "priority": 1,
+          "spec_quote": "counts from 0 through 9, inclusive, with a period of 10",
+          "uncertain": false,
+          "example": {
+            "vectors": [
+              {
+                "reset": 0
+              },
+              {
+                "reset": 0
+              },
+              {
+                "reset": 0
+              }
+            ],
+            "expected": [
+              {
+                "q": 0
+              },
+              {
+                "q": 1
+              },
+              {
+                "q": 2
+              }
+            ]
+          }
+        }
+      ],
+      "reset": {
+        "kind": "sync",
+        "name": "reset",
+        "active": "high",
+        "values": {
+          "q": 0
+        },
+        "first_released_cycle": "first posedge with reset == 0"
+      },
+      "mid": "Optional mid input changes occur AFTER sampling, before the other edge, and are carried to the start of the next row.",
+      "uncertain": []
+    },
+    "after": {
+      "ports": {
+        "inputs": {
+          "reset": 1
+        },
+        "outputs": {
+          "q": 4
+        },
+        "clock": "clk"
+      },
+      "states": [
+        {
+          "name": "COUNT",
+          "meaning": "Current decade count value 0..9; increments modulo 10 on each posedge unless reset is high.",
+          "update_time": "posedge",
+          "update_during_reset": false
+        }
+      ],
+      "rules": [
+        {
+          "id": "R1_SYNC_RESET",
+          "outputs": [
+            "q"
+          ],
+          "condition": "reset == 1",
+          "edge": "posedge",
+          "visible": "same_cycle",
+          "priority": 0,
+          "spec_quote": "The reset input is active high synchronous, and should reset the counter to 0.",
+          "uncertain": false,
+          "example": {
+            "vectors": [
+              {
+                "reset": 1
+              },
+              {
+                "reset": 1
+              },
+              {
+                "reset": 0
+              }
+            ],
+            "expected": [
+              {
+                "q": 0
+              },
+              {
+                "q": 0
+              },
+              {
+                "q": 0
+              }
+            ]
+          }
+        },
+        {
+          "id": "R2_COUNT_INC",
+          "outputs": [
+            "q"
+          ],
+          "condition": "reset == 0",
+          "edge": "posedge",
+          "visible": "same_cycle",
+          "priority": 1,
+          "spec_quote": "counts from 0 through 9, inclusive, with a period of 10",
+          "uncertain": false,
+          "example": {
+            "vectors": [
+              {
+                "reset": 1
+              },
+              {
+                "reset": 0
+              },
+              {
+                "reset": 0
+              },
+              {
+                "reset": 0
+              }
+            ],
+            "expected": [
+              {
+                "q": 0
+              },
+              {
+                "q": 1
+              },
+              {
+                "q": 2
+              },
+              {
+                "q": 3
+              }
+            ]
+          }
+        },
+        {
+          "id": "R3_WRAP",
+          "outputs": [
+            "q"
+          ],
+          "condition": "reset == 0 and q == 9",
+          "edge": "posedge",
+          "visible": "same_cycle",
+          "priority": 1,
+          "spec_quote": "counts from 0 through 9, inclusive, with a period of 10",
+          "uncertain": false,
+          "example": {
+            "vectors": [
+              {
+                "reset": 1
+              },
+              {
+                "reset": 0
+              },
+              {
+                "reset": 0
+              },
+              {
+                "reset": 0
+              }
+            ],
+            "expected": [
+              {
+                "q": 0
+              },
+              {
+                "q": 1
+              },
+              {
+                "q": 2
+              },
+              {
+                "q": 3
+              }
+            ]
+          }
+        }
+      ],
+      "reset": {
+        "kind": "sync",
+        "name": "reset",
+        "active": "high",
+        "values": {
+          "q": 0
+        },
+        "first_released_cycle": "first posedge with reset == 0"
+      },
+      "mid": "Optional mid input changes occur AFTER sampling, before the other edge, and are carried to the start of the next row.",
+      "uncertain": []
+    }
+  },
+  {
+    "issue_id": "I3",
+    "before": {
+      "ports": {
+        "inputs": {
+          "reset": 1
+        },
+        "outputs": {
+          "q": 4
+        },
+        "clock": "clk"
+      },
+      "states": [
+        {
+          "name": "COUNT",
+          "meaning": "Current decade count value 0..9; increments modulo 10 on each posedge unless reset is high.",
+          "update_time": "posedge",
+          "update_during_reset": false
+        }
+      ],
+      "rules": [
+        {
+          "id": "R1_SYNC_RESET",
+          "outputs": [
+            "q"
+          ],
+          "condition": "reset == 1",
+          "edge": "posedge",
+          "visible": "same_cycle",
+          "priority": 0,
+          "spec_quote": "The reset input is active high synchronous, and should reset the counter to 0.",
+          "uncertain": false,
+          "example": {
+            "vectors": [
+              {
+                "reset": 1
+              },
+              {
+                "reset": 1
+              },
+              {
+                "reset": 0
+              }
+            ],
+            "expected": [
+              {
+                "q": 0
+              },
+              {
+                "q": 0
+              },
+              {
+                "q": 0
+              }
+            ]
+          }
+        },
+        {
+          "id": "R2_COUNT_INC",
+          "outputs": [
+            "q"
+          ],
+          "condition": "reset == 0",
+          "edge": "posedge",
+          "visible": "same_cycle",
+          "priority": 1,
+          "spec_quote": "counts from 0 through 9, inclusive, with a period of 10",
+          "uncertain": false,
+          "example": {
+            "vectors": [
+              {
+                "reset": 1
+              },
+              {
+                "reset": 0
+              },
+              {
+                "reset": 0
+              },
+              {
+                "reset": 0
+              }
+            ],
+            "expected": [
+              {
+                "q": 0
+              },
+              {
+                "q": 1
+              },
+              {
+                "q": 2
+              },
+              {
+                "q": 3
+              }
+            ]
+          }
+        },
+        {
+          "id": "R3_WRAP",
+          "outputs": [
+            "q"
+          ],
+          "condition": "reset == 0 and q == 9",
+          "edge": "posedge",
+          "visible": "same_cycle",
+          "priority": 1,
+          "spec_quote": "counts from 0 through 9, inclusive, with a period of 10",
+          "uncertain": false,
+          "example": {
+            "vectors": [
+              {
+                "reset": 1
+              },
+              {
+                "reset": 0
+              },
+              {
+                "reset": 0
+              },
+              {
+                "reset": 0
+              }
+            ],
+            "expected": [
+              {
+                "q": 0
+              },
+              {
+                "q": 1
+              },
+              {
+                "q": 2
+              },
+              {
+                "q": 3
+              }
+            ]
+          }
+        }
+      ],
+      "reset": {
+        "kind": "sync",
+        "name": "reset",
+        "active": "high",
+        "values": {
+          "q": 0
+        },
+        "first_released_cycle": "first posedge with reset == 0"
+      },
+      "mid": "Optional mid input changes occur AFTER sampling, before the other edge, and are carried to the start of the next row.",
+      "uncertain": []
+    },
+    "after": {
+      "ports": {
+        "inputs": {
+          "reset": 1
+        },
+        "outputs": {
+          "q": 4
+        },
+        "clock": "clk"
+      },
+      "states": [
+        {
+          "name": "COUNT",
+          "meaning": "Current decade count value 0..9; increments modulo 10 on each posedge unless reset is high.",
+          "update_time": "posedge",
+          "update_during_reset": false
+        }
+      ],
+      "rules": [
+        {
+          "id": "R1_SYNC_RESET",
+          "outputs": [
+            "q"
+          ],
+          "condition": "reset == 1",
+          "edge": "posedge",
+          "visible": "same_cycle",
+          "priority": 0,
+          "spec_quote": "The reset input is active high synchronous, and should reset the counter to 0.",
+          "uncertain": false,
+          "example": {
+            "vectors": [
+              {
+                "reset": 1
+              },
+              {
+                "reset": 1
+              },
+              {
+                "reset": 0
+              }
+            ],
+            "expected": [
+              {
+                "q": 0
+              },
+              {
+                "q": 0
+              },
+              {
+                "q": 1
+              }
+            ]
+          }
+        },
+        {
+          "id": "R2_COUNT_INC",
+          "outputs": [
+            "q"
+          ],
+          "condition": "reset == 0",
+          "edge": "posedge",
+          "visible": "same_cycle",
+          "priority": 1,
+          "spec_quote": "counts from 0 through 9, inclusive, with a period of 10",
+          "uncertain": false,
+          "example": {
+            "vectors": [
+              {
+                "reset": 1
+              },
+              {
+                "reset": 0
+              },
+              {
+                "reset": 0
+              },
+              {
+                "reset": 0
+              }
+            ],
+            "expected": [
+              {
+                "q": 0
+              },
+              {
+                "q": 1
+              },
+              {
+                "q": 2
+              },
+              {
+                "q": 3
+              }
+            ]
+          }
+        },
+        {
+          "id": "R3_WRAP",
+          "outputs": [
+            "q"
+          ],
+          "condition": "reset == 0 and q == 9",
+          "edge": "posedge",
+          "visible": "same_cycle",
+          "priority": 1,
+          "spec_quote": "counts from 0 through 9, inclusive, with a period of 10",
+          "uncertain": false,
+          "example": {
+            "vectors": [
+              {
+                "reset": 1
+              },
+              {
+                "reset": 0
+              },
+              {
+                "reset": 0
+              },
+              {
+                "reset": 0
+              }
+            ],
+            "expected": [
+              {
+                "q": 0
+              },
+              {
+                "q": 1
+              },
+              {
+                "q": 2
+              },
+              {
+                "q": 3
+              }
+            ]
+          }
+        }
+      ],
+      "reset": {
+        "kind": "sync",
+        "name": "reset",
+        "active": "high",
+        "values": {
+          "q": 0
+        },
+        "first_released_cycle": "first posedge with reset == 0"
+      },
+      "mid": "Optional mid input changes occur AFTER sampling, before the other edge, and are carried to the start of the next row.",
+      "uncertain": []
+    }
+  },
+  {
+    "issue_id": "I4",
+    "before": {
+      "ports": {
+        "inputs": {
+          "reset": 1
+        },
+        "outputs": {
+          "q": 4
+        },
+        "clock": "clk"
+      },
+      "states": [
+        {
+          "name": "COUNT",
+          "meaning": "Current decade count value 0..9; increments modulo 10 on each posedge unless reset is high.",
+          "update_time": "posedge",
+          "update_during_reset": false
+        }
+      ],
+      "rules": [
+        {
+          "id": "R1_SYNC_RESET",
+          "outputs": [
+            "q"
+          ],
+          "condition": "reset == 1",
+          "edge": "posedge",
+          "visible": "same_cycle",
+          "priority": 0,
+          "spec_quote": "The reset input is active high synchronous, and should reset the counter to 0.",
+          "uncertain": false,
+          "example": {
+            "vectors": [
+              {
+                "reset": 1
+              },
+              {
+                "reset": 1
+              },
+              {
+                "reset": 0
+              }
+            ],
+            "expected": [
+              {
+                "q": 0
+              },
+              {
+                "q": 0
+              },
+              {
+                "q": 1
+              }
+            ]
+          }
+        },
+        {
+          "id": "R2_COUNT_INC",
+          "outputs": [
+            "q"
+          ],
+          "condition": "reset == 0",
+          "edge": "posedge",
+          "visible": "same_cycle",
+          "priority": 1,
+          "spec_quote": "counts from 0 through 9, inclusive, with a period of 10",
+          "uncertain": false,
+          "example": {
+            "vectors": [
+              {
+                "reset": 1
+              },
+              {
+                "reset": 0
+              },
+              {
+                "reset": 0
+              },
+              {
+                "reset": 0
+              }
+            ],
+            "expected": [
+              {
+                "q": 0
+              },
+              {
+                "q": 1
+              },
+              {
+                "q": 2
+              },
+              {
+                "q": 3
+              }
+            ]
+          }
+        },
+        {
+          "id": "R3_WRAP",
+          "outputs": [
+            "q"
+          ],
+          "condition": "reset == 0 and q == 9",
+          "edge": "posedge",
+          "visible": "same_cycle",
+          "priority": 1,
+          "spec_quote": "counts from 0 through 9, inclusive, with a period of 10",
+          "uncertain": false,
+          "example": {
+            "vectors": [
+              {
+                "reset": 1
+              },
+              {
+                "reset": 0
+              },
+              {
+                "reset": 0
+              },
+              {
+                "reset": 0
+              }
+            ],
+            "expected": [
+              {
+                "q": 0
+              },
+              {
+                "q": 1
+              },
+              {
+                "q": 2
+              },
+              {
+                "q": 3
+              }
+            ]
+          }
+        }
+      ],
+      "reset": {
+        "kind": "sync",
+        "name": "reset",
+        "active": "high",
+        "values": {
+          "q": 0
+        },
+        "first_released_cycle": "first posedge with reset == 0"
+      },
+      "mid": "Optional mid input changes occur AFTER sampling, before the other edge, and are carried to the start of the next row.",
+      "uncertain": []
+    },
+    "after": {
+      "ports": {
+        "inputs": {
+          "reset": 1
+        },
+        "outputs": {
+          "q": 4
+        },
+        "clock": "clk"
+      },
+      "states": [
+        {
+          "name": "COUNT",
+          "meaning": "Current decade count value 0..9; increments modulo 10 on each posedge unless reset is high. Initial value before any reset is unspecified; a synchronous reset establishes q=0.",
+          "update_time": "posedge",
+          "update_during_reset": false
+        }
+      ],
+      "rules": [
+        {
+          "id": "R1_SYNC_RESET",
+          "outputs": [
+            "q"
+          ],
+          "condition": "reset == 1",
+          "edge": "posedge",
+          "visible": "same_cycle",
+          "priority": 0,
+          "spec_quote": "The reset input is active high synchronous, and should reset the counter to 0.",
+          "uncertain": false,
+          "example": {
+            "vectors": [
+              {
+                "reset": 1
+              },
+              {
+                "reset": 1
+              },
+              {
+                "reset": 0
+              }
+            ],
+            "expected": [
+              {
+                "q": 0
+              },
+              {
+                "q": 0
+              },
+              {
+                "q": 1
+              }
+            ]
+          }
+        },
+        {
+          "id": "R2_COUNT_INC",
+          "outputs": [
+            "q"
+          ],
+          "condition": "reset == 0",
+          "edge": "posedge",
+          "visible": "same_cycle",
+          "priority": 1,
+          "spec_quote": "counts from 0 through 9, inclusive, with a period of 10",
+          "uncertain": false,
+          "example": {
+            "vectors": [
+              {
+                "reset": 1
+              },
+              {
+                "reset": 0
+              },
+              {
+                "reset": 0
+              },
+              {
+                "reset": 0
+              }
+            ],
+            "expected": [
+              {
+                "q": 0
+              },
+              {
+                "q": 1
+              },
+              {
+                "q": 2
+              },
+              {
+                "q": 3
+              }
+            ]
+          }
+        },
+        {
+          "id": "R3_WRAP",
+          "outputs": [
+            "q"
+          ],
+          "condition": "reset == 0 and q == 9",
+          "edge": "posedge",
+          "visible": "same_cycle",
+          "priority": 1,
+          "spec_quote": "counts from 0 through 9, inclusive, with a period of 10",
+          "uncertain": false,
+          "example": {
+            "vectors": [
+              {
+                "reset": 1
+              },
+              {
+                "reset": 0
+              },
+              {
+                "reset": 0
+              },
+              {
+                "reset": 0
+              }
+            ],
+            "expected": [
+              {
+                "q": 0
+              },
+              {
+                "q": 1
+              },
+              {
+                "q": 2
+              },
+              {
+                "q": 3
+              }
+            ]
+          }
+        }
+      ],
+      "reset": {
+        "kind": "sync",
+        "name": "reset",
+        "active": "high",
+        "values": {
+          "q": 0
+        },
+        "first_released_cycle": "first posedge with reset == 0"
+      },
+      "mid": "Optional mid input changes occur AFTER sampling, before the other edge, and are carried to the start of the next row.",
+      "uncertain": []
+    }
+  }
+]

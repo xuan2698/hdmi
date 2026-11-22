@@ -1,0 +1,41 @@
+```python
+def reference(vectors):
+    # State: current decade count value 0..9
+    # R1_SYNC_RESET: reset is active high synchronous. Per candidate interpretation,
+    #   reset takes effect at posedge but q updates only on the following posedge,
+    #   so q remains previous value during the reset cycle.
+    # R2_COUNT_INC: when reset==0, count increments on posedge.
+    # R3_WRAP: count wraps 9 -> 0.
+    # Mid changes occur AFTER sampling, before other edge, carried to next row.
+
+    q = 0  # initial count value (power-up unspecified; use 0)
+    pending_reset = False  # reset registered at previous posedge, applied this posedge
+
+    results = []
+    for row in vectors:
+        reset = row.get('reset', 0)
+
+        # At posedge: apply pending reset from previous cycle first (R1 candidate interpretation)
+        if pending_reset:
+            q = 0
+            pending_reset = False
+        else:
+            if reset == 1:
+                # R1_SYNC_RESET: reset takes effect at posedge but q updates only
+                # on the following posedge -> q remains previous value this cycle.
+                pending_reset = True
+            else:
+                # R2_COUNT_INC / R3_WRAP: increment modulo 10
+                if q == 9:
+                    q = 0
+                else:
+                    q = q + 1
+
+        # Output visible same cycle
+        results.append({'q': q & 0xF})
+
+        # Mid changes occur AFTER sampling, before other edge, carried to next row.
+        # (No mid inputs defined in this contract beyond reset, which is a row input.)
+
+    return results
+```

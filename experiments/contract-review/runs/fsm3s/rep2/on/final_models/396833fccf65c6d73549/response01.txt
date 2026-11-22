@@ -1,0 +1,53 @@
+def reference(vectors):
+    # Rule global: initial state before first synchronous reset is arbitrary; choose state A (0).
+    state = 0  # A
+    current_inputs = {}
+    outputs = []
+
+    # State encoding: A=0, B=1, C=2, D=3
+    for row in vectors:
+        # Apply primary inputs driven before the sampled posedge.
+        for key, value in row.items():
+            if key == 'clk':
+                continue
+            if key.endswith('_mid'):
+                continue
+            if key == 'mid' and isinstance(value, dict):
+                continue
+            current_inputs[key] = value
+
+        reset = current_inputs.get('reset', 0)
+        inp = current_inputs.get('in', 0)
+
+        # Rule sync_reset: synchronous active-high reset forces state to A on posedge.
+        if reset:
+            next_state = 0  # A
+        else:
+            # Rule transition_and_moore_output: next state transition based on current state and in.
+            if state == 0:  # A
+                next_state = 0 if inp == 0 else 1  # A->A or B
+            elif state == 1:  # B
+                next_state = 2 if inp == 0 else 1  # B->C or B
+            elif state == 2:  # C
+                next_state = 0 if inp == 0 else 3  # C->A or D
+            elif state == 3:  # D
+                next_state = 2 if inp == 0 else 1  # D->C or B
+            else:
+                next_state = 0  # fallback, should not occur
+
+        state = next_state
+
+        # Rule transition_and_moore_output: Moore output after edge is 1 for D, else 0.
+        out = 1 if state == 3 else 0
+        outputs.append({'out': out})
+
+        # Process mid input changes occurring after sampling and carried to next row.
+        for key, value in row.items():
+            if key.endswith('_mid'):
+                base = key[:-4]  # remove '_mid'
+                current_inputs[base] = value
+            elif key == 'mid' and isinstance(value, dict):
+                for k, v in value.items():
+                    current_inputs[k] = v
+
+    return outputs

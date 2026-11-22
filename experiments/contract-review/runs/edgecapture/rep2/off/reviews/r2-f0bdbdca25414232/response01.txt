@@ -1,0 +1,92 @@
+{
+  "coverage": {
+    "S01": ["R1_reset_clear", "R2_capture_falling", "R3_hold"]
+  },
+  "issues": [
+    {
+      "issue_id": "I1",
+      "rule_id": "R2_capture_falling",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "Rule condition uses prev_in & ~in (any falling bit) but example expects full 0xFFFFFFFF capture from a single transition of all bits; condition is per-bit OR, not all-bits, so example is consistent only because all bits fall. However, the rule's condition text '(prev_in & ~in) != 0' implies any falling bit sets only those bits, while example shows all bits set when all fall—no contradiction there. Real issue: R2 example first row reset=0,in=all ones expects out=0, but if prev_in is uninitialized/unknown, behavior undefined; spec does not define initial prev_in. Also R2 visible=next_cycle but example row2 expects out=all ones at same row as falling edge—timing mismatch: if visible next_cycle, row2 (in=0) should show out=0 and row3 show all ones. Example contradicts visible field.",
+      "spec_evidence": "capture when the input signal changes from 1 in one clock cycle to 0 the next",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I2",
+      "rule_id": "R2_capture_falling",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "R2 example: vectors row1 in=0xFFFFFFFF, row2 in=0, expected row2 out=0xFFFFFFFF. With visible=next_cycle, output should appear one cycle after the falling edge, i.e., row3, not row2. Example contradicts rule's visible timing.",
+      "spec_evidence": "capture when the input signal changes from 1 in one clock cycle to 0 the next",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I3",
+      "rule_id": "R3_hold",
+      "type": "consistency",
+      "severity": "medium",
+      "detail": "R3 example never has a prior capture, so out stays 0; it does not test hold after a 1 is captured. The rule claims hold until reset, but example only shows no-capture hold. Not contradictory but weak grounding.",
+      "spec_evidence": "the output will remain 1 until the register is reset",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I4",
+      "rule_id": "R1_reset_clear",
+      "type": "consistency",
+      "severity": "medium",
+      "detail": "R1 example row1 reset=1,in=all ones expected out=0; row2 reset=1,in=0 expected out=0; row3 reset=0,in=0 expected out=0. This does not test that reset clears a previously captured 1. Also reset is synchronous; example does not show reset asserted after capture.",
+      "spec_evidence": "until the register is reset (active high synchronous reset)",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I5",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "high",
+      "detail": "Spec says capture when input changes 1->0; contract uses prev_in & ~in (any falling bit) and sets only those bits. Alternative semantics: capture sets all 32 output bits to 1 if any bit falls (sticky global flag). Distinguishing sequence: row1 reset=0,in=0x00000001; row2 reset=0,in=0x00000000. Per-bit semantics yields out=0x00000001; global-any semantics yields out=0xFFFFFFFF.",
+      "spec_evidence": "For each bit in a 32-bit vector, capture when the input signal changes from 1 in one clock cycle to 0 the next.",
+      "alternative": "Any falling bit sets all 32 output bits to 1 (global sticky flag).",
+      "sequence": [
+        {"reset": 0, "in": 1},
+        {"reset": 0, "in": 0}
+      ]
+    },
+    {
+      "issue_id": "I6",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Initial value of prev_in / out_reg at time 0 is unspecified. Alternative: prev_in initialized to 0 vs all ones vs unknown. Distinguishing sequence: first row reset=0,in=0. If prev_in=0, no capture, out=0; if prev_in=all ones, capture all bits, out=0xFFFFFFFF (next cycle).",
+      "spec_evidence": "",
+      "alternative": "prev_in initialized to all ones at time 0, causing a capture on first row if in=0.",
+      "sequence": [
+        {"reset": 0, "in": 0}
+      ]
+    },
+    {
+      "issue_id": "I7",
+      "rule_id": "R2_capture_falling",
+      "type": "grounding",
+      "severity": "medium",
+      "detail": "Rule condition uses bitwise prev_in & ~in != 0, but spec says 'for each bit' capture when that bit changes 1->0. The condition is correct for per-bit but the rule does not explicitly state that only falling bits are set, not all bits. Example with all bits falling masks this. Missing verbatim evidence for per-bit set behavior.",
+      "spec_evidence": "For each bit in a 32-bit vector, capture when the input signal changes from 1 in one clock cycle to 0 the next.",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I8",
+      "rule_id": "global",
+      "type": "spec_example",
+      "severity": "high",
+      "detail": "Derived outputs for R2 example under contract semantics (visible next_cycle): row1 in=all ones, out=0; row2 in=0, falling edge, out should still be 0 (next_cycle); row3 out=all ones; row4 out=all ones. Contract example expects row2 out=all ones, contradicting visible=next_cycle. Under same_cycle semantics, row2 out=all ones would be correct. Inconsistency between visible field and example.",
+      "spec_evidence": "capture when the input signal changes from 1 in one clock cycle to 0 the next",
+      "alternative": "",
+      "sequence": []
+    }
+  ]
+}

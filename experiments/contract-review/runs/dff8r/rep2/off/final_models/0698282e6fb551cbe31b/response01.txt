@@ -1,0 +1,24 @@
+```python
+def reference(vectors):
+    # Contract implementation.
+    # State: q_state (8-bit registered output), updated at posedge clk.
+    # R1_sync_reset: reset==1 at posedge -> q <= 0 (priority 1).
+    # R2_dff_capture: reset==0 at posedge -> q <= d (priority 2).
+    # Mid changes occur AFTER sampling, before next edge, carried to next row.
+    q_state = 0  # power-up unspecified; use 0 as concrete value
+    out = []
+    for row in vectors:
+        d = row.get('d', 0) & 0xFF
+        reset = row.get('reset', 0) & 0x1
+        # Sample at posedge: apply rules based on current inputs
+        # R1_sync_reset
+        if reset == 1:
+            q_state = 0
+        # R2_dff_capture
+        else:
+            q_state = d & 0xFF
+        out.append({'q': q_state & 0xFF})
+        # Mid changes: none specified in input schema beyond d/reset,
+        # carried to next row via row values themselves.
+    return out
+```

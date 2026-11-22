@@ -1,0 +1,129 @@
+{
+  "coverage": {
+    "S01": [
+      "R_Y0",
+      "R_z"
+    ],
+    "S02": [
+      "R_Y0"
+    ],
+    "S03": [
+      "R_Y0",
+      "R_z"
+    ],
+    "S04": [
+      "R_Y0",
+      "R_z"
+    ],
+    "S05": [
+      "R_Y0",
+      "R_z"
+    ],
+    "S06": [
+      "R_Y0",
+      "R_z"
+    ],
+    "S07": [
+      "R_Y0",
+      "R_z"
+    ]
+  },
+  "issues": [
+    {
+      "issue_id": "I1",
+      "rule_id": "R_Y0",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "R_Y0 example vector {x:0,y:3} expects Y0=1, but spec S06 says present 011 with x=0 -> next 001, so Y0=1 is correct; however vector {x:1,y:1} expects Y0=0 but spec S04 says 001 x=1 -> 100, Y0=0 correct. Vector {x:0,y:0}->000 Y0=0 correct. No contradiction found in R_Y0 examples.",
+      "spec_evidence": "// 011 | 001, 010 | 1",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I2",
+      "rule_id": "R_z",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "R_z example vector {x:1,y:3} expects z=1; spec S06 gives z=1 for present 011 regardless of x, consistent. Vector {x:0,y:4} expects z=1; spec S07 gives z=1 for 100, consistent. Vector {x:0,y:2} expects z=0; spec S05 gives z=0, consistent. No contradiction.",
+      "spec_evidence": "// 100 | 011, 100 | 1",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I3",
+      "rule_id": "R_Y0",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec table only covers present states 000-100; contract marks 101-111 uncertain but R_Y0 condition does not restrict domain, so behavior for 101-111 is ambiguous.",
+      "spec_evidence": "// 000 | 000, 001 | 0",
+      "alternative": "Y0=0 for all unspecified states 101,110,111",
+      "sequence": [
+        {
+          "x": 0,
+          "y": 5
+        },
+        {
+          "x": 1,
+          "y": 6
+        },
+        {
+          "x": 0,
+          "y": 7
+        }
+      ]
+    },
+    {
+      "issue_id": "I4",
+      "rule_id": "R_z",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec table only covers present states 000-100; z for 101-111 unspecified, contract lists uncertain but rule condition does not exclude them.",
+      "spec_evidence": "// 100 | 011, 100 | 1",
+      "alternative": "z=0 for all unspecified states 101,110,111",
+      "sequence": [
+        {
+          "x": 0,
+          "y": 5
+        },
+        {
+          "x": 1,
+          "y": 6
+        },
+        {
+          "x": 0,
+          "y": 7
+        }
+      ]
+    },
+    {
+      "issue_id": "I5",
+      "rule_id": "global",
+      "type": "grounding",
+      "severity": "low",
+      "detail": "R_Y0 spec_quote 'Next state Y[2:0] x=0, Next state Y[2:0] x=1' is verbatim from S02 header, acceptable. R_z spec_quote 'Output z' verbatim from S02. Grounding OK.",
+      "spec_evidence": "",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I6",
+      "rule_id": "R_Y0",
+      "type": "spec_example",
+      "severity": "low",
+      "detail": "Derived from spec: for y=0,x=0 -> Y=000 Y0=0 z=0; y=1,x=1 -> Y=100 Y0=0 z=0; y=3,x=0 -> Y=001 Y0=1 z=1. Matches R_Y0 example expected.",
+      "spec_evidence": "// 001 | 001, 100 | 0",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I7",
+      "rule_id": "R_z",
+      "type": "spec_example",
+      "severity": "low",
+      "detail": "Derived from spec: y=2,x=0 -> Y=010 Y0=0 z=0; y=3,x=1 -> Y=010 Y0=0 z=1; y=4,x=0 -> Y=011 Y0=1 z=1. Matches R_z example expected.",
+      "spec_evidence": "// 010 | 010, 001 | 0",
+      "alternative": "",
+      "sequence": []
+    }
+  ]
+}

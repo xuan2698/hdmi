@@ -1,0 +1,75 @@
+{
+  "ports": {
+    "inputs": {
+      "d": 8,
+      "reset": 1
+    },
+    "outputs": {
+      "q": 8
+    },
+    "clock": "clk"
+  },
+  "states": [
+    {
+      "name": "q_reg",
+      "meaning": "8-bit D flip-flop output state visible as q",
+      "update_time": "at the negedge clk sample, after the synchronous reset/data mux is sampled",
+      "update_during_reset": true
+    }
+  ],
+  "rules": [
+    {
+      "id": "sync_reset_to_0x34",
+      "outputs": ["q"],
+      "condition": "reset == 1 at the negedge clk sample; q is synchronously loaded with 52 (0x34) regardless of d",
+      "edge": "negedge",
+      "visible": "same_cycle",
+      "priority": 1,
+      "spec_quote": "active high synchronous reset. The flip-flops must be reset to 0x34",
+      "uncertain": false,
+      "example": {
+        "vectors": [
+          {"d": 5, "reset": 1},
+          {"d": 170, "reset": 1}
+        ],
+        "expected": [
+          {"q": 52},
+          {"q": 52}
+        ]
+      }
+    },
+    {
+      "id": "load_d_on_negedge",
+      "outputs": ["q"],
+      "condition": "reset == 0 at the negedge clk sample; q is synchronously loaded with d",
+      "edge": "negedge",
+      "visible": "same_cycle",
+      "priority": 0,
+      "spec_quote": "All DFFs should be triggered by the negative edge of clk.",
+      "uncertain": false,
+      "example": {
+        "vectors": [
+          {"d": 17, "reset": 0},
+          {"d": 200, "reset": 0},
+          {"d": 255, "reset": 0}
+        ],
+        "expected": [
+          {"q": 17},
+          {"q": 200},
+          {"q": 255}
+        ]
+      }
+    }
+  ],
+  "reset": {
+    "kind": "sync",
+    "name": "reset",
+    "active": "high",
+    "values": {
+      "q": 52
+    },
+    "first_released_cycle": "The first sampled negedge with reset=0; q loads d on that same negedge with no extra hold cycle."
+  },
+  "mid": "Mid input changes occur after the negedge sample and before the other edge; changed inputs are carried to the start of the next row and do not affect the already-sampled negedge.",
+  "uncertain": []
+}

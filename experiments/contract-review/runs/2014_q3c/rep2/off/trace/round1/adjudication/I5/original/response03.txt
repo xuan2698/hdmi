@@ -1,0 +1,22 @@
+```python
+def reference(vectors):
+    # R_Y0: Y0 = LSB of next state selected by (y, x) per table.
+    # R_z: z = 1 when y in {011, 100}, else 0.
+    # Combinational, visible same cycle. No reset. Mid changes handled by caller.
+    next_state = {
+        (0, 0): 0b000, (0, 1): 0b001,
+        (1, 0): 0b001, (1, 1): 0b100,
+        (2, 0): 0b010, (2, 1): 0b001,
+        (3, 0): 0b001, (3, 1): 0b010,
+        (4, 0): 0b011, (4, 1): 0b100,
+    }
+    out = []
+    for v in vectors:
+        y = v["y"] & 0b111
+        x = v["x"] & 0b1
+        Y = next_state[(y, x)]
+        Y0 = Y & 0b1
+        z = 1 if y in (0b011, 0b100) else 0
+        out.append({"Y0": Y0, "z": z})
+    return out
+```

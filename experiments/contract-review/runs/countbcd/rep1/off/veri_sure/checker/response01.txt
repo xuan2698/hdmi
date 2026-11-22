@@ -1,0 +1,41 @@
+```python
+def reference(vectors):
+    # Contract: synchronous active-high reset; outputs registered on posedge.
+    # ena reflects enable conditions computed from pre-edge state, registered same edge.
+    # q[3:0]=ones, q[7:4]=tens, q[11:8]=hundreds, q[15:12]=thousands.
+    # ena[0]=tens enable (ones==9), ena[1]=hundreds enable (ones==9 & tens==9),
+    # ena[2]=thousands enable (ones==9 & tens==9 & hundreds==9).
+    # Power-up unspecified -> start at 0.
+    q = 0
+    ena = 0
+    out = []
+    for row in vectors:
+        # Apply inputs driven before the sampled edge
+        reset = row.get('reset', 0)
+        # Compute next state based on current (pre-edge) state
+        ones = q & 0xF
+        tens = (q >> 4) & 0xF
+        hundreds = (q >> 8) & 0xF
+        thousands = (q >> 12) & 0xF
+
+        if reset:
+            nq = 0
+            nena = 0
+        else:
+            e0 = 1 if ones == 9 else 0
+            e1 = 1 if (ones == 9 and tens == 9) else 0
+            e2 = 1 if (ones == 9 and tens == 9 and hundreds == 9) else 0
+            nena = (e2 << 2) | (e1 << 1) | e0
+
+            nones = (ones + 1) % 10
+            ntens = (tens + e0) % 10
+            nhundreds = (hundreds + e1) % 10
+            nthousands = (thousands + e2) % 10
+            nq = (nthousands << 12) | (nhundreds << 8) | (ntens << 4) | nones
+
+        # Sample after posedge settled
+        q = nq
+        ena = nena
+        out.append({'q': q, 'ena': ena})
+    return out
+```

@@ -1,0 +1,41 @@
+def reference(vectors):
+    # Initialize carried inputs to concrete unsigned zero values.
+    cur_x = 0
+    cur_y = 0
+    out = []
+    for row in vectors:
+        # Apply inputs driven before the sampled edge.
+        if "x" in row:
+            cur_x = row["x"] & 1
+        if "y" in row:
+            cur_y = row["y"] & 7
+
+        # Extract state bits.
+        y2 = (cur_y >> 2) & 1
+        y1 = (cur_y >> 1) & 1
+        y0 = cur_y & 1
+
+        # Rule implementations:
+        # r_y0_000, r_y0_001, r_y0_010, r_y0_011, r_y0_100
+        # Y0 = x XOR (y[2] OR y[0])
+        Y0 = (cur_x ^ (y2 | y0)) & 1
+        # z = y[2] OR (y[1] AND y[0])
+        z = (y2 | (y1 & y0)) & 1
+
+        out.append({"Y0": Y0, "z": z})
+
+        # Apply optional mid changes after sampling, carried to next row.
+        if "mid" in row:
+            mid = row["mid"]
+            if mid:
+                if "x" in mid:
+                    cur_x = mid["x"] & 1
+                if "y" in mid:
+                    cur_y = mid["y"] & 7
+        # Also support flat mid keys if present.
+        if "mid_x" in row:
+            cur_x = row["mid_x"] & 1
+        if "mid_y" in row:
+            cur_y = row["mid_y"] & 7
+
+    return out

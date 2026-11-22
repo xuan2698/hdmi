@@ -1,0 +1,202 @@
+{
+  "responses": [
+    {
+      "issue_id": "I1",
+      "decision": "accept",
+      "reason": "Spec says conversion stops when Reset is asserted; forcing z=0 during reset is not grounded. Make z unspecified during reset and clarify state forced to S0.",
+      "spec_quote": "The conversion begins when Reset is released and stops when Reset is asserted.",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R4",
+            "condition"
+          ],
+          "value": "Asynchronous reset asserted (areset=1): state forced to S0; z is unspecified (conversion stopped)."
+        },
+        {
+          "path": [
+            "reset",
+            "values"
+          ],
+          "value": {}
+        }
+      ]
+    },
+    {
+      "issue_id": "I2",
+      "decision": "accept",
+      "reason": "R1 example mixes S0 and S1 behavior; replace with an example that stays in S0 (all zeros) to isolate pass-through.",
+      "spec_quote": "the output (Z) is the 2's complement of the input",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R1",
+            "example"
+          ],
+          "value": {
+            "vectors": [
+              {
+                "areset": 0,
+                "x": 0
+              },
+              {
+                "areset": 0,
+                "x": 0
+              },
+              {
+                "areset": 0,
+                "x": 0
+              }
+            ],
+            "expected": [
+              {
+                "z": 0
+              },
+              {
+                "z": 0
+              },
+              {
+                "z": 0
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "issue_id": "I3",
+      "decision": "accept",
+      "reason": "R2 example lacks reset/initialization; prepend a reset cycle to establish S1 via x=1 then show complementing.",
+      "spec_quote": "beginning with the least-significant bit of the number",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R2",
+            "example"
+          ],
+          "value": {
+            "vectors": [
+              {
+                "areset": 1,
+                "x": 0
+              },
+              {
+                "areset": 0,
+                "x": 1
+              },
+              {
+                "areset": 0,
+                "x": 0
+              }
+            ],
+            "expected": [
+              {
+                "z": 0
+              },
+              {
+                "z": 1
+              },
+              {
+                "z": 1
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "issue_id": "I4",
+      "decision": "accept",
+      "reason": "R3 is a state-transition rule with next_cycle visibility; example must show the state effect on the next cycle rather than combinational z. Change example so the transition is observable: x=1 in S0 causes S1 on the following cycle, so the next bit is complemented.",
+      "spec_quote": "beginning with the least-significant bit of the number",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R3",
+            "example"
+          ],
+          "value": {
+            "vectors": [
+              {
+                "areset": 0,
+                "x": 1
+              },
+              {
+                "areset": 0,
+                "x": 0
+              },
+              {
+                "areset": 0,
+                "x": 0
+              }
+            ],
+            "expected": [
+              {
+                "z": 1
+              },
+              {
+                "z": 1
+              },
+              {
+                "z": 1
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "issue_id": "I5",
+      "decision": "rebut",
+      "reason": "Contract already implements the standard serial 2's complement algorithm; the ambiguity is in spec wording, not a contract error, and the contract's interpretation is the standard one.",
+      "spec_quote": "the output (Z) is the 2's complement of the input",
+      "edits": []
+    },
+    {
+      "issue_id": "I6",
+      "decision": "rebut",
+      "reason": "Spec explicitly states asynchronous reset; contract already treats it as async active high, matching the spec.",
+      "spec_quote": "positive edge triggered asynchronous reset",
+      "edits": []
+    },
+    {
+      "issue_id": "I7",
+      "decision": "rebut",
+      "reason": "The pass-through rule is the standard derivation of serial 2's complement from the quoted spec; the quote grounds the overall function which implies this rule.",
+      "spec_quote": "the output (Z) is the 2's complement of the input",
+      "edits": []
+    },
+    {
+      "issue_id": "I8",
+      "decision": "rebut",
+      "reason": "The complement-after-first-1 rule is the standard derivation of serial 2's complement from the quoted spec; the quote grounds the overall function which implies this rule.",
+      "spec_quote": "the output (Z) is the 2's complement of the input",
+      "edits": []
+    },
+    {
+      "issue_id": "I9",
+      "decision": "rebut",
+      "reason": "The LSB-first ordering quote grounds the state machine structure needed to compute 2's complement serially; the transition is the standard consequence.",
+      "spec_quote": "beginning with the least-significant bit of the number",
+      "edits": []
+    },
+    {
+      "issue_id": "I10",
+      "decision": "rebut",
+      "reason": "The reset quote grounds the reset behavior; forcing state to S0 is the natural initial state for the serial algorithm, and z during reset is now unspecified per I1.",
+      "spec_quote": "positive edge triggered asynchronous reset",
+      "edits": []
+    },
+    {
+      "issue_id": "I11",
+      "decision": "rebut",
+      "reason": "No spec example exists to compare; contract examples are self-generated and consistent with the spec.",
+      "spec_quote": "the output (Z) is the 2's complement of the input",
+      "edits": []
+    }
+  ]
+}

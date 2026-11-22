@@ -1,0 +1,53 @@
+def reference(vectors):
+    # Contract implementation.
+    # State encoding: S0=0, S1=1, S2=2, S3=3, S4=4
+    # R1: reset==1 -> start_shifting=0 (sync, same cycle)
+    # R2: state==S4 -> start_shifting=1
+    # R3: state==S3 and data==1 -> start_shifting=1 (completes 1101)
+    # R4: otherwise -> start_shifting=0
+    # State transitions on posedge (Moore-style next-state from current state+data).
+    # Mid changes occur after sampling; we process each row's inputs at its posedge.
+
+    state = 0  # power-up unspecified; start at S0
+    out = []
+
+    for row in vectors:
+        reset = row.get('reset', 0) & 1
+        data = row.get('data', 0) & 1
+
+        # Compute output for this cycle based on current state and inputs (same_cycle visibility)
+        if reset == 1:
+            # R1
+            start_shifting = 0
+        elif state == 4:
+            # R2
+            start_shifting = 1
+        elif state == 3 and data == 1:
+            # R3
+            start_shifting = 1
+        else:
+            # R4
+            start_shifting = 0
+
+        out.append({'start_shifting': start_shifting})
+
+        # State update at posedge (after sampling)
+        if reset == 1:
+            state = 0
+        else:
+            if state == 0:
+                state = 1 if data == 1 else 0
+            elif state == 1:
+                state = 2 if data == 1 else 1 if data == 1 else (1 if data == 1 else 0)
+                # matched '1'; on data==1 -> S2, on data==0 -> S0
+                state = 2 if data == 1 else 0
+            elif state == 2:
+                # matched '11'; data==0 -> S3, data==1 -> S2
+                state = 3 if data == 0 else 2
+            elif state == 3:
+                # matched '110'; data==1 -> S4, data==0 -> S0
+                state = 4 if data == 1 else 0
+            elif state == 4:
+                state = 4
+
+    return out

@@ -1,0 +1,104 @@
+{
+  "responses": [
+    {
+      "issue_id": "I1",
+      "decision": "accept",
+      "reason": "R_z example vector y=3,x=1 expects Y0=1 but spec row 011 with x=1 selects next state 010 whose LSB is 0; the example is inconsistent with the table.",
+      "spec_quote": "// 011 | 001, 010 | 1",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R_z",
+            "example"
+          ],
+          "value": {
+            "vectors": [
+              {
+                "x": 0,
+                "y": 2
+              },
+              {
+                "x": 1,
+                "y": 3
+              },
+              {
+                "x": 0,
+                "y": 4
+              }
+            ],
+            "expected": [
+              {
+                "Y0": 0,
+                "z": 0
+              },
+              {
+                "Y0": 0,
+                "z": 1
+              },
+              {
+                "Y0": 1,
+                "z": 1
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "issue_id": "I2",
+      "decision": "rebut",
+      "reason": "The cited R_Y0 and R_z vectors are already consistent with the table; the only contradiction is the R_z y=3,x=1 vector addressed in I1.",
+      "spec_quote": "// 100 | 011, 100 | 1"
+    },
+    {
+      "issue_id": "I3",
+      "decision": "rebut",
+      "reason": "This is the same defect as I1; the R_z example is corrected there, so no separate edit is needed.",
+      "spec_quote": "// 011 | 001, 010 | 1"
+    },
+    {
+      "issue_id": "I4",
+      "decision": "accept",
+      "reason": "The table only defines next states for y=000..100; undefined states 101-111 must be marked uncertain rather than silently omitted.",
+      "spec_quote": "// 100 | 011, 100 | 1",
+      "edits": [
+        {
+          "path": [
+            "uncertain"
+          ],
+          "value": [
+            {
+              "rule_id": "R_Y0",
+              "note": "Spec table defines next states only for y=000..100; Y0 for y=101,110,111 is unspecified.",
+              "candidates": [
+                "Y0=0 for undefined states",
+                "Y0 is don't-care for undefined states"
+              ]
+            },
+            {
+              "rule_id": "R_z",
+              "note": "Spec table defines z only for y=000..100; z for y=101,110,111 is unspecified.",
+              "candidates": [
+                "z=0 for undefined states",
+                "z is don't-care for undefined states"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "issue_id": "I5",
+      "decision": "rebut",
+      "reason": "The undefined-state ambiguity for z is already captured by the uncertain entry added for R_z in I4.",
+      "spec_quote": "// 011 | 001, 010 | 1"
+    },
+    {
+      "issue_id": "I6",
+      "decision": "rebut",
+      "reason": "The rule conditions faithfully encode the table rows; the existing spec_quote already grounds the implementation request.",
+      "spec_quote": "implement the logic functions Y[0] and z"
+    }
+  ]
+}

@@ -1,0 +1,31 @@
+```json
+{
+  "module_name": "top_module",
+  "io": [
+    {"name": "clk", "dir": "input", "width": 1, "description": "Clock; sample after posedge has settled."},
+    {"name": "x", "dir": "input", "width": 1, "description": "Input selecting next-state branch."},
+    {"name": "y", "dir": "input", "width": 3, "description": "Present state y[2:0]."},
+    {"name": "Y0", "dir": "output", "width": 1, "description": "Bit 0 of next state Y[2:0]."},
+    {"name": "z", "dir": "output", "width": 1, "description": "Moore output z."}
+  ],
+  "clocking": {
+    "clock": {"name": "clk", "edge": "posedge"},
+    "reset": null
+  },
+  "timing": {
+    "outputs": {
+      "Y0": {"latency_cycles": 0},
+      "z": {"latency_cycles": 0}
+    }
+  },
+  "functional_summary": {
+    "overview": "Moore FSM. Outputs Y0 (bit 0 of next state Y[2:0]) and z are combinational functions of present state y[2:0] and input x. State transitions occur on posedge clk.",
+    "rules": [
+      "Y0 = 1 iff (y==3'b000 and x==1) or (y==3'b001 and x==0) or (y==3'b010 and x==1) or (y==3'b011 and x==0); else Y0 = 0.",
+      "z = 1 iff y==3'b011 or y==3'b100; else z = 0.",
+      "Next-state table: y=000 -> x=0:000, x=1:001; y=001 -> x=0:001, x=1:100; y=010 -> x=0:010, x=1:001; y=011 -> x=0:001, x=1:010; y=100 -> x=0:011, x=1:100.",
+      "Outputs are combinational (latency 0) and reflect the present state and current x before the sampled clock edge."
+    ]
+  }
+}
+```

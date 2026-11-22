@@ -1,0 +1,69 @@
+```python
+def reference(vectors):
+    # State: ss_lo, ss_hi, mm_lo, mm_hi, hh_lo, hh_hi, pm_reg
+    # Initialize to 12:00 AM (hh=0x12, mm=0x00, ss=0x00, pm=0)
+    ss_lo = 0
+    ss_hi = 0
+    mm_lo = 0
+    mm_hi = 0
+    hh_lo = 2
+    hh_hi = 1
+    pm_reg = 0
+
+    out = []
+    for row in vectors:
+        reset = row.get('reset', 0)
+        ena = row.get('ena', 0)
+
+        # R1_reset: synchronous reset to 12:00 AM, priority 1
+        if reset == 1:
+            ss_lo = 0
+            ss_hi = 0
+            mm_lo = 0
+            mm_hi = 0
+            hh_lo = 2
+            hh_hi = 1
+            pm_reg = 0
+        # R2_hold: no enable, hold state, priority 2
+        elif ena == 0:
+            pass
+        else:
+            # ena == 1, not reset: increment
+            ss_val = ss_hi * 10 + ss_lo
+            mm_val = mm_hi * 10 + mm_lo
+            hh_val = hh_hi * 10 + hh_lo
+
+            # R3_seconds: increment seconds if not 59
+            if ss_val != 59:
+                ss_val += 1
+                ss_hi = ss_val // 10
+                ss_lo = ss_val % 10
+            else:
+                # R4_seconds_roll: seconds roll over to 00, increment minutes if not 59
+                ss_hi = 0
+                ss_lo = 0
+                if mm_val != 59:
+                    mm_val += 1
+                    mm_hi = mm_val // 10
+                    mm_lo = mm_val % 10
+                else:
+                    # R5_minutes_roll: minutes roll over to 00, increment hours if not 12
+                    mm_hi = 0
+                    mm_lo = 0
+                    if hh_val != 12:
+                        hh_val += 1
+                        hh_hi = hh_val // 10
+                        hh_lo = hh_val % 10
+                    else:
+                        # R6_hours_roll_am_pm: hours roll from 12 to 1, toggle pm
+                        hh_hi = 0
+                        hh_lo = 1
+                        pm_reg = 1 - pm_reg
+
+        hh = (hh_hi << 4) | hh_lo
+        mm = (mm_hi << 4) | mm_lo
+        ss = (ss_hi << 4) | ss_lo
+        out.append({'pm': pm_reg, 'hh': hh, 'mm': mm, 'ss': ss})
+
+    return out
+```

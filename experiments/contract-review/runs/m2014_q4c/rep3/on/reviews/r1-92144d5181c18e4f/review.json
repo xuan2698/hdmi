@@ -1,0 +1,45 @@
+{
+  "coverage": {
+    "S01": [
+      "sync_active_high_reset",
+      "d_capture_when_not_reset"
+    ]
+  },
+  "issues": [
+    {
+      "issue_id": "I1",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "high",
+      "detail": "Spec does not define clock edge polarity; contract assumes posedge clk and marks rules non-uncertain.",
+      "spec_evidence": "Implement a simple D flip flop with active high synchronous reset (reset output to 0).",
+      "alternative": "Negative-edge-triggered D flip-flop with synchronous active-high reset on negedge clk.",
+      "sequence": [
+        {
+          "d": 0,
+          "r": 1
+        },
+        {
+          "d": 1,
+          "r": 0,
+          "mid": {
+            "d": 1,
+            "r": 1
+          }
+        },
+        {
+          "d": 1,
+          "r": 1,
+          "mid": {
+            "d": 1,
+            "r": 0
+          }
+        },
+        {
+          "d": 0,
+          "r": 0
+        }
+      ]
+    }
+  ]
+}

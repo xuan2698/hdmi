@@ -1,0 +1,373 @@
+{
+  "ports": {
+    "inputs": {
+      "reset": 1
+    },
+    "outputs": {
+      "q": 16,
+      "ena": 3
+    },
+    "clock": "clk"
+  },
+  "states": [
+    {
+      "name": "count",
+      "meaning": "4-digit BCD counter value; q[3:0]=ones, q[7:4]=tens, q[11:8]=hundreds, q[15:12]=thousands",
+      "update_time": "posedge clk",
+      "update_during_reset": false
+    }
+  ],
+  "rules": [
+    {
+      "id": "R1_reset",
+      "outputs": [
+        "q",
+        "ena"
+      ],
+      "condition": "reset == 1",
+      "edge": "posedge",
+      "visible": "same_cycle",
+      "priority": 1,
+      "spec_quote": "Include a synchronous active-high reset.",
+      "uncertain": false,
+      "example": {
+        "vectors": [
+          {
+            "reset": 1
+          },
+          {
+            "reset": 0
+          },
+          {
+            "reset": 0
+          }
+        ],
+        "expected": [
+          {
+            "q": 0,
+            "ena": 0
+          },
+          {
+            "q": 0,
+            "ena": 0
+          },
+          {
+            "q": 1,
+            "ena": 0
+          }
+        ]
+      }
+    },
+    {
+      "id": "R2_ones_increment",
+      "outputs": [
+        "q"
+      ],
+      "condition": "reset == 0 and q[3:0] != 9",
+      "edge": "posedge",
+      "visible": "next_cycle",
+      "priority": 2,
+      "spec_quote": "q[3:0] is the ones digit",
+      "uncertain": false,
+      "example": {
+        "vectors": [
+          {
+            "reset": 1
+          },
+          {
+            "reset": 0
+          },
+          {
+            "reset": 0
+          }
+        ],
+        "expected": [
+          {
+            "q": 0,
+            "ena": 0
+          },
+          {
+            "q": 1,
+            "ena": 0
+          },
+          {
+            "q": 2,
+            "ena": 0
+          }
+        ]
+      }
+    },
+    {
+      "id": "R3_ones_wrap",
+      "outputs": [
+        "q"
+      ],
+      "condition": "reset == 0 and q[3:0] == 9 and q[7:4] != 9",
+      "edge": "posedge",
+      "visible": "next_cycle",
+      "priority": 2,
+      "spec_quote": "q[3:0] is the ones digit",
+      "uncertain": false,
+      "example": {
+        "vectors": [
+          {
+            "reset": 1
+          },
+          {
+            "reset": 0
+          },
+          {
+            "reset": 0
+          }
+        ],
+        "expected": [
+          {
+            "q": 9,
+            "ena": 0
+          },
+          {
+            "q": 16,
+            "ena": 0
+          },
+          {
+            "q": 17,
+            "ena": 0
+          }
+        ]
+      }
+    },
+    {
+      "id": "R4_ena_tens",
+      "outputs": [
+        "ena"
+      ],
+      "condition": "reset == 0 and q[3:0] == 9",
+      "edge": "posedge",
+      "visible": "same_cycle",
+      "priority": 3,
+      "spec_quote": "For digits [3:1], also output an enable signal indicating when each of the upper three digits should be incremented.",
+      "uncertain": false,
+      "example": {
+        "vectors": [
+          {
+            "reset": 1
+          },
+          {
+            "reset": 0
+          },
+          {
+            "reset": 0
+          }
+        ],
+        "expected": [
+          {
+            "q": 9,
+            "ena": 1
+          },
+          {
+            "q": 16,
+            "ena": 0
+          },
+          {
+            "q": 17,
+            "ena": 0
+          }
+        ]
+      }
+    },
+    {
+      "id": "R5_ena_hundreds",
+      "outputs": [
+        "ena"
+      ],
+      "condition": "reset == 0 and q[3:0] == 9 and q[7:4] == 9",
+      "edge": "posedge",
+      "visible": "same_cycle",
+      "priority": 3,
+      "spec_quote": "For digits [3:1], also output an enable signal indicating when each of the upper three digits should be incremented.",
+      "uncertain": false,
+      "example": {
+        "vectors": [
+          {
+            "reset": 1
+          },
+          {
+            "reset": 0
+          },
+          {
+            "reset": 0
+          }
+        ],
+        "expected": [
+          {
+            "q": 99,
+            "ena": 3
+          },
+          {
+            "q": 256,
+            "ena": 0
+          },
+          {
+            "q": 257,
+            "ena": 0
+          }
+        ]
+      }
+    },
+    {
+      "id": "R6_ena_thousands",
+      "outputs": [
+        "ena"
+      ],
+      "condition": "reset == 0 and q[3:0] == 9 and q[7:4] == 9 and q[11:8] == 9",
+      "edge": "posedge",
+      "visible": "same_cycle",
+      "priority": 3,
+      "spec_quote": "For digits [3:1], also output an enable signal indicating when each of the upper three digits should be incremented.",
+      "uncertain": false,
+      "example": {
+        "vectors": [
+          {
+            "reset": 1
+          },
+          {
+            "reset": 0
+          },
+          {
+            "reset": 0
+          }
+        ],
+        "expected": [
+          {
+            "q": 999,
+            "ena": 7
+          },
+          {
+            "q": 4096,
+            "ena": 0
+          },
+          {
+            "q": 4097,
+            "ena": 0
+          }
+        ]
+      }
+    },
+    {
+      "id": "R7_full_wrap",
+      "outputs": [
+        "q"
+      ],
+      "condition": "reset == 0 and q == 16'h9999",
+      "edge": "posedge",
+      "visible": "next_cycle",
+      "priority": 2,
+      "spec_quote": "Build a 4-digit BCD (binary-coded decimal) counter.",
+      "uncertain": true,
+      "example": {
+        "vectors": [
+          {
+            "reset": 1
+          },
+          {
+            "reset": 0
+          },
+          {
+            "reset": 0
+          }
+        ],
+        "expected": [
+          {
+            "q": 39321,
+            "ena": 7
+          },
+          {
+            "q": 0,
+            "ena": 0
+          },
+          {
+            "q": 1,
+            "ena": 0
+          }
+        ]
+      }
+    },
+    {
+      "id": "R8_ena_default",
+      "outputs": [
+        "ena"
+      ],
+      "condition": "reset == 0 and not (q[3:0] == 9 and q[7:4] == 9 and q[11:8] == 9)",
+      "edge": "posedge",
+      "visible": "next_cycle",
+      "priority": 4,
+      "spec_quote": "For digits [3:1], also output an enable signal indicating when each of the upper three digits should be incremented.",
+      "uncertain": false,
+      "example": {
+        "vectors": [
+          {
+            "reset": 1
+          },
+          {
+            "reset": 0
+          },
+          {
+            "reset": 0
+          }
+        ],
+        "expected": [
+          {
+            "q": 0,
+            "ena": 0
+          },
+          {
+            "q": 1,
+            "ena": 0
+          },
+          {
+            "q": 2,
+            "ena": 0
+          }
+        ]
+      }
+    }
+  ],
+  "reset": {
+    "kind": "sync",
+    "name": "reset",
+    "active": "high",
+    "values": {
+      "q": 0,
+      "ena": 0
+    },
+    "first_released_cycle": "cycle after reset deasserted at posedge"
+  },
+  "mid": "Optional mid input changes occur AFTER sampling, before the other edge, and are carried to the start of the next row.",
+  "uncertain": [
+    {
+      "rule_id": "R7_full_wrap",
+      "note": "Spec does not explicitly state behavior when all four digits are 9; assumed wrap to 0.",
+      "candidates": [
+        "wrap to 0000",
+        "saturate at 9999",
+        "undefined behavior"
+      ]
+    },
+    {
+      "rule_id": "global",
+      "note": "Spec does not define ena bit ordering for digits [3:1]; contract uses ena[0]=tens, ena[1]=hundreds, ena[2]=thousands.",
+      "candidates": [
+        "ena[0]=tens, ena[1]=hundreds, ena[2]=thousands",
+        "ena[2]=tens, ena[1]=hundreds, ena[0]=thousands"
+      ]
+    },
+    {
+      "rule_id": "global",
+      "note": "Spec does not state initial counter value after reset release or whether counting begins immediately; contract assumes q=0 at reset and increments next posedge.",
+      "candidates": [
+        "count immediately after reset deassert",
+        "hold q=0 for one cycle after reset deassert before first increment"
+      ]
+    }
+  ]
+}

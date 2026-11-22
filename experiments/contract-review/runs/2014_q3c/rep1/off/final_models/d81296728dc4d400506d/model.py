@@ -1,0 +1,46 @@
+def reference(vectors):
+    # R_Y0, R_z: combinational logic from present state y and input x.
+    # Present state is registered on posedge clk; each row's inputs are driven
+    # before the sampled edge, so outputs are computed from the current row's
+    # x and y (the state registered from the previous row).
+    #
+    # Next-state table (present y -> next Y for x=0, x=1):
+    #   000 -> 000, 001
+    #   001 -> 001, 100
+    #   010 -> 010, 001
+    #   011 -> 001, 010
+    #   100 -> 011, 100
+    # States 101-111 unspecified: choose Y0=0, z=0 (don't-care resolved to 0).
+    #
+    # R_Y0: Y0 = next-state bit 0 selected by x from present state y.
+    # R_z:  z = 1 when present state y is 011 or 100, else 0.
+
+    # Explicit next-state table: next_state[y][x] = Y[2:0]
+    next_state = {
+        0: {0: 0, 1: 1},  # 000 -> 000, 001
+        1: {0: 1, 1: 4},  # 001 -> 001, 100
+        2: {0: 2, 1: 1},  # 010 -> 010, 001
+        3: {0: 1, 1: 2},  # 011 -> 001, 010
+        4: {0: 3, 1: 4},  # 100 -> 011, 100
+    }
+
+    results = []
+    for vec in vectors:
+        x = vec["x"] & 1
+        y = vec["y"] & 7
+
+        if y in next_state:
+            nxt = next_state[y][x]
+            Y0 = nxt & 1  # R_Y0
+        else:
+            # Unspecified states 101-111: resolve don't-care to 0.
+            Y0 = 0  # R_Y0
+
+        if y == 3 or y == 4:
+            z = 1  # R_z
+        else:
+            z = 0  # R_z
+
+        results.append({"Y0": Y0 & 1, "z": z & 1})
+
+    return results

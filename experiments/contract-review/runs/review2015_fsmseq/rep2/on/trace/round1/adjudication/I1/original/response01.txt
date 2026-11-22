@@ -1,0 +1,55 @@
+def reference(vectors):
+    # Contract: synchronous active-high reset, posedge state update.
+    state = 'S0'
+    start_shifting = 0
+    cur_reset = 0
+    cur_data = 0
+    result = []
+
+    for row in vectors:
+        # Drive row inputs before sampled posedge; carried mid values are defaults.
+        if 'reset' in row:
+            cur_reset = int(row['reset']) & 1
+        if 'data' in row:
+            cur_data = int(row['data']) & 1
+
+        # Sample posedge with current inputs, compute next state and output.
+        if cur_reset == 1:
+            # R_RESET: synchronous active-high reset overrides all other rules.
+            state = 'S0'
+            start_shifting = 0
+        else:
+            if state == 'SF':
+                # R_HOLD: once found, hold start_shifting at 1 until reset.
+                state = 'SF'
+                start_shifting = 1
+            elif state == 'S3' and cur_data == 1:
+                # R_DETECT: current state S3 and data 1 completes 1101.
+                state = 'SF'
+                start_shifting = 1
+            else:
+                # R_PROGRESS: normal search transitions, start_shifting stays 0.
+                start_shifting = 0
+                if state == 'S0':
+                    state = 'S1' if cur_data == 1 else 'S0'
+                elif state == 'S1':
+                    state = 'S2' if cur_data == 1 else 'S0'
+                elif state == 'S2':
+                    state = 'S3' if cur_data == 0 else 'S2'
+                elif state == 'S3':
+                    # cur_data == 0 here because S3+1 was handled by R_DETECT.
+                    state = 'S0'
+                else:
+                    state = 'S0'
+
+        result.append({'start_shifting': int(start_shifting)})
+
+        # Process mid changes AFTER sampling; they persist to next row start.
+        mid = row.get('mid')
+        if isinstance(mid, dict):
+            if 'reset' in mid:
+                cur_reset = int(mid['reset']) & 1
+            if 'data' in mid:
+                cur_data = int(mid['data']) & 1
+
+    return result

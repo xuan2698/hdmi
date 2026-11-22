@@ -1,0 +1,49 @@
+{
+  "coverage": {
+    "S01": ["R1_sync_reset", "R2_capture_d"]
+  },
+  "issues": [
+    {
+      "issue_id": "I1",
+      "rule_id": "R1_sync_reset",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "R1 example expected q=0 at third vector (d=1,r=0) but r==0 so reset rule does not apply; capture rule should set q=1.",
+      "spec_evidence": "active high synchronous reset (reset output to 0)",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I2",
+      "rule_id": "R2_capture_d",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "R2 example expected q=0 at second vector (d=0,r=0) but capture should set q=0 only if prior Q was 0; first vector r=1 resets Q=0 so q=0 is consistent, but third vector d=1,r=0 sets q=1 and fourth d=0,r=0 sets q=0; no contradiction here. However R2 example first vector r=1 is reset, not capture, so R2 example includes reset behavior.",
+      "spec_evidence": "Implement a simple D flip flop",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I3",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Initial Q before first posedge unspecified; two candidate power-up values lead to different first-cycle outputs when r=0.",
+      "spec_evidence": "",
+      "alternative": "Power-up Q=1 instead of unspecified/0",
+      "sequence": [
+        {"d": 0, "r": 0}
+      ]
+    },
+    {
+      "issue_id": "I4",
+      "rule_id": "R1_sync_reset",
+      "type": "grounding",
+      "severity": "low",
+      "detail": "Spec quote 'active high synchronous reset (reset output to 0)' supports reset but not explicit same_cycle visibility; synchronous reset at posedge implies same-cycle update, acceptable.",
+      "spec_evidence": "active high synchronous reset (reset output to 0)",
+      "alternative": "",
+      "sequence": []
+    }
+  ]
+}

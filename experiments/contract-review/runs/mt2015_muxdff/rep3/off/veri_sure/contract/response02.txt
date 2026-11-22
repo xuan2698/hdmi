@@ -1,0 +1,54 @@
+```json
+{
+  "module_name": "top_module",
+  "io": [
+    {
+      "name": "clk",
+      "dir": "input",
+      "width": 1,
+      "description": "Clock signal; all state updates occur on the posedge."
+    },
+    {
+      "name": "r",
+      "dir": "input",
+      "width": 3,
+      "description": "3-bit load data input, sampled into q when L is high."
+    },
+    {
+      "name": "L",
+      "dir": "input",
+      "width": 1,
+      "description": "Load enable; when high, q <= r on the posedge; when low, q shifts via the LFSR-style feedback."
+    },
+    {
+      "name": "q",
+      "dir": "output",
+      "width": 3,
+      "description": "3-bit registered state output."
+    }
+  ],
+  "clocking": {
+    "clock": {
+      "name": "clk",
+      "edge": "posedge"
+    },
+    "reset": null
+  },
+  "timing": {
+    "outputs": {
+      "q": {
+        "latency_cycles": 1
+      }
+    }
+  },
+  "functional_summary": {
+    "overview": "Hierarchical 3-bit LFSR/load register. A submodule containing a flipflop and a 2-to-1 multiplexer is instantiated three times, once per bit. On each posedge of clk, if L is high the register loads r; otherwise it updates to {q[1]^q[2], q[0], q[2]}.",
+    "rules": [
+      "On posedge clk with L=1: q <= r (each bit's mux selects r_in).",
+      "On posedge clk with L=0: q <= {q[1]^q[2], q[0], q[2]} (each bit's mux selects the feedback path).",
+      "Output q updates with one-cycle latency relative to sampled inputs.",
+      "No reset is present; q retains its value until the next posedge."
+    ]
+  }
+}
+```

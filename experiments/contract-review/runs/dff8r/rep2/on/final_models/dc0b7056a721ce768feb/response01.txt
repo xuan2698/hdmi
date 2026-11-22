@@ -1,0 +1,35 @@
+def reference(vectors):
+    q = 0
+    d = 0
+    reset = 0
+    out = []
+    for row in vectors:
+        # Drive row inputs before the sampled posedge. Unspecified signals
+        # retain any prior mid-cycle changes carried from the previous row.
+        if isinstance(row, dict):
+            if "d" in row:
+                d = int(row["d"]) & 0xFF
+            if "reset" in row:
+                reset = int(row["reset"]) & 0x1
+
+        # Positive edge: sample after inputs have settled.
+        # Rule sync_reset_clear: reset == 1 clears q to zero on posedge.
+        if reset == 1:
+            q = 0
+        else:
+            # Rule dff_capture_d: reset == 0 captures d into q on posedge.
+            q = d & 0xFF
+
+        out.append({"q": q})
+
+        # Optional mid input changes occur after sampling, before the next edge,
+        # and are carried to the start of the next row.
+        if isinstance(row, dict):
+            mid = row.get("mid")
+            if isinstance(mid, dict):
+                if "d" in mid:
+                    d = int(mid["d"]) & 0xFF
+                if "reset" in mid:
+                    reset = int(mid["reset"]) & 0x1
+
+    return out

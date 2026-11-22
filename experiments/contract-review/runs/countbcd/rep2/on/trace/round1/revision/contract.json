@@ -1,0 +1,175 @@
+{
+  "ports": {
+    "inputs": {
+      "reset": 1
+    },
+    "outputs": {
+      "ena": 3,
+      "q": 16
+    },
+    "clock": "clk"
+  },
+  "states": [
+    {
+      "name": "q",
+      "meaning": "16-bit packed BCD count: q[3:0]=ones, q[7:4]=tens, q[11:8]=hundreds, q[15:12]=thousands; valid BCD values represent decimal 0000 through 9999.",
+      "update_time": "posedge clk, sampled after the edge settles; synchronous reset forces q to 0x0000",
+      "update_during_reset": true
+    }
+  ],
+  "rules": [
+    {
+      "id": "R_RESET",
+      "outputs": [
+        "q"
+      ],
+      "condition": "reset == 1 at the sampled posedge; synchronous active-high reset forces all four BCD digits to 0, q = 0x0000.",
+      "edge": "posedge",
+      "visible": "same_cycle",
+      "priority": 10,
+      "spec_quote": "Include a synchronous active-high reset.",
+      "uncertain": false,
+      "example": {
+        "vectors": [
+          {
+            "reset": 1
+          },
+          {
+            "reset": 1
+          }
+        ],
+        "expected": [
+          {
+            "q": 0,
+            "ena": 0
+          },
+          {
+            "q": 0,
+            "ena": 0
+          }
+        ]
+      }
+    },
+    {
+      "id": "R_COUNT_BCD",
+      "outputs": [
+        "q"
+      ],
+      "condition": "reset == 0 at the sampled posedge; q_next is the 4-digit BCD value q + 1 in decimal, wrapping from 9999 to 0000. In packed bits, update ones q[3:0], carry when a digit is 9, and roll over the 4-digit BCD count modulo 10000.",
+      "edge": "posedge",
+      "visible": "same_cycle",
+      "priority": 0,
+      "spec_quote": "Build a 4-digit BCD (binary-coded decimal) counter.",
+      "uncertain": true,
+      "example": {
+        "vectors": [
+          {
+            "reset": 1
+          },
+          {
+            "reset": 0
+          },
+          {
+            "reset": 0
+          },
+          {
+            "reset": 0
+          }
+        ],
+        "expected": [
+          {
+            "q": 0,
+            "ena": 0
+          },
+          {
+            "q": 1,
+            "ena": 0
+          },
+          {
+            "q": 2,
+            "ena": 0
+          },
+          {
+            "q": 3,
+            "ena": 0
+          }
+        ]
+      }
+    },
+    {
+      "id": "R_ENA_COMB",
+      "outputs": [
+        "ena"
+      ],
+      "condition": "Combinational from current q: ena[0] = 1 iff q[3:0] == 9 (tens digit should increment); ena[1] = 1 iff q[3:0] == 9 and q[7:4] == 9 (hundreds digit should increment); ena[2] = 1 iff q[3:0] == 9, q[7:4] == 9, and q[11:8] == 9 (thousands digit should increment). Treat ena as a 3-bit unsigned integer with ena[0] as LSB: ena = ((q & 15)==9 ? 1 : 0) + (((q & 255)==0x99) ? 2 : 0) + (((q & 4095)==0x999) ? 4 : 0).",
+      "edge": "combinational",
+      "visible": "same_cycle",
+      "priority": 0,
+      "spec_quote": "For digits [3:1], also output an enable signal indicating when each of the upper three digits should be incremented.",
+      "uncertain": true,
+      "example": {
+        "vectors": [
+          {
+            "reset": 1
+          },
+          {
+            "reset": 0
+          },
+          {
+            "reset": 0
+          },
+          {
+            "reset": 0
+          }
+        ],
+        "expected": [
+          {
+            "q": 0,
+            "ena": 0
+          },
+          {
+            "q": 1,
+            "ena": 0
+          },
+          {
+            "q": 2,
+            "ena": 0
+          },
+          {
+            "q": 3,
+            "ena": 0
+          }
+        ]
+      }
+    }
+  ],
+  "reset": {
+    "kind": "sync",
+    "name": "reset",
+    "active": "high",
+    "values": {
+      "q": 0,
+      "ena": 0
+    },
+    "first_released_cycle": "first sampled posedge with reset == 0 after reset has been high; that edge performs the first increment from q == 0"
+  },
+  "mid": "Optional mid changes occur after sampling and before the next edge; they are carried to the start of the next row. Since reset is the only nonclock input, a mid reset change affects the next sampled posedge.",
+  "uncertain": [
+    {
+      "rule_id": "R_ENA_COMB",
+      "note": "Spec does not define the bit order for the three enable signals; contract chooses ena[0] for tens-digit carry, but the reverse order is also plausible.",
+      "candidates": [
+        "ena[0]=ones==9, ena[1]=lower2==99, ena[2]=lower3==999 (LSB=tens carry)",
+        "ena[2]=ones==9, ena[1]=lower2==99, ena[0]=lower3==999 (MSB=tens carry)"
+      ]
+    },
+    {
+      "rule_id": "R_COUNT_BCD",
+      "note": "Spec does not explicitly state count direction; contract uses increment, while decrement is a plausible BCD counter interpretation.",
+      "candidates": [
+        "Increment by 1 on each enabled edge, wrapping 9999 to 0000.",
+        "Decrement by 1 on each enabled edge, wrapping 0000 to 9999."
+      ]
+    }
+  ]
+}

@@ -1,0 +1,152 @@
+{
+  "coverage": {
+    "S01": [
+      "R1",
+      "R2",
+      "R3",
+      "R4"
+    ],
+    "S02": [
+      "R1",
+      "R2",
+      "R3"
+    ],
+    "S03": [
+      "R3"
+    ],
+    "S04": [
+      "R4"
+    ],
+    "S05": [
+      "R4"
+    ]
+  },
+  "issues": [
+    {
+      "issue_id": "I1",
+      "rule_id": "R1",
+      "type": "grounding",
+      "severity": "medium",
+      "detail": "R1 spec_quote is not verbatim from any indexed spec segment; the phrase does not appear in S01-S05.",
+      "spec_evidence": "",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I2",
+      "rule_id": "R2",
+      "type": "grounding",
+      "severity": "medium",
+      "detail": "R2 spec_quote is not verbatim from any indexed spec segment; the phrase does not appear in S01-S05.",
+      "spec_evidence": "",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I3",
+      "rule_id": "R3",
+      "type": "grounding",
+      "severity": "medium",
+      "detail": "R3 spec_quote is not verbatim from any indexed spec segment; the phrase does not appear in S01-S05.",
+      "spec_evidence": "",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I4",
+      "rule_id": "R4",
+      "type": "grounding",
+      "severity": "medium",
+      "detail": "R4 spec_quote is not verbatim from any indexed spec segment; the phrase does not appear in S01-S05.",
+      "spec_evidence": "",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I5",
+      "rule_id": "R4",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "R4 says z is unspecified during reset, but its example expects z=0 for areset=1 rows; rule field and example contradict.",
+      "spec_evidence": "",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I6",
+      "rule_id": "R2",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "R2 example row 1 has areset=1 (reset active) yet expects z=0; R4 says z unspecified during reset, and R2 condition only covers S1.",
+      "spec_evidence": "",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I7",
+      "rule_id": "R3",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "R3 example row 1 has areset=0,x=1 and expects z=1 same row, but R3 is posedge/next_cycle and R1 (S0 pass-through) would give z=1; expected z=1 on row 2 after transition to S1 should be NOT x=1, not 1.",
+      "spec_evidence": "",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I8",
+      "rule_id": "R1",
+      "type": "ambiguity",
+      "severity": "high",
+      "detail": "Spec says output is 2's complement of input number, but contract implements streaming LSB-first pass-through-then-complement; alternative is output equals full 2's complement only after all bits, requiring buffering/length knowledge.",
+      "spec_evidence": "the output (Z) is the 2's complement of the input",
+      "alternative": "Machine buffers bits and outputs the completed 2's complement word only after the number ends, rather than streaming per-bit.",
+      "sequence": [
+        {
+          "areset": 0,
+          "x": 1
+        },
+        {
+          "areset": 0,
+          "x": 0
+        },
+        {
+          "areset": 0,
+          "x": 0
+        }
+      ]
+    },
+    {
+      "issue_id": "I9",
+      "rule_id": "R4",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec says conversion stops when Reset asserted, but does not define z during reset; contract marks z unspecified while example drives 0. Alternative is z holds last value during reset.",
+      "spec_evidence": "The conversion begins when Reset is released and stops when Reset is asserted.",
+      "alternative": "During areset=1, z holds its last pre-reset value instead of being unspecified or forced 0.",
+      "sequence": [
+        {
+          "areset": 0,
+          "x": 1
+        },
+        {
+          "areset": 1,
+          "x": 0
+        },
+        {
+          "areset": 0,
+          "x": 0
+        }
+      ]
+    },
+    {
+      "issue_id": "I10",
+      "rule_id": "global",
+      "type": "spec_example",
+      "severity": "medium",
+      "detail": "Derived streaming behavior for LSB-first input 1,0,0 (value 1) should output 1,1,1; R3 example expects 1,1,1 but its row-1 reset/edge labeling is inconsistent. R2 example for reset then x=1,0 expects 0,1,1, which matches streaming after reset release.",
+      "spec_evidence": "beginning with the least-significant bit of the number",
+      "alternative": "",
+      "sequence": []
+    }
+  ]
+}

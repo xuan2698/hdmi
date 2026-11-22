@@ -1,0 +1,20 @@
+def reference(vectors):
+    # Contract:
+    # R1_sync_reset: reset==1 at negedge -> q=0x34 (52), priority 1
+    # R2_dff_capture: reset==0 at negedge -> q=d, priority 2
+    # R3_reset_value: reset value is 0x34 (52), not 0
+    # State Q: 8-bit register, reset value 0x34, updates at negedge of clk
+    # Mid changes occur AFTER sampling, before other edge, carried to next row.
+    # Power-up: Q initialized to 0x34 (reset value).
+    Q = 0x34  # R3_reset_value: initial state is reset value
+    out = []
+    for row in vectors:
+        d = row.get('d', 0) & 0xFF
+        reset = row.get('reset', 0) & 0x1
+        # negedge sampling: apply reset/capture
+        if reset == 1:
+            Q = 0x34  # R1_sync_reset, R3_reset_value
+        else:
+            Q = d  # R2_dff_capture
+        out.append({'q': Q & 0xFF})
+    return out

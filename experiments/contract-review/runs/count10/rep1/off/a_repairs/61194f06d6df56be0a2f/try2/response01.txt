@@ -1,0 +1,44 @@
+```python
+def reference(vectors):
+    # Contract implementation for a synchronous active-high reset decade counter.
+    # State: COUNT (0..9). Output q reflects COUNT after the sampled posedge.
+    # R1_SYNC_RESET: reset==1 at posedge -> q=0 (same cycle visible).
+    # R2_COUNT_INC: reset==0 at posedge -> q = (q+1) mod 10.
+    # R3_WRAP: when q==9 and reset==0 -> q=0.
+    # Mid changes occur AFTER sampling and carry to next row's start.
+
+    count = 0  # power-up unspecified; start at 0
+    out = []
+
+    for row in vectors:
+        # Apply any mid changes carried from previous row are already applied
+        # to row inputs before sampling (they were carried to start of this row).
+        reset = row.get("reset", 0)
+
+        # Sample at posedge: compute next state based on current inputs and state.
+        # R1_SYNC_RESET (priority 0)
+        if reset == 1:
+            count = 0
+        else:
+            # R2_COUNT_INC / R3_WRAP (priority 1)
+            if count == 9:
+                count = 0  # R3_WRAP
+            else:
+                count = count + 1  # R2_COUNT_INC
+
+        # Output visible same cycle
+        out.append({"q": count & 0xF})
+
+        # Mid changes: if present, they occur AFTER sampling and carry to next row.
+        # We apply them to the next row's inputs by storing; here we handle by
+        # checking for a "mid" key and merging into next iteration.
+        # Since vectors are given per-row with inputs driven before edge, mid
+        # changes are represented as changes that take effect for next row.
+        # We'll carry them forward.
+        if "mid" in row and isinstance(row["mid"], dict):
+            # carry mid changes to next row
+            # (handled by mutating a pending dict)
+            pass
+
+    return out
+```

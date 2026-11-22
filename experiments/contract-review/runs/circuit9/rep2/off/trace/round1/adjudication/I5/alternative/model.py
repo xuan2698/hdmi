@@ -1,0 +1,20 @@
+def reference(vectors):
+    # Contract implementation.
+    # State: q = 3-bit counter value.
+    # R1: on posedge, if a == 1, q holds (priority 1).
+    # R2: on posedge, if a == 0, q increments by 1 (mod 8) (priority 2).
+    # Global: initial q = 4.
+    # Mid changes occur after sampling; we process each row's inputs at its posedge.
+    q = 4  # global interpretation: initial q is 4
+    out = []
+    for row in vectors:
+        a = row.get('a', 0)
+        # posedge sampling: apply transition based on a
+        if a == 1:
+            # R1: hold
+            pass
+        else:
+            # R2: increment mod 8
+            q = (q + 1) & 0x7
+        out.append({'q': q})
+    return out

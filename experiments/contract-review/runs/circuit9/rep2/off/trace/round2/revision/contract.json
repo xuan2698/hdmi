@@ -1,0 +1,114 @@
+{
+  "ports": {
+    "inputs": {
+      "a": 1
+    },
+    "outputs": {
+      "q": 3
+    },
+    "clock": "clk"
+  },
+  "states": [
+    {
+      "name": "count",
+      "meaning": "3-bit counter value stored in q; increments by 1 modulo 8 on each posedge when a=0, holds when a=1 (a is 1-bit so conditions are mutually exclusive)",
+      "update_time": "posedge",
+      "update_during_reset": false
+    }
+  ],
+  "rules": [
+    {
+      "id": "R1",
+      "outputs": [
+        "q"
+      ],
+      "condition": "a == 1",
+      "edge": "posedge",
+      "visible": "next_cycle",
+      "priority": 1,
+      "spec_quote": "15ns            1               1               4",
+      "uncertain": false,
+      "example": {
+        "vectors": [
+          {
+            "a": 1
+          },
+          {
+            "a": 1
+          },
+          {
+            "a": 1
+          }
+        ],
+        "expected": [
+          {
+            "q": 4
+          },
+          {
+            "q": 4
+          },
+          {
+            "q": 4
+          }
+        ]
+      }
+    },
+    {
+      "id": "R2",
+      "outputs": [
+        "q"
+      ],
+      "condition": "a == 0",
+      "edge": "posedge",
+      "visible": "next_cycle",
+      "priority": 2,
+      "spec_quote": "55ns            1               0               5",
+      "uncertain": false,
+      "example": {
+        "vectors": [
+          {
+            "a": 0
+          },
+          {
+            "a": 0
+          },
+          {
+            "a": 0
+          }
+        ],
+        "expected": [
+          {
+            "q": 5
+          },
+          {
+            "q": 6
+          },
+          {
+            "q": 7
+          }
+        ]
+      }
+    }
+  ],
+  "reset": {
+    "kind": "none",
+    "name": null,
+    "active": "none",
+    "values": {
+      "q": null
+    },
+    "first_released_cycle": "0ns"
+  },
+  "mid": "Optional mid input changes occur AFTER sampling, before the other edge, and are carried to the start of the next row.",
+  "uncertain": [
+    {
+      "rule_id": "global",
+      "note": "Initial value of q is unspecified (x at 0ns); no reset exists. First posedge with a=1 at 5ns yields q=4, which is not derivable from a hold rule, so the pre-first-edge value is unknown.",
+      "candidates": [
+        "q initial value is unknown/x until first posedge with a=0",
+        "q initial value is 4 (observed at 5ns)",
+        "q initial value is 0"
+      ]
+    }
+  ]
+}

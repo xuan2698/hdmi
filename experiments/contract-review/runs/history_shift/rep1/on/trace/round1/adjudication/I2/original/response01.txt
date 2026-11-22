@@ -1,0 +1,63 @@
+def reference(vectors):
+    # rule reset_async, mispredict_rollback, predict_shift, hold_no_update
+    MASK = (1 << 32) - 1
+    history = 0
+    cur = {}
+    out = []
+    for row in vectors:
+        # Drive row inputs before the sampled posedge, ignoring mid-change metadata.
+        for k, v in row.items():
+            if not isinstance(k, str):
+                continue
+            if k in ("mid", "mid_changes", "mid_inputs"):
+                continue
+            if k.startswith("mid_") or k.endswith("_mid"):
+                continue
+            cur[k] = v
+        # Sample after posedge has settled.
+        areset = cur.get("areset", 0) & 1
+        if areset:
+            # rule reset_async: async reset has priority 0.
+            history = 0
+        else:
+            train_mispredicted = cur.get("train_mispredicted", 0) & 1
+            if train_mispredicted:
+                # rule mispredict_rollback: priority 1, overrides predict.
+                th = cur.get("train_history", 0) & MASK
+                tt = cur.get("train_taken", 0) & 1
+                history = ((th << 1) | tt) & MASK
+            else:
+                predict_valid = cur.get("predict_valid", 0) & 1
+                if predict_valid:
+                    # rule predict_shift: priority 2.
+                    pt = cur.get("predict_taken", 0) & 1
+                    history = ((history << 1) | pt) & MASK
+                else:
+                    # rule hold_no_update: priority 3, hold current history.
+                    pass
+        out.append({"predict_history": history & MASK})
+        # Mid-cycle input changes happen after sampling and affect the next cycle.
+        mids = []
+        for key in ("mid", "mid_changes", "mid_inputs"):
+            if key in row:
+                m = row[key]
+                if isinstance(m, dict):
+                    mids.append(m)
+                elif isinstance(m, list):
+                    for item in m:
+                        if isinstance(item, dict):
+                            mids.append(item)
+        for k, v in row.items():
+            if not isinstance(k, str):
+                continue
+            if k.startswith("mid_"):
+                mids.append({k[4:]: v})
+            elif k.endswith("_mid"):
+                mids.append({k[:-4]: v})
+        for m in mids:
+            for name, val in m.items():
+                cur[name] = val
+                if name == "areset" and (val & 1):
+                    # Asynchronous reset asserted mid-cycle is visible immediately for next state.
+                    history = 0
+    return out

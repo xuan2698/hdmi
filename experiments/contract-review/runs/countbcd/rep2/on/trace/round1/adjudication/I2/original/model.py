@@ -1,0 +1,67 @@
+def reference(vectors):
+    q = 0
+    cur_reset = 0
+    out = []
+    for row in vectors:
+        # Drive row inputs before the sampled posedge.
+        if 'reset' in row:
+            cur_reset = row['reset']
+
+        # R_RESET: synchronous active-high reset has priority.
+        if cur_reset:
+            q = 0
+        else:
+            # R_COUNT_BCD: increment the 4-digit BCD value, modulo 10000.
+            d0 = q & 15
+            d1 = (q >> 4) & 15
+            d2 = (q >> 8) & 15
+            d3 = (q >> 12) & 15
+
+            if d0 == 9:
+                d0 = 0
+                if d1 == 9:
+                    d1 = 0
+                    if d2 == 9:
+                        d2 = 0
+                        if d3 == 9:
+                            d3 = 0
+                        else:
+                            d3 = d3 + 1
+                    else:
+                        d2 = d2 + 1
+                else:
+                    d1 = d1 + 1
+            else:
+                d0 = d0 + 1
+
+            q = d0 | (d1 << 4) | (d2 << 8) | (d3 << 12)
+
+        # R_ENA_COMB: combinational enables from the current q.
+        ena = 0
+        if (q & 15) == 9:
+            ena = ena + 1
+        if (q & 255) == 0x99:
+            ena = ena + 2
+        if (q & 4095) == 0x999:
+            ena = ena + 4
+
+        out.append({'q': q, 'ena': ena})
+
+        # Optional mid changes occur after sampling and are carried forward.
+        if 'mid' in row:
+            m = row['mid']
+            try:
+                if 'reset' in m:
+                    cur_reset = m['reset']
+            except:
+                try:
+                    if m == 0 or m == 1:
+                        cur_reset = m
+                except:
+                    pass
+        if 'reset_mid' in row:
+            cur_reset = row['reset_mid']
+        if 'mid_reset' in row:
+            cur_reset = row['mid_reset']
+
+    return out

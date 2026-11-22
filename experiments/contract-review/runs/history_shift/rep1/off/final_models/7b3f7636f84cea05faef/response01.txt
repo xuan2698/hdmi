@@ -1,0 +1,55 @@
+```python
+def reference(vectors):
+    # Contract implementation.
+    # State: 32-bit global branch history shift register.
+    #   bit 0 = youngest branch direction.
+    # Output: predict_history = current history value.
+    #
+    # Timing model:
+    #   - Each row's inputs are driven before the sampled posedge.
+    #   - We sample after the posedge has settled.
+    #   - areset is asynchronous, active high, priority 0 (R1_async_reset).
+    #   - On posedge (when not reset):
+    #       * train_mispredicted == 1 -> history = (train_history << 1) | train_taken
+    #         (R2_mispredict_priority, priority 1)
+    #       * else predict_valid == 1 -> history = (history << 1) | predict_taken
+    #         (R3_predict_shift, priority 2)
+    #       * else hold (R4_hold, priority 3)
+    #   - predict_history reflects the register value visible after the edge.
+    #
+    # "mid" changes occur AFTER sampling, before the other edge, and are
+    # carried to the start of the next row. Since our model only samples at
+    # posedges and the mid changes are carried into the next row's inputs,
+    # we simply use each row's provided inputs at its sampled posedge.
+
+    MASK = (1 << 32) - 1
+
+    history = 0  # power-up unspecified; use 0 as concrete value
+    out = []
+
+    for row in vectors:
+        areset = row.get("areset", 0) & 1
+        predict_valid = row.get("predict_valid", 0) & 1
+        predict_taken = row.get("predict_taken", 0) & 1
+        train_mispredicted = row.get("train_mispredicted", 0) & 1
+        train_taken = row.get("train_taken", 0) & 1
+        train_history = row.get("train_history", 0) & MASK
+
+        # R1_async_reset: asynchronous reset, priority 0, visible same cycle.
+        if areset:
+            history = 0
+        else:
+            # R2_mispredict_priority: priority 1, takes precedence over predict.
+            if train_mispredicted:
+                history = ((train_history << 1) | train_taken) & MASK
+            # R3_predict_shift: priority 2, shift in predict_taken at LSB.
+            elif predict_valid:
+                history = ((history << 1) | predict_taken) & MASK
+            # R4_hold: priority 3, no change.
+            else:
+                history = history & MASK
+
+        out.append({"predict_history": history & MASK})
+
+    return out
+```
