@@ -1,0 +1,51 @@
+```python
+def reference(vectors):
+    # State: hh, mm, ss as BCD ints (0x01..0x12, 0x00..0x59), pm bit.
+    # Power-up unspecified; we start at reset state 12:00:00 AM.
+    hh, mm, ss, pm = 0x12, 0x00, 0x00, 0
+    out = []
+    for row in vectors:
+        # Apply inputs sampled at this posedge (reset has priority over ena)
+        reset = row.get('reset', 0) & 1
+        ena = row.get('ena', 0) & 1
+        if reset:
+            hh, mm, ss, pm = 0x12, 0x00, 0x00, 0
+        elif ena:
+            # seconds
+            s_lo = ss & 0xF
+            s_hi = (ss >> 4) & 0xF
+            if s_lo == 9:
+                s_lo = 0
+                if s_hi == 5:
+                    s_hi = 0
+                    # minute carry
+                    m_lo = mm & 0xF
+                    m_hi = (mm >> 4) & 0xF
+                    if m_lo == 9:
+                        m_lo = 0
+                        if m_hi == 5:
+                            m_hi = 0
+                            # hour carry
+                            h_lo = hh & 0xF
+                            h_hi = (hh >> 4) & 0xF
+                            if hh == 0x12:
+                                hh = 0x01
+                            elif h_lo == 9:
+                                hh = ((h_hi + 1) << 4) | 0
+                            else:
+                                hh = (h_hi << 4) | (h_lo + 1)
+                            if hh == 0x12:
+                                pm ^= 1
+                        else:
+                            m_hi += 1
+                    else:
+                        m_lo += 1
+                    mm = (m_hi << 4) | m_lo
+                else:
+                    s_hi += 1
+            else:
+                s_lo += 1
+            ss = (s_hi << 4) | s_lo
+        out.append({'pm': pm, 'hh': hh, 'mm': mm, 'ss': ss})
+    return out
+```

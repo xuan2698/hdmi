@@ -1,0 +1,25 @@
+def reference(vectors):
+    # Moore 2's complementer, LSB-first.
+    # States: S0 = still in trailing-zero run (output 0, copy input)
+    #         S1 = past first 1 (output 1, invert input)
+    # Reset (areset=1) forces state S0.
+    # Moore output: z = 0 in S0, z = 1 in S1.
+    # Timing: sample inputs after posedge settles, compute next state,
+    # install it, then emit z from the installed (post-transition) state.
+    out = []
+    state = 0  # power-up unspecified; use S0
+    for row in vectors:
+        areset = row.get('areset', 0) & 1
+        x = row.get('x', 0) & 1
+        # compute next state from current state and sampled inputs
+        if areset:
+            nxt = 0
+        else:
+            if state == 0:
+                nxt = 1 if x == 1 else 0
+            else:
+                nxt = 1
+        state = nxt
+        z = 1 if state == 1 else 0
+        out.append({'z': z})
+    return out

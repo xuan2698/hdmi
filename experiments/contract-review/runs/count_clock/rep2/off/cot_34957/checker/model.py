@@ -1,0 +1,111 @@
+def reference(vectors):
+    # State: hh, mm, ss are BCD ints (0..0x99), pm is 0/1.
+    # Power-up unspecified: we only start checking after a reset row.
+    # Each vector row: dict with keys 'reset','ena' (inputs) and possibly
+    # mid changes applied AFTER sampling for the next row.
+    # We return a list of dicts with outputs pm, hh, mm, ss.
+    #
+    # Contract:
+    #  - reset (sync, active high) has priority over ena.
+    #  - reset -> 12:00:00 AM (pm=0).
+    #  - ena=1, reset=0 -> increment BCD with carries; pm toggles only on
+    #    full 11:59:59 -> 12:00:00 rollover.
+    #  - ena=0, reset=0 -> hold.
+    #  - Mid changes occur after sampling, before next edge, and apply to
+    #    the next row's latched inputs.
+    #
+    # We model latched inputs per row: the row's inputs are the latched
+    # values at the sampled edge. Mid changes update the "pending" inputs
+    # for the next row.
+
+    out = []
+    # pending latched inputs for the next row (start with zeros; will be
+    # overwritten by first row's explicit inputs)
+    latched_reset = 0
+    latched_ena = 0
+
+    # state
+    hh = 0x12
+    mm = 0x00
+    ss = 0x00
+    pm = 0
+    initialized = False
+
+    def bcd_inc(v, limit):
+        # v is BCD int; increment with BCD carry; returns (new_v, carry)
+        lo = v & 0x0F
+        hi = (v >> 4) & 0x0F
+        lo += 1
+        carry = 0
+        if lo > 9:
+            lo = 0
+            hi += 1
+            if hi > (limit >> 4):
+                hi = 0
+                carry = 1
+        return ((hi << 4) | lo), carry
+
+    for row in vectors:
+        # Apply mid changes from previous row? No: mid changes are part of
+        # this row's dict and occur AFTER sampling. So first, latch inputs
+        # for this row from the row's explicit inputs (which represent the
+        # values at the sampled edge). The row dict may also contain mid
+        # changes that we apply after computing outputs.
+        #
+        # The row dict format: keys 'reset','ena' are the latched inputs
+        # at the sampled edge. Optional keys like 'reset_mid','ena_mid'
+        # represent mid changes after sampling.
+        r = row.get('reset', latched_reset)
+        e = row.get('ena', latched_ena)
+        latched_reset = r
+        latched_ena = e
+
+        # Compute next state from current state and latched inputs
+        if r == 1:
+            nhh, nmm, nss, npm = 0x12, 0x00, 0x00, 0
+            initialized = True
+        elif e == 1:
+            # increment
+            nss, c1 = bcd_inc(ss, 0x59)
+            if c1:
+                nmm, c2 = bcd_inc(mm, 0x59)
+            else:
+                nmm = mm
+                c2 = 0
+            if c2:
+                # hour increment 12-hour: 01..12, 12->01
+                if hh == 0x12:
+                    nhh = 0x01
+                else:
+                    nhh, _ = bcd_inc(hh, 0x12)
+            else:
+                nhh = hh
+            # pm toggles only on full 11:59:59 -> 12:00:00
+            if hh == 0x11 and mm == 0x59 and ss == 0x59:
+                npm = 1 - pm
+            else:
+                npm = pm
+        else:
+            nhh, nmm, nss, npm = hh, mm, ss, pm
+
+        # If not initialized and no reset yet, outputs are unspecified;
+        # we still must return concrete values. We'll use current state
+        # (which is 12:00:00 AM by default) but mark not initialized.
+        # The checker should only validate after reset. We'll just output
+        # the computed next state.
+        hh, mm, ss, pm = nhh, nmm, nss, npm
+
+        out.append({
+            'pm': pm,
+            'hh': hh,
+            'mm': mm,
+            'ss': ss,
+        })
+
+        # Apply mid changes for next row's latched inputs
+        if 'reset_mid' in row:
+            latched_reset = row['reset_mid']
+        if 'ena_mid' in row:
+            latched_ena = row['ena_mid']
+
+    return out

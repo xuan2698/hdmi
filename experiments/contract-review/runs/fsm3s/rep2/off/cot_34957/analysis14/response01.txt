@@ -1,0 +1,34 @@
+# Reset and Power-Up Analysis
+
+The public specification defines a four-state Moore machine with a single input `in`, a single output `out`, and a synchronous active-high `reset`. The state table is:
+
+- A: `in=0`→A, `in=1`→B, output 0
+- B: `in=0`→C, `in=1`→B, output 0
+- C: `in=0`→A, `in=1`→D, output 0
+- D: `in=0`→C, `in=1`→B, output 1
+
+The key structural fact is that D is the only state whose Moore output is 1. Every other state outputs 0. This makes the output a pure function of the settled current state, not of the input or of the next state. The checker must therefore compare `out` against the state that has already been latched at the sampled edge, not against the state that will be latched next.
+
+## Reset semantics
+
+Reset is synchronous and active high. On a sampled rising edge where `reset=1`, the machine must resolve to state A regardless of the current state or the value of `in`. Because the output is Moore-style, the settled output on that same edge must be 0 (the output of A). Reset overrides both the next-state function and the output derivation. A checker that computes the next state from the table first and then applies reset, or that reads the output from the pre-reset state, will produce wrong expectations on reset edges — especially when reset is asserted while the machine is in D, where the pre-reset output would be 1 but the correct settled output is 0.
+
+## Power-up
+
+The specification does not define a power-on state. The checker must not assume the FSM begins in A, nor in any particular state. The safe protocol is to drive `reset=1` for at least one sampled edge to force the machine into A, and to treat all expectations before that first reset edge as don't-care. After the reset edge settles, the checker can begin comparing state and output on subsequent edges. This avoids false failures caused by an unspecified initial state, and it also validates that reset actually works from an arbitrary starting point.
+
+## Ordering hazards
+
+Two ordering issues dominate correctness:
+
+1. **Moore output timing.** The output must reflect the state after the sampled edge has settled. Transitions into D must show `out=1` on that same edge; transitions out of D must show `out=0` on that same edge. A pre-edge sampler would report the old state's output, and a one-cycle-late comparator would report the previous edge's output. Both disagree exactly on edges entering or leaving D.
+
+2. **Reset precedence.** Reset must be applied before the transition table and before the output read. If reset is sampled while in D, the settled result is A with `out=0`, not D with `out=1`.
+
+## Mid-row input changes
+
+Inputs may change after sampling and before the opposite edge. Such changes do not cause a transition and must not retroactively alter the output already sampled. The checker should keep the sampled input for each edge distinct from later mid-row toggles, carrying the mid-row value into the next row unless that row drives a new value. Confusing a mid-row toggle with the input that caused the sampled transition is a common source of spurious mismatches.
+
+## Worked example
+
+In state C (output 0), drive `in=1`, `reset=0`. The sampled edge resolves C→D, so the settled output is 1. A mid-row change of `in` to 0 is carried forward and does not alter that transition or its output. On the next sampled edge with `in=0`, `reset=0`, D resolves to C and the output returns to 0. This single sequence exercises the only output-1 state, the one-edge output transient, the post-edge Moore rule, and the mid-row carry behavior — making it a strong distinguishing test for the final checker.

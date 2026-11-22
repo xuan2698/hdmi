@@ -1,0 +1,17 @@
+The most useful mistake to flag for the final Python checker is a **bit-order reversal in the feedback concatenation**, because it is easy to write and hard to notice from a few vectors.
+
+The public spec fixes the next-state function as `q <= {q[1] ^ q[2], q[0], q[2]}`. In Verilog concatenation, the leftmost expression becomes the most significant bit. So the mapping is:
+
+- new `q[2]` = old `q[1] ^ q[2]`
+- new `q[1]` = old `q[0]`
+- new `q[0]` = old `q[2]`
+
+A natural but wrong implementation is to read the concatenation right-to-left as if it were a little-endian tuple, producing `{q[2], q[0], q[1]^q[2]}` or some rotation thereof. That mistake preserves the XOR but permutes the two shifted bits, so it can pass several random vectors before diverging. For example, from `q=3'b101` with `L=0`, the correct next state is `3'b111`, whereas the reversed-index version gives `{1^0,1,1}=3'b011`. The checker must pin the mapping: bit 2 ← XOR of old bits 1 and 2, bit 1 ← old bit 0, bit 0 ← old bit 2.
+
+The timing point is equally decisive. The three submodule instances each hold one flop plus a 2:1 mux; the parent wires the mux select to `L` and the mux data to `r` on one side and the feedback on the other. Because the flops are posedge-triggered, the value sampled after a settled posedge reflects the mux inputs that were stable *just before* that edge. Any change to `r` or `L` applied after sampling is not captured until the next posedge; it becomes part of the next row's pre-edge stimulus. The parent's combinational feedback also updates after the edge as `q` changes, but that new feedback only matters at the following edge. The checker should therefore: drive inputs, wait for the posedge, let the edge settle, sample `Q`, and only then apply optional mid-cycle changes — carrying those changes forward rather than resetting to defaults.
+
+Reset is unspecified: there is no reset port, so power-up state is unknown. If stimulus begins with `L=0`, the first sampled `Q` may be `x` and feedback propagates `x` until a load occurs. The checker should either force an initial load (`L=1`, known `r`) before comparing, or model `q` as unknown until the first `L=1` edge and skip comparisons while any bit is `x`.
+
+Worked example: after a settled edge `q=3'b101`, with `L=0` the next state is `{q[1]^q[2], q[0], q[2]} = {0^1,1,1} = 3'b111`. The checker drives `L=0`, waits for the next posedge, settles, and expects `Q=3'b111`. If `r` changes after sampling, that change is ignored for this row and only matters if `L=1` at the next edge.
+
+Takeaway for the final Python checker: sample strictly after the posedge settles, compute the expected next state from the pre-edge registered `q` using the exact concatenation order, treat mid-cycle input changes as belonging to the next row's pre-edge stimulus, and either force an initial load or tolerate unknown values until the first known load.

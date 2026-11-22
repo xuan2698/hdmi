@@ -1,0 +1,13 @@
+The public specification describes a three-bit register `q` driven only by the rising edge of `clk`. There is no reset, no enable, and no asynchronous path. The only input is the one-bit signal `a`. The output is the register itself, so the state and output are identical.
+
+At time 0, `q` is `x`. That is the pre-clock unknown value, not an operational state. The first rising edge occurs at 5 ns with `a = 1`, and `q` becomes 4. Since no earlier value is visible and no reset exists, the public specification effectively fixes the power-up value of the register to 4. A checker should initialize `q = 4` and ignore the initial `x` as a pre-sampling artifact.
+
+From 5 ns through 45 ns, `a = 1` at every rising edge, and `q` remains 4. This establishes the hold behavior: when `a` is high, the register does not change. Falling edges at 10, 20, 30, and 40 ns leave `q` at 4, confirming that only rising edges matter.
+
+At 45 ns, `a` changes to 0 after the rising edge has been sampled. The falling edge at 50 ns still leaves `q = 4`. At the 55 ns rising edge, with `a = 0`, `q` becomes 5. At 65 ns it becomes 6. At 75 ns it becomes 0. At 85 ns it becomes 1. This is increment-by-one modulo 7. The sequence 4 → 5 → 6 → 0 → 1 demonstrates that the counter wraps at 7, not at 8. Because `q` is three bits wide, the natural hardware interpretation is a modulo-7 counter, not a full 3-bit modulo-8 counter.
+
+The transition rule is therefore: on each rising edge, if `a = 1`, hold `q`; if `a = 0`, set `q` to `(q + 1) mod 7`. Falling edges do nothing. The initial register value is 4.
+
+A short worked example: at the 75 ns rising edge, the current state is 6 and `a = 0`, so the next state is `(6 + 1) mod 7 = 0`, matching the trace. At the 35 ns rising edge, the state is 4 and `a = 1`, so it stays 4.
+
+For the final Python checker, the key points are: initialize the state to 4; sample only after rising edges have settled; apply the hold-or-increment-mod-7 rule; verify that falling edges do not change `q`; and do not model a reset or any asynchronous behavior. The initial `x` should be treated as unresolved pre-clock state, with the first rising edge resolving it to 4.

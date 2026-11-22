@@ -1,0 +1,5 @@
+Reset is synchronous and active high: on any sampled row with `reset=1`, force all 32 output bits to 0 and credit no capture, but still update the per-bit previous-input history to the sampled `in`. Freezing history during reset is the classic bug—it lets the next non-reset row compare against a stale pre-reset value and fabricate a 1→0 capture.
+
+Worked example, one bit: history=1, reset=1, in=0 → out forced 0, no capture, history becomes 0. Next row reset=0, in=0 → history=0, current=0, no capture, out stays 0. A checker that kept history=1 through reset would falsely set out=1 on that next row.
+
+Power-up: `out` is unconstrained until the first reset row establishes a known zero state; do not assert out=0 before then. Track history from the first sampled input, but gate output assertions on having seen a reset row. Keep history and output as separate state, and ignore mid-row input changes for the current row.

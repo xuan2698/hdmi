@@ -1,0 +1,74 @@
+```python
+def reference(vectors):
+    # 12-hour clock checker.
+    # State: hh, mm, ss (BCD), pm. Power-up unspecified -> skip until first reset=1 sampled edge.
+    # Inputs sampled at posedge: reset, ena. Mid changes applied after sampling, before next row.
+    out = []
+    hh = mm = ss = 0
+    pm = 0
+    started = False
+
+    for row in vectors:
+        # Apply mid changes from previous row (they occur after sampling, before this edge)
+        # Mid changes are given as keys like 'mid_reset', 'mid_ena'? Contract says mid input changes
+        # occur AFTER sampling, before the other edge, carried to start of next row.
+        # We'll treat keys 'reset' and 'ena' as sampled values for this row.
+        # Mid changes would be represented separately; assume they are already merged into
+        # the next row's sampled values by the harness. So we just use row['reset'], row['ena'].
+        r = row.get('reset', 0) & 1
+        e = row.get('ena', 0) & 1
+
+        if not started:
+            if r:
+                started = True
+                hh, mm, ss, pm = 0x12, 0x00, 0x00, 0
+            else:
+                # power-up unspecified: output concrete but arbitrary (0)
+                out.append({'pm': 0, 'hh': 0, 'mm': 0, 'ss': 0})
+                continue
+        else:
+            if r:
+                hh, mm, ss, pm = 0x12, 0x00, 0x00, 0
+            elif e:
+                # increment seconds
+                s = (ss & 0x0F) + 1
+                if s == 10:
+                    s = 0
+                    sd = ((ss >> 4) & 0x0F) + 1
+                    if sd == 6:
+                        sd = 0
+                        # increment minutes
+                        m = (mm & 0x0F) + 1
+                        if m == 10:
+                            m = 0
+                            md = ((mm >> 4) & 0x0F) + 1
+                            if md == 6:
+                                md = 0
+                                # increment hours
+                                h = (hh & 0x0F) + 1
+                                hd = (hh >> 4) & 0x0F
+                                if h == 10:
+                                    h = 0
+                                    hd += 1
+                                if hd == 1 and h == 3:
+                                    # 13 -> 01, flip pm
+                                    hd, h = 0, 1
+                                    pm ^= 1
+                                elif hd == 0 and h == 0:
+                                    # 00 -> 12? Actually 12 -> 01 handled above.
+                                    # From 12: hh=0x12, h=2, hd=1 -> h=3,hd=1 -> 13 -> 01
+                                    pass
+                                hh = (hd << 4) | h
+                            else:
+                                mm = (md << 4) | m
+                        else:
+                            mm = (md << 4) | m
+                    else:
+                        ss = (sd << 4) | s
+                else:
+                    ss = (ss & 0xF0) | s
+
+        out.append({'pm': pm & 1, 'hh': hh & 0xFF, 'mm': mm & 0xFF, 'ss': ss & 0xFF})
+
+    return out
+```

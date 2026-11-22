@@ -1,0 +1,18 @@
+The public specification defines a four-state Moore machine with a single 1-bit input `in`, a single 1-bit output `out`, and a synchronous active-high `reset`. All ports are one bit wide, so the only legal values are 0 and 1; there are no multi-bit boundary cases to consider. The state set is {A, B, C, D}, and the output is a function of state alone: only state D produces `out=1`, while A, B, and C produce `out=0`.
+
+The transition table is:
+
+- A: `in=0` → A, `in=1` → B
+- B: `in=0` → C, `in=1` → B
+- C: `in=0` → A, `in=1` → D
+- D: `in=0` → C, `in=1` → B
+
+Because this is a Moore machine, the output depends only on the current state, not directly on `in`. The output changes only when the state changes at a sampled clock edge. State D is the sole output-1 state, and it is reachable only from C when `in=1`. From D, every input moves away: `in=0` goes to C and `in=1` goes to B. Thus D cannot persist for more than one sampled cycle unless reset intervenes, and the output 1 is observed for exactly the cycle(s) in which the machine occupies D after an edge.
+
+Reset is synchronous and active high. When `reset=1` at a sampled rising edge, the next state is forced to A, so the post-edge output is 0. Reset is not asynchronous: driving `reset=1` between edges does not immediately alter the state or output. The pre-edge output still reflects the pre-reset state. This distinction is central for the checker because the sample point is specified as after the posedge has settled. A row with `reset=1` should therefore be evaluated as producing state A and output 0 after that edge, independent of the prior state. Sampling before the edge would instead observe the old state’s output and would be incorrect for this protocol.
+
+Mid-cycle input changes, including changes to `reset`, occur after sampling and before the other edge, and are carried to the start of the next row. They do not retroactively affect the just-sampled output. The checker should therefore treat each row’s driven values as applying to the upcoming sampled edge, with any mid-cycle changes belonging to the next row.
+
+A short worked example: if the machine is in D, the current output is 1. A row drives `reset=1` and `in=0`. Before the posedge the output remains 1 because the state is still D. At the posedge the synchronous reset forces state A. After the edge settles, the output is 0. The checker must sample after the edge to see 0; sampling before would incorrectly report 1.
+
+The most useful point for the final Python checker is to anchor the machine with reset before the first meaningful sample, then associate each sampled output with the state reached at that sampled edge. Reset must be treated as effective only at the sampled edge, not at the instant it is driven. The checker should not assume any particular power-up state, since the public specification defines no behavior beyond the synchronous reset mechanism.

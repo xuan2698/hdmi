@@ -1,0 +1,17 @@
+The public spec defines a 4-digit BCD counter with a 16-bit output `q` split into four 4-bit nibbles (ones, tens, hundreds, thousands) and a 3-bit `ena` output where `ena[0]` gates the tens digit, `ena[1]` the hundreds, and `ena[2]` the thousands. The ones digit always increments mod 10; each higher digit increments only when all lower digits are 9 (i.e., when the carry propagates). Reset is synchronous and active-high, forcing all digits to zero and all enables low.
+
+For the final Python checker, the key discipline is row-local evaluation. Each sampled row presents a snapshot of `q` and `reset` that must be treated as immutable for that row. From that snapshot alone, the checker should:
+
+1. If `reset` is high, expect `ena == 0` and predict next `q == 0`.
+2. Otherwise, compute `ena[0] = (q[3:0] == 9)`, `ena[1] = (q[7:4] == 9) and (q[3:0] == 9)`, `ena[2] = (q[11:8] == 9) and (q[7:4] == 9) and (q[3:0] == 9)`.
+3. Predict the next `q` by incrementing each digit according to its enable, with the ones digit always incrementing mod 10.
+4. Compare `ena` against the current row's observed value.
+5. Store the predicted next `q` and compare it against the following row's observed `q`.
+
+The reset override must be applied before the digit-equals-9 conditions, since a reset row forces enables low regardless of the current digit values. This ordering matters: if the checker computes enables from digits first and then masks with reset, it will still get the right answer for `ena`, but the predicted next state must also be forced to zero rather than derived from the (possibly nonzero) current digits.
+
+Power-up behavior is unspecified. The checker should not enforce the enable/next-state relationship until the design's state is determined, typically after the first `reset=1` row. Rows before that are don't-care for both `ena` and the predicted-next-`q` comparison.
+
+A short worked example illustrates the anchoring rule. Suppose a sampled row has `q = 16'h0099` and `reset = 0`. The row-local enables are `ena = 3'b011`: ones is 9 so tens increments; tens is 9 and ones is 9 so hundreds increments; hundreds is 0 so thousands does not. The predicted next `q` is `16'h0100`. A design that registers the enables (outputting last cycle's enables) would show `ena = 3'b000` on this row and `3'b011` on the next, while still producing the correct `q` sequence. Comparing `ena` to the previous row's digits, or allowing a one-cycle offset, would accept that bug; comparing `ena` to the current row's snapshot rejects it.
+
+The mid-input changes described in the protocol occur after sampling and before the other edge, and are carried to the start of the next row. They must not alter the current row's expected enables or predicted next state. If the checker re-reads `q` or `reset` later in the cycle, a mid-cycle change could corrupt the current row's expectation. Snapshot once per sampled edge, derive everything from that snapshot, compare `ena` in-row, and compare predicted next `q` against the next row's observed `q`. That single anchoring discipline is what the final Python checker should enforce.

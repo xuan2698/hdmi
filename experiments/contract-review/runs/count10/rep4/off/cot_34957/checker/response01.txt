@@ -1,0 +1,31 @@
+```python
+def reference(vectors):
+    # Decade counter, active-high synchronous reset, counts 0..9.
+    # q is unconstrained before the first sampled rising edge.
+    # Each row: inputs are driven before the sampled posedge; mid changes
+    # occur after sampling and carry to the next row.
+    out = []
+    q = None          # unknown power-up state
+    reset = 0         # carried reset value (driven before first edge)
+    for row in vectors:
+        # Apply any carried mid-change from previous row already in reset.
+        # Pre-edge values: reset (carried) and q (current state).
+        pre_reset = reset
+        pre_q = q
+        # Compute expected post-edge q.
+        if pre_reset == 1:
+            nq = 0
+        else:
+            if pre_q is None:
+                # Unconstrained before first sampled edge; pick 0 as concrete.
+                nq = 0
+            else:
+                nq = (pre_q + 1) % 10
+        q = nq
+        # Output dictionary for this row.
+        out.append({"q": q})
+        # Mid change after sampling: update carried reset for next row.
+        if "reset" in row:
+            reset = row["reset"]
+    return out
+```

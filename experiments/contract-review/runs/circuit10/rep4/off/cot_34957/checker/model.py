@@ -1,0 +1,31 @@
+def reference(vectors):
+    # Sequential circuit: one flip-flop (state), q is a copy of state.
+    # Next-state relation inferred from the waveform:
+    #   (state,a,b) -> next_state
+    #   (0,0,0)->0, (0,0,1)->1, (0,1,0)->0, (0,1,1)->0
+    #   (1,0,0)->1, (1,0,1)->0, (1,1,0)->0, (1,1,1)->1
+    # This is next_state = (a == b) ? state : (a ? 0 : 1) ... let's derive:
+    #   (0,0,0)->0  (0,0,1)->1  (0,1,0)->0  (0,1,1)->0
+    #   (1,0,0)->1  (1,0,1)->0  (1,1,0)->0  (1,1,1)->1
+    # Observe: next = (a XOR b) ? (NOT a) : state
+    #   a=0,b=0: xor=0 -> state
+    #   a=0,b=1: xor=1 -> NOT a = 1
+    #   a=1,b=0: xor=1 -> NOT a = 0
+    #   a=1,b=1: xor=0 -> state
+    # Matches all rows.
+    state = 0
+    out = []
+    for row in vectors:
+        clk = row.get('clk')
+        a = row.get('a')
+        b = row.get('b')
+        # On posedge (clk transitions 0->1), update state using inputs
+        # The vectors give settled values at sample time; treat each row as
+        # a sample point. We update state when clk==1 (posedge settled).
+        if clk == 1:
+            if a is not None and b is not None:
+                if (a ^ b) == 1:
+                    state = 1 - a
+                # else state unchanged
+        out.append({'q': state, 'state': state})
+    return out

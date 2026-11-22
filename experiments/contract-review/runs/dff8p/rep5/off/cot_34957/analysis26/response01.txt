@@ -1,0 +1,5 @@
+The reset is synchronous and active high, so it only takes effect at a sampled negative clock edge. A high `reset` overrides `d`, so `reset=1` with any `d`, including `0x34`, produces `0x34`. A low `reset` with `d=0x34` also produces `0x34`, but by data pass-through, not reset. The checker must therefore use the sampled `reset` signal, not the output value, to decide whether a reset occurred.
+
+Power-up is not specified as `0x34`; the reset value applies only when a sampled edge has `reset` high. The checker should not assert `q` before the first sampled negative edge.
+
+Worked example: if the first sampled edge has `reset=0, d=0xA5`, expect `0xA5`. If a later sampled edge has `reset=1`, expect `0x34` regardless of carried `d`. Mid-row changes after sampling must be carried to the next row, not applied retroactively.

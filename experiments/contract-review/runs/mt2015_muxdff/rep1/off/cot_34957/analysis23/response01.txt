@@ -1,0 +1,3 @@
+The key point for the checker is that the three lanes must be evaluated from the same frozen pre-edge snapshot, and the load path must be used to establish a known state before any feedback row is trusted. A bare `reg` has no defined power-up value, so the first sampled `Q` cannot be predicted; the checker should drive `L = 1` with a chosen `r`, sample the settled `Q`, and only then compare feedback rows. Mid-cycle input changes must be deferred until after the settled comparison.
+
+Worked example: seed `L = 1, r = 3'b101`, sample `Q = 101`. Then `L = 0` with pre-edge `q = 101`: lane 0 = `q[1]^q[2] = 0^1 = 1`, lane 1 = `q[0] = 1`, lane 2 = `q[2] = 1`, expected `111`. Lanes 1 and 2 coincide, so a swap there is masked; prefer stimulus with pairwise-distinct lane results.

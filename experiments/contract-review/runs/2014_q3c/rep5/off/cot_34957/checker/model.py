@@ -1,0 +1,32 @@
+def reference(vectors):
+    # State-assigned transition table.
+    # For each present state y (0..4), give:
+    #   z value
+    #   next state for x=0
+    #   next state for x=1
+    table = {
+        0: (0, 0, 1),  # y=000: z=0, x=0 -> 000, x=1 -> 001
+        1: (0, 1, 4),  # y=001: z=0, x=0 -> 001, x=1 -> 100
+        2: (0, 2, 1),  # y=010: z=0, x=0 -> 010, x=1 -> 001
+        3: (1, 1, 2),  # y=011: z=1, x=0 -> 001, x=1 -> 010
+        4: (1, 3, 4),  # y=100: z=1, x=0 -> 011, x=1 -> 100
+    }
+
+    results = []
+    for row in vectors:
+        # Capture present state and input at the sampled edge.
+        y = row["y"] & 0x7
+        x = row["x"] & 0x1
+
+        if y in table:
+            z, ns0, ns1 = table[y]
+            nxt = ns0 if x == 0 else ns1
+            Y0 = nxt & 0x1
+        else:
+            # Undefined encoding: keep outputs concrete and within width.
+            z = 0
+            Y0 = 0
+
+        results.append({"Y0": Y0, "z": z})
+
+    return results

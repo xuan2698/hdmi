@@ -1,0 +1,9 @@
+The public spec defines eight D flip-flops sharing `clk`, with an active-high synchronous reset that forces `q` to zero. Inputs are `d` (8 bits) and `reset` (1 bit); output is `q` (8 bits). All flops trigger on the positive edge of `clk`, and sampling occurs after the posedge has settled. Each row's values are driven before the sampled edge; optional mid-cycle input changes occur after sampling and before the opposite edge, and are carried to the start of the next row.
+
+The most useful point for the final Python checker is the strict edge-sampling discipline. Because reset is synchronous, a high `reset` between edges has no effect on `q`; it only matters at the sampled rising edge. The checker must not model reset as level-sensitive or immediate. Likewise, `d` changes after sampling must not retroactively alter the expected output for the edge just sampled — they only affect the next sampled edge.
+
+A short worked example: at a rising edge, sampled `reset=0`, `d=0xA5`, so expected `q=0xA5`. If `reset` then rises mid-cycle, `q` remains `0xA5` until the next rising edge; at that edge, with `reset=1` sampled, expected `q=0x00`. If instead `d` becomes `0x3C` mid-cycle with `reset` low, the next edge loads `0x3C`, and `0xA5` stays valid until then.
+
+Two further cautions matter for the checker. First, `0x00` is a legal data value, so it must not be treated as a sentinel for "no data" or as evidence of reset. Second, the spec does not state that power-up clears the flops and provides no time-zero reset. The checker must not assume `q=0` before the first sampled positive edge; only edge-produced values are constrained. It should begin comparing only after the first sampled edge whose behavior the stimulus defines, or wait for an explicit initialization event.
+
+In short: keep one 8-bit state, sample inputs only at settled positive edges, apply mid-cycle updates only to the next row, and avoid unsupported power-up assumptions.

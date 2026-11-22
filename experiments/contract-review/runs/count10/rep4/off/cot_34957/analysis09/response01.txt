@@ -1,0 +1,14 @@
+The public specification defines a synchronous, active-high decade counter with a single 1-bit `reset` input and a 4-bit output `q`. The clock is `clk`, and all sampling is performed after the positive edge has settled. The counter’s legal output range is 0 through 9 inclusive, and its period is exactly 10: after reaching 9, the next non-reset rising edge must produce 0, not 10.
+
+The essential behavior is a state transition on each rising edge. Let `q_prev` be the settled output value before the edge. The expected post-edge value is determined solely by the value of `reset` that is driven before that edge:
+
+- If the pre-edge `reset` is high, the next state is 0.
+- If the pre-edge `reset` is low, the next state is `(q_prev + 1) % 10`.
+
+This is a synchronous reset: it takes effect at the rising edge, not immediately when `reset` changes. The reset input is not level-sensitive across the entire row. A mid-row change in `reset` occurs after sampling and before the next edge; it is carried forward and affects only the next rising edge. Therefore, a checker must not inspect the final reset value of a row to decide the current row’s expected output, and it must not apply reset whenever `reset` is high anywhere in the row. The correct sampling boundary is the pre-edge value of `reset` for the current row.
+
+A short worked example illustrates the boundary. Suppose the previous settled state is `q=3`, and the row drives `reset=0` before the rising edge. The expected post-edge state is 4. If `reset` then rises to 1 mid-row, the current expected `q` remains 4; the high reset is carried forward and should cause a reset only at the next rising edge. Conversely, if `reset=1` is driven before the edge and then falls to 0 after sampling, that edge must still reset the counter to 0; the later low value affects only the following edge.
+
+The decade wrap is equally important. The counter must count 0 through 9 inclusive and then return to 0. It must not continue to 10 through 15. The final checker should compute the next expected state as 0 when the pre-edge reset is high, otherwise `(previous + 1) % 10`, and it should reject any observed `q` outside the legal range 0..9. An implementation that increments a 4-bit register and exposes 10 for a cycle before resetting would violate the public specification even if it eventually returns to zero.
+
+For the final Python checker, the key discipline is to maintain the prior settled state, use the row’s pre-edge reset value to determine the current expectation, compare that expectation to the observed post-edge `q`, and then carry any mid-row input changes into the next row. It should not let a mid-row reset change the current row’s expected output, and it should not treat reset as level-sensitive across the whole row. With this discipline, an uninterrupted sequence of `reset=0` must visit each digit exactly once per ten rising edges and return to its starting value after ten increments.

@@ -1,0 +1,9 @@
+The key timing point for the checker is that the fall counter must be evaluated on the landing edge, not merely while `aaah` is asserted. A 20-cycle fall followed by `ground=1` must land safely and clear the counter; a 21-cycle fall must splatter. Testing only one long fall can miss a counter that is never cleared, because `aaah` masks the counter value. The checker should therefore do a safe 20-cycle fall, land, then repeat: another 20-cycle fall must still land safely, and a 21-cycle fall must splatter. This distinguishes a properly cleared counter from one that merely appears correct during the first fall.
+
+Reset timing is equally important. Since `areset` is asynchronous and positive-edge triggered, assert it between clock edges and verify the very next sampled row is walk-left with counter zero, splatter cleared, and `aaah`/`digging` low—without waiting for a clock edge. After reset release, the machine should remain walk-left until inputs move it.
+
+Precedence checks: `ground=0, dig=1` must fall, not dig; `ground=1, dig=1, bump=1` must dig, not turn; simultaneous `bump_left=1, bump_right=1` must still flip direction.
+
+Worked example: hold `ground=0` for 20 sampled cycles, then `ground=1` → safe landing, `aaah` drops, prior direction resumes, counter clears. Extend to 21 cycles → splatter, all outputs 0 until reset. Reset during either fall → next sampled row walk-left, counter zero.
+
+Finally, sample after the posedge settles and carry mid-cycle input changes to the start of the next row; this matters most at the landing edge, where counter comparison and splatter latch update together.

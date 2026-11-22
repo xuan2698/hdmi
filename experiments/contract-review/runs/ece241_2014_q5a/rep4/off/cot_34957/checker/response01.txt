@@ -1,0 +1,40 @@
+```python
+def reference(vectors):
+    # 2's complementer Moore FSM, LSB-first.
+    # States: S0 = no 1 seen yet (output 0), S1 = 1 seen (output 1).
+    # Reset (areset=1) asynchronously forces state S0 and z=0, ignoring x.
+    # Non-reset posedge: emit z from pre-edge state, then transition on x.
+    # Mid-cycle x changes are deferred to the next row.
+    out = []
+    state = 0  # S0
+    pending_x = 0
+    for row in vectors:
+        areset = row.get('areset', 0) & 1
+        # x value at sampling edge: use pending if present, else row's x
+        if 'x' in row:
+            x_sample = row['x'] & 1
+        else:
+            x_sample = pending_x
+        if areset:
+            state = 0
+            z = 0
+            # x ignored on reset row
+        else:
+            # Moore output from pre-edge state
+            z = state
+            # transition
+            if state == 0:
+                if x_sample == 1:
+                    state = 1
+                else:
+                    state = 0
+            else:
+                state = 1
+        out.append({'z': z & 1})
+        # mid changes: if row provides 'x_mid', carry to next row
+        if 'x_mid' in row:
+            pending_x = row['x_mid'] & 1
+        else:
+            pending_x = x_sample
+    return out
+```

@@ -1,0 +1,19 @@
+The public table defines a three-bit present state `y[2:0]`, a one-bit input `x`, a three-bit next state `Y[2:0]`, and a one-bit output `z`. Only five present states are listed: `000`, `001`, `010`, `011`, and `100`. For each listed state, the table gives two next-state entries, one for `x=0` and one for `x=1`, plus a single output value `z` that depends only on the present state, not on `x`.
+
+Reading the rows in order:
+
+- `y=000`: `x=0` gives next state `000`; `x=1` gives `001`; `z=0`.
+- `y=001`: `x=0` gives `001`; `x=1` gives `100`; `z=0`.
+- `y=010`: `x=0` gives `010`; `x=1` gives `001`; `z=0`.
+- `y=011`: `x=0` gives `001`; `x=1` gives `010`; `z=1`.
+- `y=100`: `x=0` gives `011`; `x=1` gives `100`; `z=1`.
+
+The requested logic functions are `Y[0]` and `z`. `Y[0]` is the least significant bit of the selected next state. It is not the full next state, and the checker must not compare `Y[2:1]`. The output `z` is a function of the present state alone: it is `1` for present states `011` and `100`, and `0` for `000`, `001`, and `010`.
+
+The key timing point is that each row’s expected values are determined by the present state and the input value sampled at that row’s sampling edge. The table’s two next-state columns are alternatives selected by `x`; they are not simultaneous requirements. Once a row has been sampled, a later change on `x` must not retroactively change that row’s expected `Y0` or `z`. The later `x` value matters only for the next sampled row.
+
+A short worked example: suppose the sampled present state is `y=011` and the sampled input is `x=0`. The row for `011` gives next state `001` when `x=0`, so `Y0=1`; the output for present state `011` is `z=1`. If `x` later changes to `1` after sampling, the `x=1` entry for that row would be next state `010`, whose low bit is `0`. That later value must not rewrite the already-sampled expectation: the row’s expected `Y0` remains `1` and `z` remains `1`. The change to `x=1` is relevant only when the next row is sampled.
+
+Reset and power-up behavior are not specified by the public table. The table describes next-state and output values for listed present states under the two input values, but it does not state an initial state, a reset state, or how the machine behaves before any sampled row. The checker should therefore avoid asserting a particular power-up state or reset sequence unless the harness separately establishes one. It should begin checking only from rows whose present state is one of the five listed states and whose sampled `x` is known at the sample point. If the design powers up in an unlisted state, the public specification provides no expected `Y0` or `z` for that state, so the checker must not treat that as a table violation. Similarly, it should not require `Y0` or `z` to take any particular value during reset or before the first valid sampled row.
+
+For the final checker, the safe interpretation is narrow and literal: for each sampled row with a listed present state, latch the sampled `x`, look up the next state for that pair, extract its least significant bit as expected `Y0`, and look up `z` from the present-state row. Compare only those latched expectations at the appropriate sample point. Ignore later `x` changes until the next row, do not compare `Y[2:1]`, and do not extrapolate to unlisted states or unspecified reset/power-up conditions. That keeps the checker aligned with the public specification and avoids the common error of letting post-sampling input changes rewrite the previous row’s expected outputs.

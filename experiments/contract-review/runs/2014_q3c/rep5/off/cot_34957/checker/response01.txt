@@ -1,0 +1,33 @@
+```python
+def reference(vectors):
+    # State-assigned transition table.
+    # For each present state y (3 bits), and captured input x:
+    #   next_state = table[y][x]
+    #   z = z_table[y]
+    # Y[0] = next_state & 1
+    next_table = {
+        0b000: (0b000, 0b001),
+        0b001: (0b001, 0b100),
+        0b010: (0b010, 0b001),
+        0b011: (0b001, 0b010),
+        0b100: (0b011, 0b100),
+    }
+    z_table = {
+        0b000: 0,
+        0b001: 0,
+        0b010: 0,
+        0b011: 1,
+        0b100: 1,
+    }
+
+    results = []
+    for row in vectors:
+        # Capture present state and input at the sampled edge.
+        y = row['y'] & 0b111
+        x = row['x'] & 0b1
+        nxt = next_table[y][x]
+        Y0 = nxt & 0b1
+        z = z_table[y]
+        results.append({'Y0': Y0, 'z': z})
+    return results
+```

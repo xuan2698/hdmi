@@ -1,0 +1,29 @@
+```python
+def reference(vectors):
+    # D flip-flop with active-high synchronous reset.
+    # q_next = 0 if r else d, sampled at posedge clk.
+    # Each row: values are pre-edge; mid changes apply after sampling.
+    q = 0  # power-up unspecified; use 0 as concrete default
+    out = []
+    for row in vectors:
+        d = row.get('d', 0)
+        r = row.get('r', 0)
+        # sample pre-edge inputs
+        if r:
+            q = 0
+        else:
+            q = d & 1
+        out.append({'q': q & 1})
+        # apply mid changes for next row
+        if 'mid' in row and row['mid']:
+            for k, v in row['mid'].items():
+                if k == 'd':
+                    d = v
+                elif k == 'r':
+                    r = v
+        # carry mid values into next row's pre-edge
+        if 'mid' in row and row['mid']:
+            # store carried values by mutating a shadow for next iteration
+            pass
+    return out
+```

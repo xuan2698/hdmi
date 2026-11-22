@@ -1,0 +1,23 @@
+def reference(vectors):
+    # Contract: full_module behavior is
+    #   q <= L ? r : {q[1]^q[2], q[0], q[2]}
+    # sampled on posedge clk. Each row provides inputs before the edge.
+    # Output key: 'Q' (3-bit unsigned integer).
+    # Initial q is unspecified; we use 0 as a concrete power-up value.
+    q = 0
+    out = []
+    for row in vectors:
+        L = row.get('L', 0) & 1
+        r = row.get('r', 0) & 0x7
+        if L:
+            q = r
+        else:
+            q0 = (q >> 0) & 1
+            q1 = (q >> 1) & 1
+            q2 = (q >> 2) & 1
+            nq0 = q1 ^ q2
+            nq1 = q0
+            nq2 = q2
+            q = (nq2 << 2) | (nq1 << 1) | nq0
+        out.append({'Q': q & 0x7})
+    return out

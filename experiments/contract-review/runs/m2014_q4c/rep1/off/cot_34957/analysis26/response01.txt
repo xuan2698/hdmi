@@ -1,0 +1,5 @@
+The key point for the final checker is ordering: mid-row changes occur after sampling and must not affect the just-sampled `q`; they only update the carried baseline for the next row. A common mistake is to let a mid-row reset change retroactively affect the sample, even though reset was not present at the sampled edge. Correct behavior: resolve pre-edge inputs from carried baseline plus pre-edge drives, sample once after the posedge settles, apply reset priority to that resolved pre-edge `r`, then apply mid-row changes to the carry.
+
+Also, “no drive before the edge” is not “input is 0.” The carried value is the baseline; missing drives do not default to zero. Model carried `d` and carried `r` explicitly and merge pre-edge drives onto them. At power-up, the public spec does not define initial `q` or carried inputs; the checker should not invent undocumented history beyond a clearly stated convention.
+
+Worked example: carried `d=0,r=0,q=0`; pre-edge drives `d=1,r=0`; sample gives `q=1`; mid-row `r=1` only sets next carry. Next row with no drives resolves `d=1,r=1`, so reset forces `q=0`.

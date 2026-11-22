@@ -1,0 +1,13 @@
+The most useful mistake to flag for the final checker is a **one-cycle phase error between `x` and `z`**, which is easy to miss because it is masked by degenerate input streams. The public spec says the conversion is LSB-first, the machine is Moore, and `z` is sampled after the positive edge has settled. That means the settled `z` in a given row must reflect the state reached by consuming that row's `x` on that same edge — not the state from the previous row.
+
+A checker that samples `z` before the edge, or that derives `z` combinationally from the current `x` instead of from the registered state, will be off by one. This bug is invisible on an all-zero stream (the machine never leaves `S0`, so both correct and buggy versions output zeros) and can also be masked on a stream that begins with `1` (the first edge already enters `S1`, so the first output is `1` under either interpretation). The divergence appears only after a leading `0` followed by a `1`.
+
+Worked example, LSB-first stream `0, 1, 0`:
+
+- Row 1: `x=0`, state stays `S0`, settled `z=0`.
+- Row 2: `x=1`, state becomes `S1`, settled `z=1`.
+- Row 3: `x=0`, state stays `S1`, settled `z=1`.
+
+Expected settled outputs: `0, 1, 1`. A lagged or combinational implementation yields `0, 0, 1`.
+
+Two related checks follow. First, since the machine is Moore, `z` must be constant within a row after the edge settles; a mid-row change on `z` is a defect and should be flagged, not silently accepted. Second, `areset` is asynchronous and active-high: asserting it forces `S0` immediately and discards partial conversion state, while releasing it starts a fresh conversion. The checker must ignore `z` entirely until reset has been asserted and released, because power-up state is unspecified. After release, each row's settled `z` must be compared against the state reached by consuming that row's `x` on the same edge. Any pre-reset `z` comparison is invalid.

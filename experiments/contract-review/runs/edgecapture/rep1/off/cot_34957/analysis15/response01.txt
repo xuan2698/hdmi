@@ -1,0 +1,13 @@
+The key state is a 32-bit history vector holding the sampled `in` value from the previous row. The output is a 32-bit sticky capture register. The checker must distinguish three things per row: the sampled input used for the current decision, the history carried from the prior row, and the output value after the edge.
+
+On a non-reset row, for each bit, a capture is credited exactly when history bit is 1 and the current sampled `in` bit is 0. That is the 1→0 transition. If credited, the output bit becomes 1 and stays 1. If not credited, the output bit retains its prior value. History then updates to the current sampled `in` for every bit, regardless of whether a capture occurred.
+
+On a reset row, the output is forced to 0 for all bits. No capture is credited even if the sampled stream contains a 1→0 transition relative to history. Crucially, history still updates to the current sampled `in`. This means a reset row can erase a pending 1 in history, preventing a spurious capture on the following row. The checker must not freeze history on reset rows.
+
+Mid-row input changes occur after sampling and before the next edge. They are not visible to the current row's capture decision. They belong to the next row's sampled input. A checker that compares a mid-row value against the current history would misattribute a transition. The correct comparison is always previous sampled `in` versus current sampled `in`, both taken at posedges.
+
+Power-up is unconstrained for the output. The checker should not require `out=0` before the first reset row. It may track history from sampled inputs from the start, but output assertions begin only after a reset row has established a known zero state. Before that, any output value is acceptable.
+
+Worked example: row 1 samples `in=1`, `reset=0`; history starts unknown but output unconstrained. Row 2 samples `in=0`, `reset=1`. The sampled stream shows 1→0, but reset forces `out=0` and credits no capture; history updates to 0. Row 3 samples `in=0`, `reset=0`. History is 0, current `in` is 0, so no capture; output stays 0. A checker that froze history at 1 on row 2 would falsely capture on row 3.
+
+The useful point for the final Python checker: maintain history separately from output; on reset rows force output zero and update history without crediting capture; on non-reset rows credit capture only where history=1 and sampled `in`=0, then update history; ignore mid-row changes for the current row; and leave output unconstrained until the first reset row.

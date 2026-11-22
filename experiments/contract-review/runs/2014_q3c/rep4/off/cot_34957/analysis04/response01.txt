@@ -1,0 +1,27 @@
+The public table defines a three-bit present state `y[2:0]`, a one-bit input `x`, a one-bit next-state bit `Y[0]`, and a one-bit output `z`. The input widths are `x:1` and `y:3`; the output widths are `Y0:1` and `z:1`. The clock is `clk`, and sampling occurs after the positive edge has settled. Each row’s values are driven before the sampled edge. Optional mid-input changes occur after sampling, before the other edge, and are carried to the start of the next row.
+
+The specified state transitions are:
+
+- `000`: next `000` when `x=0`, `001` when `x=1`; `z=0`.
+- `001`: next `001` when `x=0`, `100` when `x=1`; `z=0`.
+- `010`: next `010` when `x=0`, `001` when `x=1`; `z=0`.
+- `011`: next `001` when `x=0`, `010` when `x=1`; `z=1`.
+- `100`: next `011` when `x=0`, `100` when `x=1`; `z=1`.
+
+The output `z` depends only on the present state. It is high for `011` and `100`, and low for `000`, `001`, and `010`. A minimized expression is `z = y[2] OR (y[1] AND y[0])`, but this is only guaranteed for the five specified states. The final checker should avoid relying on minimized logic for unspecified states unless it explicitly masks them out.
+
+For `Y[0]`, the checker must examine the least-significant bit of the selected next state. `Y[0]=1` occurs for:
+
+- `y=000`, `x=1` → next `001`
+- `y=001`, `x=0` → next `001`
+- `y=010`, `x=1` → next `001`
+- `y=011`, `x=0` → next `001`
+- `y=100`, `x=0` → next `011`
+
+All other specified present-state/input combinations give `Y[0]=0`. Because the table is sparse, direct lookup is safer than a minimized Boolean expression. A checker that derives `Y[0]` from a minimized expression may accidentally assign behavior to unspecified states such as `101`, `110`, or `111`.
+
+The critical boundary condition is timing. For a given row, `Y[0]` must be computed from the pre-edge `y` and pre-edge `x`. The output `z` must be computed from the pre-edge `y` only. The checker samples after the positive edge has settled. A mid-cycle change on `x` occurs after sampling and before the other edge; it is carried to the start of the next row. Therefore, a later `x` change must not retroactively alter the already-sampled `Y[0]` or `z`.
+
+Worked example: suppose a row drives `y=011`, `x=0` before the positive edge. After settling, the checker expects `Y[0]=1` because the next state is `001`, and expects `z=1` because present state `011` has output 1. If `x` then changes to 1 mid-cycle, that change belongs to the next row’s setup and does not change the sampled values for the `011` row.
+
+Reset and power-up are not defined by the public table. The checker should not assume a reset state, reset polarity, or initial `y`. It should validate only rows whose present state is one of the five specified states, or start from a row explicitly driven by the testbench. The final Python checker should therefore use table-driven expected values for `Y[0]` and `z`, sample only after the positive edge has settled, and treat mid-cycle `x` changes as next-row setup rather than current-row inputs.

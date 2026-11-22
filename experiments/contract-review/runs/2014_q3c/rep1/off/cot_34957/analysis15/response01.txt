@@ -1,0 +1,21 @@
+The table describes a three-bit present state `y[2:0]`, a one-bit input `x`, a three-bit next state `Y[2:0]`, and a one-bit output `z`. Only `Y[0]` and `z` are required as logic functions in this pass. The state transitions are selected by the sampled value of `x`: for each listed present state, the `x=0` column gives the next state when `x` is low at the sampling edge, and the `x=1` column gives the next state when `x` is high at that edge. The output `z` is a function of the present state only.
+
+Reading the rows in order:
+
+- `y=000`: `x=0` goes to `000`; `x=1` goes to `001`; `z=0`.
+- `y=001`: `x=0` goes to `001`; `x=1` goes to `100`; `z=0`.
+- `y=010`: `x=0` goes to `010`; `x=1` goes to `001`; `z=0`.
+- `y=011`: `x=0` goes to `001`; `x=1` goes to `010`; `z=1`.
+- `y=100`: `x=0` goes to `011`; `x=1` goes to `100`; `z=1`.
+
+The output column is therefore high only for present states `011` and `100`. It is low for `000`, `001`, and `010`. No listed row makes `z` depend on `x`, so any implementation that gates `z` with `x` would disagree with the public table.
+
+For `Y[0]`, the low bit of the next state can be read directly from each row. When `x=0`, the next-state low bits are: `000`→`0`, `001`→`1`, `010`→`0`, `011`→`1`, `100`→`1`. When `x=1`, they are: `000`→`1`, `001`→`0`, `010`→`1`, `011`→`0`, `100`→`0`. Thus `Y0` is not simply a function of `y` alone; it depends on the sampled `x` as well. The checker must use the `x` value that was present at the sampling edge for the row being checked.
+
+A useful point for the final Python checker is timing. The specification says to sample after the positive edge has settled, and that optional mid-input changes occur after sampling and before the other edge. Therefore the expected `Y0` for a row must be computed from the `x` and `y` values latched at that row’s sample point, not from a later `x` value that may change before the next row. If a checker recomputes expected `Y0` from the live `x` signal after the sample point, it can report a false mismatch even when the design correctly followed the table entry selected at the sampling edge.
+
+A short worked example clarifies this. Suppose the sampled present state is `y=011` and the sampled input is `x=0`. The row for `011` says: with `x=0`, next state is `001`; with `x=1`, next state is `010`; output `z=1`. Since the sampled `x` is `0`, the expected next-state low bit is `Y0=1`, and the expected output is `z=1`. If `x` then changes to `1` after the sample point, the `x=1` entry for the same present state would imply next state `010` and `Y0=0`, but that later value must not be used to revise the already-sampled row. It is carried to the start of the next row and used only when the next row is sampled.
+
+This matters because a checker that continuously recomputes expected `Y0` from the current `x` can falsely fail a correct design when `x` changes mid-cycle. The checker should latch the row’s sampled `x` and `y`, then compare the design’s sampled `Y0` and `z` against the table entry for that latched pair. The output `z` is especially simple: it depends only on the sampled present state, with `z=0` for `000`, `001`, and `010`, and `z=1` for `011` and `100`. It does not depend on `x`.
+
+The checker should also avoid overreaching beyond the public specification. Reset and power-up are unspecified, so no particular initial state, reset value, or reset-time output should be required. The table lists only five states; if the design enters an unlisted state, the public specification gives no expected `Y0` or `z`, so that row should not be treated as a table violation. Finally, only `Y[0]` is specified as an output function here; `Y[2:1]` should not be compared. The useful checker behavior is therefore: sample after the positive edge settles, latch `y` and `x` for that row, compute expected `Y0` and `z` only for listed states with known sampled `x`, and let later `x` changes affect only the next row.

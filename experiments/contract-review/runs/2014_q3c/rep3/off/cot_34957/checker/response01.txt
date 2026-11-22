@@ -1,0 +1,20 @@
+```python
+def reference(vectors):
+    # State table: for each present state y, (next_state_x0, next_state_x1, z)
+    table = {
+        0b000: (0b000, 0b001, 0),
+        0b001: (0b001, 0b100, 0),
+        0b010: (0b010, 0b001, 0),
+        0b011: (0b001, 0b010, 1),
+        0b100: (0b011, 0b100, 1),
+    }
+    out = []
+    for row in vectors:
+        # Snapshot inputs at the sampling edge
+        y = row['y'] & 0b111
+        x = row['x'] & 0b1
+        nxt0, nxt1, z = table[y]
+        nxt = nxt1 if x else nxt0
+        out.append({'Y0': nxt & 0b1, 'z': z & 0b1})
+    return out
+```

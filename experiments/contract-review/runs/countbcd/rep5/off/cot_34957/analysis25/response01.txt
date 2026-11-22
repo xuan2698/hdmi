@@ -1,0 +1,5 @@
+The key timing point for the checker is that `ena` is a combinational function of the **pre-edge** `q`, while the next state is computed from that same pre-edge `q` with reset priority. These two computations must be kept independent: `ena` must not depend on `reset`, and it must not be derived from the post-edge `q`.
+
+Worked example: pre-edge `q = 0x0099`, `reset = 0`. Correct `ena = 3'b011` (tens and hundreds increment because ones and tens are 9), next state `0x0100`. A checker that samples `q` after the edge sees `0x0100` and wrongly reports `ena = 3'b000`. Similarly, pre-edge `q = 0x0999` with `reset = 1` must still yield `ena = 3'b111` even though the next state is `0x0000` — so do not gate `ena` with `reset`.
+
+Mid-cycle input changes apply only to the following row.

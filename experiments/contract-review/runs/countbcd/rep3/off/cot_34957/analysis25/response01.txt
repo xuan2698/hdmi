@@ -1,0 +1,7 @@
+The key timing point is that `ena` is a combinational function of the settled post-edge `q`, not a registered output. At each sampled posedge, the checker should first capture the new `q` (with synchronous active-high reset forcing `q = 0x0000`), then compute the three enables from that captured value. The enable for digit *d* (tens, hundreds, thousands) is high exactly when all lower digits are 9, because that is when digit *d* increments on the next count. Concretely, `ena[0]` (tens) = ones==9; `ena[1]` (hundreds) = ones==9 && tens==9; `ena[2]` (thousands) = ones==9 && tens==9 && hundreds==9.
+
+A subtle failure mode: if a candidate registers `ena` alongside `q`, the enables appear one cycle late even though `q` transitions correctly. A checker comparing only `q` would pass such a design. The final Python checker must therefore compare `ena` independently, using the same post-edge `q` from the sampled row.
+
+Worked example: settled `q = 0x0099`. Ones=9, tens=9, hundreds=0. Correct `ena = 3'b011` (tens and hundreds enabled, thousands not). A design deriving enables from the pre-edge `0x0098` might emit `3'b000` yet still reach `q = 0x0099`; only a separate `ena` check distinguishes them.
+
+Reset: when sampled high, `q = 0x0000`, so all lower digits are zero and `ena = 3'b111`. Do not suppress enables during reset. Mid-input changes occur after sampling and must not alter the just-sampled row's `ena`; carry them forward only as next-row starting inputs. Power-up state is undefined, so assume nothing before the first sampled edge.

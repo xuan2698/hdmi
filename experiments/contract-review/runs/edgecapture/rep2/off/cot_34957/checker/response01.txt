@@ -1,0 +1,25 @@
+```python
+def reference(vectors):
+    # Contract:
+    # - 32-bit sticky falling-edge (1 -> 0) detector on `in`.
+    # - Active-high synchronous reset clears `out` and re-baselines `in`.
+    # - Power-up: baseline unknown; first non-reset edge only initializes baseline,
+    #   no capture inferred from unknown prior value. Initial `out` treated as 0
+    #   for concrete output (unspecified power-up made concrete).
+    # - Mid-row changes occur after sampling and do not affect current row.
+    out = 0
+    baseline = None  # unknown at power-up
+    results = []
+    for row in vectors:
+        reset = row.get('reset', 0) & 1
+        inv = row.get('in', 0) & 0xFFFFFFFF
+        if reset:
+            out = 0
+            baseline = inv
+        else:
+            if baseline is not None:
+                out = (out | (baseline & (~inv & 0xFFFFFFFF))) & 0xFFFFFFFF
+            baseline = inv
+        results.append({'out': out & 0xFFFFFFFF})
+    return results
+```

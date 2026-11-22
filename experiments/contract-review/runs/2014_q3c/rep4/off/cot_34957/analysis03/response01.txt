@@ -1,0 +1,17 @@
+The public table defines a three-bit present state `y[2:0]`, a one-bit input `x`, a three-bit next state `Y[2:0]`, and a one-bit output `z`. Only `Y[0]` and `z` are required as logic functions, but the full next-state table is needed to understand how `Y[0]` is derived. The table has five specified present states: `000`, `001`, `010`, `011`, and `100`. States `101`, `110`, and `111` are not listed, so the public specification does not define their next-state or output behavior. The final checker should not invent values for those states; it should either avoid them or flag them as unspecified.
+
+For each specified row, the next state depends on both the present state and `x`. The output `z` depends only on the present state. Reading the rows:
+
+- `000`: next is `000` when `x=0`, `001` when `x=1`; `z=0`.
+- `001`: next is `001` when `x=0`, `100` when `x=1`; `z=0`.
+- `010`: next is `010` when `x=0`, `001` when `x=1`; `z=0`.
+- `011`: next is `001` when `x=0`, `010` when `x=1`; `z=1`.
+- `100`: next is `011` when `x=0`, `100` when `x=1`; `z=1`.
+
+Thus `z` is simply the OR of the present-state bits that are high in states `011` and `100`. In minimized form, `z = y[2] OR (y[1] AND y[0])`, with the caveat that this expression is only guaranteed for the five specified states. For `Y[0]`, the checker must look at the least-significant bit of the selected next state. From the table, `Y[0]=1` for the following present-state/input combinations: `000` with `x=1` (next `001`), `001` with `x=0` (next `001`), `010` with `x=1` (next `001`), `011` with `x=0` (next `001`), and `100` with `x=0` (next `011`). All other specified combinations give `Y[0]=0`. A compact expression is possible, but the final checker should prefer direct table lookup or a carefully verified Boolean expression, because the unspecified states make minimization risky if the checker accidentally extends the function.
+
+The most important implementation point is timing separation. Each row’s values are driven before the sampled positive edge. The checker samples after that edge has settled. A mid-cycle change on `x` occurs after sampling and before the other edge; it is carried to the start of the next row. Therefore, for the current row, `Y[0]` must be computed from the pre-edge `y` and pre-edge `x`, while `z` must be computed from the pre-edge `y` only. A later `x` change must not retroactively alter the already-sampled `Y[0]` or `z`.
+
+Worked example: if the row drives `y=011`, `x=0` before the positive edge, then after settling the checker expects `Y[0]=1` because the next state is `001`, and expects `z=1` because present state `011` has output 1. If `x` changes to 1 mid-cycle, that change belongs to the next row’s setup and does not change the sampled values for the `011` row.
+
+Reset and power-up are not defined by the public table. The checker should not assume a reset state, polarity, or initial `y`. It should validate only rows whose present state is one of the five specified states, or start from a row explicitly driven by the testbench.

@@ -1,0 +1,13 @@
+The public trace describes a 3-bit sequential register `q` sampled only on rising clock edges. The key behaviors are:
+
+1. **Power-up / initial value.** At time 0, `q` is `x`; the trace does not specify a reset value before the first posedge. At 5 ns, the first rising edge with `a = 1` produces `q = 4`. So the observed initial register value is 4, established at the first posedge, not before it. A checker should not require `q = 4` at time 0, and should not treat the initial `x` as a normal sampled state.
+
+2. **Hold while `a = 1`.** From 5 ns through 45 ns, every posedge with `a = 1` leaves `q = 4`. Falling-edge rows merely repeat the value from the preceding posedge; they are not state transitions. The checker should update only on posedges.
+
+3. **Delayed response to `a` falling.** This is the critical behavior. At 45 ns the posedge sees `a = 0`, but `q` remains 4. The increment does not happen until the 55 ns posedge, where `q` becomes 5. Therefore the circuit does not increment on every posedge with `a = 0`. It holds on the first low-input posedge after a high run, then increments on subsequent low-input posedges. Equivalently, the implementation needs a small state flag recording whether a low sample has already been consumed since the last high run. A checker that increments immediately when `a = 0` at a posedge will fail at 45 ns.
+
+4. **Modulo-8 counting.** Once the delayed increment begins, `q` advances 4 → 5 → 6 → 0 → 1 at 55, 65, 75, and 85 ns respectively, wrapping modulo 8.
+
+A short worked example: starting from `q = 4`, the 45 ns posedge has `a = 0` but is the first low edge, so `q` stays 4. The 55 ns posedge increments to 5, 65 ns to 6, 75 ns wraps to 0, and 85 ns gives 1. This matches every sampled row.
+
+The final checker should model a 3-bit posedge register with observed initial value 4, hold on `a = 1`, and include a special first-low-edge hold before normal modulo-8 incrementing on later `a = 0` posedges. The most useful guard is to require that first low posedge to hold rather than increment. Mid-cycle input changes, if any, are carried to the start of the next row; the public trace has none, but the checker should follow the stated sampling discipline rather than assuming `a` is stable everywhere.

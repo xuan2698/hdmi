@@ -1,0 +1,5 @@
+The key state is a persistent 32-bit `prev` vector updated on every sampled edge, independent of reset. On each edge, compute `capture = prev & ~in` using the pre-edge `prev`, then update `prev = in`. Output behavior: if `reset` is high, `out` becomes 0; otherwise `out = out | capture`. Reset must not clear `prev`, so a 1-to-0 transition spanning a reset cycle is still detected.
+
+Worked example: `prev=all ones`, `reset=1`, `in=all ones` → `out=0`, `prev` stays all ones. Next edge: `reset=0`, `in=all zeros` → `capture=all ones`, so `out=all ones`. A checker that cleared history on reset would wrongly expect `out=0` here.
+
+For the final checker: gate assertions until an initial reset edge establishes known state, then compare cycle by cycle, and include this directed reset-spanning case across all 32 bits.

@@ -1,0 +1,28 @@
+```python
+def reference(vectors):
+    # D flip-flop with active-high synchronous reset.
+    # On each sampled posedge: q = 0 if r else d (r dominant).
+    # Mid-row input changes occur after sampling and apply to the next row.
+    # Power-up q is unspecified; we track it once known.
+    q = None
+    out = []
+    for row in vectors:
+        d = row.get('d', 0)
+        r = row.get('r', 0)
+        # Apply synchronous reset/load at the sampled edge
+        if r:
+            q = 0
+        else:
+            q = d & 1
+        out.append({'q': q})
+        # Mid-row changes (if any) are carried to next row's start values.
+        # They do not affect this row's sampled output.
+        if 'mid' in row and row['mid']:
+            mid = row['mid']
+            if 'd' in mid:
+                # carried to next row start; handled by harness providing next row's d
+                pass
+            if 'r' in mid:
+                pass
+    return out
+```

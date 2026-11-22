@@ -1,0 +1,25 @@
+```python
+def reference(vectors):
+    # D flip-flop with active-high synchronous reset.
+    # q is the only state; power-up is unspecified, so we establish q=0
+    # before the first sampled edge (harness convention).
+    q = 0
+    out = []
+    for row in vectors:
+        # Pre-edge inputs (values driven before the sampled posedge).
+        d = row['d'] & 1
+        r = row['r'] & 1
+        # Compute next state from pre-edge inputs.
+        if r:
+            nq = 0
+        else:
+            nq = d
+        # Commit state at the settled posedge.
+        q = nq
+        # Report settled output for this row.
+        out.append({'q': q & 1})
+        # Mid-row input changes occur AFTER sampling; they are carried
+        # into the next row's pre-edge values, so nothing to do here
+        # beyond noting the ordering contract.
+    return out
+```

@@ -1,0 +1,17 @@
+The key distinguishing point for the final checker is the interaction between the absorbing accept state and the fallback transitions on the way there. A naive implementation often treats the FSM as a pure pattern matcher that can "restart" after a match, or that recomputes `start_shifting` from the current input bit. The public spec forbids both: once accept is reached, `start_shifting` is 1 forever until a synchronous reset, and the state must not leave accept on any later data bit.
+
+Consider the fallback structure carefully. The states are effectively: S0 (no useful prefix), S1 (prefix "1"), S2 (prefix "11"), S3 (prefix "110"), and ACCEPT. The transitions are:
+
+- S0: data 0 → S0, data 1 → S1
+- S1: data 0 → S0, data 1 → S2
+- S2: data 0 → S3, data 1 → S2 (because "11" is still a valid two-bit prefix after seeing another 1)
+- S3: data 0 → S0, data 1 → ACCEPT
+- ACCEPT: any data → ACCEPT, output 1
+
+The subtle fallback is S2 on data 1 staying in S2 rather than going to S1. If a checker instead used a generic "longest suffix that is a prefix" rule, it would still get S2 here, but a hand-rolled transition table might mistakenly send S2→S1 on 1. That error would only show up on inputs like 11101, where the correct machine accepts after the final 1, but the buggy one would be in S1 at that point and miss the match. So the checker should verify the S2 self-loop on 1 explicitly.
+
+Another subtlety is the S3 fallback on 0. After "110", a 0 gives history "1100". The longest suffix that is a prefix of "1101" is empty, so S3→S0 is correct. A checker that tried to keep a partial match like "0" would be wrong because "0" is not a prefix of the target. This matters for inputs like 11001: the correct machine is in S0 after the third bit, then S0 after the fourth, then S1 after the fifth, and does not accept. A buggy fallback that went S3→S1 on 0 would incorrectly accept at the end.
+
+The worked example in the prompt already illustrates the sampling boundary: a mid-cycle data change after the posedge belongs to the next row. The checker must latch `reset` and `data` at the sampled edge, apply reset priority first, then transition. The output is read from the settled post-edge state, not from the pre-edge state and not from a combinational function of the raw input.
+
+For the final Python checker, the most useful focus is to encode the five-state transition table exactly as above, with ACCEPT as an absorbing state whose output is 1 regardless of data, and to compare `start_shifting` only after the edge has settled. A short distinguishing input is `1101` followed by `0`: the correct output sequence after each posedge is 0,0,0,1,1. A checker that lets ACCEPT fall back on the trailing 0 would produce 0,0,0,1,0 and fail. That single case exercises the absorbing property, the S3→ACCEPT transition, and the post-edge output timing all at once.

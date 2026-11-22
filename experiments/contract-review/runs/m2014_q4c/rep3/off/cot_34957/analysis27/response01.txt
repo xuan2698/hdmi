@@ -1,0 +1,3 @@
+The transition rule is: on each sampled posedge, if `r` is high then `q` becomes 0; otherwise `q` becomes the row-start value of `d`. Reset is synchronous and dominant, so the checker should branch on `r` first: `expected_q = 0 if r else d`. Mid-row input changes occur after sampling and must be carried to the next row, not applied to the current expected output. Power-up `q` is unspecified; do not assume an initial value unless the harness provides one, and begin comparison only once the prior `q` is known.
+
+Worked example: prior `q=1`, row-start `d=0`, `r=0` → expected post-edge `q=0`. A later mid-row `d=1` does not change this row’s expectation; it applies next row. If `r=1`, expected `q=0` regardless of `d`.

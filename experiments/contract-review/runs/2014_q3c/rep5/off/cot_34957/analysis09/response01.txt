@@ -1,0 +1,15 @@
+The public table defines a three-bit present state `y[2:0]`, a one-bit input `x`, a three-bit next state `Y[2:0]`, and a one-bit output `z`. The implementation target is only `Y[0]` (the low bit of the next state) and `z`. The table has five defined rows, for present states `000` through `100`. States `101`, `110`, and `111` are not specified by the public table, so their transitions and outputs are undefined for checker purposes.
+
+Reading the rows as a direct lookup keyed by the settled pair `(y, x)`:
+
+- `y=000`: `x=0` gives next state `000`, `z=0`; `x=1` gives next state `001`, `z=0`. So `Y[0]` is `0` for both inputs, and `z=0` for both.
+- `y=001`: `x=0` gives next state `001`, `z=0`; `x=1` gives next state `100`, `z=0`. `Y[0]` is `1` for `x=0` and `0` for `x=1`; `z=0` in both cases.
+- `y=010`: `x=0` gives next state `010`, `z=0`; `x=1` gives next state `001`, `z=0`. `Y[0]` is `0` for `x=0` and `1` for `x=1`; `z=0` in both cases.
+- `y=011`: `x=0` gives next state `001`, `z=1`; `x=1` gives next state `010`, `z=1`. `Y[0]` is `1` for `x=0` and `0` for `x=1`; `z=1` in both cases.
+- `y=100`: `x=0` gives next state `011`, `z=1`; `x=1` gives next state `100`, `z=1`. `Y[0]` is `1` for both inputs; `z=1` for both.
+
+The output `z` is a function of the same row as the next-state entry. It is not simply a function of `Y[0]`, nor of the current state alone. For instance, at `y=011, x=1`, the next state is `010`, so `Y[0]=0`, yet `z=1`. At `y=001, x=0`, `Y[0]=1` but `z=0`. Thus a checker must extract `Y[0]` as bit 0 of the row’s next-state value and take `z` directly from that same row, rather than deriving one from the other.
+
+A short worked example: suppose the sampled present state is `y=011` and the sampled input is `x=1`. The row gives next state `010` and output `z=1`. Therefore expected `Y[0]` is the low bit of `010`, namely `0`, and expected `z` is `1`. If `x` changes to `0` after the sampling edge but before the next sampled edge, that change belongs to the next row; it must not retroactively alter the expected outputs for the `(011,1)` sample. Re-evaluating the same row with `x=0` would give next state `001`, hence `Y[0]=1`, which would be a false failure. Since `z` happens to remain `1` for both inputs in this row, checking only `z` would miss the error; checking `Y[0]` exposes it.
+
+The most useful point for the final Python checker is therefore the sampling discipline: capture the settled `(y, x)` at the sampling edge, perform a direct table lookup for that pair, take `Y[0]` from bit 0 of the table’s next-state entry, and take `z` from the same row. Do not let any post-sampling input transition affect the current row’s expected values. Also, do not assume a reset or power-up state, and do not treat the undefined encodings `101`, `110`, or `111` as valid table rows unless the testbench explicitly drives a defined state.

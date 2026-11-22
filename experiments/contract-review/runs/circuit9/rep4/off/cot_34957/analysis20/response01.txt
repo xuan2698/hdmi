@@ -1,0 +1,9 @@
+The public trace shows no explicit reset signal and no separate load or enable control. Power-up state is simply `q = 4`, and the first rising edge at 5 ns is an ordinary clock edge: because `a = 1`, the state holds at 4. There is no evidence that the first edge is special. A checker should therefore initialize the state to 4 and then apply the same transition rule at every rising edge.
+
+The transition rule is: if `a = 1`, hold the current state; if `a = 0`, increment modulo 7. The modulo-7 behavior is essential. From 65 ns to 75 ns, the state goes from 6 to 0, not to 7. A plain 3-bit incrementer would produce 7 and then diverge from the trace. The correct update is `(q + 1) % 7`.
+
+Falling edges do not affect the state. They appear in the trace only to show the clock period. Mid-cycle changes to `a`, if present, occur after sampling and must be carried to the next rising edge; the checker should sample `a` at each rising edge and ignore later changes until the next edge.
+
+Worked example: at 65 ns, `q = 5` and `a = 0`; the next rising edge at 75 ns gives `(5 + 1) % 7 = 6`. At 75 ns, `q = 6` and `a = 0`; the next rising edge at 85 ns gives `(6 + 1) % 7 = 0`, confirming both increment and wrap.
+
+For the final Python checker, the key points are: initialize `q = 4`; on each rising edge, if `a == 1` hold, else set `q = (q + 1) % 7`; ignore falling edges; and add no reset or first-edge special case beyond what the public trace supports.

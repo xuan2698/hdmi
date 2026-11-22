@@ -1,0 +1,15 @@
+**Reset and power-up behavior**
+
+The public specification contains no reset port, no initial-value declaration, and no `initial` block. Consequently, the three submodule flip-flops that hold the state bits have no defined power-up value in the Verilog source. At time zero, before any rising edge of `clk`, the outputs `Q` of the three instances are `x` in simulation (and indeterminate in hardware until a known load occurs). The parent's combinational XOR/permutation network therefore also produces `x` on its feedback lines until the state becomes known.
+
+This matters for the checker in two distinct ways.
+
+First, the structural pass must not depend on known data. Hierarchy, instance count, shared `clk`/`L`, per-instance `r_in` wiring, and the parent-side XOR/permutation must be verified on every row, including the very first rows where `Q` is `x`. A checker that gates the structural pass on "all `Q` bits known" would silently skip the earliest rows — exactly the rows where a mis-wired instance is most likely to be exposed before feedback masks it.
+
+Second, the functional pass must be dependency-aware from the first sampled edge onward. Because there is no reset, the pre-edge word for row 0 is unknown. Under `L=1`, the load path overwrites all three bits from `r_in`, so all three slices become checkable immediately at the first rising edge regardless of the unknown prior state. Under `L=0`, the next-state function reads the prior word, so an unknown prior bit poisons only the slices whose expected value depends on it: bit 2 depends on `q[1]` and `q[2]`, bit 1 on `q[0]`, bit 0 on `q[2]`. The checker should compare a slice only when every pre-edge bit feeding that slice's expected value is known, and skip otherwise — never fail on `x`.
+
+A subtlety: the mid-input change window is transport only. It occurs after sampling and before the next edge, so it belongs to the start of the following row. It must not be attributed to the edge just sampled, and it must not be treated as a reset or as a way to "clean" unknown state. Unknowns propagate through the feedback path exactly as the RTL dictates; the checker's job is to model that propagation, not to assume the mid-window resolves it.
+
+Worked example (short): suppose after some edge the reconstructed pre-edge word for the next row is `q = 3'b1x0` and `L=0`. Expected next word is `{q[1]^q[2], q[0], q[2]} = {x, 1, 0}`. Bit 2 is skipped (depends on unknown `q[1]`); bits 1 and 0 are compared. If instead `L=1` with `r_in = 3'b011`, all three slices are compared against `011` even though the prior word was unknown.
+
+The useful point for the final checker: treat power-up as "all state unknown, no reset," run the structural pass unconditionally on every row (including unknown rows), and run the functional pass with per-slice dependency gating — full comparison under `L=1`, dependency-limited comparison under `L=0`. This ordering prevents structural violations from being masked by coincidentally correct sampled data and prevents unknown-state rows from producing false functional failures.

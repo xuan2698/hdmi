@@ -1,0 +1,12 @@
+The circuit is a 3-bit register with a synchronous load-versus-increment behavior selected by input `a`. At each rising edge of `clk`, the sampled value of `a` determines the next state of `q`:
+
+- If `a = 1` at the posedge, `q` is loaded with the constant value 4.
+- If `a = 0` at the posedge, `q` increments by one modulo 8, i.e. `q_next = (q + 1) & 7`.
+
+There is no separate reset in the interface. The trace begins with `q = x` at time 0, and the first rising edge at 5 ns is the first event that defines `q`. Because `a = 1` at that edge, the load value 4 is captured, so `q` becomes 4 at 5 ns. A checker should therefore treat `q` as unknown before the first posedge and should not require any particular initial value at time 0. The first posedge is the only initialization mechanism visible in the public specification.
+
+The load behavior is level-sensitive with respect to `a` at the sampling edge, not edge-triggered by changes in `a`. While `a` remains 1, every rising edge reloads 4, so `q` stays at 4 from 5 ns through 45 ns. When `a` becomes 0 before the 55 ns posedge, the increment behavior begins: 4→5 at 55 ns, 5→6 at 65 ns, 6→0 at 75 ns, and 0→1 at 85 ns. The 6→0 transition confirms modulo-8 wrap, consistent with a 3-bit output. The same wrap would occur from 7→0 even though 7 is not exercised in this trace.
+
+A short worked example clarifies the timing contract. At the 65 ns rising edge, `a` has been 0 since before the edge, and the previous sampled value was `q = 5`; the edge therefore produces `q = 6`. At the 75 ns rising edge, `a` is still 0 and `q = 6`, so the next value is `(6 + 1) mod 8 = 0`. The checker should apply exactly this recurrence at each posedge and compare against the sampled row.
+
+The most useful point for the final Python checker is the precise update rule and its timing qualification: model `q` as a 3-bit register whose next value at a rising edge is `4` when `a = 1` and `(q + 1) & 7` when `a = 0`, with `q` initially unknown and first defined by the 5 ns load. The checker should also confirm that `a` is stable across each posedge, since the spec allows mid-cycle input changes only after sampling and before the opposite edge; any change of `a` must be complete before the next rising edge and must not alter the value already sampled. No other state, reset, or enable behavior is evidenced by the public trace.

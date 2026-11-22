@@ -1,0 +1,3 @@
+The sampled negative edge is the only event that updates `q`. For each row, the checker should first capture `d` and `reset` as driven before that edge, then compare `q` after the edge has settled. Mid-row input changes occur after sampling and before the next edge, so they must not affect the current row’s expected value; they only matter for the next sampled edge.
+
+A useful pitfall: if a row drives `reset = 0` and `d = 0x34`, the expected `q` is `0x34` by data load, not by reset. A checker that treats `q == 0x34` as evidence of reset would misclassify this row. The final checker should therefore derive expected `q` from the sampled `reset` input, not from `q` or `d` alone, and should begin enforcing `q` only after observing a sampled negative edge with `reset = 1`.

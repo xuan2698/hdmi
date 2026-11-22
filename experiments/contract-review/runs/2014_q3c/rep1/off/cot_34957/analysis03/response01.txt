@@ -1,0 +1,17 @@
+The public table is a state-assigned transition table with present state `y[2:0]`, a single input `x`, next state `Y[2:0]`, and output `z`. The requested implementation exposes only `Y[0]`, the least-significant bit of the next state, plus `z`. The table lists one `z` value per present-state row, not one per `x` branch. That structural fact is the most important point for the final Python checker: in the public specification, `z` is a function of the present state `y` alone. It is not a Mealy output depending on `x`, because no row gives separate `z` values for `x=0` and `x=1`.
+
+Reading the rows in order:
+
+- `y=000`: next state is `000` for `x=0` and `001` for `x=1`; output `z=0`.
+- `y=001`: next state is `001` for `x=0` and `100` for `x=1`; output `z=0`.
+- `y=010`: next state is `010` for `x=0` and `001` for `x=1`; output `z=0`.
+- `y=011`: next state is `001` for `x=0` and `010` for `x=1`; output `z=1`.
+- `y=100`: next state is `011` for `x=0` and `100` for `x=1`; output `z=1`.
+
+The next-state low bit `Y[0]` is therefore determined by both `y` and `x`, while `z` is determined only by `y`. For the final checker, this means the expected `z` should be selected from the row indexed by the sampled present state, independent of the driven `x` at that sampling edge. The expected `Y[0]` should be selected from the appropriate `x=0` or `x=1` next-state entry, then reduced to its low bit. The checker should not require the full `Y[2:0]` bus, since only `Y[0]` is in the output interface.
+
+The protocol wording adds a timing constraint. Inputs for a row are driven before the sampled posedge. After the posedge has settled, the checker samples `Y[0]` and `z`. Optional mid-input changes occur only after that sampling, before the other edge, and are carried to the start of the next row. Such changes must not retroactively alter the values already sampled for the current row. In particular, if `x` changes after the posedge, the sampled `z` for that row must remain the row’s listed value.
+
+A short worked example is row `y=011`. For `x=0`, the next state is `001`, so `Y[0]=1`. For `x=1`, the next state is `010`, so `Y[0]=0`. The row’s output is `z=1` for both branches. If the checker samples this row at `x=0`, it should expect `Y[0]=1` and `z=1`. If `x` later changes to `1` after sampling, the already-sampled `z` must still be treated as `1`; the later change belongs to the next-row setup, not to the completed sample.
+
+The useful focus for the final Python checker is thus: separate sampled edge values from later combinational settling, treat `z` as row-indexed by `y` unless the public table explicitly shows `x` dependence, and compare only the requested low bit `Y[0]` rather than the full next-state vector.

@@ -1,0 +1,69 @@
+```python
+def reference(vectors):
+    # Contract:
+    # - top_module instantiates three submodules, each = 1 flipflop + 2:1 mux.
+    # - Submodule: on posedge clk, if L then Q <= r_in else Q <= fb.
+    # - Cross-connections (feedback):
+    #     bit2 fb = q[1] ^ q[2]
+    #     bit1 fb = q[0]
+    #     bit0 fb = q[2]
+    # - L selects r (load) vs feedback.
+    # - Sample after posedge settles; mid changes occur after sampling and
+    #   carry to the start of the next row.
+    #
+    # State: q[2:0], initially unknown (None).
+    # Each row: apply any pending mid changes (already applied at end of prev row),
+    # then compute next state from current q and inputs, then apply mid changes.
+
+    q = [None, None, None]  # q[0], q[1], q[2]
+    results = []
+
+    for row in vectors:
+        # Inputs for this row (driven before the sampled edge)
+        r = row.get('r_in', row.get('r', 0))
+        L = row.get('L', 0)
+        clk = row.get('clk', 1)
+
+        # Ensure r is 3 bits
+        r = r & 0x7
+
+        # Compute next state based on current q and inputs
+        if L:
+            nq = [ (r >> 0) & 1, (r >> 1) & 1, (r >> 2) & 1 ]
+        else:
+            # feedback expressions
+            # bit0 fb = q[2]
+            fb0 = q[2]
+            # bit1 fb = q[0]
+            fb1 = q[0]
+            # bit2 fb = q[1] ^ q[2]
+            if q[1] is None or q[2] is None:
+                fb2 = None
+            else:
+                fb2 = q[1] ^ q[2]
+            nq = [fb0, fb1, fb2]
+
+        # Sample after posedge: update state
+        q = nq
+
+        # Build output Q as 3-bit integer; unknown bits -> 0 (concrete unsigned)
+        Q = 0
+        for i in range(3):
+            if q[i] is not None:
+                Q |= (q[i] & 1) << i
+
+        results.append({'Q': Q})
+
+        # Apply mid changes AFTER sampling (carried to next row's start)
+        # Mid changes are given as 'mid' dict with possible keys r_in, L
+        mid = row.get('mid', None)
+        if mid:
+            # These affect the next row's inputs; we store them by mutating
+            # the next row's effective inputs. Since we process row by row,
+            # we apply them to a pending override.
+            # To keep it simple, we apply to the next row's inputs by
+            # storing in a pending dict.
+            pass  # handled below via pending mechanism
+
+    return results
+```

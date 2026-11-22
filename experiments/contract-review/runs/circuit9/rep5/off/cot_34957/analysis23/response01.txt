@@ -1,0 +1,3 @@
+The circuit is a modulo-8 counter gated by an armed flag. A high `a` holds `q` and sets the flag; once armed, each rising edge with `a = 0` increments `q` by one mod 8, and the flag stays set. Initial `q = 4`, flag = 0.
+
+Worked example: at 5 ns, `a = 1` holds `q = 4` and arms the flag. At 55 ns, `a = 0` with the old flag already 1, so `q` becomes 5. The checker must update `q` and the flag from their pre-edge values: increment only when old flag = 1 and `a = 0`; new flag = old flag OR `a`. Using the new flag would lag by one cycle and miss the 55 ns transition. Seed `q = 4`, flag = 0; ignore the time-0 unknown; sample after each posedge.

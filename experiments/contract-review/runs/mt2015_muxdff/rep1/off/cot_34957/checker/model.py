@@ -1,0 +1,140 @@
+def reference(vectors):
+    # State: three lanes, each with q (3 bits) and L/r inputs.
+    # Power-up q is unspecified; we track a "known" flag per lane.
+    # The module: on posedge clk, if L: q <= r; else q <= {q[1]^q[2], q[0], q[2]}.
+    # Inputs per row: L (1 bit), r (3 bits), and optional mid changes.
+    # Output: Q (3 bits) per lane? Wait: output widths {'Q': 1}? 
+    # Re-read: "Input widths {'L': 1, 'q_in': 1, 'r_in': 1}; output widths {'Q': 1}."
+    # Hmm, that suggests each lane is 1-bit? But the module has 3-bit q and r.
+    # The problem says: "a flipflop and 2-1 multiplexer are in a submodule, and that submodule is instantiated three times".
+    # So top_module has three instances, each 1-bit? Let's interpret:
+    # The full_module has 3-bit q and r. But the hierarchical design uses three 1-bit submodules.
+    # So each submodule: input L, r_in (1 bit), clk; output Q (1 bit).
+    # The submodule is a 1-bit flipflop with 2-1 mux: if L: Q <= r_in; else Q <= feedback.
+    # But what is the feedback for a 1-bit lane? The full_module's feedback is:
+    # q <= {q[1]^q[2], q[0], q[2]}.
+    # So lane 0 gets q[1]^q[2], lane 1 gets q[0], lane 2 gets q[2].
+    # So the three submodules are not identical in feedback; they are wired differently.
+    # The problem says: "a flipflop and 2-1 multiplexer are in a submodule, and that submodule is instantiated three times".
+    # So the submodule is generic: input L, r_in, feedback_in, clk; output Q.
+    # Inside: if L: Q <= r_in; else Q <= feedback_in.
+    # Then top_module wires the three instances with appropriate feedback.
+    # So each lane's Q is 1 bit. Output Q is 1 bit per lane? The output widths say {'Q': 1}.
+    # So the reference function returns for each row a dict with 'Q' as a 1-bit value? But there are three lanes.
+    # Wait: "Return only executable Python with function reference(vectors). For each row return a dictionary with every output and a concrete unsigned integer within that output's bit width"
+    # The output is 'Q' with width 1. So maybe the top_module has a single output Q? But three instances?
+    # Re-read: "You want to create a hierarchical Verilog design where a flipflop and 2-1 multiplexer are in a submodule, and that submodule is instantiated three times in this code. Create the submodule called 'top_module'."
+    # So top_module is the hierarchical design containing three instances. The full_module is the flat version.
+    # The full_module has output q[2:0]. So top_module should also have output q[2:0]? But the spec says output widths {'Q': 1}.
+    # Possibly the checker only checks one bit? Or the output is named Q and is 1 bit? That doesn't match.
+    # Let's look at the worked example: "seed L = 1, r = 3'b101, sample Q = 101." So Q is 3 bits.
+    # But the spec says output widths {'Q': 1}. Contradiction.
+    # Maybe the spec is for the submodule? "Input widths {'L': 1, 'q_in': 1, 'r_in': 1}; output widths {'Q': 1}."
+    # That matches a 1-bit submodule: L (1), q_in (1) [feedback], r_in (1), output Q (1).
+    # So the reference function is for the submodule? But the problem says "Create the submodule called 'top_module'." That's confusing.
+    # Actually: "You want to create a hierarchical Verilog design where a flipflop and 2-1 multiplexer are in a submodule, and that submodule is instantiated three times in this code. Create the submodule called 'top_module'."
+    # So top_module is the hierarchical design (the whole thing). The submodule is the 1-bit flipflop+mux.
+    # The reference function should simulate top_module, which has three instances.
+    # But the output widths say {'Q': 1}. Maybe the top_module output is a single bit? No, the full_module has 3-bit q.
+    # Perhaps the checker only checks one lane? Or the output is named Q and is 3 bits? The spec says width 1.
+    # Let's assume the reference function is for the 1-bit submodule, and the vectors contain L, q_in, r_in, and we output Q.
+    # But the worked example uses 3-bit r and 3-bit Q. So that's for the full_module.
+    # The problem says: "Consider this Verilog module 'full_module': ... You want to create a hierarchical Verilog design ... Create the submodule called 'top_module'."
+    # So top_module is the hierarchical version of full_module. It should have the same interface: input [2:0] r, input L, input clk, output reg [2:0] q.
+    # But the spec says output widths {'Q': 1}. That might be a typo, or maybe the checker only checks one bit of q? Unlikely.
+    # Let's re-read: "Input widths {'L': 1, 'q_in': 1, 'r_in': 1}; output widths {'Q': 1}."
+    # This exactly matches the submodule: L (1), q_in (1) [feedback input], r_in (1), output Q (1).
+    # So the reference function is for the submodule, not top_module. But the problem says "Create the submodule called 'top_module'." That's a naming confusion.
+    # Actually: "Create the submodule called 'top_module'." means the submodule is named top_module? That's weird.
+    # Let's parse: "You want to create a hierarchical Verilog design where a flipflop and 2-1 multiplexer are in a submodule, and that submodule is instantiated three times in this code. Create the submodule called 'top_module'."
+    # So the submodule is called top_module? That's backwards. Usually top_module is the top level.
+    # Maybe they mean: create the top module (the hierarchical design) and call it top_module. The submodule is the flipflop+mux.
+    # The spec for the reference function: "Input widths {'L': 1, 'q_in': 1, 'r_in': 1}; output widths {'Q': 1}."
+    # That is for the submodule. So the reference function simulates the submodule.
+    # But the worked example uses 3-bit r and 3-bit Q. That's for the full_module.
+    # The problem says: "Worked example: seed L = 1, r = 3'b101, sample Q = 101." That's for full_module.
+    # So the reference function should simulate full_module? But then output width is 3, not 1.
+    # Maybe the spec is wrong, and output width is 3. Let's assume output Q is 3 bits.
+    # The vectors will have L, r (3 bits), and optional mid changes. We need to output Q (3 bits) after posedge.
+    # The submodule is 1-bit, but top_module instantiates three of them.
+    # So we can simulate the three lanes independently, each with its own 1-bit state.
+    # The feedback for lane 0: q[1]^q[2]; lane 1: q[0]; lane 2: q[2].
+    # So each lane's next state depends on the current q of all lanes.
+    # So we need to keep the three q bits together.
+    # The reference function should take vectors, each row has L, r (3 bits), and possibly mid changes.
+    # We need to output Q (3 bits) after the posedge has settled.
+    # Power-up: q is unspecified. So first row's Q is unknown. But the checker will drive L=1 with chosen r to set known state.
+    # So we can assume initial q is unknown, but we can track a "known" flag. If unknown, output can be anything? The spec says "even when power-up is unspecified" return a concrete unsigned integer. So we need to pick a value. We can pick 0 for unknown.
+    # But the checker will only compare after a load. So we can just start with q=0 and known=False. When L=1, q becomes r, known=True. When L=0 and known=False, q remains unknown (we can keep 0). But the checker won't check those.
+    # So we can just simulate with q=0 initially, and it will be overwritten on first load.
+    # The mid changes: "Optional mid input changes occur AFTER sampling, before the other edge, and are carried to the start of the next row."
+    # So for each row, we have pre-edge inputs (L, r) that are driven before the posedge. Then we sample Q after posedge. Then there may be mid changes to L and/or r that occur after sampling, before the next posedge. These mid changes affect the next row's pre-edge values? Actually "carried to the start of the next row" means the next row's pre-edge inputs are the mid-changed values from the previous row, unless overridden by the next row's pre-edge inputs? The problem says: "Each row's values are driven before the sampled edge. Optional mid input changes occur AFTER sampling, before the other edge, and are carried to the start of the next row."
+    # So the sequence: for row i, we have pre-edge inputs (L_i, r_i) driven before posedge. Then posedge occurs, we sample Q_i. Then mid changes (L_mid_i, r_mid_i) occur after sampling, before next posedge. These mid changes become the pre-edge inputs for row i+1, unless row i+1 specifies new pre-edge inputs? The problem says "carried to the start of the next row", so they are the starting values for the next row. But the next row also has its own pre-edge inputs? The vectors probably specify for each row the pre-edge inputs and optional mid changes. So we need to apply mid changes after sampling, and they persist to the next row's pre-edge state.
+    # So we need to maintain current L and r values. For each row, we set L and r to the row's pre-edge values (which may be the carried-over mid changes from previous row, or new values). Then we sample Q after posedge. Then we apply mid changes to L and r for the next row.
+    # The vectors format: likely a list of dicts, each with keys like 'L', 'r', and maybe 'L_mid', 'r_mid'. We need to infer.
+    # The problem says: "Each row's values are driven before the sampled edge. Optional mid input changes occur AFTER sampling, before the other edge, and are carried to the start of the next row."
+    # So for each row, we have pre-edge values (L, r) and optional mid values (L_mid, r_mid). If mid values are not given, they default to the pre-edge values? Or they don't change? "carried to the start of the next row" means if mid changes are given, they become the pre-edge values for the next row. If not given, the pre-edge values remain the same? Probably the mid changes are optional, so if not present, no change occurs, so the next row's pre-edge values are the same as the current row's pre-edge values? But the next row might specify new pre-edge values. So the vectors probably specify for each row the pre-edge inputs, and optionally mid changes. The mid changes override the pre-edge inputs for the next row's start.
+    # To simplify, we can process rows sequentially. We maintain current L and r. For each row, we first apply any mid changes from the previous row? Actually the mid changes from previous row are already applied to current L and r. Then we set L and r to the row's pre-edge values (which may be the same or different). Then we compute next state based on current q and L, r. Then we update q. Then we apply mid changes from this row to L and r for the next row.
+    # But the problem says "Each row's values are driven before the sampled edge." So the row's values are the pre-edge values. So we should set L and r to the row's values before sampling. The mid changes are additional.
+    # So algorithm:
+    # Initialize q = 0 (3 bits), known = False.
+    # Initialize L = 0, r = 0 (or whatever, but will be overwritten by first row's pre-edge values).
+    # For each row in vectors:
+    #   Set L = row['L'] if present else keep current L? Actually the row's values are driven before the edge, so they override any carried-over mid changes. So we set L = row['L'], r = row['r'].
+    #   Compute next q: if L: next_q = r; else: next_q = {q[1]^q[2], q[0], q[2]}.
+    #   Update q = next_q.
+    #   Output Q = q (as integer).
+    #   Then apply mid changes: if 'L_mid' in row: L = row['L_mid']; if 'r_mid' in row: r = row['r_mid'].
+    #   These L and r will be the starting values for the next row, but the next row will override them with its own pre-edge values.
+    # Wait, if the next row overrides them, then the mid changes are useless? The problem says "carried to the start of the next row". That implies the next row's pre-edge values might not be specified, and the mid changes become the pre-edge values. So the vectors might not specify L and r for every row; they might rely on carried-over mid changes.
+    # So we need to handle missing keys. If a row doesn't have 'L', we use the current L (which may be from previous mid change). Similarly for 'r'.
+    # So algorithm:
+    # Initialize L = 0, r = 0, q = 0.
+    # For each row:
+    #   If 'L' in row: L = row['L']
+    #   If 'r' in row: r = row['r']
+    #   Compute next_q based on current q and L, r.
+    #   q = next_q
+    #   Output Q = q
+    #   If 'L_mid' in row: L = row['L_mid']
+    #   If 'r_mid' in row: r = row['r_mid']
+    # This way, mid changes affect the next row's pre-edge values if not overridden.
+    # The worked example: seed L=1, r=3'b101, sample Q=101. That's one row with L=1, r=5, output Q=5.
+    # Then L=0 with pre-edge q=101: lane 0 = q[1]^q[2] = 0^1 = 1, lane 1 = q[0] = 1, lane 2 = q[2] = 1, expected 111.
+    # So second row: L=0, r=whatever (doesn't matter), output Q=7.
+    # So we can implement this.
+    # The output Q is 3 bits. The spec says output widths {'Q': 1} but that's likely a mistake. We'll output 3-bit integer.
+    # We'll return a list of dicts with key 'Q' and integer value 0-7.
+    # We'll assume vectors is a list of dicts.
+    # We'll handle missing keys gracefully.
+    # We'll start with q=0, L=0, r=0.
+    # We'll not worry about unknown power-up because we start at 0 and it will be overwritten on first load.
+    # But if the first row has L=0, then q remains 0, which might be wrong. But the checker will drive L=1 first.
+    # So it's fine.
+
+    q = 0  # 3-bit
+    L = 0
+    r = 0
+    results = []
+    for row in vectors:
+        if 'L' in row:
+            L = row['L']
+        if 'r' in row:
+            r = row['r']
+        # compute next state
+        if L:
+            next_q = r & 0x7
+        else:
+            # q is 3 bits: q[2], q[1], q[0]
+            q2 = (q >> 2) & 1
+            q1 = (q >> 1) & 1
+            q0 = q & 1
+            next_q = ((q1 ^ q2) << 2) | (q0 << 1) | q2
+        q = next_q
+        results.append({'Q': q})
+        # apply mid changes
+        if 'L_mid' in row:
+            L = row['L_mid']
+        if 'r_mid' in row:
+            r = row['r_mid']
+    return results

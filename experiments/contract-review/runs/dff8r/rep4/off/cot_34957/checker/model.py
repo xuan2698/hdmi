@@ -1,0 +1,46 @@
+def reference(vectors):
+    # Contract:
+    # - 8 D flip-flops, positive-edge triggered on clk.
+    # - Synchronous active-high reset: at a rising edge, if reset==1 then q=0,
+    #   else q=d (sampled at that edge).
+    # - Mid-cycle input changes (after sampling, before next edge) do not
+    #   affect the current output; they only affect the next sampled edge.
+    # - Output q is 8 bits, unsigned.
+    #
+    # vectors: list of rows. Each row is a dict with keys:
+    #   'clk', 'reset', 'd', and possibly 'mid' (dict of mid-cycle changes).
+    # We sample at each positive edge of clk (0->1 transition).
+    # The first row establishes the initial clk level; no edge is inferred
+    # before the first row. If the first row has clk==1, we treat it as
+    # a rising edge only if a previous clk==0 was seen; otherwise no edge.
+    #
+    # We return a list of dicts, one per row, each with 'q' as an int in [0,255].
+    #
+    # State:
+    q = 0  # unspecified power-up; we use 0 as a concrete placeholder
+    prev_clk = None
+    results = []
+    for row in vectors:
+        clk = row.get('clk', 0)
+        reset = row.get('reset', 0)
+        d = row.get('d', 0)
+        # Determine if this row's clk represents a rising edge relative to prev_clk.
+        # The protocol says "sample after the posedge edge has settled" and
+        # "Each row's values are driven before the sampled edge."
+        # So the row's clk value is the level at/after the edge.
+        # A rising edge occurs when prev_clk == 0 and clk == 1.
+        edge = (prev_clk == 0 and clk == 1)
+        if edge:
+            if reset:
+                q = 0
+            else:
+                q = d & 0xFF
+        # Mid changes occur AFTER sampling, before the other edge.
+        # They are carried to the start of the next row, so they do not
+        # affect this row's output. We ignore them for q computation here
+        # because the next row's inputs will reflect them (the harness
+        # presumably applies them). If 'mid' is present, it's for the
+        # next row's inputs, not this row's output.
+        results.append({'q': q & 0xFF})
+        prev_clk = clk
+    return results

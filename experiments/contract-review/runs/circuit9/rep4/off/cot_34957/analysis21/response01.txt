@@ -1,0 +1,16 @@
+The trace is consistent with a 3-bit state machine whose state is `q`, initialized to 4 at power-up, with no reset input. The only input is `a`, and the only observable output is the state itself. The clock is positive-edge triggered; the falling edge is irrelevant to state updates.
+
+At each rising edge, the next state depends only on the current state and the value of `a` sampled at that edge:
+
+- If `a = 1`, the state holds.
+- If `a = 0`, the state increments by one modulo 7.
+
+The modulo-7 wrap is the critical detail. The trace shows the sequence 4, 5, 6, 0, 1 under repeated `a = 0` edges, so the state space is {0,1,2,3,4,5,6}, not the full 3-bit range {0,...,7}. A naive 3-bit increment would produce 7 after 6 and then fail to match the observed 0. The correct next-state expression for the increment case is `(q + 1) % 7`.
+
+The first rising edge at 5 ns is not a reset edge. The initial state is already 4, and because `a = 1` at that edge, the state remains 4. This is exactly the same hold rule that applies later, for example at 15 ns and 25 ns. There is no separate initialization phase in the trace; the checker should simply start with `q = 4` and process every rising edge uniformly.
+
+Falling edges at 10 ns, 20 ns, 30 ns, and so on do not change `q`. They are present only to define the clock waveform. Any input change that occurs between a rising edge and the following falling edge is not sampled until the next rising edge. In the public trace, `a` changes only at rising-edge boundaries, but the protocol note says mid-cycle changes are possible and are carried forward. Therefore the checker should evaluate `a` at the rising edge, not continuously.
+
+A short worked example from the trace: at 65 ns the state is 5 and `a = 0`. The next rising edge is at 75 ns, where the state becomes `(5 + 1) % 7 = 6`. Then at 75 ns the state is 6 and `a = 0`; the next rising edge at 85 ns gives `(6 + 1) % 7 = 0`. This confirms both the increment and the wrap-around.
+
+For the final Python checker, the essential behavior is: initialize `q = 4`; on each positive clock edge, if `a == 1` keep `q`, otherwise set `q = (q + 1) % 7`; ignore negative edges; and do not invent a reset or special first-edge behavior. The output is just the current state `q`, width 3.

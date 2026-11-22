@@ -1,0 +1,32 @@
+```python
+def reference(vectors):
+    # Contract:
+    # - full_module is a 3-bit loadable feedback register.
+    # - On posedge clk: if L then q <= r else q <= {q[1]^q[2], q[0], q[2]}.
+    # - Sample after posedge has settled; mid changes affect only next edge.
+    # - Power-up state is unspecified; we model it as 0 until first load.
+    # - Outputs are 3-bit unsigned integers.
+    q = 0  # 3-bit state, power-up unspecified -> 0
+    out = []
+    for row in vectors:
+        # Apply inputs driven before the sampled edge
+        L = row.get('L', 0) & 1
+        r = row.get('r', 0) & 0x7
+        # Compute next state at posedge
+        if L:
+            nq = r
+        else:
+            q1 = (q >> 1) & 1
+            q2 = (q >> 2) & 1
+            q0 = q & 1
+            msb = q1 ^ q2
+            mid = q0
+            lsb = q2
+            nq = (msb << 2) | (mid << 1) | lsb
+        q = nq & 0x7
+        # Mid-cycle changes occur AFTER sampling; they do not affect this row's output.
+        # They are carried to the start of the next row (already handled since we
+        # read inputs at the start of each row).
+        out.append({'q': q})
+    return out
+```

@@ -1,0 +1,9 @@
+The public trace is consistent with a small edge-triggered state machine whose output is also its state. The observable rule is: on each rising clock edge, if `a = 1` then `q` holds its current value; if `a = 0` then `q` advances by one modulo 7. Falling edges do nothing, and changes on `a` between edges are not acted on until the next rising edge.
+
+The most important point for the final checker is the initial state. At time 0 the trace shows `q = x`, and at the first rising edge at 5 ns with `a = 1`, `q` becomes 4. Since `a = 1` means hold, this implies the circuit’s power-up state is already 4, not that the first edge loads 4. Therefore the checker should initialize its model with `q = 4` and then apply the same update rule at every rising edge, including the first one. If the first sampled `a` were 0, the correct first-edge result would be 5.
+
+The modulo is 7, not 8. The trace shows state 6 followed by state 0 on a rising edge with `a = 0` at 75 ns. A normal 3-bit increment would have produced 7, so the checker must use `(q + 1) % 7`.
+
+A short worked example: at 65 ns, `q = 5` and `a = 0`, so the next rising edge gives `(5 + 1) mod 7 = 6`. At 75 ns, `q = 6` and `a = 0`, so the next rising edge gives `(6 + 1) mod 7 = 0`. This confirms both the increment and the wrap.
+
+For the final checker, the useful summary is: initialize `q = 4`; update only on rising edges using the `a` value present at that edge; hold when `a = 1`; increment modulo 7 when `a = 0`; ignore falling edges and mid-cycle input changes; and add no reset or first-edge special case beyond what the public trace supports.

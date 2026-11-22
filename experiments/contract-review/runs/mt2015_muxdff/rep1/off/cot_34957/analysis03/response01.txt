@@ -1,0 +1,11 @@
+The key checker point is that the three submodule instances must be treated as one atomic three-bit state update. Each submodule contains one flop and one 2-to-1 mux; the mux selects either the corresponding `r_in` bit (when `L=1`) or the corresponding feedback bit (when `L=0`). Because all three share `clk`, the checker must derive the entire next `Q` from the pre-edge `q`, `L`, and `r_in`, then compare only after the posedge has settled. It must not model the instances sequentially or assume any instance-to-instance propagation delay.
+
+The feedback mapping is positional: next `q[2] = q[1] ^ q[2]`, next `q[1] = q[0]`, next `q[0] = q[2]`. When `L=1`, the load path overrides feedback for all three bits simultaneously: next `q = r_in`. The checker should therefore branch on the pre-edge `L` only, not on any mid-row change.
+
+Power-up is unspecified. The checker should not assume `q=0` before the first sampled edge. It should either seed its reference from the first settled observed `Q` or from a testbench-provided initial value. Before a defined pre-edge state exists, unknown `Q` should not be treated as a mismatch. Strict comparison begins once a defined pre-edge state is available.
+
+Mid-input changes are the second critical detail. Inputs present before the sampled posedge define that row's transition. Any optional change after sampling but before the next edge belongs to the next row. A mid change to `L` or `r_in` must not retroactively alter the expected `Q` for the row just sampled. The checker should store pre-edge inputs separately from post-sample mid values and carry the latter forward as the next row's pre-edge inputs.
+
+Worked example: pre-edge `q=3'b101`, `L=0`, `r_in=3'b000`. Expected next state is `{q[1]^q[2], q[0], q[2]} = {0^1, 1, 1} = 3'b011`. If a mid change then sets `L=1`, `r_in=3'b110`, the current row still expects `3'b011`; the next row begins with `L=1`, `r_in=3'b110`, so its expected state is `3'b110`.
+
+For the final Python checker, the useful focus is: maintain a reference three-bit state, update it atomically from pre-edge inputs, compare only settled sampled `Q`, seed from observed or provided state rather than reset, and keep mid-row input changes out of the current row's expectation.

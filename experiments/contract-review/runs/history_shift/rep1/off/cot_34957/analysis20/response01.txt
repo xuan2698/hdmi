@@ -1,0 +1,19 @@
+**Reset and power-up behavior**
+
+The register has no defined power-up value. The specification only guarantees that `areset` clears the history to zero; it says nothing about the state of the flops before the first reset. A checker must therefore never compare `predict_history` against an assumed initial value at time zero. Instead, it should either drive `areset` first and then begin comparing, or drive a known sequence of updates from an unknown start and only compare after the state has been forced to a known value by a misprediction load (which overwrites all 32 bits unconditionally). The safest and simplest approach is to assert reset at the start of every test and treat the post-reset zero as the anchor for all subsequent expectations.
+
+`areset` is asynchronous and positive-edge triggered. When it rises, the register must clear to zero immediately, without waiting for `clk`. The checker should assert `areset` at a time clearly separated from any `clk` posedge, then sample `predict_history` before the next posedge arrives. If the design were synchronous-reset, the old value would still be visible in that window and the check would fail; this is precisely the discrimination the checker wants. Because the reset is edge-triggered on the assertion, the checker should also confirm that holding `areset` high across a posedge keeps the register at zero, and that releasing `areset` (deassertion) does not itself disturb the state.
+
+Reset must dominate the update paths. If `areset` is asserted on the same edge as `predict_valid` and/or `train_mispredicted`, the result must be zero — not the shifted history, not the concatenation. This priority is easy to miss because random stimulus almost never aligns reset with both update controls on one edge, so the checker must construct that vector deliberately. The same dominance applies when reset coincides with only one of the update controls; the answer is still zero.
+
+**Mid-cycle input changes**
+
+The protocol allows `predict_*` and `train_*` to change after the sampling edge and before the opposite edge, carrying into the next row. Those mid-cycle transitions must not affect the register until the next posedge. The checker should treat the value sampled just after each posedge as authoritative and must not let mid-cycle glitches on the update controls leak into its expected model. The one exception is `areset`, which acts immediately wherever it is asserted, so a mid-cycle reset assertion must be reflected in the very next sample even if no posedge intervened.
+
+**Worked example**
+
+With the register at `32'hFFFF_FFFF`, `train_history = 32'h0000_0000`, `train_taken = 1`, and only `train_mispredicted` asserted, the correct next value is `{31'b0, 1'b1} = 32'h0000_0001`. A buggy implementation that shifts the current register instead of loading `train_history` yields `32'hFFFF_FFFF` or `32'hFFFF_FFFE`, so this single vector cleanly separates load-from-history from shift-current-state.
+
+**Highest-value sequences for the checker**
+
+(1) Assert `areset` between edges and sample before the next posedge to prove asynchrony. (2) Coincident reset with both update controls, requiring zero. (3) Prediction-only after reset, requiring `predict_taken` at bit 0 with zeros above — this catches MSB-insertion bugs. (4) Misprediction-only with `train_history` chosen so its bit 31 differs from the expected bit 0, confirming exact concatenation and the dropped top bit. (5) A hold edge with all controls low, confirming no spurious update. (6) A coincident predict-plus-misprediction edge, confirming misprediction priority. Never assume a power-up value; always establish state via reset or a known transition before comparing.

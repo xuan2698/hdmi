@@ -1,0 +1,5 @@
+The key point for the checker is that `reset` affects only `out`, not the input-history register. On every sampled edge, `prev_in` must be updated to the current `in` regardless of `reset`. A checker that clears or freezes `prev_in` during reset will misclassify the first post-reset transition.
+
+Worked example (one bit): before edge 1, `prev_in=1`, `out=0`. At edge 1, `reset=1`, `in=0`: `out` stays 0 (reset priority), but `prev_in` becomes 0. At edge 2, `reset=0`, `in=0`: no fall, `out=0`. If the checker had kept `prev_in=1` through reset, it would falsely set `out=1` here. This shows why unconditional history update matters.
+
+Also, do not assume power-up values for `out` or `prev_in`; the testbench must establish them before the first sampled edge. Treat all 32 bits independently.

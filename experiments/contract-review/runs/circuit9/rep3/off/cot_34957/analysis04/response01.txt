@@ -1,0 +1,14 @@
+The public specification describes a 3-bit sequential circuit with a single 1-bit input `a` and a 3-bit output `q`, clocked on the rising edge of `clk`. The waveform table gives sampled values at each posedge, with the convention that the value of `a` shown in a row is the value present at that edge; any mid-cycle change noted in the prose occurs after sampling and is carried into the next row.
+
+The key behavioral facts are:
+
+- `q` takes values in {0,1,2,3,4,5,6}; the reachable state space is modulo 7, not modulo 8.
+- When the sampled `a` is 1, `q` holds its current value (and in the observed trace, that value is 4).
+- When the sampled `a` is 0, `q` increments by one, wrapping from 6 to 0.
+- The initial value at time 0 is `x` (unknown). The first posedge at 5 ns has `a=1` and produces `q=4`. The public waveform cannot distinguish “power-up state is 4 and `a=1` holds” from “first `a=1` edge loads 4.” For checking purposes, treat the pre-first-edge state as don’t-care and let the first sampled edge with `a=1` establish 4.
+
+A subtlety worth flagging for the checker: the row at 45 ns lists `a=0`, but the prose states this is a mid-cycle change after sampling, so the edge at 45 ns actually samples `a=1` and holds `q=4`. The next edge at 55 ns samples `a=0` and moves 4→5. Similarly, the 75 ns edge samples `a=0` with previous state 6 and wraps to 0. Thus the checker must use the carried value from the previous row when a mid-cycle change is indicated, rather than the literal `a` column in the row where the change is noted.
+
+Worked example: previous state 6, sampled `a=0` → next state (6+1) mod 7 = 0. Previous state 4, sampled `a=1` → next state 4.
+
+There is no evidence of asynchronous reset, synchronous clear, load, or enable beyond the sampled `a` value. The only control is: sampled `a=1` holds at 4; sampled `a=0` increments modulo 7. The final checker should therefore model a 3-bit register initialized to don’t-care, resolve to 4 on the first posedge where sampled `a=1`, and thereafter apply the hold-or-increment-mod-7 rule using the edge-sampled `a`.

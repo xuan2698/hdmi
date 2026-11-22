@@ -1,0 +1,3 @@
+The key point for the final checker is that reset is synchronous and active-high: `q` becomes zero only at a rising edge where the captured `reset` is 1, regardless of `d`. Power-up behavior is not specified by the public spec, so the checker should not assume an initial `q` value; it should either initialize expected state from the first settled sample or treat the first edge as establishing state. Mid-cycle changes to `d` or `reset` must not affect the just-sampled edge.
+
+Worked example: before edge 1, `d = 0xF0`, `reset = 0`; expected `q = 0xF0`. After sampling, `reset` changes to 1 mid-cycle. At edge 2, captured `reset = 1`, so expected `q = 0x00`, not `0xF0`. A checker that applies the mid-cycle reset retroactively to edge 1 would falsely expect zero there.

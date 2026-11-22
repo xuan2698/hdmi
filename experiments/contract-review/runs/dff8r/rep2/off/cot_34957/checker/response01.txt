@@ -1,0 +1,38 @@
+```python
+def reference(vectors):
+    # Contract:
+    # - 8 D flip-flops, positive-edge triggered by clk.
+    # - Active-high synchronous reset: at a rising edge, if reset==1 then q<=0,
+    #   else q<=d (bitwise).
+    # - Sample after posedge settles; mid changes belong to the next row.
+    # - Power-up state is unspecified; we seed from the first observed q
+    #   (bookkeeping convenience only) and compare from the next edge onward.
+    q = None
+    out = []
+    for row in vectors:
+        # Determine if this row represents a sampled clock edge.
+        # The protocol drives inputs before the sampled edge; we treat each
+        # row as an edge event with the given d/reset.
+        d = row.get('d', 0) & 0xFF
+        reset = row.get('reset', 0) & 0x1
+
+        if q is None:
+            # First row: power-up unspecified. Seed from observed q if present,
+            # otherwise assume 0 for bookkeeping (not a conformance claim).
+            if 'q' in row and row['q'] is not None:
+                q = row['q'] & 0xFF
+            else:
+                q = 0
+            # Do not compare on the first row (undefined initial state).
+            out.append({'q': q})
+            continue
+
+        # Apply next-state function at the sampled edge.
+        if reset:
+            q_next = 0
+        else:
+            q_next = d
+        q = q_next & 0xFF
+        out.append({'q': q})
+    return out
+```

@@ -1,0 +1,12 @@
+The circuit is a 3-bit modulo-7 up-counter with a synchronous load-to-4 control. On each rising edge of `clk`, the sampled value of `a` decides the next state:
+
+- `a = 1` → `q ← 4` (load)
+- `a = 0` → `q ← (q + 1) mod 7` (increment, wrapping 6→0)
+
+There is no reset, enable, or separate output register; `q` is the state itself. The modulus is 7, not 8, which is the key distinguishing detail: the transition 6→0 at 75 ns rules out a plain 3-bit counter.
+
+The timing convention matters for the checker. The table lists `a` and `q` per row, but a mid-cycle change in `a` is annotated as occurring *after* the posedge sample and before the next edge, so it belongs to the following row's edge. The clearest instance is the 45 ns row: it prints `a = 0`, yet the 45 ns posedge still samples the old `a = 1` and reloads 4. That `a = 0` is carried forward and is what the 55 ns edge actually samples, producing 5. A checker that naively pairs each row's printed `a` with that row's posedge would wrongly predict 5 at 45 ns and then mis-sequence everything after.
+
+A short worked example: at 55 ns the sampled `a` is 0 and the prior state is 4, so `q_next = (4 + 1) mod 7 = 5`, matching the printed 5. At 75 ns the prior state is 6 and `a` is 0, so `q_next = (6 + 1) mod 7 = 0`, matching the printed 0 and confirming modulus 7.
+
+For the final Python checker, the useful points are: (1) sample `a` as the value in effect just before each posedge, honoring the "mid change after sampling" annotation rather than the same-row printed value when a change is flagged; (2) apply `q_next = 4 if a_sampled else (q + 1) % 7`; (3) skip or seed the first posedge's `q` comparison because the pre-first-edge state is unknown (`x`); and (4) model no reset beyond ignoring that initial unknown. The 45 ns row is the canonical trap to test against.

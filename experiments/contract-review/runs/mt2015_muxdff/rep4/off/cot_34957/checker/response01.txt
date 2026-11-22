@@ -1,0 +1,77 @@
+```python
+def reference(vectors):
+    # Contract:
+    # - top_module contains three 1-bit submodules (flipflop + 2:1 mux).
+    # - Each submodule: Q <= L ? r_in : q_in, sampled at posedge clk.
+    # - Top-level feedback: next q = {q[1]^q[2], q[0], q[2]} when L=0.
+    # - Power-up state is unknown (x) for each bit; model with None.
+    # - Sample after posedge settles, using pre-edge values.
+    # - Mid-cycle input changes are carried to the start of the next row.
+    # - Return per row: dict with 'q' as concrete unsigned int in [0,7].
+    #   Unknown bits are resolved to 0 for the concrete output (per contract
+    #   requirement to always return a concrete unsigned integer).
+
+    # State: three bits, each None (unknown) or 0/1.
+    q = [None, None, None]
+
+    # Pending inputs carried from mid-cycle changes of previous row.
+    pending = {}
+
+    results = []
+
+    for row in vectors:
+        # Apply any pending mid-cycle changes from previous row first.
+        # (These occur AFTER previous sampling, BEFORE this row's edge.)
+        for k, v in pending.items():
+            row = dict(row)
+            row[k] = v
+        pending = {}
+
+        # Determine pre-edge values for this row.
+        L = row.get('L')
+        r = row.get('r_in', row.get('r'))
+        # r may be given as int or list of bits; normalize to 3 bits.
+        if isinstance(r, int):
+            r_bits = [(r >> 2) & 1, (r >> 1) & 1, r & 1]
+        elif isinstance(r, (list, tuple)):
+            r_bits = [int(b) & 1 for b in r]
+            while len(r_bits) < 3:
+                r_bits.insert(0, 0)
+            r_bits = r_bits[-3:]
+        else:
+            r_bits = [0, 0, 0]
+
+        # Compute next state at posedge.
+        if L == 1:
+            next_q = list(r_bits)
+        elif L == 0:
+            # Feedback: Q[2]=q[1]^q[2], Q[1]=q[0], Q[0]=q[2]
+            def xor(a, b):
+                if a is None or b is None:
+                    return None
+                return a ^ b
+            next_q = [xor(q[1], q[2]), q[0], q[2]]
+        else:
+            # L unknown: mux output unknown per bit
+            next_q = [None, None, None]
+
+        q = next_q
+
+        # Concrete output: unknown bits -> 0
+        q_val = 0
+        for i, b in enumerate(q):
+            if b == 1:
+                q_val |= (1 << (2 - i))
+
+        results.append({'q': q_val})
+
+        # Handle mid-cycle changes: any keys in row that are inputs
+        # (L, r_in, r) and marked as mid changes. We treat any extra
+        # keys like 'L_mid', 'r_mid' as mid-cycle updates.
+        for k in list(row.keys()):
+            if k.endswith('_mid'):
+                base = k[:-4]
+                pending[base] = row[k]
+
+    return results
+```

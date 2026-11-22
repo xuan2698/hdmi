@@ -1,0 +1,5 @@
+The most useful implementation mistake to guard against is treating the displayed `a` on each row as the value sampled at that row's posedge. The spec explicitly allows a mid-cycle input change after sampling and before the other edge, carried to the start of the next row. So the checker must model a carried input register, not read `a` directly from the row.
+
+A short worked example: at 45 ns the row shows `a = 0`, but the posedge still sees the carried `a = 1`, so `q` stays 4; the change to 0 is absorbed after sampling. At 55 ns the carried `a = 0` and prior `q = 4` give 5. Pairing each row's displayed `a` directly with that row's edge would instead give 5 at 45 ns and shift the tail by one cycle.
+
+Also treat the initial `q` as unknown: the first sampled edge at 5 ns moves `q` from x to 4 because `a = 1` loads 4, not because of any reset. Do not interpret the constant 4 as a reset or sentinel value.

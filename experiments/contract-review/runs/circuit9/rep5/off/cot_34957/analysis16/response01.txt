@@ -1,0 +1,13 @@
+The public trace describes a 3-bit sequential output `q` driven by a single-bit input `a` and a clock `clk`. The output width is 3 bits, so valid values are 0 through 7, and the observed wrap from 6 to 0 confirms modulo-8 arithmetic. The input width is 1 bit, so `a` is binary. The clock is sampled on the positive edge after settling; all rows list values driven before that sampled edge, with any mid-cycle input changes occurring after sampling and carried into the next row.
+
+The circuit is not a plain counter. It is a gated counter with a one-bit internal qualification state, call it `flag`. The initial state is `q = 4` and `flag = 0`. The flag is not an output; it is inferred from the trace. On each rising edge, the decision uses the pre-edge value of `flag`, not the newly computed one. The update rule is:
+
+- If `a = 1`, then `q` holds and `flag` clears to 0.
+- If `a = 0` and `flag = 0`, then `q` holds and `flag` sets to 1.
+- If `a = 0` and `flag = 1`, then `q` increments modulo 8 and `flag` remains 1.
+
+This explains the long hold at `q = 4` while `a = 1`: every rising edge with `a = 1` keeps `q` unchanged and keeps the flag cleared. When `a` first becomes 0, the next rising edge does not increment; it only arms the flag. The following rising edge, still with `a = 0`, begins incrementing. Thus a run of low inputs produces one hold edge followed by increments on each subsequent low edge.
+
+A short worked example from the trace: at 45 ns the rising edge samples `a = 0` while the flag is still 0 from the preceding high period, so `q` remains 4 and the flag becomes 1. At 55 ns, `a = 0` and the old flag is 1, so `q` increments to 5 and the flag stays 1. At 65 ns, `q` becomes 6. At 75 ns, `q` wraps from 6 to 0 modulo 8. At 85 ns, `q` becomes 1. If `a` later returns to 1, the next rising edge holds `q` and clears the flag, so a subsequent low edge must again spend one cycle re-arming before increments resume.
+
+For the final Python checker, the important points are: initialize `q = 4` and `flag = 0`; sample only after the positive edge has settled; compute the next `q` and next `flag` from the old `flag` and current `a`; apply modulo-8 wrap on increments; clear the flag on every `a = 1` edge; preserve the flag on incrementing low edges; and ensure that after any high edge, the first low edge holds rather than increments. The checker should also tolerate the initial unknown `q` at time 0 and begin comparing from the first sampled edge at 5 ns, where the trace shows `q = 4`.

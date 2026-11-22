@@ -1,0 +1,3 @@
+The most likely implementation mistake is emitting `z` from the pre-transition state rather than the post-transition state. Since this is a Moore machine, `z` depends only on state, so the checker must sample `x` and `areset` after the posedge settles, compute and install the next state, then read `z` from that installed state. A checker that reads `z` before updating state agrees only while the state is unchanged and diverges at the first input `1`.
+
+Worked example: LSB-first `x = 0,1,0,1` (value 10, two's complement `0110`, LSB-first output `0,1,1,0`). Row 2 has state S0, `x=1`, next state S1, so post-transition `z=1`. A pre-state checker emits `z=0` there, producing `0,0,1,1` — wrong from row 2 onward. The final checker should enforce post-transition emission.

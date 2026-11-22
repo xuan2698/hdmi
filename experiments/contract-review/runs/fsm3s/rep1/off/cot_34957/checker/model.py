@@ -1,0 +1,26 @@
+def reference(vectors):
+    # Moore FSM: states A=0, B=1, C=2, D=3
+    # Output: 1 iff state == D (3), else 0
+    # Synchronous active-high reset -> state A
+    # Transition table:
+    #   A: in=0->A, in=1->B
+    #   B: in=0->C, in=1->B
+    #   C: in=0->A, in=1->D
+    #   D: in=0->C, in=1->B
+    nxt = {
+        0: {0: 0, 1: 1},
+        1: {0: 2, 1: 1},
+        2: {0: 0, 1: 3},
+        3: {0: 2, 1: 1},
+    }
+    state = 0  # power-up unspecified; assume A (consistent with reset)
+    results = []
+    for row in vectors:
+        # Apply synchronous reset at sampled edge
+        if row.get('reset', 0):
+            state = 0
+        else:
+            state = nxt[state][row.get('in', 0)]
+        out = 1 if state == 3 else 0
+        results.append({'out': out})
+    return results

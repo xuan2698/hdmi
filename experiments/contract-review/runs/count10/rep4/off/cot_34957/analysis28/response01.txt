@@ -1,0 +1,5 @@
+The ports are `reset` (1 bit, active-high synchronous) and `q` (4 bits). Because `q` is 4 bits, it can represent 0–15, but the specification only defines legal counting states 0–9. Boundary values matter: 9→0 is the required rollover, and any sampled `q` in 10–15 after counting begins is illegal. Before the first sampled rising edge, `q` is unconstrained, so the checker must not assume a power-up value.
+
+The key checker point is sampling order. Snapshot `reset` and `q` before the rising edge, compute the expected next state from those pre-edge values, compare against the sampled post-edge `q`, then update the carried `reset` for the next row.
+
+Worked example: pre-edge `q=3`, `reset=0`; after sampling, `reset` changes to 1. Expected post-edge `q` is 4, not 0.

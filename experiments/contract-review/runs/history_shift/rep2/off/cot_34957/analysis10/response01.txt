@@ -1,0 +1,21 @@
+The interface is a single 32-bit state register with a one-bit clock enable structure expressed through four control inputs. All control signals (`areset`, `predict_valid`, `predict_taken`, `train_mispredicted`, `train_taken`) are one bit wide; `train_history` and `predict_history` are both 32 bits. Because the state is exactly 32 bits and every update is either a shift, a concatenation, or a clear, the full state space is reachable and boundary values are simply the extremes of the 32-bit unsigned range: `32'h0000_0000` and `32'hFFFF_FFFF`. There is no saturation, no signed interpretation, and no partial-width masking to worry about—every bit of `train_history` and `predict_history` is meaningful, and `predict_taken`/`train_taken` occupy exactly the LSB position.
+
+The behavioral priority is the crux. On a sampled rising edge, the next state is chosen by a single ordered selection:
+
+1. **Asynchronous reset (`areset`).** Highest priority. The register becomes `32'h0000_0000`. Because the reset is asynchronous and positive-edge triggered, it can also take effect between clock edges; the checker should treat any sampled edge with `areset` high as forcing zero regardless of the other inputs.
+
+2. **Misprediction recovery (`train_mispredicted`).** Next state is `{train_history[30:0], train_taken}`—the pre-branch history shifted left with the actual outcome inserted at the LSB. This is a load, not a shift of the current register, so the current `predict_history` value is irrelevant to this transition.
+
+3. **Prediction shift (`predict_valid`).** When neither reset nor misprediction is active and `predict_valid` is high, the register shifts left by one and inserts `predict_taken` at the LSB: `{history[30:0], predict_taken}`. `predict_history[0]` is the youngest branch direction, consistent with LSB insertion.
+
+4. **Hold.** If none of the above is asserted, the register retains its value.
+
+Two subtleties matter for the checker. First, when both `predict_valid` and `train_mispredicted` are high, misprediction wins: the prediction is flushed, so only the recovery load applies. Second, reset wins over both. The next-state function is therefore a single selection, not a sequence of independent updates; do not apply the prediction shift and then overwrite it, and do not apply the misprediction load and then zero it in a way that could be reordered.
+
+Power-up is unspecified. The register has no defined value before the first reset, so the checker must not assume zero at time zero. Either the testbench asserts `areset` before any observation, or pre-reset outputs are treated as don't-care. Hard-coding a zero initial state risks spurious mismatches on the first sampled edge.
+
+Sampling discipline: capture all inputs at the sampling edge, evaluate the priority chain on those captured values, and compare against the output sampled at that same edge. A mid-row change of `areset` after sampling belongs to the next row and must not retroactively zero the just-sampled transition; likewise a late `train_mispredicted` must not alter an already-committed prediction.
+
+Worked example: register holds `32'h0000_0005`; captured inputs are `areset=1`, `train_mispredicted=1`, `train_taken=0`, `train_history=32'hFFFF_FFFF`, `predict_valid=1`, `predict_taken=1`. Reset wins, so the next state is `32'h0000_0000`, not the misprediction value `32'hFFFF_FFFE` and not the prediction value `32'h0000_000B`.
+
+Takeaway for the final checker: implement the next state as one priority-ordered selection over captured inputs with `areset` at the top, and never assume a defined power-up value.

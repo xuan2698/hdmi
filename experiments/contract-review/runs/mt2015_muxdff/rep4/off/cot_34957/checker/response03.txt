@@ -1,0 +1,54 @@
+```python
+def reference(vectors):
+    # Contract:
+    # - top_module instantiates 3 submodules (flipflop + 2:1 mux), one per bit.
+    # - Submodule: Q <= L ? r_in : q_in, clocked on posedge clk.
+    # - Top-level feedback when L=0: next = {q[1]^q[2], q[0], q[2]}.
+    # - Registers power up as unknown (x). Model unknowns explicitly.
+    # - Sample after posedge settles; mid changes apply to next row.
+    # - Return dict per row with 'q' as concrete unsigned int (x -> 0).
+
+    X = None  # unknown bit
+
+    def xor_bit(a, b):
+        if a is X or b is X:
+            return X
+        return a ^ b
+
+    def to_int(bits):
+        # Unknown bits map to 0 for concrete output.
+        v = 0
+        for b in bits:
+            v = (v << 1) | (0 if b is X else b)
+        return v
+
+    # State: three submodule Q bits, all unknown at power-up.
+    q = [X, X, X]
+
+    results = []
+    for row in vectors:
+        # Apply any pending mid changes from previous row are already in row.
+        # Read inputs for this row (driven before the sampled edge).
+        L = row.get('L', 0)
+        r = row.get('r', 0)
+        # r is 3-bit; extract bits r[2], r[1], r[0]
+        r_bits = [(r >> 2) & 1, (r >> 1) & 1, r & 1]
+
+        # Compute next state per submodule (posedge clk, sample after settle).
+        if L:
+            next_q = [r_bits[0], r_bits[1], r_bits[2]]
+        else:
+            # Feedback: Q[2]=q[1]^q[2], Q[1]=q[0], Q[0]=q[2]
+            next_q = [
+                xor_bit(q[1], q[2]),  # bit 2
+                q[0],                 # bit 1
+                q[2],                 # bit 0
+            ]
+
+        q = next_q
+
+        # Output q as concrete unsigned int within 3-bit width.
+        results.append({'q': to_int(q)})
+
+    return results
+```

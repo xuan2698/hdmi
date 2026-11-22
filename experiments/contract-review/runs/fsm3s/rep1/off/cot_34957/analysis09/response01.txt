@@ -1,0 +1,18 @@
+The specification defines a four-state Moore machine with a single input and a single output. The key structural point is that the output is associated with the state itself, not with the transition or the input. Therefore, the expected output after a clock edge is determined by the state that the machine enters on that edge, not by the state it was in before the edge. This distinction is the most important thing for the final checker to get right.
+
+The transition table is:
+
+- State A: input 0 goes to A, input 1 goes to B; output 0.
+- State B: input 0 goes to C, input 1 goes to B; output 0.
+- State C: input 0 goes to A, input 1 goes to D; output 0.
+- State D: input 0 goes to C, input 1 goes to B; output 1.
+
+So the only state with output 1 is D. States A, B, and C all produce output 0. The machine can remain in A, B, or C indefinitely depending on input, but any entry into D immediately changes the expected output to 1 on the same sampled edge. Similarly, any departure from D immediately changes the expected output to 0 on that edge.
+
+A common checker error is to compare the post-edge output against the output of the pre-edge state. That works while the machine remains in A, B, or C, but it fails at the first transition into D or out of D. For example, from C with input 1 the next state is D, so the expected post-edge output is 1. A checker that still expects C's output would expect 0 and flag a correct design. Conversely, leaving D for C should produce output 0 after the edge, while an old-state comparison would still expect 1.
+
+A related mistake is to let reset affect only the state variable and not the expected output. Because reset is synchronous and active high, a reset sampled at a rising edge forces the next state to A and therefore the post-edge output to 0. The checker should apply reset priority before consulting the transition table, then derive the expected output from the reset-forced next state. If it computes the ordinary next state first and only later notices reset, it can produce the wrong expected output on a reset edge that would otherwise have entered D.
+
+The checker should also avoid assuming any power-up state. The public specification does not define an initial state, so transition checking should begin only after a reset edge has established the reference state as A. Before that, outputs can be ignored or the first reset sample can be used as the reference point. Inventing an initial state such as A without a reset would make the checker reject or accept behavior that the specification does not constrain.
+
+Finally, the checker must preserve the timing distinction between values sampled at the edge and mid-cycle changes. At each rising edge it should capture `in` and `reset`, compute the next reference state using reset priority and then the transition table, and compare the settled post-edge output to the Moore output of that next reference state. If `in` changes after sampling but before the next edge, that new value is carried to the next sampled edge and must not retroactively change the expected output for the state just entered. Keeping the sampled input separate from later mid-cycle input changes prevents off-by-one-edge errors in the reference model.

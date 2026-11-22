@@ -1,0 +1,97 @@
+def reference(vectors):
+    # Moore FSM for Lemmings.
+    # States encoded as (dir, mode, fall_count, splattered)
+    # dir: 0 = left, 1 = right
+    # mode: 0 = walking, 1 = falling, 2 = digging
+    # fall_count: number of cycles spent falling (saturating at 21+)
+    # splattered: 0/1
+
+    # Outputs are derived from state.
+    def outputs(state):
+        dir_, mode, fc, sp = state
+        if sp:
+            return {"walk_left": 0, "walk_right": 0, "aaah": 0, "digging": 0}
+        wl = 1 if (mode == 0 and dir_ == 0) else 0
+        wr = 1 if (mode == 0 and dir_ == 1) else 0
+        aa = 1 if mode == 1 else 0
+        dg = 1 if mode == 2 else 0
+        return {"walk_left": wl, "walk_right": wr, "aaah": aa, "digging": dg}
+
+    # Initial state: walk left, walking, counter 0, not splattered
+    state = (0, 0, 0, 0)
+
+    results = []
+    for row in vectors:
+        # Apply asynchronous reset if asserted (positive edge triggered,
+        # but for sampling purposes: if areset is 1 at sample time, reset).
+        areset = row.get("areset", 0)
+        if areset:
+            state = (0, 0, 0, 0)
+            results.append(outputs(state))
+            continue
+
+        bump_left = row.get("bump_left", 0)
+        bump_right = row.get("bump_right", 0)
+        ground = row.get("ground", 1)
+        dig = row.get("dig", 0)
+
+        dir_, mode, fc, sp = state
+
+        if sp:
+            # Splattered: stay splattered forever (until reset)
+            results.append(outputs(state))
+            continue
+
+        # Determine next state based on current state and inputs.
+        if mode == 1:
+            # Currently falling
+            if ground == 1:
+                # Landing
+                if fc > 20:
+                    # Splatter
+                    state = (dir_, mode, fc, 1)
+                else:
+                    # Safe landing, resume walking in same direction
+                    state = (dir_, 0, 0, 0)
+            else:
+                # Continue falling, increment counter (saturate at 21)
+                nfc = fc + 1
+                if nfc > 21:
+                    nfc = 21
+                state = (dir_, 1, nfc, 0)
+        elif mode == 2:
+            # Currently digging
+            if ground == 0:
+                # Reached other side, start falling
+                state = (dir_, 1, 0, 0)
+            else:
+                # Continue digging
+                state = (dir_, 2, 0, 0)
+        else:
+            # Currently walking
+            if ground == 0:
+                # Fall has highest precedence
+                state = (dir_, 1, 0, 0)
+            elif dig == 1:
+                # Dig next (higher precedence than turning)
+                state = (dir_, 2, 0, 0)
+            else:
+                # Check bumps for direction change
+                bl = bump_left
+                br = bump_right
+                if bl and br:
+                    # Both bumps: still switch direction
+                    ndir = 1 - dir_
+                    state = (ndir, 0, 0, 0)
+                elif bl:
+                    # Bumped on left: walk right
+                    state = (1, 0, 0, 0)
+                elif br:
+                    # Bumped on right: walk left
+                    state = (0, 0, 0, 0)
+                else:
+                    state = (dir_, 0, 0, 0)
+
+        results.append(outputs(state))
+
+    return results

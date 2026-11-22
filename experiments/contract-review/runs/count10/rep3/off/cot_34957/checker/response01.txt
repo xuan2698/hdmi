@@ -1,0 +1,26 @@
+```python
+def reference(vectors):
+    # Decade counter: active-high synchronous reset, counts 0..9.
+    # Each row: inputs driven before posedge; sample after posedge settles.
+    # Mid changes occur after sampling, before next edge -> carry to next row.
+    # Initialization unspecified: first row's q is unconstrained (but must be 0..9).
+    out = []
+    prev = None
+    for row in vectors:
+        reset = row.get('reset', 0)
+        if prev is None:
+            # Unspecified power-up: accept any legal decade value.
+            q = row.get('q', 0)
+            if q < 0 or q > 9:
+                q = 0
+            prev = q
+            out.append({'q': q})
+            continue
+        if reset:
+            nxt = 0
+        else:
+            nxt = (prev + 1) % 10
+        prev = nxt
+        out.append({'q': nxt})
+    return out
+```

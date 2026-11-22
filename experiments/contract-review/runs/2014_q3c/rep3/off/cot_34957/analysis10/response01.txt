@@ -1,0 +1,19 @@
+The public table defines a three-bit present state `y[2:0]`, a one-bit input `x`, a three-bit next state `Y[2:0]`, and a one-bit output `z`. The requested implementation exposes only `Y[0]`, the least-significant bit of the next state, plus `z`. Thus the input side of the checker is `x` (width 1) and `y` (width 3); the output side is `Y0` (width 1) and `z` (width 1). All signals are single-bit except the three-bit state, so boundary values are straightforward: `x` and `z` and `Y0` take only 0 or 1, while `y` ranges over the eight binary triples, of which only five appear in the table.
+
+The five listed rows are:
+
+- `000`: next `000` if `x=0`, `001` if `x=1`; `z=0`.
+- `001`: next `001` if `x=0`, `100` if `x=1`; `z=0`.
+- `010`: next `010` if `x=0`, `001` if `x=1`; `z=0`.
+- `011`: next `001` if `x=0`, `010` if `x=1`; `z=1`.
+- `100`: next `011` if `x=0`, `100` if `x=1`; `z=1`.
+
+From these, `Y[0]` is the LSB of the selected next-state entry. Reading the table, `Y[0]=1` occurs for `000` with `x=1` (next `001`), for `001` with `x=0` (next `001`), for `010` with `x=1` (next `001`), for `011` with `x=0` (next `001`), and for `100` with `x=0` (next `011`). All other listed combinations give `Y[0]=0`. The output `z` depends only on the present state: `z=1` exactly for `y=011` and `y=100`; otherwise `z=0` on the listed rows.
+
+The important boundary issue is not numeric overflow but unspecified states. The table does not list `101`, `110`, or `111`, and it does not define reset, power-up, or recovery from an unlisted state. A final checker should therefore not assume that an unlisted `y` maps to `000`, nor should it assume automatic recovery. It should constrain itself to the five listed rows and to the sampled transition/output relation for those rows. If reset or initialization is required, that must come from the surrounding harness or an explicit assumption, not from this public table.
+
+A second boundary issue is timing attribution. `Y[0]` must be computed from the sampled present state and the sampled input `x` using the selected next-state entry. `z` must be computed from the sampled present state alone. The checker should not derive `z` from `x`, should not derive `Y[0]` from `z`, and should not let a post-edge `x` change alter the outputs of the row just sampled. Mid-cycle input changes should be stored and applied only when forming the next row’s sampled input.
+
+A short worked example shows the failure mode. Suppose the present state is `y=011` and the row drives `x=0` before the posedge. The sampled transition is `011 --x=0--> 001`, so the sampled `Y[0]` is `1`. The table gives `z=1` for `y=011`, independent of `x`. If `x` then changes to `1` after sampling, that change is carried to the start of the next row. The next row begins from present state `001` with carried `x=1`; the table gives next state `100`, so `Y[0]=0`, and `z=0` because the new present state is `001`. A checker that incorrectly recomputed `Y[0]` for the `011` row using the post-edge `x=1` would use the entry `011 --x=1--> 010`, whose LSB is `0`, and would report `Y[0]=0` instead of the correct sampled `1`. That is exactly the off-by-one-cycle input attribution the final checker must avoid.
+
+In prose, the reset and power-up analysis is therefore mostly a warning: the public specification does not define reset or power-up state, so the checker should not invent one. It should evaluate only the listed transition rows using the sampled `(y, x)` pair for `Y[0]` and the sampled `y` for `z`, while carrying any post-sampling `x` change forward to the next row.

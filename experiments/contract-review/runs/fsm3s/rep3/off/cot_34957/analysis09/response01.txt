@@ -1,0 +1,14 @@
+The public specification defines a four-state Moore machine with states A, B, C, and D, one input `in`, one output `out`, and a synchronous active-high `reset`. The transition table is:
+
+- From A: `in=0` stays A; `in=1` goes to B. Output 0.
+- From B: `in=0` goes to C; `in=1` stays B. Output 0.
+- From C: `in=0` goes to A; `in=1` goes to D. Output 0.
+- From D: `in=0` goes to C; `in=1` goes to B. Output 1.
+
+The output is purely a function of the current state: only state D produces `out=1`; A, B, and C all produce `out=0`. There is no combinational path from `in` to `out`. Reset is synchronous and active high, so when `reset=1` is sampled at a rising edge, the machine enters state A regardless of the current state or `in`. When `reset=0`, the next state is selected from the table using the sampled value of `in`.
+
+For the final Python checker, the key discipline is to separate sampled-edge behavior from mid-cycle input changes. At each sampled rising edge, the checker should latch the values of `in` and `reset` that are present at that edge, then compute the entered state from the previously known state. If the latched `reset` is 1, the entered state is A. Otherwise, the entered state follows the transition table for the previously known state and the latched `in`. The output comparison should use the Moore output of the entered state, evaluated only after the edge has settled. A mid-cycle change to `in` after sampling must not retroactively change the transition just taken, must not cause an immediate output change, and must be carried forward as the input value for the next row.
+
+A useful worked example: suppose the machine is known to be in B with `out=0`, and a row drives `in=1`, `reset=0`. At the rising edge, B with `in=1` remains B, so the post-edge state is B and the sampled output is 0. If `in` then changes to 0 after sampling, that change does not alter the edge just taken. At the next rising edge, if `in=0` is still present, B transitions to C, and the post-edge output is 0 because C outputs 0. The checker should not expect the mid-cycle change to produce an immediate output change, and it should not derive `out` combinationally from `in`.
+
+Two additional checker cautions follow from the spec. First, before reset has been sampled, the state is not known, so the checker should either begin with an explicit reset sample or leave pre-reset output behavior unconstrained. Requiring the output to be the Moore output of A before reset is sampled can cause spurious failures even when the RTL is correct. Second, the checker should compare `out` only after the sampled edge has settled, using the state entered at that edge. Because the machine is Moore, the correct post-edge output is the output of the entered state, not a function of the current input. The checker should store any mid-cycle input change for the next row rather than using it to reinterpret the current one.

@@ -1,0 +1,19 @@
+def reference(vectors):
+    # 8 D flip-flops, active-high synchronous reset to 0x34, negative-edge triggered.
+    # Power-up state is unspecified; we model it as 0x34 but only report after
+    # the first sampled negative edge (per contract, q is not asserted before then).
+    q = 0x34
+    initialized = False
+    out = []
+    for row in vectors:
+        # Values driven before the sampled negative edge
+        d = row.get('d', 0) & 0xFF
+        reset = row.get('reset', 0) & 0x1
+        # Sampled negative edge: synchronous reset overrides d
+        if reset:
+            q = 0x34
+        else:
+            q = d
+        initialized = True
+        out.append({'q': q & 0xFF})
+    return out

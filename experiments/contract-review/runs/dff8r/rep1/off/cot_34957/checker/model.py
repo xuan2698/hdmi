@@ -1,0 +1,24 @@
+def reference(vectors):
+    # 8 D flip-flops, positive-edge clk, active-high synchronous reset.
+    # Each row: inputs driven before the sampled posedge; mid changes occur
+    # after sampling and carry to the next row.
+    q = 0  # power-up unspecified; only post-edge values are meaningful
+    out = []
+    for row in vectors:
+        # Sample inputs at the positive edge
+        d = row.get('d', 0) & 0xFF
+        reset = row.get('reset', 0) & 0x1
+        # Synchronous reset: at the edge, reset forces q to 0
+        if reset:
+            q = 0
+        else:
+            q = d
+        out.append({'q': q & 0xFF})
+        # Mid-row changes (after sampling) carry to next row
+        if 'd_mid' in row:
+            d = row['d_mid'] & 0xFF
+        if 'reset_mid' in row:
+            reset = row['reset_mid'] & 0x1
+        # Carry forward: next row's pre-edge values are these mid values
+        # (handled by caller providing next row's d/reset; we just keep state)
+    return out

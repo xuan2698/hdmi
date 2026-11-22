@@ -1,0 +1,7 @@
+The key timing point is that the Moore output belongs to the state entered at the sampled posedge, not to the pre-edge state. Drive inputs before the edge; sample after settling. Mid-cycle changes occur after sampling and only affect the next row.
+
+Worked example: from C with input 1, the next posedge enters D; after settling, out must be 1. Do not compare against C’s output 0.
+
+Reset is synchronous and active high: asserting reset between edges does not change out immediately; the next posedge forces A, then out is 0. Holding reset keeps forcing A. Do not sample at reset assertion or assume a power-up state before the first reset edge.
+
+The checker should apply each row’s input before the sampled edge, treat mid-cycle changes as setup for the following row, and compare only settled post-edge outputs against the newly entered state’s Moore output.

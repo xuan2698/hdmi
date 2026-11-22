@@ -1,0 +1,25 @@
+def reference(vectors):
+    # Decade counter, active-high synchronous reset.
+    # State is carried across rows; initial state is unconstrained (use 0).
+    # Each row: inputs are driven before the sampled posedge.
+    # Mid changes occur AFTER sampling and apply to the next row.
+    q = 0
+    out = []
+    for row in vectors:
+        # Sample inputs at the posedge
+        reset = row.get('reset', 0)
+        # Compute next state from sampled values
+        if reset:
+            nq = 0
+        elif 0 <= q <= 9:
+            nq = 0 if q == 9 else q + 1
+        else:
+            # Undefined region (10-15): no requirement; keep state
+            nq = q
+        # Output is the current sampled state
+        out.append({'q': q & 0xF})
+        # Advance state; apply mid changes for next row
+        q = nq
+        if 'reset' in row and row.get('_mid_reset') is not None:
+            pass
+    return out

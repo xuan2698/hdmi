@@ -1,0 +1,26 @@
+# The Moore-alignment trap in the 2's complementer
+
+The most instructive implementation mistake here is **emitting the output from the post-transition state instead of the pre-edge state**. Because the spec calls for a *Moore* machine, `z` on any sampled row must be a function of the state the machine was in *before* that row's `x` was consumed. The transition triggered by `x` affects the *next* row's output, not the current one. A designer who writes the update and the output in the wrong order — or who lets the checker evaluate `z` from the current row's `x` — will be off by one row exactly at the boundary where the machine first sees a `1`.
+
+The natural state encoding is two states: COPY (still copying low-order zeros, output equals input bit) and INVERT (past the first `1`, output is the complement of the input bit). The first `1` in the LSB-first stream is the pivot: it is copied unchanged, and every bit after it is inverted. So the transition COPY→INVERT is driven by `x=1`, but the output on that very row is still the COPY-phase value (the bit itself), because the machine has not yet *entered* INVERT at sampling time.
+
+## Worked example
+
+Take the 4-bit number `0100` (value 4), sent LSB-first as `x = 0, 0, 1, 0`. Its 2's complement is `1100`, i.e. output bits LSB-first `0, 0, 1, 1`.
+
+| row | pre-edge state | x | z (correct) | next state |
+|-----|----------------|---|-------------|------------|
+| 1 | COPY (reset) | 0 | 0 | COPY |
+| 2 | COPY | 0 | 0 | COPY |
+| 3 | COPY | 1 | **1** | INVERT |
+| 4 | INVERT | 0 | 1 | INVERT |
+
+Row 3 is the discriminator: the pre-edge state is COPY, so `z=1` (the copied pivot bit), even though this row's `x=1` is what moves the machine to INVERT. A buggy design that outputs from the post-transition state would put `z=0` (the complement) on row 3 and only "catch up" on row 4 — and on this trace row 4 happens to also be `1`, so a careless checker comparing only rows 1, 2, 4 would miss it entirely.
+
+## What the final checker must enforce
+
+- **Moore alignment:** compute `z` from the pre-edge state; update state *after* emitting `z`. Reject any trace where `z` on the first-`1` row equals the INVERT-phase value.
+- **Reset dominance:** a row with `areset=1` forces both reset state and reset output; `x` on that row is ignored and must not leak into state or `z`.
+- **No retroactive mid-row changes:** an `x`/`areset` change after the sampling edge belongs to the next row only. A checker that lets such a change alter the just-sampled `z` or state would wrongly accept a combinationally-sensitive implementation that the Moore spec forbids.
+
+The evaluation order per row is: apply reset dominance → emit `z` from pre-edge state → update state from `x` → carry mid-row changes forward. The single most valuable assertion is the first-`1` boundary check, since it is the only row where pre- and post-transition output models diverge on a minimal trace.

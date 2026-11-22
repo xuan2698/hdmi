@@ -1,0 +1,21 @@
+```python
+def reference(vectors):
+    # State table: present state y -> (next state for x=0, next state for x=1, z)
+    table = {
+        0b000: (0b000, 0b001, 0),
+        0b001: (0b001, 0b100, 0),
+        0b010: (0b010, 0b001, 0),
+        0b011: (0b001, 0b010, 1),
+        0b100: (0b011, 0b100, 1),
+    }
+
+    results = []
+    for vec in vectors:
+        y = vec['y'] & 0b111
+        x = vec['x'] & 0b1
+        nxt0, nxt1, z = table[y]
+        nxt = nxt1 if x else nxt0
+        Y0 = (nxt >> 0) & 0b1
+        results.append({'Y0': Y0, 'z': z & 0b1})
+    return results
+```

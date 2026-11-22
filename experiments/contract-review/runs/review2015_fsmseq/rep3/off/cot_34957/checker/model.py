@@ -1,0 +1,31 @@
+def reference(vectors):
+    # FSM states: 0=none, 1=seen "1", 2=seen "11", 3=seen "110", 4=found (locked)
+    # Reset is active-high synchronous. Power-up state unspecified; reset edge initializes.
+    # Output start_shifting = 1 iff state == 4.
+    state = 0
+    out = []
+    for row in vectors:
+        # Apply inputs driven before the sampled posedge
+        reset = row.get('reset', 0) & 1
+        data = row.get('data', 0) & 1
+        # Synchronous reset takes priority
+        if reset:
+            state = 0
+        else:
+            if state == 4:
+                state = 4  # locked forever until reset
+            elif state == 0:
+                state = 1 if data == 1 else 0
+            elif state == 1:
+                state = 2 if data == 1 else 0
+            elif state == 2:
+                state = 3 if data == 0 else 2
+            elif state == 3:
+                if data == 1:
+                    state = 4
+                else:
+                    # "110" + "0" -> trailing "0" state (state 0)
+                    state = 0
+        start_shifting = 1 if state == 4 else 0
+        out.append({'start_shifting': start_shifting})
+    return out

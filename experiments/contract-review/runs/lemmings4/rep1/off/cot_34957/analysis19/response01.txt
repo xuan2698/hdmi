@@ -1,0 +1,5 @@
+The key timing point for the checker is that fall duration is counted in **sampled cycles**, not in wall-clock edges, and the landing sample is the one where `ground=1` first appears after a zero run. A zero run of length N means the machine is in the falling state for N samples; splatter occurs iff N > 20. The checker must therefore compare two sequences identical except for the zero-run length (20 vs 21) and confirm resume vs permanent all-zero outputs.
+
+Worked example: walking right, `ground=0` for 20 samples → `aaah=1` on samples 1–20, then `ground=1` → resumes `walk_right=1`, `aaah=0`. With 21 zeros, the landing sample splatters (all outputs 0 forever).
+
+Also pin direction latching: bumps during fall, on the ground-loss sample, and on the landing sample must not flip direction. And verify reset clears both direction and fall counter, since an uncleared counter would falsely splatter a later short fall.

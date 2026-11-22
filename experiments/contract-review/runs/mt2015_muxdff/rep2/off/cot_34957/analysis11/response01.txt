@@ -1,0 +1,14 @@
+The public spec defines a three-bit register `q` with a synchronous load path and a linear feedback recurrence. The reference model is the recurrence itself, not the hierarchical netlist. The checker should maintain a reference `q` initialized to `x` (unknown), and at each sampled posedge apply:
+
+- if `L=1`: `q_next = r`
+- if `L=0`: `q_next = {q[1]^q[2], q[0], q[2]}`
+
+and compare the observed `Q` against the reference only when all three bits of the reference are known. Because there is no reset in the public spec, the initial value of `q` is unspecified; the checker must not assume zero or any other seed. A single `L=1` row with a fully specified `r` establishes all three bits, after which the reference is fully known and comparisons become mandatory.
+
+The recurrence is invertible on 3-bit states. Given `{a,b,c}`, the predecessor is `q[2]=c`, `q[0]=b`, `q[1]=a^c`. This means the `L=0` transition is a permutation of the eight states: the all-zero state is a fixed point, and every other state lies on a cycle. A useful checker invariant is that two distinct loaded states, advanced by the same number of `L=0` steps, must remain distinct. This catches implementations that collapse states or misroute bits, which simple output comparison might miss if the error happens to coincide with the expected value on a short trace.
+
+Timing matters. `Q` is registered, so it changes only at `posedge clk` and is stable after the edge settles. The checker must latch the row's `L` and `r_in` at drive time, sample `Q` after the edge has settled, and then apply any optional mid-cycle input change as the next row's inputs. A mid-cycle change to `L` or `r_in` after sampling must not alter the just-sampled `Q`; it only determines the next edge. This is the key distinction between the sampled row and the carried-forward row.
+
+Worked example: load `r=101` with `L=1`; the next sampled `Q` is `101`. Then drive `L=0`. With `q[1]=0` and `q[2]=1`, the XOR is `1`, so the next `Q` is `{1,1,0}=110`. If `L` is flipped mid-cycle after the `110` sample, the `110` sample must remain `110`; the flip only affects the following edge.
+
+For the final Python checker, the most useful point is to treat the reference as a three-bit unknown-seeded register, apply the recurrence at each sampled edge, and gate comparison on full knowledge. Include an `L=0` row immediately after a known load with `q[1] != q[2]` so the XOR is exercised in both polarities, and include a mid-cycle input change that must carry forward without disturbing the current sample. Do not derive expectations from the submodule structure and do not assume a reset.

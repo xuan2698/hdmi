@@ -1,0 +1,11 @@
+The key distinguishing point for the checker is the **parallel-load vs. LFSR-step branch**, combined with the **mid-input carry rule**. A short example that separates a correct model from a naive one:
+
+Suppose the pre-edge state is `q=001`, `L=0`, `r=000`. After the posedge, the LFSR step gives `q_next = {q[1]^q[2], q[0], q[2]} = {0^1, 0, 1} = 101`. A checker that instead treats `L` as selecting `r` on the same edge, or that applies a mid-input `L=1` to this row, would predict `000` or `001` and fail. The correct sample is `101`; the mid-input `L=1` only affects the *next* row's pre-edge window.
+
+Two further points matter for the final Python checker:
+
+1. **Instance-to-bit mapping must be verified structurally, not just functionally.** The three submodules are identical, so a checker that only compares `Q` against the reference next-state function can pass a design that wires the XOR feedback to the wrong instance — for instance, feeding `q[1]^q[2]` into the `q[1]` instance instead of the `q[2]` instance. Because the LFSR is a permutation-like rotation with feedback, some miswirings produce identical output for specific seeds and states. The checker should therefore inspect the netlist (or at least confirm the XOR net's destination) rather than relying solely on sampled `Q`. The public spec explicitly requires "exactly three submodule instances" and that "the XOR feedback net reaches the correct instance."
+
+2. **Boundary values are trivial but must not be over-modeled.** `L`, `r_in`, `q_in` are all 1-bit; there is no truncation, sign extension, or width coercion to get wrong. The only width-sensitive operation is the concatenation `{q[1]^q[2], q[0], q[2]}`, which is exactly 3 bits. A checker should not introduce masking or slicing that could accidentally hide a miswired bit.
+
+The single most useful check for the final Python checker: for each row, compute the reference next-state from the *pre-edge* `q` and *pre-edge* `L`/`r`, compare to the sampled post-edge `Q`, and then update the carried mid-inputs for the next row. Keep the structural instance/XOR-destination check separate from the functional comparison, because the functional check alone is not sufficient to distinguish all miswirings under seed 20261122.

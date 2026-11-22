@@ -1,0 +1,17 @@
+The public table defines a three-bit present state `y[2:0]`, a one-bit input `x`, a three-bit next state `Y[2:0]`, and a one-bit output `z`. The requested implementation exposes only `Y0`, the least-significant bit of the next state, plus `z`. Thus the port widths are: `x` is 1 bit, `y` is 3 bits, `Y0` is 1 bit, and `z` is 1 bit. The clock is `clk`, and sampling occurs after the posedge has settled.
+
+The boundary values matter. For `y`, all eight codes `000` through `111` are representable, but the public table specifies only five present states: `000`, `001`, `010`, `011`, and `100`. States `101`, `110`, and `111` are unspecified. A final checker should not invent behavior for them from the public spec alone. For `x`, both `0` and `1` are specified in every listed row. For `Y0`, the only legal values are `0` and `1`; the same is true for `z`.
+
+Reading the table row by row:
+
+- `000`: `x=0` goes to `000`, `x=1` goes to `001`; `z=0` in both cases.
+- `001`: `x=0` goes to `001`, `x=1` goes to `100`; `z=0` in both cases.
+- `010`: `x=0` goes to `010`, `x=1` goes to `001`; `z=0` in both cases.
+- `011`: `x=0` goes to `001`, `x=1` goes to `010`; `z=1` in both cases.
+- `100`: `x=0` goes to `011`, `x=1` goes to `100`; `z=1` in both cases.
+
+The output column is therefore not simply a function of the next state. States `000`, `001`, and `010` are output-0 states in the rows where they appear as present states, while `011` and `100` are output-1 states. But the next-state entries cross that boundary. For instance, present state `011` with `x=0` has next state `001`, which is an output-0 state, yet the current row’s output is `z=1`. Similarly, present state `011` with `x=1` has next state `010`, also an output-0 state, while the current output remains `z=1`. Conversely, present state `100` with `x=0` has next state `011`, an output-1 state, and current output `z=1`; here the values happen to agree, which is exactly the kind of coincidence that can mask a wrong implementation.
+
+A useful worked example is the row `y=011`, `x=1`. The correct next state is `010`, so `Y0=0`. The correct output is `z=1`, because the output is read from the present row `011`, not from the next state `010`. A checker that first computes `Y=010` and then looks up the output for state `010` would incorrectly produce `z=0`. This is the central hazard for the final Python checker: compute `Y0` from the next-state field selected by the sampled `y` and `x`, and compute `z` from the output field selected by the same sampled `y` and `x`. Do not chain them.
+
+The timing protocol adds a second constraint. Each row’s `y` and `x` are driven before the sampled posedge, and optional mid-cycle input changes occur after sampling. The checker should therefore capture `y` and `x` at the sampling edge and evaluate both outputs from that captured pair. It should not let a later `x` change retroactively affect the row’s expected `Y0` or `z`. It also should not assume any reset state, since the public specification does not define one. The final checker should treat the table as a direct lookup keyed by the sampled present state and input, with `Y0` and `z` compared independently.

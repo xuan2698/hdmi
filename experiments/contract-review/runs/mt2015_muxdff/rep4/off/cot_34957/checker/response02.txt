@@ -1,0 +1,54 @@
+```python
+def reference(vectors):
+    # Contract:
+    # - 3-bit register q, load-enable L, load value r, clock clk.
+    # - Submodule = 1-bit flipflop + 2:1 mux, instantiated 3 times.
+    # - On posedge: if L: q <= r; else q <= {q[1]^q[2], q[0], q[2]}.
+    # - Power-up state is unknown (x) for each bit.
+    # - Sample after posedge settles; mid changes carry to next row.
+    # - Return dict with 'q' as concrete unsigned int (unknown -> 0).
+
+    # State: list of 3 values, each 0, 1, or None (unknown)
+    state = [None, None, None]
+
+    def xor3(a, b):
+        if a is None or b is None:
+            return None
+        return a ^ b
+
+    results = []
+
+    for row in vectors:
+        # Apply any mid changes from previous row are already in row inputs.
+        # Inputs for this row (driven before the sampled edge):
+        L = row.get('L', 0)
+        r = row.get('r', 0)
+        # r may be int or list of bits
+        if isinstance(r, int):
+            r_bits = [(r >> 2) & 1, (r >> 1) & 1, r & 1]
+        else:
+            r_bits = [int(b) & 1 for b in r]
+
+        # Compute next state on posedge
+        if L:
+            new_state = [r_bits[0], r_bits[1], r_bits[2]]
+        else:
+            # q[2]' = q[1] ^ q[2], q[1]' = q[0], q[0]' = q[2]
+            new_state = [
+                xor3(state[1], state[2]),
+                state[0],
+                state[2],
+            ]
+
+        state = new_state
+
+        # Output q as concrete unsigned int (unknown bits -> 0)
+        q_val = 0
+        for i, b in enumerate(state):
+            if b == 1:
+                q_val |= (1 << (2 - i))
+
+        results.append({'q': q_val})
+
+    return results
+```

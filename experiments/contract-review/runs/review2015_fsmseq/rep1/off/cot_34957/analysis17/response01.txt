@@ -1,0 +1,25 @@
+The key distinction for the checker is that `start_shifting` is a **sticky state flag**, not a pattern detector evaluated on the current input window. The public spec says: when `1101` is found, set `start_shifting` to 1 forever until reset. That means the FSM needs an absorbing success state, call it S4, and S4 must ignore all subsequent `data` values. Only a sampled synchronous `reset=1` can leave S4 and return to the initial state with `start_shifting=0`.
+
+A natural state assignment is:
+
+- S0: no useful prefix yet
+- S1: last sampled bit was `1`
+- S2: last two sampled bits were `11`
+- S3: last three sampled bits were `110`
+- S4: `1101` has been observed; output is 1 forever until reset
+
+The transitions for `data` are:
+
+- S0 --1--> S1, S0 --0--> S0
+- S1 --1--> S2, S1 --0--> S0
+- S2 --1--> S2, S2 --0--> S3
+- S3 --1--> S4, S3 --0--> S0
+- S4 --0/1--> S4
+
+Reset is active high synchronous, so it is checked only at the sampled edge. If `reset=1` at that edge, the next state is S0 and `start_shifting=0`, regardless of `data` or current state. If `reset=0`, the transition follows the table above.
+
+The output is registered and settled after the sampled edge. Before the first sampled reset, the output is unspecified; the checker should not require any particular value there. Once a sampled reset has established S0 and output 0, every later sampled edge should be checked for the correct settled output.
+
+A short worked example clarifies the sticky behavior. Suppose a sampled reset has just occurred, so the machine is in S0 with `start_shifting=0`. Then the sampled data sequence is `1, 1, 0, 1`. The states become S1, S2, S3, S4, and after the fourth edge `start_shifting=1`. Now suppose the next sampled data bit is `0`. The last four input bits are `1010`, which is not `1101`, but the machine remains in S4 and `start_shifting` stays 1. A checker that recomputes the output from the most recent four data bits would incorrectly expect 0. Likewise, a mid-cycle change to `data` after the match edge must not affect the already-sampled transition; it only becomes relevant at the next sampled edge.
+
+For the final Python checker, model each row in phases: drive inputs before the sampled edge, apply the synchronous reset-or-transition rule at that edge, then compare the settled state/output. Treat optional mid-cycle input changes as belonging to the next row’s starting inputs, not to the transition just sampled. Enforce that S4 absorbs all `data` values, that only a sampled `reset=1` clears S4, and that `start_shifting` is never inferred combinationally from the last four input bits.

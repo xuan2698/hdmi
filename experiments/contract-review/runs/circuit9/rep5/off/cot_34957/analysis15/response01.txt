@@ -1,0 +1,11 @@
+The trace shows a 3-bit counter with a one-cycle qualification flag. Initialization is `q = 4` and flag = 0. On each rising edge, the pre-edge flag and `a` determine the action:
+
+- If `a = 1`: `q` holds, flag clears.
+- If `a = 0` and flag = 0: `q` holds, flag sets.
+- If `a = 0` and flag = 1: `q` increments modulo 8, flag stays set.
+
+The flag update is simultaneous with the `q` update, but the decision uses the old flag value. This is why the first low edge after a high period only arms the flag, and the second consecutive low edge begins incrementing.
+
+Worked example: at 45 ns, `a` falls to 0 after the posedge. At 55 ns, the sampled edge sees `a = 0` and flag = 0, so `q` holds at 4 and flag becomes 1. At 65 ns, `a = 0` and flag = 1, so `q` increments to 5 and flag remains 1. At 75 ns, `q` increments from 6 to 0, wrapping modulo 8. At 85 ns, `q` increments from 0 to 1. A later high edge clears the flag, so the next low edge holds again before re-arming.
+
+For the checker: initialize `q = 4`, flag = 0; sample after posedge settles; use the old flag for the hold/increment decision; clear flag on `a = 1`; keep flag on incrementing low edges; verify modulo-8 wrap and re-arming after any high edge.

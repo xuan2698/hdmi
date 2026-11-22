@@ -1,0 +1,9 @@
+The circuit is a 3-bit state machine with one 1-bit input `a` and 3-bit output `q`. The key protocol detail is the carry convention for `a`: the printed `a` on a row is driven before that row’s sampled posedge, but mid-cycle changes occur after sampling and carry into the next row. Thus the value actually sampled at a posedge is the carried input from the previous row’s post-sample change, not necessarily the `a` printed on the same row.
+
+The checker must maintain a carried `a` across rows and use that carried value at each rising edge. This is visible around 45–55 ns: at 45 ns the row prints `a=0`, but the posedge still samples the previously carried `a=1`, so `q` remains 4. The change to `a=0` is only sampled at 55 ns, where `q` becomes 5. Pairing the row’s printed `a` directly with that row’s posedge would misalign every later expected state.
+
+Initial state also needs care: at time 0 `q` is `x`; the first settled value is 4 at 5 ns. The checker should not assume reset or initial 0. Begin validation from the first settled `q`, then apply the transition rule.
+
+The transition rule is: when the sampled input is 1, `q` holds; when the sampled input is 0, `q` increments by one modulo 7. The wrap is 6→0, not 6→7. The trace shows 4 held through several `a=1` samples, then 4→5→6→0→1 as `a=0` is sampled. There is no evidence for modulo 8, saturation, reset, load, enable, or clear behavior. The final checker should implement exactly hold-on-1 and increment-modulo-7-on-0, with carried input sampling and settled-output comparison.
+
+Worked example: if the settled state is 6 and the input actually sampled at the next posedge is 0, the next settled state must be 0, since 6+1 modulo 7 is 0. If the sampled input is 1 instead, the state remains 6.

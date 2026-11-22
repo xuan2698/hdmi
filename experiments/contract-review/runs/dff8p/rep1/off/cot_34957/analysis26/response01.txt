@@ -1,0 +1,7 @@
+The key point for the checker is that `0x34` is a **synchronous reset capture value**, not a power-on state. At each sampled negative edge, if the pre-edge `reset` is high, expected `q` becomes `0x34`; otherwise it captures the pre-edge `d` byte. Mid-cycle changes to `reset` or `d` must not alter expected output until the next sampled negative edge.
+
+Power-up is unspecified: the checker must not seed expected `q` with `0x34`, zero, or any assumed value before the first sampled edge establishes state. Comparisons before known initialization should be skipped or treated as unknown.
+
+Worked example: pre-edge `q=0x12`, `reset=0`, `d=0x5A` → expected `q=0x5A`. After sampling, `reset` rises and `d` changes to `0xAB`; output stays `0x5A`. At the next sampled edge with `reset=1`, expected `q=0x34`, not `0xAB`.
+
+Keep row-start inputs, sampled-edge inputs, mid-cycle changes, and carried inputs separate; update expected `q` only at the sampled negative edge.

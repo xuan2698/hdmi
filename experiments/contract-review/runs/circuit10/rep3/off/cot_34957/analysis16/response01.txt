@@ -1,0 +1,7 @@
+The circuit is a one-bit sequential machine with two one-bit inputs, `a` and `b`, one one-bit output `q`, and one observable state bit `state`. All ports are scalar; there are no multi-bit buses, no enable, and no reset. The clock is edge-triggered, and the table samples after each rising edge has settled. Values listed in a row are the inputs present before that sampled edge; any mid-cycle input change occurs after sampling and is carried into the next row.
+
+The state transition is the XOR of the previous state with the current inputs: `next_state = state XOR a XOR b`. The output is not a separate function; `q` equals `state` on every row where both are defined. During the initial unknown region (`state = x`, `b = x`), both `q` and `state` are `x`, so equality is vacuous there.
+
+A useful checker point: do not evaluate the transition until the previous state and current inputs are defined. Skip rows with unknown `state` or unknown inputs rather than coercing `x` to 0. Also do not assume a power-up value of 0; the waveform settles to 0, but the specification only says the state is unknown until observed.
+
+Worked example: at 45 ns, `state=0, a=0, b=1`, so `0 XOR 0 XOR 1 = 1`, matching `state=1` at 50 ns. Comparing `q[45]=1` against `state[45]=0` would be wrong, because `q` in a rising-edge row is already the post-edge value. Enforce `q == state` where both are defined, and compare `state[i] XOR a[i] XOR b[i]` to `state[i+1]` only across consecutive sampled edges with both states defined.

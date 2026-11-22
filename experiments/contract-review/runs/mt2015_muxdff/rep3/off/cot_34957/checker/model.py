@@ -1,0 +1,50 @@
+def reference(vectors):
+    # Contract:
+    # - top_module instantiates three submodules (flipflop + 2-1 mux each).
+    # - Submodule i: Q <= L ? r_in : feedback
+    # - feedback for bit 2 = q[1] ^ q[2]
+    # - feedback for bit 1 = q[0]
+    # - feedback for bit 0 = q[2]
+    # - Sample after posedge clk settles.
+    # - Mid inputs occur AFTER sampling, before next edge, carried to next row.
+    # - Output Q is 1 bit per row (this is a per-slice reference; the
+    #   requested output width is 1 bit, so we return the bit-2 slice value
+    #   as a concrete integer in [0,1]).
+    #
+    # Since output width is 1 bit, we track the full 3-bit state internally
+    # and return the top bit (bit 2) as Q, matching the 1-bit output contract.
+
+    q = [0, 0, 0]  # power-up unspecified; use 0 as concrete default
+    results = []
+
+    for row in vectors:
+        # Apply any pending mid changes from previous row are already in row.
+        L = row.get('L', 0) & 1
+        r_in = row.get('r_in', 0) & 1
+        q_in = row.get('q_in', 0) & 1
+
+        # q_in is the external bit used for cross-connections.
+        # In the full module, q_in corresponds to the current q bits.
+        # Here we treat q_in as the pre-edge value of the relevant external bit.
+        # For bit 2 feedback: q[1] ^ q[2]
+        # For bit 1 feedback: q[0]
+        # For bit 0 feedback: q[2]
+        # We use q_in as the pre-edge value for the slice being computed,
+        # but since we track full state, we use internal q for feedback.
+
+        # Compute next state (posedge sampling)
+        if L:
+            nq2 = r_in
+            nq1 = r_in
+            nq0 = r_in
+        else:
+            nq2 = (q[1] ^ q[2]) & 1
+            nq1 = q[0] & 1
+            nq0 = q[2] & 1
+
+        q = [nq0, nq1, nq2]
+
+        # Output Q is 1 bit: return bit 2 (top slice) as integer in [0,1]
+        results.append({'Q': q[2] & 1})
+
+    return results

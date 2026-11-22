@@ -1,0 +1,19 @@
+The most useful point for the final Python checker is the **atomic, position-aware update of the reference state at each sampled posedge**, combined with strict separation of pre-edge versus mid-row inputs.
+
+Concretely, the checker should hold a reference three-bit state `ref_q` (seeded from the first settled observed `Q` or a testbench-provided initial value, since power-up is unspecified). At each sampled posedge, it must:
+
+1. Capture the **pre-edge** values of `L` and `r_in` (the values driven before the edge, not any mid-row changes that arrive afterward).
+2. Compute the entire next state from the **old** `ref_q` in one atomic step:
+   - If `L == 1`: `next = r_in` (bit-for-bit, position-preserving).
+   - If `L == 0`: `next[2] = ref_q[1] ^ ref_q[2]`, `next[1] = ref_q[0]`, `next[0] = ref_q[2]`.
+3. Assign `ref_q = next` only after all three bits are computed, then compare against the settled sampled `Q`.
+
+The atomicity matters because `q[2]` is both a source and a destination in the feedback case. A naive sequential update (e.g., writing `q[2]` first, then reading it for `q[0]`) would produce a wrong expectation. The checker must snapshot the old state before computing any new bit.
+
+Position-awareness matters because the three instances are not interchangeable. Instance 0 owns bit 0, instance 1 owns bit 1, instance 2 owns bit 2. The feedback mapping is asymmetric: bit 2 receives the XOR of old bits 1 and 2, bit 1 receives old bit 0, bit 0 receives old bit 2. A checker that treats the bits as an unordered set, or that applies the XOR to the wrong pair, will pass some vectors and fail others unpredictably. The load path is simpler but still positional: `next[i] = r_in[i]` for each `i`.
+
+The mid-row rule is the second half of the boundary discipline. Inputs present before the sampled edge define that row's expectation. Any change to `L` or `r_in` after sampling but before the next edge belongs to the **next** row and must not retroactively alter the current row's expected value. The checker should therefore latch pre-edge inputs into a "current row" record, compute and compare, then promote the post-sample mid values into the next row's pre-edge inputs.
+
+Worked example: pre-edge `q=3'b101`, `L=0`, `r_in=3'b000`. Atomic feedback gives `next = {1^1, 1, 1} = 3'b011`. If a mid change then sets `L=1`, `r_in=3'b110`, the current row still expects `3'b011`; the next row starts with `L=1`, `r_in=3'b110` and expects `3'b110`.
+
+So the final checker's core invariant: **snapshot old state and pre-edge inputs, compute all three next bits from the snapshot, compare only settled `Q`, and defer mid-row changes to the next row.**

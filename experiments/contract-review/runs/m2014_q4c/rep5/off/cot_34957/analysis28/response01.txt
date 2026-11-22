@@ -1,0 +1,3 @@
+The ports are one bit each: `d`, `r`, and `q`. Reset is synchronous and active high, so `r = 1` at the sampled rising edge forces the next `q` to 0; `r = 0` loads `d`. Boundary values are therefore only 0 and 1, with no width or range ambiguity. The key checker point is sampling discipline: compute each row’s expected `q` from the pre-edge `d`/`r` snapshot and the previous expected state, then carry any post-sampling input changes into the next row. Do not use the row’s final input values for the current expectation.
+
+Worked example: if `q_prev = 1`, pre-edge `d = 0`, `r = 0`, then expected `q = 0`. A later mid-row change to `d = 1` belongs to the next row and must not alter this row’s result.

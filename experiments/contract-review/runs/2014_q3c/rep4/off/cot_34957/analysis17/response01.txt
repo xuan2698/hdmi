@@ -1,0 +1,5 @@
+The key point for the final Python checker is to treat the sampled edge as a boundary: capture `x` before the edge, compute the expected `Y[0]` from that captured value and the current `y`, and compute `z` from `y` alone. Mid-cycle changes on `x` occur after sampling and must be carried forward as setup for the next row, not applied retroactively to the row just sampled.
+
+Because `z` is independent of `x`, a checker that accidentally uses the post-edge `x` when computing expected `Y[0]` will still see `z` match; the error will surface only as a `Y[0]` mismatch. That makes the `Y[0]` comparison the sensitive one, and it should be evaluated against the pre-edge `x` capture.
+
+Worked example: drive `y=011`, `x=0` before the positive edge. The table gives next state 001, so expected `Y[0]=1`; present state 011 gives `z=1`. After the edge settles, compare `Y[0]=1` and `z=1`. If `x` changes to 1 during the mid-cycle window, that change is next-row setup and must not alter the expected result for the 011 row.

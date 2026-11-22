@@ -1,0 +1,11 @@
+The public trace is a rising-edge sequential machine with one 1-bit input `a` and a 3-bit state `q`. The key timing fact is that the table’s `a` column is not necessarily the value sampled by that row’s rising edge. Mid-cycle input changes occur after sampling and are carried into the next row, so the checker must reconstruct the edge-sampled value rather than trusting the printed row value.
+
+The 45 ns row is the decisive example. The table shows `a=0` at 45 ns, but `q` remains 4. If the checker used the row’s literal `a=0`, it would predict 4→5 at that edge and then misalign every subsequent transition. The correct reading is that the 45 ns posedge sampled the carried value from the previous row, `a=1`, so the machine held at 4. The next posedge at 55 ns samples `a=0` and advances 4→5. This is the central off-by-one-row sampling hazard the final checker must avoid.
+
+The state update is hold-on-1 and increment-on-0, with modulo-7 wrap. The observed sequence is 4,5,6,0,1, not a full 3-bit count through 7. At 75 ns, with sampled `a=0`, `q` goes from 6 to 0. So the update is `(q+1) mod 7`, not `(q+1) mod 8`. A plain 3-bit increment would wrongly produce 6→7.
+
+The initial `x` should be treated as don’t-care. At time 0 `q=x`; at 5 ns the first posedge with `a=1` yields 4. The public waveform shows no reset, clear, or load, so the checker should begin meaningful comparison once the first settled posedge establishes 4. Requiring a known initial state would be stricter than the spec supports.
+
+Short worked example: if the settled state is 6 and the edge-sampled input is 0, the next state is 0, not 7. If the settled state is 4 and the edge-sampled input is 1, the next state remains 4.
+
+For the final Python checker, the practical rule is: sample `a` at the posedge using the carried/mid-cycle-adjusted value, not blindly the row’s printed `a`; compare `q` only after the posedge settles; allow the initial unknown state; and implement hold-on-1 plus increment-modulo-7-on-0. The public spec gives no evidence for reset, clear, load, saturation, or an 8-state counter.

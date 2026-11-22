@@ -1,0 +1,27 @@
+```python
+def reference(vectors):
+    # D flip-flop with active-high synchronous reset.
+    # Contract:
+    #  - carried baseline for d and r persists across rows.
+    #  - pre-edge drives override the carried baseline for this row's sample.
+    #  - sample once after posedge settles: q = 0 if r else d.
+    #  - mid-row changes apply AFTER sampling and only update the carry.
+    #  - power-up convention: q=0, carried d=0, carried r=0.
+    carry_d = 0
+    carry_r = 0
+    q = 0
+    out = []
+    for row in vectors:
+        # Resolve pre-edge inputs from carry + pre-edge drives.
+        d = row.get('d', carry_d)
+        r = row.get('r', carry_r)
+        # Sample after posedge settles; reset has priority.
+        q = 0 if r else d
+        out.append({'q': q & 1})
+        # Mid-row changes occur after sampling; update carry only.
+        if 'mid_d' in row:
+            carry_d = row['mid_d']
+        if 'mid_r' in row:
+            carry_r = row['mid_r']
+    return out
+```

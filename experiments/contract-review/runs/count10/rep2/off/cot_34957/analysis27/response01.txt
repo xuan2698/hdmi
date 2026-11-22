@@ -1,0 +1,7 @@
+The public spec defines a decade counter with a synchronous active-high reset. The key constraint is that only two behaviors are actually specified: when sampled `reset` is high, the next sampled `q` must be 0 regardless of current state; when sampled `reset` is low and current `q` is in 0–9, the next `q` must be the decade successor (9→0, otherwise q+1). For current `q` in 10–15 with reset low, no next-state requirement is defined, so the checker must not invent wrap, saturation, or reset behavior there.
+
+A legal trace may begin at any four-bit value, including out-of-range states, since the spec does not constrain initial state. The checker should therefore avoid assuming an initial 0 and should only enforce transitions from states where behavior is defined.
+
+Timing matters: each row’s driven values are present before the sampled posedge. Optional mid-input changes occur after sampling and are carried to the next row. The checker must evaluate the transition using the sampled `reset` and observed `q` first, then allow post-sampling changes to affect only the next row. This prevents backward leakage.
+
+Worked example: if a row samples `q=9`, `reset=0`, expect next `q=0`. If `reset` rises after sampling, that change applies to the next row only; it does not alter the 9→0 expectation. Decision order: sampled reset high → expect 0; else `q` in 0–9 → expect successor; else no normal transition requirement.

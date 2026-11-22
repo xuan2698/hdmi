@@ -1,0 +1,13 @@
+The machine's state must encode at least: direction (left/right), activity (walking, falling, digging, splattered), and a fall-duration counter. Outputs are Moore-style, so they depend only on the settled state after each sampled edge. The four outputs are mutually constrained: at most one of `walk_left`, `walk_right`, `aaah`, `digging` is high in any non-splattered state, and all four are 0 in the splattered state.
+
+Walking states carry direction. A walking Lemming on ground (`ground=1`) with `dig=0` stays walking in the same direction unless bumped. `bump_left=1` forces rightward walking; `bump_right=1` forces leftward walking; both together still force a direction switch (from left to right or right to left). Bumps have no effect while falling or digging. If `ground=0` while walking, the machine enters falling with `aaah=1`, preserving the current direction for later resumption, and begins counting fall cycles. If `dig=1` while walking on ground, the machine enters digging with `digging=1`, preserving direction.
+
+Digging continues while `ground=1`. When `ground=0`, digging ends and the machine falls, again preserving direction. Bumps during digging are ignored. A `dig=1` while falling or while `ground=0` is ignored.
+
+Falling accumulates duration each cycle `ground=0`. When `ground=1` returns, the machine checks the accumulated fall length. If the fall lasted more than 20 cycles, the machine splatters: all outputs 0 forever until reset. If 20 or fewer, it resumes walking in the stored direction. Bumps during falling do not alter direction; bumps in the same cycle ground disappears or reappears also do not alter direction. The counter must be cleared on landing (and on reset), so a later fall starts fresh.
+
+Splattered is absorbing for all non-reset inputs. `ground`, `dig`, and bumps cannot revive it. Only `areset` returns to the reset state: walking left, counter zero, not digging, not splattered.
+
+Worked example: walking left, `ground=0` for 21 sampled cycles, then `ground=1`. During the fall `aaah=1`, direction stored left. On the landing sample, duration exceeds 20, so outputs become all 0 and remain so. A 20-cycle fall instead resumes `walk_left=1`.
+
+For the checker, the key points are: reset priority and counter clearing; exact 20-vs-21 landing boundary; direction preservation across fall and dig; bump suppression during fall/dig; and splatter persistence.

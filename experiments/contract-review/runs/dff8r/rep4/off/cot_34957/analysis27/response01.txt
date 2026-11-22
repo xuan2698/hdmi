@@ -1,0 +1,5 @@
+The design is eight independent D flip-flops sharing `clk`, `reset`, and an 8-bit `d` bus, with an 8-bit `q` output. All flops trigger on the positive edge of `clk`. At each rising edge, the sampled `reset` and `d` determine the next state: if `reset` is high, `q` becomes `0x00`; otherwise `q` becomes the sampled `d`. Because reset is synchronous and active high, it has effect only at a rising edge, not asynchronously.
+
+For the checker, the key point is edge-sampled behavior. Expected `q` should be computed only from values present at the settled positive edge, then compared after that edge settles. Mid-cycle input changes—including `reset` or `d`—must not alter the current expected output; they only affect the next sampled edge. Do not treat `0x00` as a sentinel, since it is valid data, and do not assume any power-up value for `q` before the first meaningful sampled edge.
+
+Worked example: sampled edge with `reset=0`, `d=0xA5` gives `q=0xA5`; a later mid-cycle `reset=1` does not clear `q` until the next rising edge, where expected `q` becomes `0x00`.

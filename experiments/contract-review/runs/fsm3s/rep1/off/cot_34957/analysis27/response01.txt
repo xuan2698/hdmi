@@ -1,0 +1,7 @@
+The machine has four states with Moore outputs: A, B, C produce 0; D produces 1. Transitions: from A, in=0 stays A, in=1 goes B. From B, in=0 goes C, in=1 stays B. From C, in=0 goes A, in=1 goes D. From D, in=0 goes C, in=1 goes B. Reset is synchronous active high, forcing state A (output 0) at a sampled rising edge regardless of input.
+
+The key checker point: output is a function of the *next* state after the sampled edge, not of the input or transition condition. Compute the reference next state from the current reference state and the sampled `in`, then require the DUT's settled `out` to equal 1 iff that next state is D. This matters for C→D with in=1: out becomes 1 because the machine entered D, not because in=1. A checker asserting out from the transition condition, or one that lets D hold out=0 until a later edge, is wrong.
+
+Reset must be modeled synchronously: a reset pulse entirely between edges does not change the reference state until the next sampled edge, and out need not fall before that edge. Since no power-up state is defined, initialize the reference consistently with the testbench or apply reset at the first sampled edge.
+
+Worked example: in C with in=1 sampled, next state D, so expect out=1 after settling; a later mid-cycle in change to 0 affects only the next transition from D.

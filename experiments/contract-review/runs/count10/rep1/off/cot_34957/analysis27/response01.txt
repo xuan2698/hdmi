@@ -1,0 +1,5 @@
+The counter is a single 4-bit state register with synchronous active-high reset. On each rising edge, if the row's starting `reset` is 1, the next state is 0; otherwise the next state is `(current + 1) mod 10`. Output `q` equals the settled state after the edge. Because reset is synchronous, a mid-row `reset` change does not affect the current edge—it is carried to the next row's starting input. The checker must compare settled `q` before adopting any carried mid-row input.
+
+Worked example: current count 9, row starts `reset=0`, mid-row change to `reset=1`. The edge still increments modulo 10, so expected settled `q=0`; the carried reset applies to the next row.
+
+Key point: do not assume power-up `q=0` unless a reset edge or the protocol seed establishes it. If the first sampled edge has `reset=0`, treat that row as unconstrained (or seed-defined), not as a guaranteed zero.

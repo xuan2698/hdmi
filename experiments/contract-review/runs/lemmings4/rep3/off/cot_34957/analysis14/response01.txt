@@ -1,0 +1,23 @@
+# Reset and Power-Up Analysis
+
+The Lemming FSM has one asynchronous control input, `areset`, which is specified as positive-edge triggered. That phrasing is slightly unusual for an asynchronous reset: the practical requirement is that asserting `areset` forces the machine into its initial state independently of `clk`, and that the machine remains in that state while `areset` is held. The initial state is "walking left": `walk_left=1`, and `walk_right=0`, `aaah=0`, `digging=0`. The checker should therefore treat reset as a state override, not merely as a synchronous input sampled on a clock edge.
+
+For the final Python checker, the most useful point is to separate three pieces of state that are easy to conflate:
+
+1. The current mode: walking, falling, digging, or splattered.
+2. The remembered walking direction, which survives falling and digging.
+3. The fall counter, which determines whether landing is safe or fatal.
+
+Reset must clear all three. In particular, reset must clear any splatter flag and restore the remembered direction to left. A common bug is to reset only the visible outputs while leaving an internal "dead" flag or a remembered rightward direction intact. The checker should therefore test reset after a splatter event and after a direction-changing bump, not only at power-up.
+
+Power-up behavior is the same as reset behavior: before any meaningful clocked operation, the machine should present the walk-left outputs. If the implementation uses a synchronous reset internally, the checker should still see the reset effect on the first sampled edge after `areset` is asserted, and should not require a particular pre-edge output value. The public specification does not define intermediate combinational values during reset, so the checker should sample only after the edge has settled.
+
+A second useful point is the fall counter's boundary. The specification says a Lemming splatters if it falls for *more than* 20 clock cycles and then hits the ground. Thus 20 fall cycles followed by landing is safe; 21 fall cycles followed by landing is fatal. The checker should count sampled cycles in which `aaah=1` and `ground=0`, then apply `ground=1` and inspect the post-edge outputs. It should not infer splatter from the landing row alone, and it should not reset the counter merely because a bump occurs during the fall.
+
+Worked example: from reset, drive `ground=0` for 20 sampled cycles. The outputs should show `aaah=1`, `walk_left=0`, `walk_right=0`, `digging=0`. Then drive `ground=1`. On the settled post-edge sample, expect `walk_left=1`, `walk_right=0`, `aaah=0`, `digging=0`. If all outputs are zero, the implementation has treated 20 fall cycles as fatal. Repeating with 21 fall cycles should instead produce all-zero outputs permanently, including after later `ground=1` and `dig=1` inputs.
+
+The checker should also verify that splatter is permanent until `areset`. After a 21-cycle fall and landing, drive `ground=1`, `dig=1`, and alternating bumps; all four outputs must remain zero. Then assert `areset=1` and confirm return to `walk_left=1` with the other outputs zero. This proves reset clears the splatter flag and reinitializes the remembered direction.
+
+Two direction-memory traps deserve direct tests. First, from walk-left, assert `ground=0` and `bump_right=1` on the same row. The bump must not change the remembered direction because ground is disappearing. Restore ground within the safe fall window and verify the Lemming resumes walking left. Second, repeat at the landing edge: while `aaah` was previously high, assert `ground=1` and `bump_right=1` together. The bump must not affect direction on the landing cycle; the Lemming should resume its pre-fall direction.
+
+Finally, test precedence directly. From walk-left on ground, assert `dig=1` and `bump_right=1`; expected post-edge outputs are `digging=1`, `walk_left=0`, `walk_right=0`, `aaah=0`. Then assert `ground=0` while digging; expected outputs are `aaah=1`, `digging=0`, and both walking outputs zero. After ground returns within 20 cycles, the Lemming must resume walking left, not right. This catches implementations that let bumping override digging or that forget the remembered direction across a dig-then-fall sequence.

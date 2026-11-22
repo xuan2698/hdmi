@@ -1,0 +1,41 @@
+```python
+def reference(vectors):
+    # Reference FSM for detecting 1101 with sticky start_shifting.
+    # States: 0=initial, 1=trailing "1", 2=trailing "11", 3=trailing "110", 4=terminal
+    # Synchronous active-high reset. Output start_shifting = 1 iff state == 4.
+    # Each row: values driven before sampled posedge; sample after edge settles.
+    # Mid-cycle changes occur after sampling and carry to next row's sampled input.
+
+    state = 0
+    results = []
+
+    for row in vectors:
+        # Determine sampled inputs for this posedge.
+        # If a mid-cycle change was carried from previous row, it overrides
+        # the row's driven value for the sampled edge.
+        if "mid_data" in row and row["mid_data"] is not None:
+            data = row["mid_data"]
+        else:
+            data = row["data"]
+        reset = row["reset"]
+
+        # Apply synchronous reset first, then transition.
+        if reset == 1:
+            state = 0
+        else:
+            if state == 0:
+                state = 1 if data == 1 else 0
+            elif state == 1:
+                state = 2 if data == 1 else 0
+            elif state == 2:
+                state = 3 if data == 0 else 2
+            elif state == 3:
+                state = 4 if data == 1 else 0
+            elif state == 4:
+                state = 4
+
+        start_shifting = 1 if state == 4 else 0
+        results.append({"start_shifting": start_shifting})
+
+    return results
+```

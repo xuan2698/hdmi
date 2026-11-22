@@ -1,0 +1,109 @@
+def reference(vectors):
+    # Moore FSM for Lemmings.
+    # States:
+    #   WL  : walking left
+    #   WR  : walking right
+    #   FL  : falling, direction left
+    #   FR  : falling, direction right
+    #   DL  : digging, direction left
+    #   DR  : digging, direction right
+    #   SPL : splattered
+    #
+    # Outputs (Moore):
+    #   WL  -> walk_left=1
+    #   WR  -> walk_right=1
+    #   FL/FR -> aaah=1
+    #   DL/DR -> digging=1
+    #   SPL -> all 0
+    #
+    # Fall counter: number of consecutive cycles in falling state.
+    # Splatter when landing (ground=1) after fall_count > 20.
+
+    out = []
+
+    # initial state after power-up (before any reset): walk left
+    state = 'WL'
+    fall_count = 0
+
+    for row in vectors:
+        areset = row.get('areset', 0)
+        bump_left = row.get('bump_left', 0)
+        bump_right = row.get('bump_right', 0)
+        ground = row.get('ground', 1)
+        dig = row.get('dig', 0)
+
+        # Asynchronous reset: effective immediately, before sampling.
+        if areset:
+            state = 'WL'
+            fall_count = 0
+
+        # Compute outputs for current state (Moore).
+        if state == 'WL':
+            o = {'walk_left': 1, 'walk_right': 0, 'aaah': 0, 'digging': 0}
+        elif state == 'WR':
+            o = {'walk_left': 0, 'walk_right': 1, 'aaah': 0, 'digging': 0}
+        elif state in ('FL', 'FR'):
+            o = {'walk_left': 0, 'walk_right': 0, 'aaah': 1, 'digging': 0}
+        elif state in ('DL', 'DR'):
+            o = {'walk_left': 0, 'walk_right': 0, 'aaah': 0, 'digging': 1}
+        else:  # SPL
+            o = {'walk_left': 0, 'walk_right': 0, 'aaah': 0, 'digging': 0}
+
+        out.append(o)
+
+        # Compute next state based on inputs (sampled at this edge).
+        if state == 'SPL':
+            nstate = 'SPL'
+            nfall = 0
+        elif state in ('WL', 'WR'):
+            direction = 'L' if state == 'WL' else 'R'
+            if ground == 0:
+                # Fall has highest precedence.
+                nstate = 'FL' if direction == 'L' else 'FR'
+                nfall = 1
+            elif dig == 1:
+                # Dig outranks bump.
+                nstate = 'DL' if direction == 'L' else 'DR'
+                nfall = 0
+            else:
+                # Bump switching (both bumps still switch).
+                if bump_left and bump_right:
+                    direction = 'R' if direction == 'L' else 'L'
+                elif bump_left:
+                    direction = 'R'
+                elif bump_right:
+                    direction = 'L'
+                nstate = 'WL' if direction == 'L' else 'WR'
+                nfall = 0
+        elif state in ('FL', 'FR'):
+            direction = 'L' if state == 'FL' else 'R'
+            if ground == 1:
+                # Landing: check splatter.
+                if fall_count > 20:
+                    nstate = 'SPL'
+                    nfall = 0
+                else:
+                    nstate = 'WL' if direction == 'L' else 'WR'
+                    nfall = 0
+            else:
+                # Still falling; bumps ignored.
+                nstate = state
+                nfall = fall_count + 1
+        elif state in ('DL', 'DR'):
+            direction = 'L' if state == 'DL' else 'R'
+            if ground == 0:
+                # Reached other side: fall.
+                nstate = 'FL' if direction == 'L' else 'FR'
+                nfall = 1
+            else:
+                # Continue digging; bumps ignored.
+                nstate = state
+                nfall = 0
+        else:
+            nstate = state
+            nfall = 0
+
+        state = nstate
+        fall_count = nfall
+
+    return out

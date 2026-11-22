@@ -1,0 +1,14 @@
+The public spec defines a 32-bit global branch history register with two update events and an asynchronous reset. The key point for a final Python checker is that the misprediction path is a **load from the independent `train_history` input**, not a shift of the current register, and that it has strict priority over a simultaneous prediction.
+
+The reference model should be organized as a priority chain evaluated on each sampled posedge:
+
+1. If `areset` is asserted, force the register to zero. The spec says `areset` is a positive-edge-triggered asynchronous reset that resets the history counter to zero. The safest checker behavior is to treat an asserted `areset` as forcing the output to zero regardless of the other control signals, and to verify this between clock edges as well as at a posedge. After reset is released, normal shifting resumes from the zero state.
+2. Else if `train_mispredicted` is asserted, the next state is `{train_history[30:0], train_taken}`. This is a load of the low 31 bits of `train_history` with `train_taken` appended as the new LSB. The checker must drive `train_history` independently of the pre-edge `predict_history`; otherwise a buggy design that shifts the current register instead of loading `train_history` would not be exposed.
+3. Else if `predict_valid` is asserted, the next state is `{old_history[30:0], predict_taken}`, shifting the predicted direction in at the LSB. `predict_history[0]` is the youngest branch direction.
+4. Else hold the register.
+
+The output `predict_history` is the post-edge register value, so the checker computes the expected next state from the pre-edge reference and compares after the posedge has settled.
+
+The most valuable distinguishing case is simultaneous `train_mispredicted` and `predict_valid`. The spec states the misprediction takes precedence because the pipeline flush also flushes the branch currently making a prediction. The checker should assert both with `predict_taken != train_taken` and confirm the next state depends only on `train_history` and `train_taken`. This single edge catches implementations that shift in `predict_taken` and then partially overwrite, or that merge the two update paths incorrectly.
+
+Worked example: pre-edge reference `0x1234_5678`, `areset=0`, `predict_valid=1`, `predict_taken=1`, `train_mispredicted=0` gives `0x2468_ACF1` (left shift by one, LSB set to 1). If instead `train_mispredicted=1` and `predict_valid=1` occur together with `train_history=0xDEAD_BEEF` and `train_taken=0`, the next state is `{0xDEAD_BEEF[30:0], 0} = 0xBD5B_7DDE`, and `predict_taken` is ignored. That distinction—load versus shift, and misprediction priority—is the core of the reference model.

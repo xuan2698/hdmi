@@ -1,0 +1,11 @@
+The circuit is a 3-bit state machine with a single 1-bit input `a`. Its output `q` is the state itself, updated only on the rising edge of `clk`. The public waveform shows a hold-or-increment behavior: when the sampled input is 1, the state holds; when the sampled input is 0, the state increments by one modulo 7. The modulo is 7 rather than 8 because the observed sequence wraps 6→0, not 6→7.
+
+The most important subtlety for the final checker is the sampling convention. The table’s `a` column is not always the value sampled at the posedge on that same row. Mid-cycle input changes occur after sampling and are carried into the next row. The 45 ns row is the decisive example: the table prints `a=0` at 45 ns, but `q` stays at 4. If the checker used the literal row value, it would predict 4→5 at that edge and then misalign every later transition. The correct reading is that the 45 ns posedge sampled the carried value `a=1` from the previous row, so the state held at 4. The next posedge at 55 ns samples `a=0` and advances 4→5. This is the main off-by-one-row hazard the checker must avoid.
+
+The state sequence observed is 4,5,6,0,1. At 75 ns, with sampled `a=0`, `q` goes from 6 to 0, confirming modulo-7 wrap. A plain 3-bit increment would wrongly produce 6→7. There is no evidence for saturation, reset, clear, load, or an 8-state counter.
+
+The initial `x` at time 0 should be treated as don’t-care. At 5 ns the first posedge with `a=1` yields 4. The public waveform shows no reset or initialization signal, so the checker should begin meaningful comparison once the first settled posedge establishes 4. Requiring a known initial state would be stricter than the spec supports.
+
+Short worked example: if the settled state is 6 and the edge-sampled input is 0, the next state is 0, not 7. If the settled state is 4 and the edge-sampled input is 1, the next state remains 4.
+
+For the final Python checker, the practical rule is: sample `a` at the posedge using the carried/mid-cycle-adjusted value, not blindly the row’s printed `a`; compare `q` only after the posedge settles; allow the initial unknown state; and implement hold-on-1 plus increment-modulo-7-on-0. The public spec gives no evidence for reset, clear, load, saturation, or an 8-state counter.

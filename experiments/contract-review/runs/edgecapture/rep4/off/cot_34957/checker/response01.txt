@@ -1,0 +1,37 @@
+```python
+def reference(vectors):
+    # Contract:
+    # - out is a 32-bit register, active-high synchronous reset.
+    # - prev_in is a 32-bit register tracking previous input, updated every
+    #   sampled posedge regardless of reset.
+    # - On each sampled edge: if reset: out = 0; else out |= (prev_in & ~in).
+    # - Then prev_in = in (unconditional).
+    # - Power-up values are established by the testbench before first edge.
+    out = 0
+    prev_in = 0
+    results = []
+    for row in vectors:
+        # Apply optional mid changes that occur AFTER sampling, before next edge.
+        # These are carried to the start of the next row.
+        # (Handled by applying them at end of this iteration.)
+        reset = row.get('reset', 0) & 1
+        inp = row.get('in', 0) & 0xFFFFFFFF
+
+        # Sampled edge processing
+        if reset:
+            out = 0
+        else:
+            out = (out | (prev_in & (~inp & 0xFFFFFFFF))) & 0xFFFFFFFF
+        prev_in = inp
+
+        results.append({'out': out & 0xFFFFFFFF})
+
+        # Apply mid changes (after sampling) for next row
+        mid = row.get('mid', None)
+        if mid is not None:
+            if 'in' in mid:
+                prev_in = mid['in'] & 0xFFFFFFFF
+            # Note: mid reset changes would affect next edge's reset input,
+            # but reset is a per-row input, so we don't persist it here.
+    return results
+```

@@ -1,0 +1,5 @@
+The ports are all one bit: inputs `a`, `b`, clock `clk`; outputs `q` and observable `state`. Values are binary once defined; `x` marks power-up/initialization. There is no reset port, so the checker must not demand a reset edge or fixed initial state. It should skip rows where `state` or `q` is undefined and begin at the first fully defined row.
+
+The state is registered on the rising edge: next state equals `b` when `a=1`, otherwise it holds. The output is combinational from the current row: `q = a XOR b XOR state`.
+
+Worked example: at 65 ns, `a=1,b=1,state=0`, so `q=1 XOR 1 XOR 0=0`; the next state at 70 ns is 1. A checker using the next state would wrongly predict `q=1` at 65 ns. Keep output and transition checks separate.

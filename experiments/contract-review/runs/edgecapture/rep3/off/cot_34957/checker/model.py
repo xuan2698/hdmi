@@ -1,0 +1,20 @@
+def reference(vectors):
+    # Contract:
+    # - prev is persistent 32-bit state, updated every sampled posedge, NOT cleared by reset.
+    # - capture = prev & ~in (using pre-edge prev), then prev = in.
+    # - if reset: out = 0; else: out = out | capture.
+    # - Outputs are 32-bit unsigned.
+    out = 0
+    prev = 0
+    results = []
+    for row in vectors:
+        reset = row.get('reset', 0) & 1
+        inp = row.get('in', 0) & 0xFFFFFFFF
+        capture = prev & (~inp & 0xFFFFFFFF)
+        if reset:
+            out = 0
+        else:
+            out = (out | capture) & 0xFFFFFFFF
+        prev = inp
+        results.append({'out': out & 0xFFFFFFFF})
+    return results

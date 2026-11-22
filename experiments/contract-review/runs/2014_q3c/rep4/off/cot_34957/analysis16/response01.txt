@@ -1,0 +1,19 @@
+The public specification defines a small state machine with a 3-bit present state `y[2:0]`, a 1-bit input `x`, a 1-bit next-state bit `Y[0]`, and a 1-bit output `z`. The input widths are `{'x': 1, 'y': 3}` and the output widths are `{'Y0': 1, 'z': 1}`. The clock is `clk`, and sampling occurs after the positive edge has settled. Each row's values are driven before the sampled edge; optional mid-cycle input changes occur after sampling, before the other edge, and are carried to the start of the next row.
+
+The table lists five specified present states: 000, 001, 010, 011, and 100. For each, the next state is given for `x=0` and `x=1`, along with the output `z`. The next states are:
+
+- 000: `x=0` → 000, `x=1` → 001, `z=0`
+- 001: `x=0` → 001, `x=1` → 100, `z=0`
+- 010: `x=0` → 010, `x=1` → 001, `z=0`
+- 011: `x=0` → 001, `x=1` → 010, `z=1`
+- 100: `x=0` → 011, `x=1` → 100, `z=1`
+
+The requested logic functions are `Y[0]` and `z`. `Y[0]` is the least-significant bit of the next state `Y[2:0]`. Among the specified next states, `Y[0]=1` for 001 and 011, and `Y[0]=0` for 000, 010, and 100. Thus `Y[0]` depends on both the present state and `x`. `z` depends only on the present state: `z=1` for 011 and 100, and `z=0` for 000, 001, and 010.
+
+A useful point for the final Python checker is to separate pre-edge capture from post-edge settled comparison. Capture `x` before the sampled positive edge and use that captured value to select the expected next state for the current row. Compute expected `Y[0]` from the captured `x` and the present state using a direct lookup over the five specified states. Compute expected `z` from the present state alone. Mid-cycle changes on `x` occur after sampling and belong to the next row's setup; they must not retroactively alter the expected `Y[0]` for the row just sampled.
+
+Because `z` is independent of `x`, a checker that mistakenly uses the post-sampling `x` value when computing expected `Y[0]` will still see `z` match. The resulting mismatch will appear as a `Y[0]` logic error rather than a testbench timing error. This is the key hazard to guard against.
+
+A short worked example: before the positive edge, drive `y=011` and `x=0`. The table gives next state 001, so `Y[0]=1`; present state 011 gives `z=1`. After the edge settles, compare against `Y[0]=1` and `z=1`. If `x` then changes to 1 during the mid-cycle window, that change is next-row setup and must not change the expected result for the 011 row.
+
+Restrict stimulus to the five specified present states so that unspecified don't-care behavior is never scored.

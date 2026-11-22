@@ -1,0 +1,15 @@
+One likely implementation mistake is to treat the reset value as an asynchronous clear or to reset to zero. The public specification says the eight D flip-flops have an active-high synchronous reset and must reset to `0x34`, not `0x00`. A common but incorrect implementation is:
+
+```
+always @(posedge clk or posedge reset)
+  if (reset) q <= 0;
+  else       q <= d;
+```
+
+This is wrong for several reasons. It triggers on the positive edge instead of the negative edge, it makes reset asynchronous, and it loads zero rather than `0x34`. Even a version that uses `negedge clk` but still resets to zero would fail the required reset value. The final checker should therefore distinguish between “reset is asserted at the sampled negative edge” and “reset is merely high at some other time.” Only the former changes state, and when it does, the next state must be exactly `0x34`.
+
+A second related mistake is to let a mid-row change to `reset` or `d` affect the current row’s expected output. The protocol says mid-input changes occur after sampling and are carried to the start of the next row. So if `reset` goes high after the negative edge has sampled `reset=0`, the current row’s `q` must not be recomputed as `0x34`. The checker should capture the pre-edge inputs for each row, compute the expected `q` from those captured values, and only then carry any mid changes forward.
+
+A short worked example: suppose row 0 samples `reset=0`, `d=0x12` at the negative edge, so `q` becomes `0x12`. After sampling, `reset` rises to 1. Row 0’s `q` remains `0x12`; the reset change belongs to row 1. At row 1’s negative edge, if `reset` is still 1, then `q` becomes `0x34`. If the checker incorrectly applies the mid-row reset to row 0, it will expect `0x34` too early and report a false failure.
+
+For the final Python checker, the useful point is to model the state update as a single negative-edge event with captured inputs. Maintain one 8-bit state. For each row, use the pre-edge `d` and `reset`, compute `expected_q = 0x34 if reset else d`, compare against the settled post-negative-edge `q`, and only afterward apply mid-input changes for the next row. Do not update on positive edges, do not reset to zero, and do not let mid-row changes retroactively affect the current row.

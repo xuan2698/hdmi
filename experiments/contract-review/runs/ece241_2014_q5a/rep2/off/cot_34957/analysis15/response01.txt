@@ -1,0 +1,11 @@
+The machine has two states. S0 is the "still copying" state: no 1 has yet been seen in the LSB-first stream, so the output must equal the input bit. S1 is the "inverting" state: the first 1 has already been copied, so every subsequent bit must be complemented. The output is a Moore output, meaning z is a function of the state alone, not of the current input. This is the crux of the design and the crux of the checker.
+
+Transitions from S0: on x=0, stay in S0 (still no 1 seen, output 0). On x=1, move to S1 (the first 1 has been copied, output 1). Transitions from S1: on x=0, stay in S1 with output 1; on x=1, stay in S1 with output 0. So S1 is absorbing — once the first 1 arrives, the machine never returns to S0 until reset. The output is z=0 in S0 and z=1 in S1.
+
+The critical timing point is that the output must be emitted from the *installed* (next) state, not the pre-state. On the row where the first 1 is sampled in S0, the machine transitions to S1 and the output for that same row must be 1. If a checker emits z from the pre-state, it outputs 0 on that row and is off by one for the remainder of the number. This error is invisible on all-zero inputs (never leaves S0, always 0) and on inputs whose very first bit is 1 only if the checker also mishandles the first row; it is exposed by any input with a leading 0 followed by a 1.
+
+Reset handling: areset is asynchronous and positive-edge triggered, but the checker samples it at the settled posedge. If areset is sampled high on a row, force S0 and z=0 for that row, and do not advance the input index — the x bit on that row is not consumed. Conversion begins on the first row where areset is sampled low. A reset asserted after the sampled edge takes effect on the next row. Mid-row x changes are staged for the next row only.
+
+Worked example: LSB-first x = 0,1,0,1 (value 10; two's complement 0110; LSB-first output 0,1,1,0). Row 1: S0, x=0 → S0, z=0. Row 2: S0, x=1 → S1, z=1 (distinguishing row). Row 3: S1, x=0 → S1, z=1. Row 4: S1, x=1 → S1, z=0. A pre-state checker yields 0,0,1,1.
+
+For the final checker: per row, if sampled areset is high, force S0 and z=0 and do not advance the input index; otherwise sample settled x, compute the next state, install it, and emit z from the installed state. Anchor the reference at the first sampled-high reset row, not at time zero.

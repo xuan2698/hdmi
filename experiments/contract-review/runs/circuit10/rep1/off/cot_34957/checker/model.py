@@ -1,0 +1,32 @@
+def reference(vectors):
+    # Sequential circuit:
+    #   state is registered on rising clk edge:
+    #       next_state = b if a == 1 else state (hold)
+    #   q is combinational from current row:
+    #       q = a XOR b XOR state
+    # Power-up state is unspecified (x); skip until state is defined.
+    # Mid-row input changes occur after sampling and carry to next row.
+    out = []
+    state = None  # unknown at power-up
+    for row in vectors:
+        clk = row.get('clk')
+        a = row.get('a')
+        b = row.get('b')
+        # Determine current state for this row (from previous posedge)
+        # If state still unknown, q is unknown -> but we must return concrete ints.
+        # Use 0 as concrete placeholder when undefined.
+        cur_state = state if state is not None else 0
+        # Combinational output q from current row inputs and current state
+        if a is None or b is None or state is None:
+            q = 0
+        else:
+            q = (a ^ b ^ state) & 1
+        out.append({'q': q, 'state': cur_state})
+        # On rising edge, update state for next row
+        if clk == 1:
+            if a is not None and b is not None:
+                if a == 1:
+                    state = b & 1
+                # else hold state
+            # if inputs undefined, state remains as-is
+    return out

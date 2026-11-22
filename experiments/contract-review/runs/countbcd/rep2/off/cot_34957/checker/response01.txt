@@ -1,0 +1,59 @@
+```python
+def reference(vectors):
+    # 4-digit BCD counter with synchronous active-high reset.
+    # q[3:0]=ones, q[7:4]=tens, q[11:8]=hundreds, q[15:12]=thousands
+    # ena[0] = ones==9 (carry into tens)
+    # ena[1] = ones==9 and tens==9 (carry into hundreds)
+    # ena[2] = ones==9 and tens==9 and hundreds==9 (carry into thousands)
+    # Synchronous active-high reset: on posedge, if reset, q<=0.
+    # Otherwise increment BCD.
+    # Vectors: each row has 'clk' (0/1), 'reset', optional 'q'? Actually inputs are reset only.
+    # Outputs: q (16 bits), ena (3 bits). Sample after posedge settles.
+    # We track state q. For each row, we process: apply mid changes (none here besides reset),
+    # then if clk posedge (previous clk 0 -> current clk 1), update q based on reset.
+    # Then outputs are computed from current q (after edge if posedge occurred).
+    # Since only input is reset, mid changes are reset changes after sampling.
+    # We'll maintain prev_clk and q.
+    q = 0
+    prev_clk = 0
+    results = []
+    for row in vectors:
+        clk = row.get('clk', 0)
+        reset = row.get('reset', 0)
+        # mid changes occur after sampling, before other edge; here we just use row values.
+        # Determine if posedge: prev_clk==0 and clk==1
+        posedge = (prev_clk == 0 and clk == 1)
+        if posedge:
+            if reset:
+                q = 0
+            else:
+                # increment BCD
+                ones = q & 0xF
+                tens = (q >> 4) & 0xF
+                hundreds = (q >> 8) & 0xF
+                thousands = (q >> 12) & 0xF
+                ones += 1
+                if ones == 10:
+                    ones = 0
+                    tens += 1
+                    if tens == 10:
+                        tens = 0
+                        hundreds += 1
+                        if hundreds == 10:
+                            hundreds = 0
+                            thousands += 1
+                            if thousands == 10:
+                                thousands = 0
+                q = (thousands << 12) | (hundreds << 8) | (tens << 4) | ones
+        # compute enables from current q (after edge)
+        ones = q & 0xF
+        tens = (q >> 4) & 0xF
+        hundreds = (q >> 8) & 0xF
+        ena0 = 1 if ones == 9 else 0
+        ena1 = 1 if (ones == 9 and tens == 9) else 0
+        ena2 = 1 if (ones == 9 and tens == 9 and hundreds == 9) else 0
+        ena = (ena2 << 2) | (ena1 << 1) | ena0
+        results.append({'q': q, 'ena': ena})
+        prev_clk = clk
+    return results
+```

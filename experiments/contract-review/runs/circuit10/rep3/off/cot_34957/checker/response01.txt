@@ -1,0 +1,31 @@
+```python
+def reference(vectors):
+    # One-bit sequential machine.
+    # state' = state XOR a XOR b on each rising edge.
+    # q = state (post-edge observable state).
+    # Power-up state is unknown; we model it as None until first defined.
+    state = None
+    out = []
+    for row in vectors:
+        clk = row.get('clk')
+        a = row.get('a')
+        b = row.get('b')
+        # Sample on posedge (clk == 1). Rows are already post-edge settled.
+        if clk == 1:
+            if state is None:
+                # Unknown power-up: remain unknown unless inputs defined?
+                # Spec: state unknown until observed; keep None.
+                pass
+            else:
+                if a is not None and b is not None:
+                    state = (state ^ a ^ b) & 1
+        # Outputs
+        if state is None:
+            q = 0  # concrete unsigned within bit width; unknown modeled as 0
+            st = 0
+        else:
+            q = state & 1
+            st = state & 1
+        out.append({'q': q, 'state': st})
+    return out
+```

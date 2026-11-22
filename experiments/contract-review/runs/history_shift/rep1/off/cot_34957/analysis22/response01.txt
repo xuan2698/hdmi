@@ -1,0 +1,7 @@
+The register is 32 bits wide, so `predict_history` spans bits 31:0, with bit 0 the youngest branch direction and bit 31 the oldest. All control inputs (`areset`, `predict_valid`, `predict_taken`, `train_mispredicted`, `train_taken`) are single-bit; `train_history` is a 32-bit bus supplying the pre-misprediction history. Boundary values worth probing: all-zeros and all-ones histories, `train_history` with bit 31 set (to catch MSB/LSB confusion), and `train_taken` of 0 versus 1 (to catch a stuck-at-one insert).
+
+Priority ordering matters for the checker. `areset` is asynchronous and positive-edge triggered, so it dominates everything and forces zero regardless of other controls. Next, `train_mispredicted` loads `{train_history[30:0], train_taken}` — a load, not a shift of the current register. When `predict_valid` coincides with `train_mispredicted`, the misprediction wins and the prediction is discarded. Only when both are low does `predict_valid` shift left, inserting `predict_taken` at bit 0.
+
+Worked example: register `32'hFFFF_FFFF`, `train_history = 32'h0000_0000`, `train_taken = 1`, only `train_mispredicted` high → next value `32'h0000_0001`. A shift-of-current bug instead yields `32'hFFFF_FFFF` or `32'hFFFF_FFFE`, isolating load-from-history from shift-current.
+
+Mid-cycle control changes must not affect state until the next posedge; only `areset` acts immediately. The checker should sample just after each posedge as authoritative and never assume a power-up value — establish state via reset first.

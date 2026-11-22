@@ -1,0 +1,7 @@
+Reset is synchronous and active high: when the sampled `reset` is 1, `out` is forced to 0 for that row, but the previous-input register is not cleared or reloaded. The falling-edge term may still be computed internally, yet it must not appear in the visible output on a reset row. The next row still compares against the `in` sampled on the reset row.
+
+Power-up is unspecified for the previous-input register. Seeding it to all ones would fabricate falling edges on the first row wherever sampled `in` has zeros. The checker should instead initialize `prev` from the first sampled `in` and suppress detection on row 0.
+
+Worked example: row 0 samples `in = 0xFFFF_FFFF`, `reset = 0`; set `prev` to all ones, `out = 0`. Row 1 samples `in = 0x0000_0000`, `reset = 0`; `prev & ~in` is all ones, so `out` becomes all ones. Row 2 samples `in = 0x0000_0000`, `reset = 1`; reset masks `out` to zero, and `prev` remains all zeros. Row 3 samples `in = 0xFFFF_FFFF`, `reset = 0`; no falling edge occurs because `prev` is all zeros, so `out` stays zero.
+
+Useful invariant: compare against the previous sampled input, OR falling edges into sticky `out`, apply synchronous reset masking, and update `prev` exactly once per sampled row using that row’s sampled `in`. Initialize `prev` from the first sampled `in` and suppress detection on row 0.

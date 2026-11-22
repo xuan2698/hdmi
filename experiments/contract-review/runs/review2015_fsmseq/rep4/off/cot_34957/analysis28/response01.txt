@@ -1,0 +1,3 @@
+All ports are 1-bit: `reset`, `data`, and `start_shifting`. Boundary values are therefore only 0 and 1; no multi-bit masking or width checks are needed. The key checker point is timing: `start_shifting` is registered, so it must be sampled after the posedge settles. Synchronous reset has priority at that sampled edge, and mid-cycle `data` changes affect only the next edge.
+
+Worked example: before a sampled posedge the machine is in prefix `110`, with `reset=0`, `data=1`, and `start_shifting=0`. After the edge settles, the checker must expect `start_shifting=1`. It should not expect 1 before the edge or from a combinational completion signal.

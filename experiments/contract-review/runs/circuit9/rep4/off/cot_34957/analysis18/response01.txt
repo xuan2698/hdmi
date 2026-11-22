@@ -1,0 +1,7 @@
+The key implementation mistake to guard against is treating the first rising edge as a load or reset event rather than as an ordinary update from the power-up state. The trace shows `q = x` before 5 ns, then `q = 4` at the first rising edge while `a = 1`. Because `a = 1` is the hold condition, the only consistent reading is that the circuit powers up in state 4 and the first edge simply holds it. A checker that instead starts from an unknown state and assigns 4 on the first edge would pass this particular trace but would fail any test where the first sampled `a` is 0: the correct first-edge result would then be 5, not 4. So the model must initialize `q = 4` and apply the same edge rule uniformly, with no special first-edge branch.
+
+A second useful point is the modulus. The wrap from 6 to 0 at 75 ns proves the counter is modulo 7, not a plain 3-bit counter. A checker using `(q + 1) & 7` would produce 7 at that edge and diverge immediately afterward. The update must be `(q + 1) % 7`.
+
+Worked example: at 65 ns `q = 5`, `a = 0`; next rising edge gives `(5 + 1) % 7 = 6`. At 75 ns `q = 6`, `a = 0`; next rising edge gives `(6 + 1) % 7 = 0`, confirming both increment and wrap.
+
+Finally, the checker should sample only on rising edges using the `a` value present at that edge, ignore falling edges, and carry mid-cycle input changes to the next rising edge without acting on them immediately. No reset behavior or first-edge special case should be added beyond what the public trace supports.

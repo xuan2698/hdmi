@@ -1,0 +1,17 @@
+The waveform shows a single-bit Mealy/Moore-style sequential element whose next state depends on the current state and the two inputs `a` and `b`, with `q` as a combinational output derived from the same triple. The key structural fact is that `state` is only a *sampled* value on `clk=1` rows; on `clk=0` rows it is the held value from the previous positive edge. Therefore the checker must treat `clk=1` rows as the transition-bearing samples and `clk=0` rows as output-checking rows only.
+
+Reading the defined portion of the trace, the first fully defined sampled row is at 15ns: `state=0, a=0, b=0, q=0`. The next sampled `clk=1` row at 25ns also has `state=0`, so the transition `(0,0,0) -> 0` is established. Continuing through the sampled rows, the observed next-state mapping is:
+
+- `(0,0,0) -> 0`
+- `(0,0,1) -> 0`
+- `(0,1,0) -> 0`
+- `(0,1,1) -> 1`
+- `(1,0,0) -> 1`
+- `(1,1,1) -> 1`
+- `(1,1,0) -> 0`
+- `(1,0,1) -> 0`
+- `(1,0,0) -> 0` (from 135ns to 145ns)
+
+The last entry shows that the same key `(1,0,0)` appears with different targets at different times: at 75ns the next sampled state is 1, while at 135ns the next sampled state is 0. That is a contradiction if `state` alone is the state variable. The resolution is that the circuit has one bit of memory, and the public `state` output is that bit; the apparent conflict means the transition table cannot be a pure function of `(state,a,b)` as read from the printed columns alone. The waveform is consistent only if the checker recognizes that the 75ns row's `state=1` is the *current* state for the following transition, while the 135ns row's `state=1` is also current — so the two `(1,0,0)` rows should agree. They do not, which signals that the printed `state` at 75ns is the sampled next-state from the 65ns edge, and the 75ns row's own inputs drive the transition to 85ns. Under that reading, `(1,0,0)` at 75ns maps to the 85ns state 0, and `(1,0,0)` at 135ns maps to the 145ns state 0 — consistent. The earlier apparent `(1,0,0)->1` came from misaligning the 65ns row's inputs with the 75ns state.
+
+For `q`, the combinational table is consistent across both clock phases: `q=0` for `(0,0,0)`, `(0,1,1)`, `(1,1,1)`, `(1,1,0)`, `(1,0,1)`, and `q=1` for `(0,0,1)`, `(0,1,0)`, `(1,0,0)`. The checker should verify `q` on every row where all four values are defined, using the row's own `state,a,b`, and should verify next-state only by pairing each sampled `clk=1` row with the next sampled `clk=1` row.

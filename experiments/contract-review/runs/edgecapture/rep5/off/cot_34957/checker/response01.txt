@@ -1,0 +1,47 @@
+```python
+def reference(vectors):
+    # Contract:
+    # - Synchronous active-high reset: on a sampled row with reset==1, out is forced to 0.
+    # - Sticky falling-edge detection: out |= prev & ~in, but suppressed on row 0.
+    # - prev is initialized from the first sampled 'in' (power-up unspecified).
+    # - prev updates exactly once per sampled row using that row's sampled 'in'.
+    # - Mid changes occur after sampling and are carried to the next row.
+    out = 0
+    prev = None
+    results = []
+    for row in vectors:
+        # Sample inputs at the posedge (values driven before the edge)
+        reset = row.get('reset', 0) & 1
+        inp = row.get('in', 0) & 0xFFFFFFFF
+
+        if prev is None:
+            # Row 0: initialize prev from sampled in, suppress detection
+            prev = inp
+            out = 0
+        else:
+            # Compute falling edges against previous sampled input
+            falling = prev & (~inp & 0xFFFFFFFF)
+            out = (out | falling) & 0xFFFFFFFF
+            prev = inp
+
+        # Apply synchronous reset masking for the visible output
+        if reset:
+            visible = 0
+        else:
+            visible = out & 0xFFFFFFFF
+
+        results.append({'out': visible})
+
+        # Process mid changes (after sampling, before next edge) - carried to next row
+        mid = row.get('mid')
+        if mid:
+            if 'in' in mid:
+                # Mid change to 'in' is carried to the start of the next row,
+                # but prev is only updated from sampled values, so we don't
+                # modify prev here. The next row's sampled 'in' will be used.
+                pass
+            if 'reset' in mid:
+                pass
+
+    return results
+```

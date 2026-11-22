@@ -1,0 +1,30 @@
+```python
+def reference(vectors):
+    # Contract: full_module is a 3-bit register q.
+    # On posedge clk:
+    #   if L: q <= r
+    #   else: q <= {q[1]^q[2], q[0], q[2]}
+    # Hierarchical design: three submodules, each a 1-bit FF + 2:1 mux.
+    # Submodule i: Q_i <= L ? r_in_i : (q_in_i ^ q_in_j) for the xor bit,
+    #              or Q_i <= L ? r_in_i : q_in_k for the pass-through bits.
+    # Top-level wiring: q[0]' = q[1]^q[2], q[1]' = q[0], q[2]' = q[2].
+    # So submodule 0 gets q_in = (q[1], q[2]) with xor; submodule 1 gets q_in = q[0];
+    # submodule 2 gets q_in = q[2].
+    # State persists across rows; initial q is unspecified -> use 0.
+    q = 0
+    results = []
+    for row in vectors:
+        L = row.get('L', 0) & 1
+        r = row.get('r', 0) & 0x7
+        # sample after posedge settled: compute next state
+        if L:
+            nq = r & 0x7
+        else:
+            b0 = ((q >> 1) & 1) ^ ((q >> 2) & 1)
+            b1 = (q >> 0) & 1
+            b2 = (q >> 2) & 1
+            nq = (b0 & 1) | ((b1 & 1) << 1) | ((b2 & 1) << 2)
+        q = nq
+        results.append({'q': q & 0x7})
+    return results
+```

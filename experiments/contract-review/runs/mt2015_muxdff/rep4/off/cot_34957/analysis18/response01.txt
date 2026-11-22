@@ -1,0 +1,11 @@
+The most useful implementation mistake to flag for the final checker is **treating power-up state as zero rather than unknown**. The public spec has no initialization, so `q` is `x` at time zero. A checker that seeds `q = 0` will silently disagree with the spec on any vector whose first sampled edge has `L = 0`, because the feedback path then operates on `x` values and produces `x` outputs. The faithful model is per-bit unknown propagation: `q[1] ^ q[2]` is `x` if either operand is `x`, and the concatenation carries that `x` into the next state. The checker should either require an initial `L = 1` load with known `r` before any comparison, or model unknowns explicitly; the latter is safer unless the vectors guarantee an initial load.
+
+A second point is hierarchy consistency. If the checker models the three submodule instances separately, all three state bits must start as unknown together. Mixing a zero-initialized flattened `q` with `x`-initialized submodule bits creates spurious mismatches that look like wiring bugs but are really initialization artifacts.
+
+Third, the bit-2 XOR inputs are the discriminating wiring detail. The update is `Q[2] = q[1] ^ q[2]`, `Q[1] = q[0]`, `Q[0] = q[2]`. Any swap of the XOR operands is invisible when `q[1] == q[2]`, so the checker needs at least one vector with `q[1] != q[2]` and `L = 0` to catch it. Without such a vector, a swapped submodule passes.
+
+Fourth, sampling discipline: sample after the posedge has settled, using pre-edge values, and carry any mid-cycle input changes to the start of the next row rather than applying them to the current sample.
+
+Worked example: first sampled edge has `L = 0` and `q` unknown. Then `Q[2] = x ^ x = x`, `Q[1] = x`, `Q[0] = x`, so the correct next state is `xxx`. A zero-seeded checker predicts `000` and flags a false mismatch. That single vector exposes the initialization assumption.
+
+Stopping point: the final checker should treat power-up as unknown, require an explicit `L = 1` load to reach a known state, propagate unknowns through the `L = 0` path, sample post-edge with pre-edge values, carry mid-cycle changes forward, and include a discriminating vector with `q[1] != q[2]` and `L = 0` to catch the bit-2 wiring swap.

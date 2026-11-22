@@ -1,0 +1,12 @@
+The circuit is a 3-bit modulo-7 counter with a synchronous load. At each rising edge of `clk`, the sampled value of `a` decides the next state:
+
+- If the sampled `a` is 1, `q` is loaded with the constant 4.
+- If the sampled `a` is 0, `q` advances by one modulo 7: `q_next = (q + 1) mod 7`.
+
+There is no reset, no enable, and no other control. The output `q` is just the state register itself, so output and state coincide. The modulo is 7 rather than 8, which is visible at the 75 ns edge where `q` goes from 6 to 0 rather than to 7.
+
+The first sampled edge at 5 ns has `a = 1`, so `q` becomes 4 from its unknown power-up value. From then on, while `a` stays 1, every edge reloads 4, so `q` remains 4 through the 45 ns edge. The mid-cycle annotation matters here: the row at 45 ns prints `a = 0`, but that change occurs after the 45 ns posedge has already sampled `a = 1`. Therefore the 45 ns edge still loads 4. The new `a = 0` is carried into the next row, so the 55 ns edge samples 0 and computes `(4 + 1) mod 7 = 5`. The 65 ns edge gives 6, and the 75 ns edge wraps to 0. The 85 ns edge gives 1.
+
+A short worked example: at 55 ns the pre-edge sampled `a` is 0 and the prior state is 4, so `q_next = (4 + 1) mod 7 = 5`, matching the printed 5. At 75 ns the prior state is 6 and `a` is 0, so `q_next = (6 + 1) mod 7 = 0`, matching the printed 0 and confirming the modulus is 7.
+
+For the final Python checker, the essential point is to sample `a` as the value in effect just before each posedge, not the value printed in the same row when a mid-cycle change is annotated. Then apply `q_next = 4 if a_sampled else (q + 1) % 7`. Because `q` is unknown before the first posedge, the checker should skip comparison of `q` at the first edge (or seed from the observed value); after that, every posedge can be checked against the rule. The checker should also treat the 45 ns row's `a = 0` as belonging to the following edge, not the 45 ns edge. No reset behavior needs to be modeled beyond ignoring the pre-first-edge `q`.

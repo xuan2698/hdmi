@@ -1,0 +1,30 @@
+def reference(vectors):
+    # Sequential circuit:
+    #   state is a one-bit register, initialized to 0
+    #   next_state = a AND NOT b   when state == 0
+    #              = b             when state == 1
+    #   q = a XOR b XOR state  (combinational, evaluated on every defined row)
+    #
+    # Each vector row is driven before the sampled edge. Rows with clk=1
+    # sample the next state on the rising edge. Mid changes occur after
+    # sampling and are carried into the next row.
+    state = 0
+    out = []
+    for row in vectors:
+        clk = row.get('clk')
+        a = row.get('a')
+        b = row.get('b')
+        # Evaluate combinational output q on fully defined rows
+        if a is not None and b is not None:
+            q = (a ^ b ^ state) & 1
+        else:
+            q = 0
+        # On rising edge (clk=1), update state from current inputs
+        if clk == 1 and a is not None and b is not None:
+            if state == 0:
+                nxt = a & (1 - b)
+            else:
+                nxt = b
+            state = nxt & 1
+        out.append({'q': q & 1, 'state': state & 1})
+    return out

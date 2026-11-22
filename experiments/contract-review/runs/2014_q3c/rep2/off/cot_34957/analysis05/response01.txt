@@ -1,0 +1,15 @@
+The key point for the final checker is that `Y0` is a pure combinational function of the sampled present state and `x`, but it must be evaluated using the row’s captured values at the sampling edge, not any later mid-cycle change. The table’s next-state column gives `Y[2:0]`; `Y0` is just its least-significant bit. From the listed next states, `Y0=1` only for next states `001` and `011`. Equivalently, for the five present states:
+
+- `y=000`: `x=0` → next `000` → `Y0=0`; `x=1` → next `001` → `Y0=1`.
+- `y=001`: `x=0` → next `001` → `Y0=1`; `x=1` → next `100` → `Y0=0`.
+- `y=010`: `x=0` → next `010` → `Y0=0`; `x=1` → next `001` → `Y0=1`.
+- `y=011`: `x=0` → next `001` → `Y0=1`; `x=1` → next `010` → `Y0=0`.
+- `y=100`: `x=0` → next `011` → `Y0=1`; `x=1` → next `100` → `Y0=0`.
+
+The output `z` is also selected by the sampled present state and `x`: it is `1` for rows `011` and `100`, and `0` for rows `000`, `001`, and `010`. Notice that `z` does not depend on the next state; it is read directly from the row’s output column. A checker that computes the full next state and then extracts bit zero is safe, but it should not accidentally use the next state to determine `z`.
+
+The timing protocol matters more than the Boolean simplification. Each row’s `y` and `x` are driven before the sampled posedge, and the checker samples after that posedge has settled. Optional mid-cycle input changes occur after sampling and before the other edge, and are carried to the start of the next row. Therefore the expected `Y0` and `z` for a row must be computed from the `y` and `x` captured at that row’s sampling edge. A later change on `x` in the same clock period is setup for the next row and must not retroactively change the current row’s expected outputs. The checker should also avoid assuming any particular initial value of `y`, including `000`, unless the public specification explicitly provides a reset state. It does not. The first row’s driven `y` and `x` should be taken as the starting condition once they are known and the sampling edge has occurred.
+
+A short worked example: if the sampled row has `y=011` and `x=1`, the table gives next state `010`, so `Y0=0`, and the output column gives `z=1`. After the posedge settles, the checker compares `Y0=0` and `z=1`. If `x` later changes to `0` before the other edge, that change is carried to the next row and does not alter the expectation for the sampled row `y=011, x=1`.
+
+The useful rule for the final Python checker is: capture the row’s `y` and `x` at the sampling edge, look up the table entry for that captured pair, and compare `Y0` and `z` only after settling. Do not recompute from later input changes, and do not infer a reset state that the public specification does not provide.

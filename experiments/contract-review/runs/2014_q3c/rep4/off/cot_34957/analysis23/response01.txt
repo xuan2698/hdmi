@@ -1,0 +1,5 @@
+The key checker point is that `Y[0]` must be computed from the **pre-edge captured `x`** together with the driven present state `y`, while `z` depends only on `y`. A post-edge re-read of `x` can corrupt the expectation when `x` changes in the mid-cycle window.
+
+Worked example: drive `y=011`, `x=0` before the sampled posedge. Capture `x=0`; expected `Y[0]=1` (next state 001) and expected `z=1`. After the edge settles, compare. If `x` later changes to 1, that belongs to the next row and must not change this row’s expected `Y[0]`.
+
+Also skip checks for unlisted `y` values and before a legal `y` has been explicitly driven, since the public spec defines no reset/initialization.

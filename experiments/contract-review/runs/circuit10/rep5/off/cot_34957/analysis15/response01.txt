@@ -1,0 +1,10 @@
+The circuit is a one-bit Mealy/Moore hybrid: `q` is combinational from the current `state`, `a`, and `b`, while the next state is registered on the rising edge. Reading only the `clk=1` rows as transition samples gives the next-state function:
+
+- `(0,0,0)->0`, `(0,0,1)->0`, `(0,1,0)->0`, `(0,1,1)->1`
+- `(1,0,0)->1`, `(1,0,1)->0`, `(1,1,0)->0`, `(1,1,1)->1`
+
+So next state is `1` exactly when `a XOR b` equals the current state? Check: `(0,0,1)` gives 0, `(0,1,1)` gives 1, `(1,0,0)` gives 1, `(1,1,0)` gives 0 — that is `next = a XOR b` when state=0? No: `(0,0,0)->0`, `(0,1,0)->0`, `(1,0,0)->1`, `(1,1,0)->0` is `next = a AND NOT b`. For state=1: `(1,0,1)->0`, `(1,1,1)->1`, `(0,0,1)->0`, `(0,1,1)->1` is `next = b`. So the transition depends on state.
+
+The output `q` is `1` for `(0,0,1)`, `(0,1,0)`, `(1,0,0)` and `0` otherwise — i.e. `q = a XOR b XOR state`? Check `(0,0,0)->0`, `(0,0,1)->1`, `(0,1,0)->1`, `(0,1,1)->0`, `(1,0,0)->1`, `(1,0,1)->0`, `(1,1,0)->0`, `(1,1,1)->1`. Yes: `q = a XOR b XOR state`.
+
+Final checker guidance: initialize state to 0, sample transitions only on consecutive `clk=1` rows, and evaluate `q = a ^ b ^ state` on every fully defined row.

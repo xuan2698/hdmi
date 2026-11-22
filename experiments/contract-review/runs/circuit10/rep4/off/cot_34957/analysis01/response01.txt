@@ -1,0 +1,47 @@
+Looking at the waveform, the key observation is that `state` and `q` are identical in every row — the flip-flop output is exposed directly as both `state` and `q`. So the circuit is a single D flip-flop whose next-state function depends on `a`, `b`, and the current state.
+
+Let me trace the transitions at each posedge (sampled after the edge settles). The value in the `state`/`q` column of a row is the flip-flop content *after* that row's posedge has been sampled — i.e., the new state. The previous row's state column gives the old state.
+
+Working through the posedges:
+
+- 15ns: old state = x (initial), a=0,b=0 → new state 0.
+- 25ns: old 0, a=0,b=0 → 0.
+- 35ns: old 0, a=0,b=0 → 0.
+- 45ns: old 0, a=0,b=1 → 1.
+- 55ns: old 0, a=1,b=0 → 1.
+- 65ns: old 0, a=1,b=1 → 0.
+- 75ns: old 1, a=0,b=0 → 1.
+- 85ns: old 0, a=1,b=1 → 0.
+- 95ns: old 0, a=1,b=1 → 1.
+- 105ns: old 1, a=1,b=1 → 1.
+- 115ns: old 1, a=1,b=0 → 0.
+- 125ns: old 1, a=0,b=1 → 0.
+- 135ns: old 1, a=0,b=0 → 1.
+- 145ns: old 1, a=0,b=0 → 0.
+- 155ns: old 0, a=0,b=0 → 0.
+- 165ns: old 0, a=0,b=0 → 0.
+- 175ns: old 0, a=0,b=0 → 0.
+- 185ns: old 0, a=0,b=0 → 0.
+
+Now let me tabulate next-state as a function of (a, b, state):
+
+| a | b | state | next |
+|---|---|-------|------|
+| 0 | 0 | 0 | 0 |
+| 0 | 0 | 1 | 1 |
+| 0 | 1 | 0 | 1 |
+| 0 | 1 | 1 | 0 |
+| 1 | 0 | 0 | 1 |
+| 1 | 0 | 1 | 0 |
+| 1 | 1 | 0 | 0 |
+| 1 | 1 | 1 | 1 |
+
+Check consistency: (0,0,0)→0 and (0,0,1)→1 means next = state when a=0,b=0. (0,1,0)→1, (0,1,1)→0 means next = NOT state when a=0,b=1. (1,0,0)→1, (1,0,1)→0 means next = NOT state when a=1,b=0. (1,1,0)→0, (1,1,1)→1 means next = state when a=1,b=1.
+
+So next = state XOR (a XOR b). Equivalently, the flip-flop toggles when exactly one of a,b is 1, and holds otherwise. That is: next = state ⊕ a ⊕ b.
+
+Worked example: at 45ns, old state 0, a=0, b=1 → next = 0⊕0⊕1 = 1, matching the observed 1. At 65ns, old state 0, a=1, b=1 → 0⊕1⊕1 = 0, matching.
+
+Timing note for the checker: inputs are driven before the posedge and sampled after it settles; mid-cycle changes occur after sampling and carry into the next row. So the checker should evaluate next-state using the (a,b) values present at the sampled posedge together with the prior state, and compare against the row's state/q. Since q equals state in every row, the checker can treat them as the same signal. The initial state at 15ns is 0 (reset-like), so the first comparison uses old state 0.
+
+The essential point: the circuit is a single toggle flip-flop with next = state ⊕ a ⊕ b, and q is a direct copy of state.

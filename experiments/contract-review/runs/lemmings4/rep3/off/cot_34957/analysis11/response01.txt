@@ -1,0 +1,16 @@
+**Distinguishing example and checker focus**
+
+The most useful distinguishing scenario for the final Python checker is the interaction between **asynchronous reset priority** and **splatter-state clearing**. The public spec makes reset positive-edge-triggered and asynchronous, and it says reset returns the Lemming to walk-left. It does not define a power-up state, so the checker should treat reset as the only reliable initialization event. A test that begins without asserting reset risks comparing against an undefined initial state.
+
+Consider a Lemming that has already splattered: all four outputs are zero, and internally the splatter flag is set and the fall counter may hold a large value. Now assert `areset=1` on a clock edge while also driving `bump_right=1`, `ground=0`, and `dig=1`. Because reset has priority, the sampled post-edge outputs must be:
+
+- `walk_left=1`
+- `walk_right=0`
+- `aaah=0`
+- `digging=0`
+
+The simultaneous `bump_right` must not flip the remembered direction to right, the missing ground must not start a fall, and `dig` must not start digging. On the following edge, with `areset=0`, `ground=1`, and no bumps, the machine should continue walking left. This single sequence checks three things at once: reset overrides all other inputs, reset clears the splatter flag, and reset reinitializes the remembered walking direction to left.
+
+A second high-value boundary is the **fall-duration counter**. The spec says splatter occurs only if the Lemming falls for *more than* 20 clock cycles and then hits ground. The checker should start from a reset walk-left state, force `ground=0` for exactly 20 sampled cycles, then restore `ground=1`. The Lemming must resume walking in its original direction and must not splatter. Repeating with 21 fall cycles must produce all-zero outputs permanently. This distinguishes an off-by-one error in the counter from correct behavior. The checker should also confirm that during the fall, `aaah=1` and the walking outputs are zero, and that bumps during the fall do not alter the remembered direction.
+
+Finally, the checker should verify that **digging has lower precedence than falling but higher precedence than bumping**. Starting from walk-left on ground, assert `dig=1` together with `bump_right=1`. The expected result is `digging=1`, not a direction switch. Then force `ground=0` while still digging: the machine must enter the fall state (`aaah=1`, `digging=0`) and, after ground returns within 20 cycles, resume walking left. These cases exercise the precedence chain and the remembered-direction rule without relying on undefined initialization.

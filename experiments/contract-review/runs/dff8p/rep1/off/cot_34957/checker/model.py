@@ -1,0 +1,24 @@
+def reference(vectors):
+    # Contract:
+    # - 8 D flip-flops, negative-edge triggered by clk.
+    # - Active-high synchronous reset: at sampled negedge, if reset==1 -> q=0x34.
+    # - Otherwise q captures d.
+    # - Power-up q is unspecified; only establish expected q at first sampled edge.
+    # - Mid-cycle changes occur after sampling and carry to next row start.
+    q = None  # unknown until first sampled negedge
+    out = []
+    for row in vectors:
+        # Row-start inputs (driven before the sampled negedge)
+        d = row.get('d', 0) & 0xFF
+        reset = row.get('reset', 0) & 0x1
+        # Sampled negative edge: update state
+        if reset:
+            q = 0x34
+        else:
+            q = d
+        # Output after sampled edge has settled
+        out.append({'q': q & 0xFF})
+        # Mid-cycle changes (after sampling) are carried to next row start;
+        # they do not affect current output. They are represented in the
+        # next row's row-start inputs, so no action needed here.
+    return out

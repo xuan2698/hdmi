@@ -1,0 +1,17 @@
+**Distinguishing input example (prose, ≤650 words)**
+
+The most useful distinguishing scenario for the final checker is a **same-cycle train-and-predict collision on the same PHT index**, combined with a **mispredicted training recovery of the GHR**, because it simultaneously probes three subtle rules that a naive implementation is likely to get wrong:
+
+1. **Prediction must read the pre-edge PHT**, so a same-cycle training write to the same index must *not* leak into `predict_taken`.
+2. **Training takes precedence over prediction for the GHR update**, so the next-state GHR must be the recovery value `shift(train_history, train_taken)`, not `shift(current_GHR, predicted_direction)`.
+3. **`predict_history` is the pre-edge GHR used for the prediction**, not the shifted value and not the training history.
+
+A concrete short example that isolates these: suppose the current GHR is `7'b0000000`, and the PHT entry at index `0` currently holds counter `2` (predict taken). Drive, before a posedge:
+
+- `areset = 0`
+- `predict_valid = 1`, `predict_pc = 7'b0000000`
+- `train_valid = 1`, `train_taken = 0`, `train_mispredicted = 1`, `train_history = 7'b0000000`, `train_pc = 7'b0000000`
+
+Here `predict_pc ^ GHR = 0` and `train_pc ^ train_history = 0`, so both touch PHT entry 0. The combinational outputs must be `predict_history = 7'b0000000` (the pre-edge GHR) and `predict_taken = 1` (MSB of the pre-edge counter 2), *even though* training is simultaneously writing a not-taken outcome to that same entry. At the posedge, the PHT entry 0 saturates downward from 2 to 1, and because `train_mispredicted = 1`, the GHR is recovered to `shift(0000000, 0) = 0000000` — training wins over the prediction's would-be shift. A checker that (a) lets the training write affect the combinational read, (b) applies the prediction shift instead of the recovery, or (c) reports the post-shift GHR as `predict_history`, will diverge here.
+
+This example is compact but high-value: it exercises index 0 (a boundary), counter value 2 (the taken/not-taken threshold), the saturating 2→1 transition, the xor hash with both operands zero, and the precedence rules in one cycle. It also naturally extends to boundary variants: use `predict_pc = 7'b1111111` with `GHR = 7'b1111111` to hit index 0 via xor of all-ones (127^127=0), or `predict_pc = 7'b1111111` with `GHR = 0` to hit index 127, and set the counter to 3 or 0 to check the 3→3 / 0→0 saturation edges. The reset-dominance case (assert `areset=1` with the same train/predict inputs and confirm outputs are 0 and next state is fully cleared) is the complementary check the checker should also include, but the collision case above is the one most likely to expose an incorrect implementation.

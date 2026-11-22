@@ -1,0 +1,106 @@
+```python
+def reference(vectors):
+    # Moore FSM for Lemmings.
+    # States encoded as (mode, direction, fall_count)
+    # mode: 'L' walk left, 'R' walk right, 'F' fall, 'D' dig, 'S' splatter
+    # direction: 0 = left, 1 = right (latched walking direction)
+    # fall_count: number of sampled cycles spent falling (capped at 21)
+    #
+    # Outputs are a function of state only (Moore):
+    #   walk_left  = 1 iff mode=='L'
+    #   walk_right = 1 iff mode=='R'
+    #   aaah       = 1 iff mode=='F'
+    #   digging    = 1 iff mode=='D'
+    #
+    # Timing: each row's inputs are driven before the sampled posedge.
+    # Mid changes occur AFTER sampling, before the next edge, and are
+    # carried to the start of the next row. So for each row we:
+    #   1. Apply the row's inputs to the current state -> new state.
+    #   2. Sample outputs from the new state (post-edge settled).
+    #   3. Apply mid changes to the new state (they affect next row's start).
+    #
+    # areset is positive-edge-triggered asynchronous: if areset==1 at the
+    # sampled edge, state resets to walk-left, fall_count=0.
+
+    # Initial state: walk left, direction=0, fall_count=0
+    mode = 'L'
+    direction = 0
+    fall_count = 0
+
+    results = []
+
+    for row in vectors:
+        areset = row.get('areset', 0)
+        bump_left = row.get('bump_left', 0)
+        bump_right = row.get('bump_right', 0)
+        ground = row.get('ground', 1)
+        dig = row.get('dig', 0)
+
+        # --- Apply inputs at the sampled edge ---
+        if areset:
+            mode = 'L'
+            direction = 0
+            fall_count = 0
+        else:
+            if mode == 'S':
+                # Splattered: stay forever
+                pass
+            elif mode == 'F':
+                # Falling
+                if ground:
+                    # Landing: check splatter
+                    if fall_count > 20:
+                        mode = 'S'
+                    else:
+                        # Resume walking in latched direction
+                        mode = 'R' if direction == 1 else 'L'
+                        fall_count = 0
+                else:
+                    # Continue falling; bumps ignored
+                    fall_count += 1
+                    if fall_count > 21:
+                        fall_count = 21  # cap, still >20
+            elif mode == 'D':
+                # Digging
+                if not ground:
+                    # Reached other side: start falling
+                    mode = 'F'
+                    fall_count = 1
+                # else continue digging; bumps ignored
+            else:
+                # Walking (L or R)
+                if not ground:
+                    # Fall has highest precedence
+                    mode = 'F'
+                    fall_count = 1
+                elif dig:
+                    # Dig next highest
+                    mode = 'D'
+                else:
+                    # Bump switching (both bumps -> switch)
+                    if bump_left and bump_right:
+                        direction = 1 - direction
+                    elif bump_left:
+                        direction = 1  # walk right
+                    elif bump_right:
+                        direction = 0  # walk left
+                    mode = 'R' if direction == 1 else 'L'
+
+        # --- Sample outputs (Moore, from new state) ---
+        out = {
+            'walk_left': 1 if mode == 'L' else 0,
+            'walk_right': 1 if mode == 'R' else 0,
+            'aaah': 1 if mode == 'F' else 0,
+            'digging': 1 if mode == 'D' else 0,
+        }
+        results.append(out)
+
+        # --- Apply mid changes (after sampling, before next edge) ---
+        # Mid changes are input changes that occur between edges. They are
+        # carried to the start of the next row, so we do NOT apply them to
+        # the current state here; the next row's inputs already reflect them.
+        # (The protocol says mid changes are carried to the start of the next
+        # row, meaning the next row's input values include them.)
+
+    return results
+```

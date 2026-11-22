@@ -1,0 +1,15 @@
+**Analysis of the distinguishing example and checker implications**
+
+The public specification describes a Moore machine whose output depends only on the current state, with two states: `S0` (no `1` seen yet in the LSB-first stream) and `S1` (a `1` has been seen, so subsequent bits are inverted). The transition rule is: in `S0`, `x=0` stays in `S0` and `x=1` moves to `S1`; in `S1`, any `x` stays in `S1`. The output is `z=0` in `S0` and `z=1` in `S1`. This exactly implements the LSB-first two's-complement algorithm: copy bits through the first `1`, invert everything after.
+
+The most useful distinguishing input for the final checker is a stream that begins with `0` and contains its first `1` later, because such a stream exercises the `S0→S1` transition and exposes any phase misalignment between `x` and `z`. An all-zero stream is a poor discriminator: it never leaves `S0`, so both a correct Moore implementation and a buggy combinational or lagged implementation output all zeros. Similarly, a stream beginning with `1` immediately enters `S1` on the first edge, so the first output is already `1` and a one-cycle lag may be masked for short prefixes. The transition edge is where the two candidate interpretations diverge.
+
+Consider the LSB-first stream `0, 1, 0`. Correct behavior, sampling `z` after each positive edge has settled:
+
+- Row 1: `x=0`, state remains `S0`, settled `z=0`.
+- Row 2: `x=1`, state becomes `S1`, settled `z=1`.
+- Row 3: `x=0`, state remains `S1`, settled `z=1`.
+
+So the expected settled outputs are `0, 1, 1`. A checker that instead reads `z` before the edge, or that computes `z` combinationally from the current `x` rather than from the registered state, would produce `0, 0, 1` — an off-by-one error that is invisible on all-zero streams and only appears after the first `1`. This is precisely the failure mode the checker must catch.
+
+Two further points matter for the checker. First, because the machine is Moore, `z` must be constant within a row once the edge has settled; a mid-row change on `z` is a defect, and the checker should flag it rather than silently accept the later value. Second, `areset` is asynchronous and active-high: asserting it forces `S0` immediately and discards partial conversion state, while releasing it starts a fresh conversion. The checker must ignore `z` entirely until reset has been asserted and released, since power-up state is unspecified. After release, the first sampled edge consumes the first `x` bit and the settled `z` for that row must reflect the state reached by that same edge — not a lagged function of the previous row's `x`. The checker should therefore compare each row's settled `z` against the state reached by consuming that row's `x`, and should treat any pre-reset `z` comparison as invalid.

@@ -1,0 +1,407 @@
+Looking at the trace, I need to determine the next-state function. Let me analyze the state transitions at rising edges (where state changes):
+
+- 45ns: a=0,b=1,state=0 → next state (55ns) = 0
+- 55ns: a=1,b=0,state=0 → next state (65ns) = 0
+- 65ns: a=1,b=1,state=0 → next state (75ns) = 1
+- 75ns: a=0,b=0,state=1 → next state (85ns) = 0
+- 85ns: a=1,b=1,state=0 → next state (95ns) = 1
+- 95ns: a=1,b=1,state=1 → next state (105ns) = 1
+- 105ns: a=1,b=1,state=1 → next state (115ns) = 1
+- 115ns: a=1,b=0,state=1 → next state (125ns) = 1
+- 125ns: a=0,b=1,state=1 → next state (135ns) = 1
+- 135ns: a=0,b=0,state=1 → next state (145ns) = 0
+
+Let me check: state_next = a AND b? 
+- 65ns: 1&1=1 ✓
+- 85ns: 1&1=1 ✓
+- 95ns: 1&1=1 ✓
+- 105ns: 1&1=1 ✓
+- 115ns: 1&0=0 ✗ (actual 1)
+
+Try state_next = a OR b?
+- 45ns: 0|1=1 ✗ (actual 0)
+
+Try state_next = a AND b OR (state AND (a OR b))?
+- 45ns: 0 OR (0 AND 1)=0 ✓
+- 55ns: 0 OR (0 AND 1)=0 ✓
+- 65ns: 1 OR (0 AND 1)=1 ✓
+- 75ns: 0 OR (1 AND 0)=0 ✓
+- 85ns: 1 OR (0 AND 1)=1 ✓
+- 95ns: 1 OR (1 AND 1)=1 ✓
+- 105ns: 1 OR (1 AND 1)=1 ✓
+- 115ns: 0 OR (1 AND 1)=1 ✓
+- 125ns: 0 OR (1 AND 1)=1 ✓
+- 135ns: 0 OR (1 AND 0)=0 ✓
+
+That's state_next = (a AND b) OR (state AND (a OR b)) = majority(a, b, state).
+
+Let me verify the initial state at 15ns: state=0. At 5ns (posedge), inputs a=1,b=x — undefined. So state at 15ns is just whatever power-up gives; we can't derive it. But the trace shows 0. Since power-up is unspecified, I'll use 0 as the initial value (matching the trace).
+
+Actually, looking more carefully: at 5ns posedge, a=1, b=x. The state at 15ns is 0. If we assume state starts at 0 and b=x means we can't compute... but the trace shows state=0 at 15ns. Let me just initialize state=0.
+
+Wait — but the problem says "even when power-up is unspecified". The trace shows state=0 at 15ns. Since we can't derive it, I'll initialize to 0 to match.
+
+Let me verify q = a XOR b XOR state on all rows:
+- 15ns: 0^0^0=0 ✓
+- 45ns: 0^1^0=1 ✓
+- 55ns: 1^0^0=1 ✓
+- 65ns: 1^1^0=0 ✓
+- 75ns: 0^0^1=1 ✓
+- 85ns: 1^1^0=0 ✓
+- 95ns: 1^1^1=1 ✓
+- 105ns: 1^1^1=1 ✓
+- 115ns: 1^0^1=0 ✓
+- 125ns: 0^1^1=0 ✓
+- 135ns: 0^0^1=1 ✓
+- 145ns: 0^0^0=0 ✓
+
+All consistent. Now the timing: state is sampled at posedge (after settling). The state shown in a row is the value BEFORE the posedge of that row (i.e., the current register value). The next state is computed at the posedge.
+
+Looking at row 15ns (posedge): state=0 shown, q=0. This is the state value at that time. The next state (computed at this posedge) appears at 25ns as 0. With a=0,b=0,state=0: majority=0 ✓.
+
+Row 45ns (posedge): state=0, a=0,b=1. Next state at 55ns = 0. majority(0,1,0)=0 ✓.
+
+So the model: at each posedge, state updates to majority(a,b,state). The row shows the state value at the sampling moment (before update? or after?).
+
+Looking at 15ns: state=0. At 5ns posedge, a=1,b=x. If state was 0 before, majority(1,x,0) is undefined. But trace shows 0 at 15ns. So state at 15ns is the value after the 5ns posedge (which we can't compute due to x). We just take it as 0.
+
+Actually the convention: "sample after the posedge edge has settled" — so the state shown is the value AFTER the posedge update. So at 15ns, state=0 is after the 5ns posedge. At 25ns, state=0 is after the 15ns posedge (a=0,b=0,state_before=0 → majority=0 ✓).
+
+So: state shown at row = state after that row's posedge. Next row's state = majority(a,b,state) where a,b are from the current row.
+
+Check 45ns→55ns: at 45ns, state=0, a=0,b=1. Next state = majority(0,1,0)=0. At 55ns, state=0 ✓.
+
+Check 65ns→75ns: at 65ns, state=0, a=1,b=1. Next = majority(1,1,0)=1. At 75ns, state=1 ✓.
+
+Check 135ns→145ns: at 135ns, state=1, a=0,b=0. Next = majority(0,0,1)=0. At 145ns, state=0 ✓.
+
+So the update rule: state_new = majority(a, b, state_old) = (a&b) | (a&state) | (b&state).
+
+Now for the simulation: I need to process rows. Each row has a posedge. The state shown is after the posedge. So:
+- For each row: compute q = a ^ b ^ state (using the state shown in the row).
+- Then update state for next row: state = majority(a, b, state).
+
+But wait — the first row (0ns) has clk=0, no posedge. The state is x. Then 5ns has posedge with a=1,b=x. State at 15ns is 0 (given). So I need to handle the initial state.
+
+Since power-up is unspecified, I'll initialize state=0 (matching trace). Then at 5ns posedge with a=1,b=x — b is x, so I can't compute. But the trace shows state=0 at 15ns. Hmm.
+
+Actually, let me reconsider. The rows with clk=0 don't have a posedge. The rows with clk=1 have a posedge. The state shown in a clk=1 row is the state after that posedge.
+
+Row 5ns: clk=1, a=1, b=x, state=x. This is the posedge. State after = x (can't compute). But row 15ns shows state=0. So between 5ns and 15ns, state became 0. That's the 5ns posedge result. Since b=x, we can't compute it — but the trace says 0. So I'll just take the given state values as-is for rows where they're defined, and only compute state for subsequent rows.
+
+Actually, the cleanest approach: the state shown in each row is given (when not x). I use it to compute q. For the next row's state, I compute majority(a,b,state) from the current row — but only if the current row's state is defined and a,b are defined. If the next row's state is given as x, I use my computed value (or 0 if unknown).
+
+Wait, but the problem says "Return only executable Python with function reference(vectors). For each row return a dictionary with every output and a concrete unsigned integer within that output's bit width, even when power-up is unspecified."
+
+So I need to produce concrete values for every row, including the x rows. For x rows, I'll use my best guess (0 for state, and compute q from it).
+
+Let me think about the protocol: "Each row's values are driven before the sampled edge. Optional mid input changes occur AFTER sampling, before the other edge, and are carried to the start of the next row."
+
+So the inputs a,b in a row are the values at the sampling edge (posedge for clk=1 rows). Mid changes happen after sampling.
+
+For clk=0 rows, there's no posedge, so no state update. The state shown is the same as the previous row's state (after the last posedge).
+
+Let me trace through:
+- Row 0ns: clk=0, a=1, b=x. No posedge. State = initial (x → I'll use 0). q = 1^x^0 = x → I'll use 0.
+- Row 5ns: clk=1, a=1, b=x. Posedge. State before = 0 (from init). State after = majority(1,x,0) = x → but trace shows 0 at 15ns. So I'll just use 0.
+- Row 10ns: clk=0, a=0, b=0. No posedge. State = 0 (from 5ns). q = 0^0^0 = 0.
+- Row 15ns: clk=1, a=0, b=0. Posedge. State before = 0. State after = majority(0,0,0) = 0. q = 0^0^0 = 0.
+- Row 20ns: clk=0, a=0, b=0. State = 0. q = 0.
+- ... continues with state=0 until 45ns.
+- Row 45ns: clk=1, a=0, b=1. State before = 0. State after = majority(0,1,0) = 0. q = 0^1^0 = 1.
+- Row 50ns: clk=0, a=0, b=1. State = 0. q = 0^1^0 = 1.
+- Row 55ns: clk=1, a=1, b=0. State before = 0. State after = majority(1,0,0) = 0. q = 1^0^0 = 1.
+- Row 60ns: clk=0, a=1, b=0. State = 0. q = 1^0^0 = 1.
+- Row 65ns: clk=1, a=1, b=1. State before = 0. State after = majority(1,1,0) = 1. q = 1^1^0 = 0.
+- Row 70ns: clk=0, a=1, b=1. State = 1. q = 1^1^1 = 1. 
+
+Wait, trace shows q=0 at 70ns. Let me recheck. At 70ns: a=1, b=1, state=0, q=0. So state at 70ns is 0, not 1!
+
+Hmm. So the state shown at 65ns is 0, and at 70ns is 0, and at 75ns is 1. So the state update happens at the 65ns posedge, and the result (1) appears at 75ns, not 70ns.
+
+So the state shown in a row is the state BEFORE that row's posedge (if clk=1), or the current state (if clk=0). The update happens at the posedge, and the new state appears in the NEXT row.
+
+Let me re-examine:
+- Row 15ns: clk=1, state=0. This is state before posedge. After posedge, state = majority(0,0,0) = 0.
+- Row 25ns: clk=1, state=0. State before = 0 (from 15ns posedge). After = majority(0,0,0) = 0.
+- Row 45ns: clk=1, state=0. State before = 0. After = majority(0,1,0) = 0.
+- Row 55ns: clk=1, state=0. State before = 0 (from 45ns). After = majority(1,0,0) = 0.
+- Row 65ns: clk=1, state=0. State before = 0 (from 55ns). After = majority(1,1,0) = 1.
+- Row 75ns: clk=1, state=1. State before = 1 (from 65ns). After = majority(0,0,1) = 0.
+- Row 85ns: clk=1, state=0. State before = 0 (from 75ns). After = majority(1,1,0) = 1.
+- Row 95ns: clk=1, state=1. State before = 1 (from 85ns). After = majority(1,1,1) = 1.
+- Row 105ns: clk=1, state=1. State before = 1 (from 95ns). After = majority(1,1,1) = 1.
+- Row 115ns: clk=1, state=1. State before = 1 (from 105ns). After = majority(1,0,1) = 1.
+- Row 125ns: clk=1, state=1. State before = 1 (from 115ns). After = majority(0,1,1) = 1.
+- Row 135ns: clk=1, state=1. State before = 1 (from 125ns). After = majority(0,0,1) = 0.
+- Row 145ns: clk=1, state=0. State before = 0 (from 135ns). After = majority(0,0,0) = 0.
+
+All consistent! So the state shown in a row is the state BEFORE the posedge (for clk=1 rows). The update happens at the posedge, and the new state appears in the next row.
+
+For clk=0 rows, the state is the same as the previous row's state (no update).
+
+Now for the initial state: at 5ns posedge, a=1, b=x. State before = ? (power-up). State after = ? (trace shows 0 at 15ns). Since b=x, we can't compute. But trace shows 0. So I'll initialize state=0.
+
+Actually, let me reconsider: at 5ns, state before is x (power-up). After posedge, state = majority(1,x,x) = x. But trace shows 0 at 15ns. So the power-up value must be such that majority(1,x,state_init) = 0. If state_init=0, majority(1,x,0) = x (since b=x). Hmm, that doesn't give 0.
+
+Wait, maybe b=x means b is don't-care, and the actual b value at that moment was 0? Or maybe the state just happens to be 0. Since power-up is unspecified, I'll just use 0 for the initial state and 0 for the state at 15ns (matching trace).
+
+Actually, the simplest approach: since the trace gives state=0 at 15ns, and I can't derive it, I'll just initialize state=0 and let the 5ns posedge be a no-op (since b=x, I'll skip the update or treat x as 0).
+
+Let me just treat x as 0 for computation purposes. Then:
+- 5ns: a=1, b=0 (treating x as 0), state=0. After = majority(1,0,0) = 0. ✓ (matches 15ns state=0)
+
+OK so treating x as 0 works for this case. Let me use that.
+
+Now let me write the code:
+
+```python
+def reference(vectors):
+    # state update: state_next = majority(a, b, state) = (a&b) | (a&state) | (b&state)
+    # q = a ^ b ^ state
+    # state shown in row is state BEFORE posedge (for clk=1 rows)
+    # for clk=0 rows, state is unchanged from previous row
+    # x treated as 0
+    
+    results = []
+    state = 0  # initial power-up state (unspecified, using 0)
+    
+    for row in vectors:
+        clk = row.get('clk', 0)
+        a = row.get('a', 0)
+        b = row.get('b', 0)
+        # treat x as 0
+        if a is None or a == 'x': a = 0
+        if b is None or b == 'x': b = 0
+        if clk is None or clk == 'x': clk = 0
+        
+        # state shown in this row is current state (before posedge)
+        q = (a ^ b ^ state) & 1
+        
+        results.append({'q': q, 'state': state})
+        
+        # update state at posedge
+        if clk == 1:
+            state = ((a & b) | (a & state) | (b & state)) & 1
+    
+    return results
+```
+
+Wait, but I need to double-check the state shown. At 15ns, state=0. My code: state starts at 0, row 0ns (clk=0) shows state=0, no update. Row 5ns (clk=1) shows state=0, then updates: majority(1,0,0)=0. Row 10ns (clk=0) shows state=0. Row 15ns (clk=1) shows state=0, updates: majority(0,0,0)=0. ✓
+
+At 45ns: state should be 0. My code: after 15ns, state=0. 20ns,25ns,30ns,35ns,40ns all clk=0 or clk=1 with a=0,b=0, state stays 0. At 45ns, state=0. ✓
+
+At 65ns: state should be 0. After 55ns posedge: majority(1,0,0)=0. So at 65ns, state=0. ✓ Then update: majority(1,1,0)=1. At 75ns, state=1. ✓
+
+At 75ns: state=1. Update: majority(0,0,1)=0. At 85ns, state=0. ✓
+
+At 85ns: state=0. Update: majority(1,1,0)=1. At 95ns, state=1. ✓
+
+At 95ns: state=1. Update: majority(1,1,1)=1. At 105ns, state=1. ✓
+
+At 105ns: state=1. Update: majority(1,1,1)=1. At 115ns, state=1. ✓
+
+At 115ns: state=1. Update: majority(1,0,1)=1. At 125ns, state=1. ✓
+
+At 125ns: state=1. Update: majority(0,1,1)=1. At 135ns, state=1. ✓
+
+At 135ns: state=1. Update: majority(0,0,1)=0. At 145ns, state=0. ✓
+
+At 145ns: state=0. Update: majority(0,0,0)=0. At 155ns, state=0. ✓
+
+All matches. 
+
+Now let me also verify q values match the trace:
+- 15ns: q = 0^0^0 = 0 ✓
+- 45ns: q = 0^1^0 = 1 ✓
+- 55ns: q = 1^0^0 = 1 ✓
+- 65ns: q = 1^1^0 = 0 ✓
+- 75ns: q = 0^0^1 = 1 ✓
+- 85ns: q = 1^1^0 = 0 ✓
+- 95ns: q = 1^1^1 = 1 ✓
+- 105ns: q = 1^1^1 = 1 ✓
+- 115ns: q = 1^0^1 = 0 ✓
+- 125ns: q = 0^1^1 = 0 ✓
+- 135ns: q = 0^0^1 = 1 ✓
+- 145ns: q = 0^0^0 = 0 ✓
+
+All match. 
+
+Now, one concern: the problem says "Optional mid input changes occur AFTER sampling, before the other edge, and are carried to the start of the next row." This means inputs might change mid-cycle. But since we only sample at posedge, and the row's a,b values are the values at the sampling edge, we don't need to worry about mid changes for the state update. The mid changes would affect the next row's inputs, but those are given in the next row.
+
+Actually wait — "carried to the start of the next row" means the mid change value becomes the next row's input value. So the next row's a,b already reflect any mid changes. So we just use the row's a,b directly.
+
+But there's a subtlety: for clk=0 rows, there's no posedge, so no state update. But there might be a mid change after the clk=0 sampling (which is at the falling edge? or just the clk=0 time?). The problem says "Each row's values are driven before the sampled edge." For clk=0 rows, the sampled edge is... the falling edge? Or just the clk=0 time?
+
+Hmm, "sample after the posedge edge has settled" — so we only sample at posedge. For clk=0 rows, there's no posedge, so we don't sample. But the row still has values. I think for clk=0 rows, the values are just the current inputs, and the state is unchanged.
+
+Actually, re-reading: "Each row's values are driven before the sampled edge." For clk=1 rows, the sampled edge is the posedge. For clk=0 rows, there's no posedge, so maybe the "sampled edge" is the next posedge? Or maybe clk=0 rows are just showing the state between edges.
+
+I think the simplest interpretation: for clk=1 rows, we sample at posedge and update state. For clk=0 rows, we just show the current state (no update). The a,b values in clk=0 rows are the inputs at that time, which we use to compute q.
+
+But wait — q is a combinational output, so it depends on current a,b,state. For clk=0 rows, q = a^b^state with the current state. That's what I have.
+
+Let me also consider: what if a row has clk=1 but the state is x (like 5ns)? I treat x as 0. That gives state=0 at 15ns, matching trace.
+
+What about the very first row (0ns, clk=0, a=1, b=x)? state=x → I use 0. q = 1^0^0 = 1. But trace shows q=x. Since I need concrete values, I'll output 1. Hmm, but maybe I should output 0 for x rows? The problem says "even when power-up is unspecified" — so I need to output something. I'll compute it as if x=0.
+
+Actually, let me reconsider the initial state. The trace shows state=x at 0ns, 5ns, 10ns. Then state=0 at 15ns. So the state becomes defined at 15ns. My code initializes state=0, so at 0ns I'd show state=0, not x. But the problem says to output concrete values, so 0 is fine.
+
+But wait — at 5ns, a=1, b=x. If I treat b=0, then majority(1,0,0)=0, so state after 5ns = 0. At 10ns, state=0. At 15ns, state=0. ✓
+
+But what if the actual b at 5ns was 1? Then majority(1,1,0)=1, and state at 15ns would be 1, not 0. But trace shows 0. So either b was 0, or the initial state was such that majority(1,1,init)=0, which requires init=0 and... majority(1,1,0)=1, not 0. So b must have been 0 at 5ns. OK, treating x as 0 works.
+
+Actually, I realize I should double-check: is the state shown in a row the state BEFORE or AFTER the posedge? Let me re-examine 65ns→75ns.
+
+At 65ns: clk=1, a=1, b=1, state=0, q=0.
+At 75ns: clk=1, a=0, b=0, state=1, q=1.
+
+If state shown is BEFORE posedge: at 65ns, state before = 0. After posedge, state = majority(1,1,0) = 1. At 75ns, state before = 1. ✓
+
+If state shown is AFTER posedge: at 65ns, state after = 0. That means before posedge, state was such that majority(1,1,state_before)=0. But majority(1,1,anything)=1. Contradiction. So state shown must be BEFORE posedge. ✓
+
+Great, my interpretation is correct.
+
+Let me also handle the case where inputs might be missing or None. I'll use .get with defaults.
+
+One more thing: the problem says "Return only executable Python with function reference(vectors)." So I need to define a function called `reference` that takes `vectors` and returns a list of dicts.
+
+Let me also make sure the output is a list (or iterable) of dicts, one per row.
+
+Let me finalize the code:
+
+```python
+def reference(vectors):
+    # Sequential circuit:
+    #   q = a XOR b XOR state  (combinational output)
+    #   state_next = majority(a, b, state) = (a&b) | (a&state) | (b&state)  (at posedge)
+    # State shown in each row is the state BEFORE that row's posedge (for clk=1 rows).
+    # For clk=0 rows, state is unchanged.
+    # x values treated as 0 for concrete output.
+    
+    def to_int(v):
+        if v is None or v == 'x' or v == 'X':
+            return 0
+        return int(v) & 1
+    
+    results = []
+    state = 0  # power-up state (unspecified; using 0)
+    
+    for row in vectors:
+        clk = to_int(row.get('clk', 0))
+        a = to_int(row.get('a', 0))
+        b = to_int(row.get('b', 0))
+        
+        q = (a ^ b ^ state) & 1
+        results.append({'q': q, 'state': state})
+        
+        if clk == 1:
+            state = ((a & b) | (a & state) | (b & state)) & 1
+    
+    return results
+```
+
+Wait, I should double check: does the state update happen at the posedge of the CURRENT row, and the new state is shown in the NEXT row? Yes, that's what I have.
+
+But there's a subtlety: for clk=0 rows, there's no posedge, so no update. But what if a clk=0 row is followed by a clk=1 row? The state carries over unchanged. That's what I have.
+
+Let me trace through the first few rows:
+- 0ns: clk=0, a=1, b=0 (x→0). state=0. q=1^0^0=1. Output: {q:1, state:0}. No update.
+- 5ns: clk=1, a=1, b=0. state=0. q=1^0^0=1. Output: {q:1, state:0}. Update: majority(1,0,0)=0. state=0.
+- 10ns: clk=0, a=0, b=0. state=0. q=0. Output: {q:0, state:0}. No update.
+- 15ns: clk=1, a=0, b=0. state=0. q=0. Output: {q:0, state:0}. Update: majority(0,0,0)=0. state=0.
+- ...
+
+This matches the trace (except for x rows where I output concrete values).
+
+Hmm, but at 0ns, trace shows q=x. I output q=1. Is that OK? The problem says "even when power-up is unspecified" — so I need to output something. 1 is a valid concrete value. But maybe the checker expects 0 for x rows? Let me think...
+
+Actually, the problem says "Return only executable Python with function reference(vectors). For each row return a dictionary with every output and a concrete unsigned integer within that output's bit width, even when power-up is unspecified."
+
+So I need to output concrete integers. The checker probably compares against the trace, but for x rows, it might accept any value, or it might expect a specific value. Since I can't know, I'll output my computed value (treating x as 0).
+
+But wait — at 0ns, a=1, b=x. If I treat b=0, q=1^0^0=1. But the trace shows q=x. If the checker expects 0 for x rows, I'd fail. Hmm.
+
+Let me reconsider: maybe for x rows, I should output 0? Or maybe the checker only checks defined rows?
+
+The problem says "For each row return a dictionary with every output and a concrete unsigned integer within that output's bit width, even when power-up is unspecified." This suggests I need to output concrete values for ALL rows, including x rows. The checker probably has some tolerance for x rows (since power-up is unspecified), or it might expect a specific value.
+
+Given the ambiguity, I'll output my computed value (treating x as 0). This is the most principled approach.
+
+Actually, let me reconsider the initial state. The trace shows state=x at 0ns, 5ns, 10ns. Then state=0 at 15ns. If I initialize state=0, then at 0ns I'd show state=0, not x. But the problem says to output concrete values, so 0 is fine.
+
+But what if the checker expects the state to be x (or some specific value) at 0ns? Since power-up is unspecified, the checker should accept any value. I'll go with 0.
+
+Let me also consider: what if the checker expects q to be 0 for x rows? At 0ns, q=x. If I output 1, and the checker expects 0, I'd fail. But if the checker only checks defined rows, I'd pass.
+
+I think the safest approach is to output my computed value. If the checker is strict about x rows, it might fail, but there's no way to know what value it expects.
+
+Actually, re-reading: "even when power-up is unspecified" — this suggests the checker will accept any value for unspecified rows. So my computed value should be fine.
+
+Let me finalize the code. I'll also add a comment about the contract rules.
+
+One more consideration: the problem says "Preserve timing and process mid changes at the correct point." This suggests I need to handle mid changes. But since the row's a,b values already reflect the values at the sampling edge (and mid changes are carried to the next row), I don't need to do anything special. The row's a,b are the values at the sampling edge.
+
+Wait, actually, let me re-read: "Each row's values are driven before the sampled edge. Optional mid input changes occur AFTER sampling, before the other edge, and are carried to the start of the next row."
+
+So for a clk=1 row, the a,b values are driven before the posedge (sampled edge). Then after sampling, there might be a mid change (before the next falling edge), and that mid change value is carried to the start of the next row.
+
+So the next row's a,b values already include the mid change. So I just use the row's a,b directly. No special handling needed.
+
+But wait — what about clk=0 rows? For a clk=0 row, the "sampled edge" is... the falling edge? Or is there no sampling? The problem says "sample after the posedge edge has settled" — so we only sample at posedge. For clk=0 rows, there's no posedge, so no sampling. But the row still has a,b values. These are the values at the clk=0 time (which is after the falling edge). Then there might be a mid change before the next posedge, carried to the next row.
+
+So for clk=0 rows, the a,b values are the current inputs, and we use them to compute q (combinational). The state is unchanged. That's what I have.
+
+OK, I'm confident in the code. Let me write it out cleanly.
+
+Actually, one more thing: the problem says "Return only executable Python with function reference(vectors)." So I should not include any imports, classes, prints, or external files. Just the function.
+
+Let me also make sure the function handles the case where vectors is a list of dicts with keys 'clk', 'a', 'b'. The output should be a list of dicts with keys 'q', 'state'.
+
+Final code:
+
+```python
+def reference(vectors):
+    # Sequential circuit contract:
+    #   q = a XOR b XOR state  (combinational output, always)
+    #   state_next = majority(a, b, state) = (a&b) | (a&state) | (b&state)  (at posedge)
+    # State shown in each row is the state BEFORE that row's posedge (for clk=1 rows).
+    # For clk=0 rows, state is unchanged (no posedge).
+    # x values treated as 0 for concrete output (power-up unspecified).
+    
+    def to_int(v):
+        if v is None or v == 'x' or v == 'X':
+            return 0
+        return int(v) & 1
+    
+    results = []
+    state = 0  # power-up state (unspecified; using 0)
+    
+    for row in vectors:
+        clk = to_int(row.get('clk', 0))
+        a = to_int(row.get('a', 0))
+        b = to_int(row.get('b', 0))
+        
+        q = (a ^ b ^ state) & 1
+        results.append({'q': q, 'state': state})
+        
+        if clk == 1:
+            state = ((a & b) | (a & state) | (b & state)) & 1
+    
+    return results
+```
+
+This should be correct. Let me double-check the state update formula one more time with all transitions:
+
+- 45ns: a=0,b=1,state=0 → (0&1)|(0&0)|(1&0) = 0 ✓ (next state at 55ns = 0)
+- 55ns: a=1,b=0,state=0 → (1&0)|(1&0)|(0&0) = 0 ✓ (next state at 65ns = 0)
+- 65ns: a=1,b=1,state=0 → (1&1)|(1&0)|(1&0) = 1 ✓ (next state at 75ns = 1)
+- 75ns: a=0,b=0,state=1 → (0&0)|(0&1)|(0&1) = 0 ✓ (next state at 85ns = 0)
+- 85ns: a=1,b=1,state=0 → 1 ✓ (next state at 95ns = 1)
+- 95ns: a=1,b=1,state=1 → (1&1)|(1&1)|(1&1) = 1 ✓ (next state at 105ns = 1)
+- 105ns: a=1,b=1,state=1 → 1 ✓ (next state at 115ns = 1)
+- 115ns: a=1,b=0,state=1 → (1&0)|(1&1)|(0&1) = 1 ✓ (next state at 125ns = 1)
+- 125ns: a=0,b=1,state=1 → (0&1)|(0&1)|(1&1) = 1 ✓ (next state at 135ns = 1)
+- 135ns: a=0,b=0,state=1 → 0 ✓ (next state at 145ns = 0)
+
+All correct. The code is ready.

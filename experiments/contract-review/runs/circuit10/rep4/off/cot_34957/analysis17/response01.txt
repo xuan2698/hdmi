@@ -1,0 +1,5 @@
+The key point for the checker is that the only observable memory is `state`, and `q` is just a copy of it. So the checker should not try to infer a separate combinational output; it should verify `q == state` on every settled row where both are known, and otherwise focus entirely on the next-state relation.
+
+The next-state relation is keyed by `(state, a, b)` and read from adjacent settled rows: the earlier row supplies the key, the later row supplies the successor. Rows with unknown source state, unknown inputs, or unknown successor are skipped. Duplicate keys must agree; a disagreement is a real contradiction.
+
+Worked example: at 55 ns, `(state,a,b)=(0,1,0)` and the next settled row at 60 ns has `state=0`, so `(0,1,0)->0`. At 60 ns the key is again `(0,1,0)` and the 65 ns successor is `0`, so the duplicate agrees. The checker should build this table empirically, enforce duplicate-key consistency, and assert `q == state` wherever both are known.
