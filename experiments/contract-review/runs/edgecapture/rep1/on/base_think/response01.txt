@@ -1,0 +1,23 @@
+def reference(vectors):
+    MASK = 0xffffffff
+    out = 0
+    prev = 0
+    cur = {}
+    res = []
+    for row in vectors:
+        for k, v in row.items():
+            if k != 'mid':
+                cur[k] = v
+        r = cur.get('reset', 0)
+        x = cur.get('in', 0) & MASK
+        if r:
+            out = 0
+        else:
+            out = (out | (prev & (MASK ^ x))) & MASK
+        prev = x
+        res.append({'out': out & MASK})
+        m = row.get('mid')
+        if m:
+            for k, v in m.items():
+                cur[k] = v
+    return res
