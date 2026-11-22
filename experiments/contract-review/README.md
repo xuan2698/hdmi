@@ -18,3 +18,5 @@ python3 experiments/contract-review/eval/render.py pilot
 - [预注册](PREREG.md)
 - [原生思考开关核验](reports/thinking_preflight.json)
 - [公开 spec 例子](examples.json)
+- [冻结的三题试运行和用量快照](https://github.com/xuan2698/hdmi/tree/4f20aa33240b59bf7e6dad7e9c1df9db6d4b508c/experiments/contract-review/reports)
+- [全量结果](reports/REPORT.md)

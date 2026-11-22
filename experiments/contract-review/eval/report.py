@@ -12,7 +12,7 @@ import numpy as np
 
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT))
-from core import RUNS, V3, ledger, load, protocol, save, setup, token_use
+from core import RUNS, V3, digest, ledger, load, protocol, public, save, setup, token_use
 from pilot3_report import exact_signed_rank
 
 REPORTS=ROOT/"reports"
@@ -142,6 +142,48 @@ def paired(rates,names,phase):
     return rows
 
 
+REVIEW_ROUTES={
+    "Ours":("off","trace",2),
+    "Ours-R1":("off","trace",1),
+    "Ours-noTrace":("off","no_trace",2),
+    "Ours-noA":("off","trace",2),
+    "Ours-noB":("off","trace",2),
+    "Ours-think":("on","trace",2),
+}
+
+
+def review_records(task,rep,config):
+    if config not in REVIEW_ROUTES:
+        return
+    mode,route,rounds=REVIEW_ROUTES[config]
+    case=RUNS/task/f"rep{rep}"/mode
+    before=case/"author/contract.json"
+    for number in range(1,rounds+1):
+        position=case/route/f"round{number}"
+        if not position.is_dir() or not before.is_file():
+            return
+        review=case/"reviews"/f"r{number}-{digest(load(before))[:16]}"/"review.json"
+        if not review.is_file():
+            return
+        issues=load(review)["issues"]
+        trace=position/"adjudication/trace.json"
+        adjudicated=load(trace) if trace.is_file() else []
+        removed=sum(row["status"]=="no_effect" for row in adjudicated)
+        revision=position/"revision/revision.json"
+        responses=load(revision)["responses"] if revision.is_file() else []
+        retained=len(issues)-removed
+        yield {"task":task,"rep":rep,"config":config,"round":number,
+               "issues":len(issues),"retained":retained,"unanswered":retained-len(responses),
+               "revision_completed":revision.is_file(),
+               "no_effect":removed,"no_executable":sum(row["status"]=="not_executable" for row in adjudicated),
+               "accepted":sum(row["decision"]=="accept" for row in responses),
+               "rebutted":sum(row["decision"]=="rebut" for row in responses),
+               "tool_ambiguities":sum(row["type"]=="ambiguity" for row in issues) if route=="trace" else 0,
+               "tool_executable":sum(row["status"]!="not_executable" for row in adjudicated),
+               **Counter(issue["type"] for issue in issues)}
+        before=position/"revision/contract.json"
+
+
 def diagnosis(cases,phase):
     reviews=[]
     precision=[]
@@ -152,18 +194,7 @@ def diagnosis(cases,phase):
         precision.extend(case["precision"])
         for outcome in case["outcomes"]:
             name=outcome["config"]
-            for round_ in outcome.get("rounds",[]):
-                report=load(ROOT/round_["review"])
-                row={"task":task,"rep":rep,"config":name,"round":round_["round"],
-                     **{k:round_[k] for k in ("issues","retained","no_effect","no_executable","accepted","rebutted")}}
-                if round_["trace"]:
-                    logs=load(ROOT/round_["trace"])
-                    row["tool_ambiguities"]=len(logs)
-                    row["tool_executable"]=sum(r["status"]!="not_executable" for r in logs)
-                else:
-                    row.update(tool_ambiguities=0,tool_executable=0)
-                row.update(Counter(issue["type"] for issue in report["issues"]))
-                reviews.append(row)
+            reviews.extend(review_records(task,rep,name))
             B=outcome.get("B") or {}
             if B:
                 flags.append({"task":task,"rep":rep,"config":name,"resolution":B["status"],
@@ -182,14 +213,19 @@ def diagnosis(cases,phase):
 def examples_report():
     examples=load(ROOT/"examples.json")
     rows=[]
-    picks=[]
+    first=[]
+    additional=[]
     for task,entries in examples.items():
         rows.append({"task":task,"total":len(entries),"executable":sum(bool(e["vectors"]) for e in entries),
                      "lengths":";".join(str(e["length"]) for e in entries)})
-        if entries:
-            picks.append({"task":task,**entries[0]})
+        spec=public(task)[0]["spec"].splitlines() if entries else []
+        executable=[{"task":task,**entry,"spec_source_line":spec[entry["line"]-1]}
+                    for entry in entries if entry["vectors"]]
+        if executable:
+            first.append(executable[0])
+            additional.extend(executable[1:])
     write_csv(REPORTS/"spec_examples.csv",rows)
-    save(REPORTS/"spec_examples_review.json",picks[:5])
+    save(REPORTS/"spec_examples_review.json",[*first,*additional][:5])
 
 
 def audit_calls(checkpoints,phase):
@@ -256,7 +292,6 @@ def case_artifacts(cases,phase):
         picks.append((case,outcome))
         if len(picks)==10:
             break
-    from core import public
     artifacts=[]
     for case,row in picks:
         task,rep=case["task"],case["rep"]

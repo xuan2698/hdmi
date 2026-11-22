@@ -74,18 +74,20 @@ def diagnoses(phase,summary):
     reviews=csv_rows(f"{phase}_reviews.csv")
     by=defaultdict(Counter)
     keys=("issues","coverage","grounding","consistency","ambiguity","spec_example","tool_ambiguities",
-          "tool_executable","no_effect","accepted","rebutted","retained")
+          "tool_executable","no_effect","accepted","rebutted","unanswered")
     for r in reviews:
         k=(r["config"],r["round"])
         by[k]["rounds"]+=1
+        by[k]["revisions"]+=r.get("revision_completed","True")=="True"
         by[k].update({key:int(r.get(key) or 0) for key in keys})
     rows=[]
     for (name,no), values in sorted(by.items()):
-        rows.append((name,no,values["rounds"],values["issues"],
+        answered=values["accepted"]+values["rebutted"]
+        rows.append((name,no,values["rounds"],values["revisions"],values["issues"],
                      "/".join(str(values[key]) for key in keys[1:6]),
                      ratio(values["no_effect"],values["tool_executable"]),
-                     ratio(values["accepted"],values["retained"]),
-                     ratio(values["rebutted"],values["retained"])))
+                     ratio(values["accepted"],answered),
+                     ratio(values["rebutted"],answered),values["unanswered"]))
     blocks=csv_rows(f"{phase}_checks.csv")
     check_rows=[]
     m={r["config"]:r for r in summary["macro"]}
@@ -117,9 +119,11 @@ def diagnoses(phase,summary):
                      if (REPORTS/f"{phase}_{k}.csv").is_file())
     return [
         "## 审查、检查 A/B 和剩余分歧",
-        "问题的五类顺序为覆盖 / 可追溯 / 一致性 / 歧义 / spec 例子。no_effect 分母为可执行的工具裁决，"
-        "接受与反驳以保留的问题计。按配置报告时，共用的审查节点在各自方法口径中出现。",
-        table(("配置","轮","轮次样本","问题","五类计数","no_effect","接受","反驳"),rows) if rows else "无完成的审查。",
+        "问题的五类顺序为覆盖 / 可追溯 / 一致性 / 歧义 / spec 例子。有效审查均计入，包括后续修订失败的轮次。"
+        "no_effect 分母为可执行的工具裁决，接受与反驳以实际答复的问题计。保留但无有效答复的问题单列。"
+        "按配置报告时，共用的审查节点在各自方法口径中出现。",
+        table(("配置","轮","已审查","已修订","问题","五类计数","no_effect","接受","反驳","未答复"),rows)
+        if rows else "无完成的审查。",
         "逐条接受修改的前后模型均由 API 生成。减少、不变、增加按固定激励下 golden 不一致周期数判断。"
         "不可评分的编辑单列。诊断测量也可能受参考模型生成波动影响。",
         table(("思考","分支","编辑","减少","不变","增加","不可评分"),precision_rows)
@@ -182,6 +186,8 @@ def render(phase):
             sections.extend(["## 试运行未完成的产物",table(("题目","种子序号","配置","失败阶段"),failures)])
     else:
         effects={(r["left"],r["right"],r["metric"]):r for r in summary["paired"]}
+        sections.append("误报宏平均按各自有可执行检查器的题计算。题级配对只使用双方都有可执行检查器的题。"
+                        "生成失败保留在 H 的计划分母，并记为零检出。")
         for (label,left,right) in (("H1（对 Base）","Ours","Base"),("H1（对 CoT）","Ours","CoT"),
                                     ("H2","Ours","Ours-R0"),("H3","Ours","Ours-noTrace"),
                                     ("H4","Ours-think","Base-think")):
@@ -228,7 +234,8 @@ def render(phase):
                      "与相邻采样的已知位相符。这是时序错拍的线索。其余需要结合对应的状态、优先级或复位条款定位。",
                      table(("题目","种子序号","首错周期","可核对的线索","golden（二进制）","期望（整数）","契约规则"),
                            [item for group in examples.values() for item in group]) if examples else "",
-                     "[完整案例](ten_cases.json) · [误报采样](false_positive_cases.json)"]
+                     "[完整案例](ten_cases.json) · [误报采样](false_positive_cases.json) · "
+                     "[典型误报的逐例核对](residual_analysis.md)"]
     (REPORTS/("PILOT.md" if pilot else "REPORT.md")).write_text("\n\n".join(s for s in sections if s)+"\n")
 
 
