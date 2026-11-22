@@ -1,0 +1,188 @@
+[
+  {
+    "issue": {
+      "issue_id": "I1",
+      "rule_id": "async_reset",
+      "type": "ambiguity",
+      "severity": "high",
+      "detail": "Active-high reset polarity assumed; spec does not specify polarity and rule marks uncertain=false.",
+      "spec_evidence": "The circuit requires a positive edge triggered asynchronous reset.",
+      "alternative": "Active-low reset: areset=0 asserts reset and forces state A/z=0; areset=1 releases.",
+      "sequence": [
+        {
+          "areset": 1,
+          "x": 0
+        },
+        {
+          "areset": 0,
+          "x": 1
+        },
+        {
+          "areset": 1,
+          "x": 0
+        }
+      ]
+    },
+    "status": "effect",
+    "issue_id": "I1",
+    "outputs": {
+      "original": [
+        {
+          "z": 0
+        },
+        {
+          "z": 1
+        },
+        {
+          "z": 0
+        }
+      ],
+      "alternative": [
+        {
+          "z": 0
+        },
+        {
+          "z": 0
+        },
+        {
+          "z": 0
+        }
+      ]
+    },
+    "differences": [
+      {
+        "cycle": 2,
+        "original": {
+          "z": 1
+        },
+        "alternative": {
+          "z": 0
+        }
+      }
+    ]
+  },
+  {
+    "issue": {
+      "issue_id": "I2",
+      "rule_id": "async_reset",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "z=0 during async reset is assumed; spec only says conversion stops when Reset asserted.",
+      "spec_evidence": "The conversion begins when Reset is released and stops when Reset is asserted.",
+      "alternative": "Reset assert returns state to A but z retains its prior value until release.",
+      "sequence": [
+        {
+          "areset": 1,
+          "x": 0
+        },
+        {
+          "areset": 0,
+          "x": 1
+        },
+        {
+          "areset": 1,
+          "x": 0
+        }
+      ]
+    },
+    "status": "effect",
+    "issue_id": "I2",
+    "outputs": {
+      "original": [
+        {
+          "z": 0
+        },
+        {
+          "z": 1
+        },
+        {
+          "z": 0
+        }
+      ],
+      "alternative": [
+        {
+          "z": 0
+        },
+        {
+          "z": 1
+        },
+        {
+          "z": 1
+        }
+      ]
+    },
+    "differences": [
+      {
+        "cycle": 3,
+        "original": {
+          "z": 0
+        },
+        "alternative": {
+          "z": 1
+        }
+      }
+    ]
+  },
+  {
+    "issue": {
+      "issue_id": "I3",
+      "rule_id": "serial_twos_complement",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Same-cycle output visibility is assumed; spec does not define post-edge vs lagged output.",
+      "spec_evidence": "The input (x) is a series of bits (one per clock cycle) beginning with the least-significant bit of the number, and the output (Z) is the 2's complement of the input.",
+      "alternative": "z reflects pre-edge state and lags one active edge: first x=1 row outputs 0, next row outputs 1.",
+      "sequence": [
+        {
+          "areset": 1,
+          "x": 0
+        },
+        {
+          "areset": 0,
+          "x": 1
+        },
+        {
+          "areset": 0,
+          "x": 0
+        }
+      ]
+    },
+    "status": "effect",
+    "issue_id": "I3",
+    "outputs": {
+      "original": [
+        {
+          "z": 0
+        },
+        {
+          "z": 1
+        },
+        {
+          "z": 1
+        }
+      ],
+      "alternative": [
+        {
+          "z": 0
+        },
+        {
+          "z": 0
+        },
+        {
+          "z": 1
+        }
+      ]
+    },
+    "differences": [
+      {
+        "cycle": 2,
+        "original": {
+          "z": 1
+        },
+        "alternative": {
+          "z": 0
+        }
+      }
+    ]
+  }
+]

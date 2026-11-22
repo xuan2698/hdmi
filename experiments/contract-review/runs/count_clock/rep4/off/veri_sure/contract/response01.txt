@@ -1,0 +1,38 @@
+```json
+{
+  "module_name": "top_module",
+  "io": [
+    {"name": "clk", "dir": "input", "width": 1, "description": "Fast-running clock; counters increment on posedge when ena is high."},
+    {"name": "reset", "dir": "input", "width": 1, "description": "Active-high synchronous reset; resets clock to 12:00 AM. Higher priority than ena."},
+    {"name": "ena", "dir": "input", "width": 1, "description": "Enable pulse; when high, the clock increments by one second on the next posedge."},
+    {"name": "pm", "dir": "output", "width": 1, "description": "PM indicator: 1 if PM, 0 if AM."},
+    {"name": "hh", "dir": "output", "width": 8, "description": "Two BCD digits for hours (01-12)."},
+    {"name": "mm", "dir": "output", "width": 8, "description": "Two BCD digits for minutes (00-59)."},
+    {"name": "ss", "dir": "output", "width": 8, "description": "Two BCD digits for seconds (00-59)."}
+  ],
+  "clocking": {
+    "clock": {"name": "clk", "edge": "posedge"},
+    "reset": {"name": "reset", "active": "high", "kind": "synchronous"}
+  },
+  "timing": {
+    "outputs": {
+      "pm": {"latency_cycles": 1},
+      "hh": {"latency_cycles": 1},
+      "mm": {"latency_cycles": 1},
+      "ss": {"latency_cycles": 1}
+    }
+  },
+  "functional_summary": {
+    "overview": "12-hour clock with AM/PM indicator. Counters are BCD-encoded for hours (01-12), minutes (00-59), and seconds (00-59). Increments by one second when ena is asserted on a posedge of clk. Synchronous active-high reset forces the clock to 12:00 AM and clears pm.",
+    "rules": [
+      "On posedge clk: if reset is high, set hh=0x12, mm=0x00, ss=0x00, pm=0 (12:00 AM), regardless of ena.",
+      "Else if ena is high, increment the time by one second: ss counts 00-59, rolling over to mm; mm counts 00-59, rolling over to hh; hh counts 01-12, rolling over and toggling pm.",
+      "When hh rolls from 12 to 01, pm toggles (AM<->PM).",
+      "When hh is 11 and increments to 12, pm does not toggle (11 AM -> 12 PM, 11 PM -> 12 AM).",
+      "When hh is 12 and increments to 01, pm toggles (12 PM -> 01 PM, 12 AM -> 01 AM).",
+      "BCD encoding: each of hh, mm, ss is two 4-bit BCD digits (tens in high nibble, units in low nibble).",
+      "Outputs reflect the current registered state; they update one clock cycle after the enabling edge."
+    ]
+  }
+}
+```

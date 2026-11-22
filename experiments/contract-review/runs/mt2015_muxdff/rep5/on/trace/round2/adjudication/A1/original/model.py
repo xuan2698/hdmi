@@ -1,0 +1,54 @@
+def reference(vectors):
+    # R_Q_POSEDGE: On posedge clk, Q <= L ? r_in : q_in.
+    # Persistent input values, initially concrete zeros. Mid changes are carried here.
+    L = 0
+    q_in = 0
+    r_in = 0
+    Q = 0
+    out = []
+    for row in vectors:
+        # Drive row inputs before the sampled posedge. Only specified inputs override persistent values.
+        if "L" in row:
+            L = row["L"] & 1
+        if "q_in" in row:
+            q_in = row["q_in"] & 1
+        if "r_in" in row:
+            r_in = row["r_in"] & 1
+
+        # R_Q_POSEDGE: same-cycle visible registered output update at posedge.
+        if L:
+            Q = r_in
+        else:
+            Q = q_in
+        Q = Q & 1
+        out.append({"Q": Q})
+
+        # Mid changes occur after sampling and before the next posedge; carry them to next row.
+        if "mid" in row:
+            mid = row["mid"]
+            if mid is not None:
+                if "L" in mid:
+                    L = mid["L"] & 1
+                if "q_in" in mid:
+                    q_in = mid["q_in"] & 1
+                if "r_in" in mid:
+                    r_in = mid["r_in"] & 1
+        if "_mid" in row:
+            mid = row["_mid"]
+            if mid is not None:
+                if "L" in mid:
+                    L = mid["L"] & 1
+                if "q_in" in mid:
+                    q_in = mid["q_in"] & 1
+                if "r_in" in mid:
+                    r_in = mid["r_in"] & 1
+        if "mid_changes" in row:
+            mid = row["mid_changes"]
+            if mid is not None:
+                if "L" in mid:
+                    L = mid["L"] & 1
+                if "q_in" in mid:
+                    q_in = mid["q_in"] & 1
+                if "r_in" in mid:
+                    r_in = mid["r_in"] & 1
+    return out

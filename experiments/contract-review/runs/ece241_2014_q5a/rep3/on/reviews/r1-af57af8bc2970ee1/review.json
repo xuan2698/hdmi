@@ -1,0 +1,71 @@
+{
+  "coverage": {
+    "S01": [
+      "serial_twos_complement"
+    ],
+    "S02": [
+      "serial_twos_complement"
+    ],
+    "S03": [
+      "serial_twos_complement"
+    ],
+    "S04": [
+      "async_reset",
+      "serial_twos_complement"
+    ],
+    "S05": [
+      "async_reset",
+      "serial_twos_complement"
+    ]
+  },
+  "issues": [
+    {
+      "issue_id": "reset_value_grounding",
+      "rule_id": "async_reset",
+      "type": "grounding",
+      "severity": "medium",
+      "detail": "Reset forces z=0, but spec only says conversion stops; no reset output value is specified.",
+      "spec_evidence": "The conversion begins when Reset is released and stops when Reset is asserted.",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "reset_polarity_ambiguity",
+      "rule_id": "async_reset",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Contract assumes active-high reset; spec does not define reset polarity.",
+      "spec_evidence": "The circuit requires a positive edge triggered asynchronous reset.",
+      "alternative": "Reset is active-low: areset=0 resets z=0, areset=1 allows conversion.",
+      "sequence": [
+        {
+          "areset": 0,
+          "x": 1
+        },
+        {
+          "areset": 1,
+          "x": 0
+        }
+      ]
+    },
+    {
+      "issue_id": "output_timing_ambiguity",
+      "rule_id": "serial_twos_complement",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Contract makes z visible after settled posedge; spec does not define pre- vs post-edge sampling.",
+      "spec_evidence": "the output (Z) is the 2's complement of the input",
+      "alternative": "z reflects pre-edge state and lags one cycle: first x=1 row outputs 0, next row outputs 1.",
+      "sequence": [
+        {
+          "areset": 0,
+          "x": 1
+        },
+        {
+          "areset": 0,
+          "x": 0
+        }
+      ]
+    }
+  ]
+}

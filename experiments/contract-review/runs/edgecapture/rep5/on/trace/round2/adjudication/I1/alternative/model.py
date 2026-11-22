@@ -1,0 +1,44 @@
+def reference(vectors):
+    # Rule synchronous_active_high_reset implemented in the reset branch below.
+    # Rule falling_edge_capture_and_hold implemented in the non-reset branch below.
+    # Rule global resolved candidate implemented: clear/suppress prev_in while reset is high.
+    FULL = (1 << 32) - 1
+    out = 0
+    prev_in = 0
+    cur_in = 0
+    cur_reset = 0
+    result = []
+
+    for row in vectors:
+        # Inputs driven before the sampled posedge.
+        if "reset" in row:
+            cur_reset = row["reset"] & 1
+        if "in" in row:
+            cur_in = row["in"] & FULL
+
+        sample_reset = cur_reset
+        sample_in = cur_in
+
+        if sample_reset == 1:
+            # synchronous_active_high_reset: reset has priority; out forced to 0.
+            out = 0
+            # global: suppress/clear prev_in while reset is high.
+            prev_in = 0
+        else:
+            # falling_edge_capture_and_hold: sticky capture of sampled 1-to-0 transitions.
+            falling = prev_in & (FULL ^ sample_in)
+            out = (out | falling) & FULL
+            prev_in = sample_in & FULL
+
+        result.append({"out": out})
+
+        # Mid changes occur after the sampled posedge and carry to the next row.
+        if "mid" in row:
+            mid = row["mid"]
+            if mid:
+                if "reset" in mid:
+                    cur_reset = mid["reset"] & 1
+                if "in" in mid:
+                    cur_in = mid["in"] & FULL
+
+    return result

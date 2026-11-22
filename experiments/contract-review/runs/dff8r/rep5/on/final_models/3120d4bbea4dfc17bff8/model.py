@@ -1,0 +1,42 @@
+def reference(vectors):
+    # State: q is the 8-bit D flip-flop output register
+    # Inputs: d (8-bit), reset (1-bit)
+    q = 0
+    d = 0
+    reset = 0
+    out = []
+    for row in vectors:
+        # Apply start-of-row input values (driven before sampled posedge)
+        if "d" in row:
+            d = row["d"] & 0xFF
+        if "reset" in row:
+            reset = row["reset"] & 1
+        # Positive edge sampling: update q after edge settles
+        # Rule sync_reset_clear: active high synchronous reset overrides d and clears q to 0
+        if reset == 1:
+            q = 0
+        # Rule d_capture_no_reset: when reset == 0, q captures d[7:0]
+        else:
+            q = d & 0xFF
+        # Output for this row (same cycle)
+        out.append({"q": q})
+        # Process mid-cycle input changes after sampling, before next row start
+        # Nested mid changes
+        if "mid" in row:
+            mid = row["mid"]
+            for k in mid:
+                if k == "d":
+                    d = mid[k] & 0xFF
+                elif k == "reset":
+                    reset = mid[k] & 1
+        # Flat mid changes (e.g., d_mid, mid_d, reset_mid, mid_reset)
+        for k in row:
+            if k == "d" or k == "reset" or k == "mid":
+                continue
+            kl = k.lower()
+            if "mid" in kl:
+                if "d" in kl and "reset" not in kl:
+                    d = row[k] & 0xFF
+                elif "reset" in kl:
+                    reset = row[k] & 1
+    return out

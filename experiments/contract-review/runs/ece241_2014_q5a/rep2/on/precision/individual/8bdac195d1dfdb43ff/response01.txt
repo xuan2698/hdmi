@@ -1,0 +1,94 @@
+def reference(vectors):
+    def to_bit(v):
+        try:
+            return int(v) & 1
+        except Exception:
+            return None
+
+    def apply_mid_item(item, cur_inputs, cur_state):
+        if isinstance(item, (list, tuple)):
+            for sub in item:
+                cur_state = apply_mid_item(sub, cur_inputs, cur_state)
+            return cur_state
+        if isinstance(item, dict):
+            updates = {}
+            for k in ('areset', 'x'):
+                if k in item:
+                    b = to_bit(item[k])
+                    if b is not None:
+                        updates[k] = b
+            sig = None
+            for sk in ('signal', 'name', 'input'):
+                if sk in item:
+                    sig = item[sk]
+                    break
+            if sig in ('areset', 'x') and 'value' in item:
+                b = to_bit(item['value'])
+                if b is not None:
+                    updates[sig] = b
+            for k, v in updates.items():
+                cur_inputs[k] = v
+            # async_reset_z0: reset assertion via mid forces state S0 immediately.
+            if cur_inputs['areset'] == 1:
+                cur_state = 'S0'
+            for nk in ('changes', 'inputs', 'values', 'mid'):
+                if nk in item:
+                    cur_state = apply_mid_item(item[nk], cur_inputs, cur_state)
+            return cur_state
+        return cur_state
+
+    inputs = {'areset': 0, 'x': 0}
+    state = 'S0'
+    out = []
+
+    for row in vectors:
+        if 'areset' in row:
+            b = to_bit(row['areset'])
+            if b is not None:
+                inputs['areset'] = b
+        if 'x' in row:
+            b = to_bit(row['x'])
+            if b is not None:
+                inputs['x'] = b
+
+        if inputs['areset'] == 1:
+            # async_reset_z0: asynchronously force S0 and z=0.
+            state = 'S0'
+            z = 0
+        else:
+            x = inputs['x']
+            if state == 'S0':
+                if x == 0:
+                    # s0_x0
+                    state = 'S0'
+                else:
+                    # s0_x1
+                    state = 'S1'
+            elif state == 'S1':
+                if x == 0:
+                    # s1_x0
+                    state = 'S1'
+                else:
+                    # s1_x1
+                    state = 'S2'
+            else:
+                if x == 0:
+                    # s2_x0
+                    state = 'S1'
+                else:
+                    # s2_x1
+                    state = 'S2'
+
+            if state == 'S0':
+                z = 0
+            elif state == 'S1':
+                z = 1
+            else:
+                z = 0
+
+        out.append({'z': z & 1})
+
+        if 'mid' in row:
+            state = apply_mid_item(row['mid'], inputs, state)
+
+    return out

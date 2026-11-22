@@ -1,0 +1,65 @@
+{
+  "coverage": {
+    "S01": [
+      "R1_sync_reset",
+      "R2_dff_capture"
+    ],
+    "S02": [
+      "R3_reset_value"
+    ],
+    "S03": [
+      "R2_dff_capture"
+    ]
+  },
+  "issues": [
+    {
+      "issue_id": "I1",
+      "rule_id": "R2_dff_capture",
+      "type": "consistency",
+      "severity": "medium",
+      "detail": "R2 example expected q equals d on same negedge, but state says update_during_reset and reset priority; example omits reset field so reset value is undefined, making expected q=18/200/7 unverifiable and likely wrong if reset defaults high.",
+      "spec_evidence": "All DFFs should be triggered by the negative edge of clk.",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I2",
+      "rule_id": "R1_sync_reset",
+      "type": "consistency",
+      "severity": "low",
+      "detail": "R1 example third vector reset=0 expects q=52, but with reset released the negedge should capture d=0, so expected should be 0 not 52.",
+      "spec_evidence": "active high synchronous reset",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I3",
+      "rule_id": "R3_reset_value",
+      "type": "consistency",
+      "severity": "low",
+      "detail": "R3 example third vector reset=0 expects q=52, but released reset should capture d=99, so expected should be 99 not 52.",
+      "spec_evidence": "reset to 0x34 rather than zero",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I4",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "low",
+      "detail": "Spec does not state reset value width/behavior when reset asserted at non-negedge; contract treats reset as synchronous only at negedge, but alternative could be asynchronous reset.",
+      "spec_evidence": "active high synchronous reset",
+      "alternative": "Reset is asynchronous active-high, so q becomes 0x34 immediately when reset rises, independent of clk edge.",
+      "sequence": [
+        {
+          "d": 0,
+          "reset": 1
+        },
+        {
+          "d": 0,
+          "reset": 0
+        }
+      ]
+    }
+  ]
+}

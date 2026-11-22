@@ -1,0 +1,34 @@
+def reference(vectors):
+    # state q is the 8-bit D flip-flop output
+    q = 0  # power-up unspecified; first negedge will update it
+    carried = {"d": 0, "reset": 0}
+    result = []
+    for row in vectors:
+        # Start of row: carried inputs from previous mid changes,
+        # then row values are driven before the sampled negedge.
+        d_val = carried["d"]
+        reset_val = carried["reset"]
+        if "d" in row:
+            d_val = row["d"]
+        if "reset" in row:
+            reset_val = row["reset"]
+
+        # Negedge sampling / update
+        if reset_val == 1:
+            q = 52  # sync_reset_high: reset to 0x34
+        else:
+            q = d_val & 0xFF  # d_load_no_reset: load d
+
+        result.append({"q": q})
+
+        # After sampling: current inputs persist, then optional mid changes
+        # occur before the other edge and are carried to next row.
+        carried["d"] = d_val
+        carried["reset"] = reset_val
+        if "mid" in row:
+            mid = row["mid"]
+            if mid:
+                for k in mid:
+                    carried[k] = mid[k]
+
+    return result

@@ -1,0 +1,62 @@
+def reference(vectors):
+    # Rule async_reset: areset high asynchronously forces state A and z=0.
+    # Rule serial_twos_complement: state transitions per contract on posedge when areset=0.
+    state = 'A'
+    cur_areset = 0
+    cur_x = 0
+    out = []
+
+    for row in vectors:
+        # Contract: each row's values are driven before the sampled edge.
+        for key, val in row.items():
+            if key == 'mid':
+                continue
+            if key == 'areset':
+                cur_areset = val
+            elif key == 'x':
+                cur_x = val
+
+        # Rule async_reset: if reset asserted, state A independent of clk.
+        if cur_areset == 1:
+            state = 'A'
+
+        # Rule serial_twos_complement: sample on posedge clk when areset=0.
+        if cur_areset == 0:
+            if state == 'A':
+                if cur_x == 0:
+                    state = 'A'
+                else:
+                    state = 'B'
+            elif state == 'B':
+                if cur_x == 0:
+                    state = 'B'
+                else:
+                    state = 'C'
+            elif state == 'C':
+                if cur_x == 0:
+                    state = 'B'
+                else:
+                    state = 'C'
+        else:
+            state = 'A'
+
+        # Moore output after settled posedge.
+        if state == 'B':
+            z = 1
+        else:
+            z = 0
+        out.append({'z': z})
+
+        # Contract mid: mid changes occur AFTER sampling and do not affect current row's expected outputs.
+        mid = row.get('mid')
+        if mid is not None:
+            for key, val in mid.items():
+                if key == 'areset':
+                    cur_areset = val
+                elif key == 'x':
+                    cur_x = val
+            # Rule async_reset: asynchronous reset can occur during mid changes.
+            if cur_areset == 1:
+                state = 'A'
+
+    return out

@@ -1,0 +1,68 @@
+def reference(vectors):
+    # R_CONVERT candidate interpretation: observe z at pre-edge Moore state.
+    if isinstance(vectors, dict) and 'vectors' in vectors:
+        rows = vectors['vectors']
+    else:
+        rows = vectors
+
+    START, INV0, INV1 = 0, 1, 2
+    state = START
+    cur_a = 0
+    cur_x = 0
+    result = []
+
+    def z_of(s):
+        return 1 if s == INV1 else 0
+
+    for row in rows:
+        if isinstance(row, dict):
+            if 'areset' in row:
+                cur_a = int(row['areset']) & 1
+            if 'x' in row:
+                cur_x = int(row['x']) & 1
+
+        # R_RESET: active-high asynchronous reset forces START and z=0.
+        if cur_a:
+            state = START
+
+        # R_CONVERT candidate: pre-edge observation of z; reset dominates.
+        z = 0 if cur_a else z_of(state)
+        result.append({'z': z})
+
+        # Clock posedge sample: update the serial 2's-complement state.
+        if cur_a:
+            state = START
+        else:
+            if state == START:
+                if cur_x == 1:
+                    state = INV1
+                else:
+                    state = START
+            else:
+                if cur_x == 0:
+                    state = INV1
+                else:
+                    state = INV0
+
+        # Optional mid changes after sampling, before the next edge.
+        if isinstance(row, dict) and 'mid' in row:
+            m = row['mid']
+            if isinstance(m, dict):
+                changes = [m]
+            elif isinstance(m, list):
+                changes = m
+            else:
+                changes = []
+
+            for ch in changes:
+                if not isinstance(ch, dict):
+                    continue
+                if 'areset' in ch:
+                    cur_a = int(ch['areset']) & 1
+                    # R_RESET: asynchronous assertion occurs immediately.
+                    if cur_a:
+                        state = START
+                if 'x' in ch:
+                    cur_x = int(ch['x']) & 1
+
+    return result

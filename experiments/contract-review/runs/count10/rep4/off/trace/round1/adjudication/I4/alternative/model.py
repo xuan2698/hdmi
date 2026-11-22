@@ -1,0 +1,30 @@
+def reference(vectors):
+    # Contract implementation.
+    # State: COUNT (q) 0..9, updated at posedge clk.
+    # R1: reset==1 at posedge -> q=0 (sync, active high, priority 1).
+    # R2: reset==0 && q<9 at posedge -> q=q+1.
+    # R3: reset==0 && q==9 at posedge -> q=0.
+    # Power-on q may be undefined/X until first reset; first posedge with
+    # reset=0 could yield any value rather than 0 (candidate interpretation).
+    # We model power-on as q=0 (a concrete unsigned value is required).
+
+    q = 0  # power-on state (concrete; may be undefined per spec)
+    out = []
+
+    for row in vectors:
+        reset = row.get("reset", 0)
+        # Sample at posedge: compute next state based on current inputs.
+        if reset == 1:
+            # R1: sync reset, priority 1
+            q = 0
+        else:
+            if q < 9:
+                # R2: increment
+                q = q + 1
+            else:
+                # R3: wrap from 9 to 0
+                q = 0
+        # Output visible same cycle after posedge settles.
+        out.append({"q": q & 0xF})
+
+    return out

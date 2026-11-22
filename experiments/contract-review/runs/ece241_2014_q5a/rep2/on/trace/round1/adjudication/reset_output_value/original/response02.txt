@@ -1,0 +1,86 @@
+```python
+def reference(vectors):
+    # Contract rules:
+    # async_reset_z0: active-high asynchronous reset forces S0 and z=0.
+    # s0_x0, s0_x1, s1_x0, s1_x1, s2_x0, s2_x1: explicit Moore transitions.
+    # Mid changes occur after the sampled posedge and are carried forward.
+    state = 0  # S0: no 1 received yet since reset release, z=0
+    z = 0
+    cur_areset = 0
+    cur_x = 0
+    result = []
+
+    for vec in vectors:
+        # Inputs are driven before the sampled edge; absent inputs keep prior value.
+        cur_areset = int(vec.get("areset", cur_areset))
+        cur_x = int(vec.get("x", cur_x))
+
+        # RULE async_reset_z0: asynchronous active-high reset before posedge.
+        if cur_areset == 1:
+            state = 0
+            z = 0
+
+        # Sample after posedge has settled.
+        if cur_areset == 1:
+            # RULE async_reset_z0: reset priority at sampled posedge.
+            state = 0
+            z = 0
+        else:
+            if state == 0:  # S0
+                if cur_x == 0:
+                    # RULE s0_x0
+                    state = 0
+                    z = 0
+                else:
+                    # RULE s0_x1
+                    state = 1
+                    z = 1
+            elif state == 1:  # S1
+                if cur_x == 0:
+                    # RULE s1_x0
+                    state = 1
+                    z = 1
+                else:
+                    # RULE s1_x1
+                    state = 2
+                    z = 0
+            else:  # S2
+                if cur_x == 0:
+                    # RULE s2_x0
+                    state = 1
+                    z = 1
+                else:
+                    # RULE s2_x1
+                    state = 2
+                    z = 0
+
+        # Report the sampled output after the posedge settles, before mid changes.
+        result.append({"z": z & 1})
+
+        # Mid changes occur after sampling and carry to the next row.
+        mid = vec.get("mid")
+        if mid is not None:
+            if isinstance(mid, dict):
+                mid_items = [mid]
+            elif isinstance(mid, (list, tuple)):
+                mid_items = mid
+            else:
+                mid_items = []
+
+            for change in mid_items:
+                if not isinstance(change, dict):
+                    continue
+
+                if "areset" in change:
+                    cur_areset = int(change["areset"])
+                    # RULE async_reset_z0: asynchronous reset takes effect immediately
+                    # after the sampled edge if it becomes active.
+                    if cur_areset == 1:
+                        state = 0
+                        z = 0
+
+                if "x" in change:
+                    cur_x = int(change["x"])
+
+    return result
+```

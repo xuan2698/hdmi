@@ -1,0 +1,97 @@
+[
+  {
+    "issue": {
+      "issue_id": "I4",
+      "rule_id": "increment_when_a_low",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec could mean increment on posedge only when a=0 AND previous a was 1 (falling transition), not every posedge with a=0.",
+      "spec_evidence": "// 45ns            1               0               4",
+      "alternative": "Increment only on posedge where a=0 and previous sampled a=1; hold otherwise.",
+      "sequence": [
+        {
+          "a": 1
+        },
+        {
+          "a": 0
+        },
+        {
+          "a": 0
+        },
+        {
+          "a": 1
+        },
+        {
+          "a": 0
+        }
+      ]
+    },
+    "status": "effect",
+    "issue_id": "I4",
+    "outputs": {
+      "original": [
+        {
+          "q": 4
+        },
+        {
+          "q": 5
+        },
+        {
+          "q": 6
+        },
+        {
+          "q": 6
+        },
+        {
+          "q": 7
+        }
+      ],
+      "alternative": [
+        {
+          "q": 4
+        },
+        {
+          "q": 5
+        },
+        {
+          "q": 5
+        },
+        {
+          "q": 5
+        },
+        {
+          "q": 6
+        }
+      ]
+    },
+    "differences": [
+      {
+        "cycle": 3,
+        "original": {
+          "q": 6
+        },
+        "alternative": {
+          "q": 5
+        }
+      },
+      {
+        "cycle": 4,
+        "original": {
+          "q": 6
+        },
+        "alternative": {
+          "q": 5
+        }
+      },
+      {
+        "cycle": 5,
+        "original": {
+          "q": 7
+        },
+        "alternative": {
+          "q": 6
+        }
+      }
+    ]
+  }
+]

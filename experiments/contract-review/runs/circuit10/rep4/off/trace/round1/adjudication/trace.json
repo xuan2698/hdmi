@@ -1,0 +1,60 @@
+[
+  {
+    "issue": {
+      "issue_id": "I10",
+      "rule_id": "R1",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "R1 says state<=a XOR b on posedge. Spec waveform suggests state may be q delayed or some other function. Alternative: state <= q (delayed) or state <= a AND b etc. Concrete distinguishing sequence: a=0,b=1 then a=0,b=1.",
+      "spec_evidence": "// 45ns            1               0               1               0               1",
+      "alternative": "state <= a AND b (or state <= q)",
+      "sequence": [
+        {
+          "a": 0,
+          "b": 1
+        },
+        {
+          "a": 0,
+          "b": 1
+        }
+      ]
+    },
+    "status": "effect",
+    "issue_id": "I10",
+    "outputs": {
+      "original": [
+        {
+          "q": 0,
+          "state": 0
+        },
+        {
+          "q": 1,
+          "state": 1
+        }
+      ],
+      "alternative": [
+        {
+          "q": 0,
+          "state": 1
+        },
+        {
+          "q": 1,
+          "state": 1
+        }
+      ]
+    },
+    "differences": [
+      {
+        "cycle": 1,
+        "original": {
+          "q": 0,
+          "state": 0
+        },
+        "alternative": {
+          "q": 0,
+          "state": 1
+        }
+      }
+    ]
+  }
+]

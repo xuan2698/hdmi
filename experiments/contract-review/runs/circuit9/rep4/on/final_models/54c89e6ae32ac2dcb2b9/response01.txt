@@ -1,0 +1,26 @@
+def reference(vectors):
+    # State: q is the 3-bit modulo-7 counter value.
+    # State: prev_a is the previous posedge-sampled value of input a.
+    q = 0
+    prev_a = 0
+    out = []
+
+    for v in vectors:
+        a = v["a"] & 1
+
+        # R1_a_high_load4: a == 1 at posedge => q <= 4.
+        if a == 1:
+            q = 4
+        # R2_first_low_hold: a == 0 && prev_a == 1 => q holds.
+        elif prev_a == 1:
+            q = q
+        # R3_count_low: a == 0 && prev_a == 0 => modulo-7 up-counter.
+        else:
+            q = (q + 1) % 7
+
+        # prev_a updates to current a on each posedge.
+        prev_a = a
+
+        out.append({"q": q & 0x7})
+
+    return out

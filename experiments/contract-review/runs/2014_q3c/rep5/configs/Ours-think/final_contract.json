@@ -1,0 +1,122 @@
+{
+  "ports": {
+    "inputs": {
+      "x": 1,
+      "y": 3
+    },
+    "outputs": {
+      "Y0": 1,
+      "z": 1
+    },
+    "clock": "clk"
+  },
+  "states": [],
+  "rules": [
+    {
+      "id": "Y0_next_state_lsb",
+      "outputs": [
+        "Y0"
+      ],
+      "condition": "For y in {0,1,2,3,4}: Y0 = 1 iff (x==0 && (y==1 || y==3 || y==4)) || (x==1 && (y==0 || y==2)); otherwise for valid y, Y0=0. For y in {5,6,7}, Y0 is unspecified.",
+      "edge": "combinational",
+      "visible": "same_cycle",
+      "priority": 1,
+      "spec_quote": "// Present state y[2:0] | Next state Y[2:0] x=0, Next state Y[2:0] x=1 | Output z\n// 000 | 000, 001 | 0\n// 001 | 001, 100 | 0\n// 010 | 010, 001 | 0\n// 011 | 001, 010 | 1\n// 100 | 011, 100 | 1",
+      "uncertain": false,
+      "example": {
+        "vectors": [
+          {
+            "x": 0,
+            "y": 1
+          },
+          {
+            "x": 0,
+            "y": 2
+          },
+          {
+            "x": 1,
+            "y": 0
+          },
+          {
+            "x": 1,
+            "y": 3
+          }
+        ],
+        "expected": [
+          {
+            "Y0": 1
+          },
+          {
+            "Y0": 0
+          },
+          {
+            "Y0": 1
+          },
+          {
+            "Y0": 0
+          }
+        ]
+      }
+    },
+    {
+      "id": "z_moore_output",
+      "outputs": [
+        "z"
+      ],
+      "condition": "For y in {0,1,2}: z=0. For y in {3,4}: z=1. For y in {5,6,7}, z is unspecified. z does not depend on x.",
+      "edge": "combinational",
+      "visible": "same_cycle",
+      "priority": 1,
+      "spec_quote": "// Present state y[2:0] | Next state Y[2:0] x=0, Next state Y[2:0] x=1 | Output z\n// 000 | 000, 001 | 0\n// 001 | 001, 100 | 0\n// 010 | 010, 001 | 0\n// 011 | 001, 010 | 1\n// 100 | 011, 100 | 1",
+      "uncertain": false,
+      "example": {
+        "vectors": [
+          {
+            "x": 0,
+            "y": 0
+          },
+          {
+            "x": 1,
+            "y": 3
+          },
+          {
+            "x": 0,
+            "y": 4
+          },
+          {
+            "x": 1,
+            "y": 2
+          }
+        ],
+        "expected": [
+          {
+            "z": 0
+          },
+          {
+            "z": 1
+          },
+          {
+            "z": 1
+          },
+          {
+            "z": 0
+          }
+        ]
+      }
+    }
+  ],
+  "reset": {
+    "kind": "none",
+    "name": null,
+    "active": "none",
+    "values": {
+      "Y0": null,
+      "z": null
+    },
+    "first_released_cycle": "not_applicable"
+  },
+  "mid": "Optional mid changes occur after the sampled posedge and before the next edge; they update x/y for the remainder of the cycle and are carried to the start of the next row. For these combinational rules, if a mid change is applied, Y0 and z recompute immediately from the changed x/y. No mid changes are used in the examples.",
+  "uncertain": [],
+  "remaining_uncertain_fields": {},
+  "selected_interpretations": []
+}

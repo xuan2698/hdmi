@@ -1,0 +1,23 @@
+```python
+def reference(vectors):
+    # State: q_state holds the 8-bit register value.
+    # R1_sync_reset: on negedge, if reset==1, q_state <- 0x34 (52).
+    # R2_dff_capture: on negedge, if reset==0, q_state <- d.
+    # Initial power-up value is unspecified; use 0x34 as concrete default.
+    q_state = 0x34  # concrete power-up value (unspecified by spec)
+    out = []
+    for row in vectors:
+        d = row.get('d', 0) & 0xFF
+        reset = row.get('reset', 0) & 0x1
+        # Sample at negedge: apply synchronous reset or capture d.
+        if reset == 1:
+            # R1_sync_reset
+            q_state = 0x34
+        else:
+            # R2_dff_capture
+            q_state = d
+        out.append({'q': q_state & 0xFF})
+        # Mid changes occur after sampling; they are carried to next row
+        # via the row dict itself (no separate state needed here).
+    return out
+```

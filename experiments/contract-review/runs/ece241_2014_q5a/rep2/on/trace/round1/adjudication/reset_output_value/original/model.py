@@ -1,0 +1,94 @@
+def reference(vectors):
+    # async_reset_z0: active-high asynchronous reset forces S0 and z=0.
+    rows = vectors
+    try:
+        rows = vectors["vectors"]
+    except:
+        pass
+
+    state = 0  # S0
+    cur_areset = 0
+    cur_x = 0
+    outputs = []
+
+    for row in rows:
+        # Each row's values are driven before the sampled edge.
+        try:
+            cur_areset = row["areset"]
+        except:
+            pass
+        try:
+            cur_x = row["x"]
+        except:
+            pass
+
+        # async_reset_z0: asynchronous reset while asserted.
+        if cur_areset == 1:
+            state = 0  # S0, z=0
+
+        if cur_areset == 0:
+            if state == 0:
+                if cur_x == 0:
+                    # s0_x0: S0 with x=0 stays S0.
+                    state = 0
+                else:
+                    # s0_x1: S0 with x=1 goes to S1.
+                    state = 1
+            elif state == 1:
+                if cur_x == 0:
+                    # s1_x0: S1 with x=0 stays S1.
+                    state = 1
+                else:
+                    # s1_x1: S1 with x=1 goes to S2.
+                    state = 2
+            else:  # state == 2
+                if cur_x == 0:
+                    # s2_x0: S2 with x=0 goes to S1.
+                    state = 1
+                else:
+                    # s2_x1: S2 with x=1 stays S2.
+                    state = 2
+
+        # Moore output after edge settled.
+        if state == 0:
+            z = 0
+        elif state == 1:
+            z = 1
+        else:  # state == 2
+            z = 0
+        outputs.append({"z": z})
+
+        # Process mid changes after sampling, before next edge.
+        try:
+            mid = row["mid"]
+        except:
+            mid = None
+        if mid is not None:
+            try:
+                # mid as dict
+                for k in mid:
+                    v = mid[k]
+                    if k == "areset":
+                        cur_areset = v
+                        if v == 1:
+                            # async_reset_z0: mid assertion also forces S0.
+                            state = 0
+                    elif k == "x":
+                        cur_x = v
+            except:
+                # mid as list of dicts
+                try:
+                    for m in mid:
+                        for k in m:
+                            v = m[k]
+                            if k == "areset":
+                                cur_areset = v
+                                if v == 1:
+                                    # async_reset_z0: mid assertion also forces S0.
+                                    state = 0
+                            elif k == "x":
+                                cur_x = v
+                except:
+                    pass
+
+    return outputs

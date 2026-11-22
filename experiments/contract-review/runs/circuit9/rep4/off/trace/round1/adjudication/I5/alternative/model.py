@@ -1,0 +1,26 @@
+def reference(vectors):
+    # Contract rules:
+    # hold_when_a_high: on posedge, if a==1, q holds (priority 1)
+    # increment_when_a_low: on posedge, if a==0, q increments by 1 (mod 8)
+    # global interpretation: increment q on posedge iff a sampled at previous posedge was 0; hold otherwise.
+    # Power-up unspecified: start q at 0 (concrete unsigned value within 3-bit width).
+    # Mid changes occur AFTER sampling, before the other edge, carried to start of next row.
+    # Each row's values are driven before the sampled edge (posedge).
+    # We process each row: sample a at posedge, update q accordingly, output q.
+    # Since mid changes are carried to next row, we just use the a value given in each row
+    # (the row's a is the value driven before the sampled edge).
+    # No reset, so initial q = 0.
+
+    q = 0  # 3-bit counter, power-up unspecified but we choose 0
+    out = []
+    for row in vectors:
+        a = row["a"]
+        # posedge sampling: update q based on a
+        if a == 1:
+            # hold_when_a_high
+            q = q  # hold
+        else:
+            # increment_when_a_low
+            q = (q + 1) & 0x7  # 3-bit wrap
+        out.append({"q": q})
+    return out

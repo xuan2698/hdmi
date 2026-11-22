@@ -1,0 +1,104 @@
+I'll implement the Lemmings FSM as a Python reference function. The key design decisions:
+
+- **States**: WALK_LEFT, WALK_RIGHT, FALL_LEFT, FALL_RIGHT, DIG_LEFT, DIG_RIGHT, SPLAT
+- **Fall counter**: counts full cycles spent in FALL_* state; splat when ground reappears after >20 fall cycles
+- **Precedence**: fall > dig > direction switch
+- **Async reset**: areset=1 forces WALK_LEFT immediately (same cycle)
+
+```python
+def reference(vectors):
+    # States
+    WALK_LEFT, WALK_RIGHT = 0, 1
+    FALL_LEFT, FALL_RIGHT = 2, 3
+    DIG_LEFT, DIG_RIGHT = 4, 5
+    SPLAT = 6
+
+    state = WALK_LEFT
+    fall_count = 0
+    outputs = []
+
+    for v in vectors:
+        areset = v.get('areset', 0)
+        bump_left = v.get('bump_left', 0)
+        bump_right = v.get('bump_right', 0)
+        ground = v.get('ground', 1)
+        dig = v.get('dig', 0)
+
+        # Async reset: takes effect same cycle
+        if areset:
+            state = WALK_LEFT
+            fall_count = 0
+
+        # Compute outputs from current state (Moore)
+        if state == WALK_LEFT:
+            out = {'walk_left': 1, 'walk_right': 0, 'aaah': 0, 'digging': 0}
+        elif state == WALK_RIGHT:
+            out = {'walk_left': 0, 'walk_right': 1, 'aaah': 0, 'digging': 0}
+        elif state in (FALL_LEFT, FALL_RIGHT):
+            out = {'walk_left': 0, 'walk_right': 0, 'aaah': 1, 'digging': 0}
+        elif state in (DIG_LEFT, DIG_RIGHT):
+            out = {'walk_left': 0, 'walk_right': 0, 'aaah': 0, 'digging': 1}
+        else:  # SPLAT
+            out = {'walk_left': 0, 'walk_right': 0, 'aaah': 0, 'digging': 0}
+        outputs.append(out)
+
+        # If reset active, no state transition this cycle (state already forced)
+        if areset:
+            continue
+
+        # State transitions (posedge)
+        if state == WALK_LEFT:
+            if ground == 0:
+                state = FALL_LEFT
+                fall_count = 0
+            elif dig == 1:
+                state = DIG_LEFT
+            elif bump_left == 1 or bump_right == 1:
+                state = WALK_RIGHT
+        elif state == WALK_RIGHT:
+            if ground == 0:
+                state = FALL_RIGHT
+                fall_count = 0
+            elif dig == 1:
+                state = DIG_RIGHT
+            elif bump_left == 1 or bump_right == 1:
+                state = WALK_LEFT
+        elif state == FALL_LEFT:
+            if ground == 1:
+                if fall_count > 20:
+                    state = SPLAT
+                else:
+                    state = WALK_LEFT
+                fall_count = 0
+            else:
+                fall_count += 1
+        elif state == FALL_RIGHT:
+            if ground == 1:
+                if fall_count > 20:
+                    state = SPLAT
+                else:
+                    state = WALK_RIGHT
+                fall_count = 0
+            else:
+                fall_count += 1
+        elif state == DIG_LEFT:
+            if ground == 0:
+                state = FALL_LEFT
+                fall_count = 0
+        elif state == DIG_RIGHT:
+            if ground == 0:
+                state = FALL_RIGHT
+                fall_count = 0
+        # SPLAT: stays forever
+
+    return outputs
+```
+
+**Semantics notes:**
+
+1. **Reset**: `areset=1` forces `WALK_LEFT` in the same cycle (async, visible same cycle). No transition occurs during reset.
+2. **Fall counter**: Incremented each cycle the FSM *remains* in a FALL state (i.e., when ground=0 while already falling). The cycle ground goes low (transition into FALL) does not count. Splat when `fall_count > 20` at the moment ground reappears — meaning 21+ full falling cycles.
+3. **Precedence in WALK**: ground=0 → fall; else dig=1 → dig; else any bump → toggle direction.
+4. **Bumps ignored** while falling or digging.
+5. **Digging** continues until ground=0, then falls in same direction.
+6. **SPLAT** is absorbing; all outputs 0 forever (until reset).

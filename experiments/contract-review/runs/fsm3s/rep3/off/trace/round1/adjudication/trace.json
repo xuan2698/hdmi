@@ -1,0 +1,86 @@
+[
+  {
+    "issue": {
+      "issue_id": "I10",
+      "rule_id": "R3",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "R3 models reset as posedge output rule with next_cycle visibility, but spec says synchronous reset resets FSM to state A; output during reset cycle should be Moore output of A (0) same cycle, not next_cycle.",
+      "spec_evidence": "Include a synchronous active high reset that resets the FSM to state A.",
+      "alternative": "Reset should asynchronously force state A and out=0 immediately when reset==1, independent of clock edge.",
+      "sequence": [
+        {
+          "in": 0,
+          "reset": 1
+        },
+        {
+          "in": 0,
+          "reset": 0
+        }
+      ]
+    },
+    "status": "no_effect",
+    "issue_id": "I10",
+    "outputs": {
+      "original": [
+        {
+          "out": 0
+        },
+        {
+          "out": 0
+        }
+      ],
+      "alternative": [
+        {
+          "out": 0
+        },
+        {
+          "out": 0
+        }
+      ]
+    },
+    "differences": []
+  },
+  {
+    "issue": {
+      "issue_id": "I11",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "low",
+      "detail": "Contract does not specify initial state before first reset release; spec implies reset state A but first_released_cycle only.",
+      "spec_evidence": "resets the FSM to state A",
+      "alternative": "Initial state is A even without reset assertion.",
+      "sequence": [
+        {
+          "in": 1,
+          "reset": 0
+        },
+        {
+          "in": 0,
+          "reset": 0
+        }
+      ]
+    },
+    "status": "no_effect",
+    "issue_id": "I11",
+    "outputs": {
+      "original": [
+        {
+          "out": 0
+        },
+        {
+          "out": 0
+        }
+      ],
+      "alternative": [
+        {
+          "out": 0
+        },
+        {
+          "out": 0
+        }
+      ]
+    },
+    "differences": []
+  }
+]

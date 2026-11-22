@@ -1,0 +1,59 @@
+```json
+{
+  "module_name": "top_module",
+  "io": [
+    {
+      "name": "clk",
+      "dir": "input",
+      "width": 1,
+      "description": "Clock. All state updates occur on the rising edge."
+    },
+    {
+      "name": "reset",
+      "dir": "input",
+      "width": 1,
+      "description": "Active-high synchronous reset. When high at a rising edge, all out bits are cleared to 0."
+    },
+    {
+      "name": "in",
+      "dir": "input",
+      "width": 32,
+      "description": "32-bit input vector sampled on each rising edge."
+    },
+    {
+      "name": "out",
+      "dir": "output",
+      "width": 32,
+      "description": "32-bit sticky capture vector. Bit i becomes 1 when in[i] transitions from 1 to 0 between consecutive sampled cycles, and stays 1 until reset."
+    }
+  ],
+  "clocking": {
+    "clock": {
+      "name": "clk",
+      "edge": "posedge"
+    },
+    "reset": {
+      "name": "reset",
+      "active": "high",
+      "kind": "synchronous"
+    }
+  },
+  "timing": {
+    "outputs": {
+      "out": {
+        "latency_cycles": 1
+      }
+    }
+  },
+  "functional_summary": {
+    "overview": "For each bit of a 32-bit input vector, detect a 1-to-0 transition between consecutive clock cycles and set the corresponding output bit. Each output bit is sticky: once set, it remains 1 until cleared by the active-high synchronous reset.",
+    "rules": [
+      "On each rising edge of clk, if reset is high, out is cleared to 32'b0.",
+      "Otherwise, for each bit i in 0..31: if in[i] was 1 in the previous sampled cycle and is 0 in the current sampled cycle, out[i] is set to 1.",
+      "Once out[i] is 1, it remains 1 on subsequent cycles regardless of further input transitions, until reset is asserted.",
+      "The previous-cycle input value is tracked internally (a 32-bit register) to detect 1-to-0 transitions.",
+      "Output out reflects the updated sticky state one cycle after the transition is observed (registered output)."
+    ]
+  }
+}
+```

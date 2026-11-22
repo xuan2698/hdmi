@@ -1,0 +1,72 @@
+def reference(vectors):
+    # State encoding: S0 = no 1 yet, z=0; S1 = 1 received, z=1; S2 = 1 received, z=0
+    S0 = 0
+    S1 = 1
+    S2 = 2
+    state = S0
+    z = 0
+    cur_areset = 0
+    cur_x = 0
+    out = []
+
+    for row in vectors:
+        # Each row's values are driven before the sampled edge.
+        if "areset" in row:
+            cur_areset = row["areset"]
+        if "x" in row:
+            cur_x = row["x"]
+
+        # async_reset_z0: areset=1 asynchronously forces state S0 and z=0.
+        if cur_areset == 1:
+            state = S0
+            z = 0
+
+        # Sampled posedge after the edge has settled.
+        if cur_areset == 1:
+            # async_reset_z0: reset dominates while asserted.
+            state = S0
+            z = 0
+        else:
+            if state == S0:
+                if cur_x == 0:
+                    # s0_x0: S0 + x=0 -> S0, z=0.
+                    state = S0
+                else:
+                    # s0_x1: S0 + x=1 -> S1, z=1.
+                    state = S1
+            elif state == S1:
+                if cur_x == 0:
+                    # s1_x0: S1 + x=0 -> S1, z=1.
+                    state = S1
+                else:
+                    # s1_x1: S1 + x=1 -> S2, z=0.
+                    state = S2
+            else:
+                if cur_x == 0:
+                    # s2_x0: S2 + x=0 -> S1, z=1.
+                    state = S1
+                else:
+                    # s2_x1: S2 + x=1 -> S2, z=0.
+                    state = S2
+
+            if state == S1:
+                z = 1
+            else:
+                z = 0
+
+        out.append({"z": z})
+
+        # mid changes occur AFTER sampling, before the next clock edge.
+        if "mid" in row and row["mid"] is not None:
+            mid = row["mid"]
+            if "areset" in mid:
+                cur_areset = mid["areset"]
+            if "x" in mid:
+                cur_x = mid["x"]
+
+            # async_reset_z0: any mid assertion of reset immediately holds S0,z=0.
+            if cur_areset == 1:
+                state = S0
+                z = 0
+
+    return out

@@ -1,0 +1,25 @@
+```python
+def reference(vectors):
+    # Contract implementation.
+    # State: 3-bit accumulator q, initial value unspecified (x).
+    # Rule hold_when_a_high: on posedge, if a==1 or prev_a==1, hold q.
+    # Rule increment_when_a_low: on posedge, if a==0 and prev_a==0, increment q (mod 8).
+    # Initial q is unspecified; choose 4 to match contract examples (example 1 expects 4 on first posedge with a=1).
+    # prev_a initial: treat as 1 so first posedge with a=1 holds (matches example 1).
+    q = 4  # initial unspecified value; selected to satisfy example 1
+    prev_a = 1  # initial previous a; selected so first posedge with a=1 holds
+    out = []
+    for row in vectors:
+        a = row['a']
+        # posedge sampling: compute next q based on current a and prev_a
+        if a == 1 or prev_a == 1:
+            # hold_when_a_high
+            pass
+        else:
+            # increment_when_a_low
+            q = (q + 1) & 0x7
+        # update prev_a after sampling
+        prev_a = a
+        out.append({'q': q})
+    return out
+```

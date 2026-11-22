@@ -1,0 +1,13 @@
+def reference(vectors):
+    # State: q_reg holds the 8-bit flip-flop output register (R1_sync_reset, R2_dff_capture)
+    q_reg = 0  # power-up unspecified; concrete value chosen
+    out = []
+    for row in vectors:
+        d = row.get('d', 0)
+        reset = row.get('reset', 0)
+        # R1_sync_reset / R2_dff_capture: posedge clk sampling
+        # Candidate interpretation (global): D capture has priority over reset,
+        # so q <= d even when reset == 1.
+        q_reg = d & 0xFF  # R2_dff_capture priority over R1_sync_reset
+        out.append({'q': q_reg & 0xFF})
+    return out

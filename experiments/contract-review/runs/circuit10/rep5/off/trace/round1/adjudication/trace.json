@@ -1,0 +1,154 @@
+[
+  {
+    "issue": {
+      "issue_id": "i4",
+      "rule_id": "r2",
+      "type": "ambiguity",
+      "severity": "high",
+      "detail": "Waveform fits state_next = a XOR b (state unused) as well as XOR-with-state; r2 marks uncertain but contract still asserts XOR-with-state.",
+      "spec_evidence": "// 15ns            1               0               0               0               0",
+      "alternative": "state_next = a XOR b",
+      "sequence": [
+        {
+          "a": 0,
+          "b": 0
+        },
+        {
+          "a": 0,
+          "b": 1
+        },
+        {
+          "a": 1,
+          "b": 0
+        },
+        {
+          "a": 1,
+          "b": 1
+        }
+      ]
+    },
+    "status": "effect",
+    "issue_id": "i4",
+    "outputs": {
+      "original": [
+        {
+          "q": 0,
+          "state": 0
+        },
+        {
+          "q": 0,
+          "state": 0
+        },
+        {
+          "q": 1,
+          "state": 1
+        },
+        {
+          "q": 0,
+          "state": 0
+        }
+      ],
+      "alternative": [
+        {
+          "q": 0,
+          "state": 0
+        },
+        {
+          "q": 0,
+          "state": 0
+        },
+        {
+          "q": 1,
+          "state": 1
+        },
+        {
+          "q": 1,
+          "state": 1
+        }
+      ]
+    },
+    "differences": [
+      {
+        "cycle": 4,
+        "original": {
+          "q": 0,
+          "state": 0
+        },
+        "alternative": {
+          "q": 1,
+          "state": 1
+        }
+      }
+    ]
+  },
+  {
+    "issue": {
+      "issue_id": "i5",
+      "rule_id": "r2",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Waveform also fits state_next = (a AND b) XOR state for observed rows; distinguishing input needed.",
+      "spec_evidence": "// 55ns            1               1               0               0               1",
+      "alternative": "state_next = (a AND b) XOR state",
+      "sequence": [
+        {
+          "a": 0,
+          "b": 1
+        },
+        {
+          "a": 1,
+          "b": 0
+        },
+        {
+          "a": 1,
+          "b": 1
+        }
+      ]
+    },
+    "status": "effect",
+    "issue_id": "i5",
+    "outputs": {
+      "original": [
+        {
+          "q": 0,
+          "state": 0
+        },
+        {
+          "q": 1,
+          "state": 1
+        },
+        {
+          "q": 0,
+          "state": 0
+        }
+      ],
+      "alternative": [
+        {
+          "q": 0,
+          "state": 0
+        },
+        {
+          "q": 0,
+          "state": 0
+        },
+        {
+          "q": 0,
+          "state": 0
+        }
+      ]
+    },
+    "differences": [
+      {
+        "cycle": 2,
+        "original": {
+          "q": 1,
+          "state": 1
+        },
+        "alternative": {
+          "q": 0,
+          "state": 0
+        }
+      }
+    ]
+  }
+]

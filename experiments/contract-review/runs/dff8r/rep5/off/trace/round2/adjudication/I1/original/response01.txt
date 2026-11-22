@@ -1,0 +1,18 @@
+```python
+def reference(vectors):
+    # Contract implementation.
+    # State: q_reg holds the 8-bit flip-flop storage, initial value 0.
+    q_reg = 0
+    results = []
+    for row in vectors:
+        d = row.get('d', 0) & 0xFF
+        reset = row.get('reset', 0) & 0x1
+        # R1_sync_reset: active high synchronous reset -> q = 0 on posedge
+        # R2_d_capture: reset == 0 -> q = d on posedge
+        if reset == 1:
+            q_reg = 0  # R1_sync_reset
+        else:
+            q_reg = d  # R2_d_capture
+        results.append({'q': q_reg & 0xFF})
+    return results
+```

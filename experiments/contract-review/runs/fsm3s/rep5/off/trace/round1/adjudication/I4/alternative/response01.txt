@@ -1,0 +1,37 @@
+```python
+def reference(vectors):
+    # State encoding
+    A, B, C, D = 0, 1, 2, 3
+    state = A  # power-up state (unspecified; use A)
+
+    # Next-state table: next_state[state][in]
+    next_state = {
+        A: {0: A, 1: B},  # R4
+        B: {0: C, 1: B},  # R5
+        C: {0: A, 1: D},  # R6
+        D: {0: C, 1: B},  # R7
+    }
+
+    results = []
+    for vec in vectors:
+        inp = vec.get('in', 0)
+        rst = vec.get('reset', 0)
+
+        # R1: combinational output, out=0 iff state in {A,B,C}
+        # R2: combinational output, out=1 iff state == D
+        if state == D:
+            out = 1
+        else:
+            out = 0
+
+        results.append({'out': out})
+
+        # R3: synchronous active high reset -> state A at posedge
+        if rst == 1:
+            state = A
+        else:
+            # R4-R7: state transition at posedge based on current state and input
+            state = next_state[state][inp]
+
+    return results
+```

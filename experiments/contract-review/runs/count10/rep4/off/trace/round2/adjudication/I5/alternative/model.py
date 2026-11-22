@@ -1,0 +1,33 @@
+def reference(vectors):
+    # Contract implementation.
+    # State: COUNT (current decade count 0..9), updated at posedge clk.
+    # Output q reflects COUNT after the sampled posedge (same_cycle visibility).
+    # R1: reset == 1 at posedge -> q = 0 (priority 1).
+    # R2: reset == 0 && q < 9 at posedge -> q = q + 1.
+    # R3: reset == 0 && q == 9 at posedge -> q = 0.
+    # Mid changes occur AFTER sampling, before next edge; carried to next row.
+    # Power-up unspecified: start at 0 (concrete unsigned value required).
+
+    count = 0  # named state COUNT
+    out = []
+
+    for row in vectors:
+        # Apply any mid changes carried from previous row are already in row.
+        reset = row.get("reset", 0) & 1
+
+        # Posedge sampling: compute next state per priority rules.
+        if reset == 1:
+            # R1: active high synchronous reset -> 0
+            count = 0
+        else:
+            if count < 9:
+                # R2: increment
+                count = count + 1
+            else:
+                # R3: wrap 9 -> 0
+                count = 0
+
+        # Same-cycle visibility: q reflects updated COUNT.
+        out.append({"q": count & 0xF})
+
+    return out

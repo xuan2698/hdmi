@@ -1,0 +1,55 @@
+{
+  "coverage": {
+    "S01": [
+      "R1",
+      "R2"
+    ]
+  },
+  "issues": [
+    {
+      "issue_id": "I1",
+      "rule_id": "R1",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "R1 example expected q=0 for first vector (d=1,r=0), but r=0 means no reset and D flip-flop should load d=1.",
+      "spec_evidence": "active high synchronous reset (reset output to 0)",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I2",
+      "rule_id": "R2",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "R2 example expected q=1 for first vector (d=1,r=0) but no initial state is defined; first posedge with r=0 should load d, yet R1 example contradicts for same input.",
+      "spec_evidence": "Implement a simple D flip flop",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I3",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Initial Q value before first posedge is unspecified; affects first-cycle output when r=0.",
+      "spec_evidence": "",
+      "alternative": "Q initializes to 0 before any clock edge",
+      "sequence": [
+        {
+          "d": 1,
+          "r": 0
+        }
+      ]
+    },
+    {
+      "issue_id": "I4",
+      "rule_id": "R1",
+      "type": "grounding",
+      "severity": "low",
+      "detail": "Spec says synchronous reset; contract marks update_during_reset true and same_cycle visibility, consistent, but no verbatim evidence for 'same_cycle' timing.",
+      "spec_evidence": "active high synchronous reset (reset output to 0)",
+      "alternative": "",
+      "sequence": []
+    }
+  ]
+}

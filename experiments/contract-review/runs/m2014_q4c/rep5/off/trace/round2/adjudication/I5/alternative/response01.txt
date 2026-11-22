@@ -1,0 +1,35 @@
+```python
+def reference(vectors):
+    # Contract implementation.
+    # State: Q = stored flip-flop value (unspecified before first posedge).
+    # R1: posedge, r==1 -> q=0 (active high synchronous reset), priority 1.
+    # R2: posedge, r==0 -> q=d (D flip flop load), priority 2.
+    # Candidate interpretation (global): load d takes priority over reset,
+    #   so q follows d when r==1. This overrides R1's reset behavior.
+    # Mid changes occur AFTER sampling, before the other edge, carried to
+    #   start of next row.
+
+    Q = None  # unspecified before first posedge
+    out = []
+
+    for row in vectors:
+        d = row.get('d', 0) & 1
+        r = row.get('r', 0) & 1
+
+        # posedge sampling: apply candidate interpretation
+        # (load d takes priority over reset when r==1)
+        # R2: r==0 -> q=d
+        # global interpretation: r==1 -> q=d (load priority over reset)
+        Q = d  # both branches load d under candidate interpretation
+
+        # R1 (reset) is overridden by candidate interpretation; still note:
+        # if r==1, reset would set q=0, but load priority makes q=d.
+
+        out.append({'q': Q & 1})
+
+        # mid changes: applied after sampling, carried to next row start.
+        # Since we read d/r fresh each row from the vector, mid changes are
+        # already reflected in the next row's values. No extra state needed.
+
+    return out
+```

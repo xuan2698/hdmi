@@ -1,0 +1,431 @@
+We need to implement the Lemmings FSM as a Moore machine with async reset. The key challenge is the fall counter (up to >20 cycles). We'll track a fall counter in the state.
+
+Let me carefully design the reference function:
+
+- States: WALK_LEFT, WALK_RIGHT, FALL_LEFT, FALL_RIGHT, DIG_LEFT, DIG_RIGHT, SPLAT
+- Fall counter: counts cycles spent falling. Splat if counter > 20 when landing.
+- Async reset: when areset=1, state becomes WALK_LEFT, counter=0, outputs walk_left=1.
+- Outputs are combinational from state.
+
+Semantics for fall counter: "falls for more than 20 clock cycles then hits the ground". So if we're in FALL state for N cycles and then ground=1, we splat if N > 20. Let's track counter as number of cycles spent in FALL state so far. When entering FALL, counter=0. Each cycle in FALL with ground=0, counter increments. When ground=1 while in FALL: if counter > 20 → splat, else resume walking. Note: the cycle where ground becomes 1 — we check counter value at that point (before incrementing for that cycle, since we're leaving fall). Actually let's think: "falls for more than 20 clock cycles then hits the ground". If it falls for 21 cycles then hits ground → splat. If falls for 20 cycles then hits ground → OK (not more than 20).
+
+Let's define: counter = number of completed fall cycles (cycles where ground=0 while in FALL). When we enter FALL from walk/dig, counter=0. Each subsequent cycle in FALL with ground=0: counter += 1. When in FALL and ground=1: if counter > 20 → splat, else resume. Wait, but the cycle where ground=1 — is that a fall cycle? No, that's the landing cycle. So counter counts cycles where ground=0 while falling.
+
+Hmm, but consider: enter FALL at cycle T (ground=0). At cycle T, we're in FALL, ground=0, so counter becomes 1 after that cycle. At cycle T+1, ground=0, counter becomes 2. ... At cycle T+20, ground=0, counter becomes 21. At cycle T+21, ground=1 → counter=21 > 20 → splat. That means 21 fall cycles (T through T+20) then landing → splat. That matches "more than 20".
+
+If at cycle T+20, ground=1: counter=20 (from T through T+19 being fall cycles, 20 cycles). 20 is not > 20 → resume. Good.
+
+So: counter increments each cycle in FALL with ground=0. When ground=1 in FALL: check counter > 20.
+
+Let me write the reference function. The vectors are sampled after posedge. Each row: inputs driven before sampled edge. So we process: for each vector, first apply async reset if areset=1 (immediately, same cycle). Then compute outputs from current state. Then compute next state based on inputs (this happens at posedge, visible next cycle).
+
+Wait — the protocol: "Each row's values are driven before the sampled edge." So the inputs in row i are present at the posedge that samples row i. The outputs for row i are the state after that posedge (i.e., the state resulting from processing row i-1's inputs... no wait).
+
+Let me re-read: "sample after the posedge edge has settled. Each row's values are driven before the sampled edge." So for row i: inputs are set, then posedge occurs, then we sample outputs. The outputs sampled are the state after the posedge. The state transition at that posedge uses the inputs of row i.
+
+Hmm, but then the first row: what's the initial state? Reset is async. Let's assume initial state is WALK_LEFT (or reset applied). Actually the example R1: row0 areset=0, expected walk_left=1. So initial state is WALK_LEFT.
+
+So the model: state starts at WALK_LEFT. For each row:
+1. If areset=1: state = WALK_LEFT, counter=0 (async, immediate). Outputs = walk_left.
+2. Else: outputs = f(state) (current state, which was set by previous row's transition).
+3. Then compute next state from current state + current inputs (this is the posedge transition). This next state becomes the state for the next row.
+
+Wait, but that means outputs for row i reflect state after row i-1's transition. Let me check R2: row0 areset=0, bump=0 → walk_left=1 (initial). row1 bump_left=1 → expected walk_right=1. So at row1, the transition from row0's inputs (bump=0) kept WALK_LEFT. Then row1's inputs bump_left=1 cause transition to WALK_RIGHT, visible at row2. But expected row1 is walk_right=1!
+
+Hmm, that contradicts. Let me re-read: "sample after the posedge edge has settled. Each row's values are driven before the sampled edge."
+
+So for row i: inputs driven, posedge, sample. The sample reflects the state after the posedge which used row i's inputs. So row i's outputs = state after processing row i's inputs.
+
+But then row0: inputs areset=0, bump=0, ground=1, dig=0. Initial state before any posedge? The reset is async. If areset was never asserted, initial state is undefined... but expected walk_left=1. So initial state = WALK_LEFT.
+
+Row0: posedge with inputs (0,0,1,0). From WALK_LEFT, ground=1, dig=0, no bump → stay WALK_LEFT. Output walk_left=1. ✓
+
+Row1: inputs bump_left=1. posedge: from WALK_LEFT, ground=1, dig=0, bump_left=1 → switch to WALK_RIGHT. Output walk_right=1. ✓
+
+Row2: inputs bump=0. posedge: from WALK_RIGHT, stay WALK_RIGHT. Output walk_right=1. ✓
+
+So the model is: for each row, apply inputs at posedge, transition state, then output = f(new state). Async reset: if areset=1, state becomes WALK_LEFT immediately (before/at the posedge), output = walk_left.
+
+Let me verify R1: row1 areset=1 → state=WALK_LEFT, output walk_left=1. ✓ Row2 areset=0, inputs bump=0 → from WALK_LEFT stay, output walk_left=1. ✓
+
+R3: row0 ground=1 → WALK_LEFT. row1 ground=0 → from WALK_LEFT, ground=0 → FALL_LEFT, output aaah=1. ✓ row2 ground=0 → from FALL_LEFT, ground=0 → stay FALL_LEFT, aaah=1. ✓
+
+R10: row0 ground=1 → WALK_LEFT. row1 ground=0 → FALL_LEFT (aaah=1). row2 ground=1, bump=1,1, dig=1 → from FALL_LEFT, ground=1, counter=0 (only 1 fall cycle so far... wait).
+
+Hmm, counter tracking. When we enter FALL at row1's posedge, counter should be 0 (we just started falling). At row2, we're in FALL_LEFT with ground=1. How many fall cycles? Row1 was the cycle we entered fall (ground=0 at that posedge). Row2 ground=1. So we fell for 1 cycle (row1). Counter=1? Or 0?
+
+Let's think: "falls for more than 20 clock cycles then hits the ground". The cycle where ground=0 and we're in FALL — that's a fall cycle. Row1: at posedge, we transition into FALL (because ground=0). Is row1 a fall cycle? The state during row1 (after posedge) is FALL. The next posedge (row2) sees ground=1. So between row1's posedge and row2's posedge, we were in FALL with ground=0 (row1's ground). That's 1 fall cycle.
+
+So counter should be 1 at row2. 1 <= 20 → resume walking. Expected row2 walk_left=1. ✓
+
+So counter increments when we're in FALL and ground=0 at the posedge (i.e., we stay in FALL). When we enter FALL, counter=0. Then each subsequent posedge in FALL with ground=0: counter+=1. When ground=1 in FALL: check counter (which counts completed fall cycles) > 20.
+
+Wait, at row2 we're in FALL with counter=0 (entered at row1). ground=1 → check counter=0 > 20? No → resume. But we fell for 1 cycle (row1). Hmm, counter=0 doesn't match "1 fall cycle".
+
+Let me reconsider. Maybe counter should be incremented when entering FALL too. Let's say: when transitioning into FALL, counter=1 (this cycle counts as a fall cycle). Then each subsequent cycle in FALL with ground=0: counter+=1. When ground=1 in FALL: check counter > 20.
+
+Row1: enter FALL, counter=1. Row2: ground=1, counter=1, 1>20? No → resume. ✓
+
+Now for splat: need 21+ fall cycles. Enter FALL counter=1. Stay in FALL with ground=0: counter 2,3,...,21. At counter=21, if ground=1 → 21>20 → splat. That's 21 fall cycles. ✓
+
+If counter=20 and ground=1 → 20>20? No → resume. 20 fall cycles. ✓
+
+Good. So: entering FALL sets counter=1. Staying in FALL with ground=0 increments counter. Landing (ground=1 in FALL): splat if counter>20.
+
+Now let me also handle: "being bumped in the same cycle as ground disappears (but not yet falling), or when the ground reappears while still falling, also does not affect the walking direction." So bumps during fall transition don't affect direction. Our FALL states remember direction, and bumps are ignored in FALL. ✓
+
+Also "being bumped while digging has no effect" — ignored in DIG. ✓
+
+Let me write the code:
+
+```python
+def reference(vectors):
+    # states
+    WL, WR, FL, FR, DL, DR, SP = 0,1,2,3,4,5,6
+    state = WL
+    counter = 0
+    outs = []
+    for v in vectors:
+        areset = v['areset']
+        bl = v['bump_left']
+        br = v['bump_right']
+        g = v['ground']
+        d = v['dig']
+        if areset:
+            state = WL
+            counter = 0
+        else:
+            # compute next state from current state + inputs
+            if state == WL:
+                if g == 0:
+                    state = FL; counter = 1
+                elif d == 1:
+                    state = DL
+                elif bl == 1 or br == 1:
+                    state = WR
+                # else stay WL
+            elif state == WR:
+                if g == 0:
+                    state = FR; counter = 1
+                elif d == 1:
+                    state = DR
+                elif bl == 1 or br == 1:
+                    state = WL
+            elif state == FL:
+                if g == 1:
+                    if counter > 20:
+                        state = SP
+                    else:
+                        state = WL
+                else:
+                    counter += 1
+            elif state == FR:
+                if g == 1:
+                    if counter > 20:
+                        state = SP
+                    else:
+                        state = WR
+                else:
+                    counter += 1
+            elif state == DL:
+                if g == 0:
+                    state = FL; counter = 1
+                # else stay DL
+            elif state == DR:
+                if g == 0:
+                    state = FR; counter = 1
+                # else stay DR
+            elif state == SP:
+                pass  # stay
+        # outputs from state
+        if state == WL:
+            o = {'walk_left':1,'walk_right':0,'aaah':0,'digging':0}
+        elif state == WR:
+            o = {'walk_left':0,'walk_right':1,'aaah':0,'digging':0}
+        elif state in (FL, FR):
+            o = {'walk_left':0,'walk_right':0,'aaah':1,'digging':0}
+        elif state in (DL, DR):
+            o = {'walk_left':0,'walk_right':0,'aaah':0,'digging':1}
+        else:  # SP
+            o = {'walk_left':0,'walk_right':0,'aaah':0,'digging':0}
+        outs.append(o)
+    return outs
+```
+
+Wait, there's an issue with the counter increment in FALL. When we enter FALL, counter=1. Then next cycle if still in FALL with ground=0, counter+=1 → 2. But the increment happens at the posedge. Let me trace: row1 enters FALL, counter=1. Row2: state=FL, ground=0 → counter+=1 → 2. Row3: state=FL, ground=0 → counter=3. ... Row21: counter=21. Row22: ground=1 → 21>20 → splat. That's 21 fall cycles (rows 1-21). ✓
+
+But wait, at row2, we're processing the posedge. The state at row2's posedge is FL (set at row1's posedge). ground at row2 is 0. So we increment counter to 2. But the fall cycle count: row1 was fall cycle 1 (entered), row2 is fall cycle 2. Yes counter=2 after row2's posedge. Correct.
+
+Hmm, but actually the counter increment should reflect the number of fall cycles completed. At row2's posedge, we've completed row1's fall cycle (1 cycle) and are now in row2's fall cycle. So counter should be 2 (about to complete 2nd). When ground=1 at some row, counter = number of fall cycles completed so far (including the one just before landing). Let me recheck: row1 enter FALL counter=1 (1st fall cycle in progress). Row2 ground=0: counter=2 (2nd fall cycle in progress, 1st completed). ... Row21 ground=0: counter=21 (21st in progress, 20 completed). Row22 ground=1: counter=21, 21>20 → splat. So 21 fall cycles total (rows 1-21). ✓
+
+If row21 ground=1: counter=20 (20th in progress, 19 completed). 20>20? No → resume. 20 fall cycles. ✓
+
+Good.
+
+Now let me verify R11 example: row0 ground=0 → from WL, ground=0 → FL, counter=1, output aaah=1. ✓ row1 ground=0 → FL, counter=2, aaah=1. ✓ row2 ground=1 → FL, counter=2, 2>20? No → WL, output walk_left=1. But expected row2 is all zeros (splat)! 
+
+Wait, the example says expected row2 is {walk_left:0, walk_right:0, aaah:0, digging:0} with note "placeholder replaced below". So the example is wrong/placeholder. The actual behavior: 2 fall cycles, not >20, so resume walking. So expected should be walk_left=1. The note says placeholder. OK, ignore.
+
+Let me also check R5 example: row0 ground=0 → FL, aaah=1. But expected row0 is walk_left=1! Hmm. Let me re-read R5: vectors row0 areset=0, bump=0, ground=0, dig=0. Expected walk_left=1. But from initial WL with ground=0, we should go to FL. 
+
+Wait, maybe the initial state before row0 is not WL? Or maybe the first row doesn't transition? Let me re-read the protocol: "Each row's values are driven before the sampled edge." So row0's inputs are at the first posedge. Initial state is WL (from reset default). At row0's posedge, ground=0 → FL. Output should be aaah=1. But expected walk_left=1.
+
+Hmm, contradiction. Let me look at R3: row0 ground=1 → walk_left=1. row1 ground=0 → aaah=1. So row0 with ground=1 gives walk_left. R5 row0 ground=0 gives walk_left=1? That's inconsistent unless the first row is special.
+
+Wait, maybe the initial state is WL and the first row's outputs are just the initial state (no transition yet)? Let me check R2: row0 bump=0 → walk_left=1 (initial). row1 bump_left=1 → walk_right=1. If row1's output is after transition, then row0's output is initial state (WL). That works.
+
+R3: row0 ground=1 → walk_left=1 (initial WL, no transition needed). row1 ground=0 → aaah=1 (transitioned to FL). ✓
+
+R5: row0 ground=0 → walk_left=1 (initial WL, no transition yet). row1 ground=0 → aaah=1 (transitioned to FL). ✓
+
+So the model is: outputs for row i = state BEFORE processing row i's inputs (i.e., state set by row i-1's transition). Then row i's inputs cause transition to next state.
+
+Let me re-verify R2: row0 output = initial WL = walk_left=1. row0 inputs bump=0 → stay WL. row1 output = WL = walk_left=1? But expected row1 is walk_right=1!
+
+Hmm, that doesn't work either. Let me re-read R2 carefully:
+```
+vectors: [{bump_left:0,...}, {bump_left:1,...}, {bump_left:0,...}]
+expected: [{walk_left:1,...}, {walk_right:1,...}, {walk_right:1,...}]
+```
+Row0: bump=0 → walk_left=1. Row1: bump_left=1 → walk_right=1. Row2: bump=0 → walk_right=1.
+
+If row1's output reflects transition from row1's inputs, then row0's output reflects transition from row0's inputs (or initial). Row0 inputs bump=0 from WL → WL, output walk_left=1. ✓ Row1 inputs bump_left=1 from WL → WR, output walk_right=1. ✓ Row2 inputs bump=0 from WR → WR, output walk_right=1. ✓
+
+So row i's output = state after processing row i's inputs. That's what I had originally. But then R5 row0 ground=0 should give FL (aaah=1), not walk_left=1.
+
+Unless... the initial state is WL and the first row's transition is applied, but ground=0 at row0... Let me check R5 again. Maybe I misread. R5 vectors: row0 {areset:0, bump_left:0, bump_right:0, ground:0, dig:0}. Expected row0 {walk_left:1, walk_right:0, aaah:0, digging:0}.
+
+Hmm. If row0's output is after transition, ground=0 → FL → aaah=1. But expected walk_left=1. So either the first row doesn't transition, or there's something else.
+
+Wait — maybe the initial state is WL and the first row's output is just the initial state (WL), and the transition happens but is visible at row1. Let me check R2 with this: row0 output = initial WL = walk_left=1. row0 inputs bump=0 → stay WL. row1 output = WL = walk_left=1. But expected row1 is walk_right=1. ✗
+
+So that doesn't work for R2.
+
+Let me look at R6: row0 bump=0 → walk_left=1. row1 bump_left=1 → walk_right=1. Same as R2. So row1's output reflects row1's transition.
+
+R5 is the odd one. Let me check if maybe R5's example is just wrong (like R11's placeholder). The note in R5 says nothing. But R5's expected row0 walk_left=1 with ground=0 is inconsistent with R3's row1 ground=0 → aaah=1.
+
+Actually wait — maybe the initial state is WL, and the first row's transition is applied, but the output is sampled BEFORE the transition? No, "sample after the posedge edge has settled".
+
+Let me reconsider: maybe the initial state is WL, and for row0, the transition is applied, but the output shown is the state BEFORE the transition (i.e., the state at the start of the cycle). Then row1's output is the state after row0's transition (before row1's transition). Let me check:
+
+R2: row0 output = initial WL = walk_left=1. row0 transition: bump=0 → WL. row1 output = WL = walk_left=1. But expected walk_right=1. ✗
+
+Hmm. What if row0's output is after transition, but the initial state is such that ground=0 doesn't cause fall on the first cycle? No, that doesn't make sense.
+
+Let me look at R9: row0 ground=1 → walk_left=1. row1 ground=0, bump=1,1, dig=1 → aaah=1. So row1's output reflects transition to FL. ✓ (consistent with "output after transition")
+
+R5 row0 ground=0 → expected walk_left=1. This is the only inconsistency. Maybe R5's example is just buggy. The spec says "when ground=0, the Lemming will fall". So from WL with ground=0, it should fall. I'll trust the spec over the possibly-buggy example.
+
+Actually, let me reconsider the protocol once more. "Each row's values are driven before the sampled edge." Maybe the sampled edge for row i is the posedge at the END of row i's cycle, and the outputs are sampled after that posedge. The inputs for row i are present during row i's cycle (before the posedge). So the transition at row i's posedge uses row i's inputs, and the output after that posedge is row i's output. That's what I had.
+
+For row0: inputs are present, posedge occurs, output sampled. Initial state before row0's posedge is WL (reset default). Transition uses row0's inputs. So row0 output = state after row0's transition. For R5, ground=0 → FL → aaah=1. But expected walk_left=1.
+
+Unless the initial state is not WL but something else? Or the reset is applied at time 0 making state WL, and the first posedge... hmm.
+
+Actually, maybe the issue is that the first row's inputs are driven, but the posedge for row0 is the one that INITIALIZES the state (from reset), and the transition happens at row1's posedge. Let me think of it as: there's an implicit reset before row0. Row0's posedge: state is WL (from reset), inputs are row0's, transition to next state. Output after row0's posedge = next state. That's what I had.
+
+I think R5's example is just wrong. Let me check R5's row1: ground=0 → aaah=1. That's consistent with being in FL. And row2: ground=1, bump=1,1, dig=1 → expected aaah=1. But from FL with ground=1, counter=1 (entered at row1), 1>20? No → resume WL → walk_left=1. But expected aaah=1. So R5's example is definitely buggy (row2 should be walk_left=1, not aaah=1).
+
+OK so R5's example is unreliable. I'll implement per spec.
+
+Let me also double check the counter for R10: row0 ground=1 → WL. row1 ground=0 → FL, counter=1, aaah=1. row2 ground=1, bump=1,1, dig=1 → FL, counter=1, 1>20? No → WL, walk_left=1. Expected walk_left=1. ✓
+
+R13: row0 ground=1, dig=1 → from WL, ground=1, dig=1 → DL, digging=1. ✓ row1 ground=0 → from DL, ground=0 → FL, counter=1, aaah=1. ✓ row2 ground=0 → FL, counter=2, aaah=1. ✓
+
+R12: row0 ground=1, dig=1 → DL, digging=1. ✓ row1 ground=1, bump=1,1, dig=0 → from DL, ground=1 → stay DL, digging=1. ✓ row2 ground=1 → stay DL, digging=1. ✓
+
+R14: row0 ground=1 → WL. row1 bump=1,1, dig=1, ground=1 → from WL, ground=1, dig=1 → DL (dig precedence over bump), digging=1. But expected row1 is all zeros! Hmm.
+
+Wait R14 expected: row0 walk_left=1, row1 all zeros, row2 all zeros. But row1 inputs: bump=1,1, dig=1, ground=1. From WL: ground=1, dig=1 → DL. Output digging=1. But expected all zeros.
+
+Hmm, R14 is about SPLAT hold. The example seems to assume we're already in SPLAT at row0? But row0 areset=0, ground=1 → WL. Then row1 → DL. Not SPLAT.
+
+I think R14's example is also buggy/placeholder. The rule is about SPLAT staying SPLAT. The example doesn't actually reach SPLAT. So ignore.
+
+OK, I'll implement per spec. Let me also handle the async reset properly: if areset=1, state=WL, counter=0, output walk_left=1. This happens immediately (same cycle).
+
+Let me also consider: when areset=1, do we still process the transition? No, reset overrides. State becomes WL, and next cycle starts from WL.
+
+Let me write the final code:
+
+```python
+def reference(vectors):
+    WL, WR, FL, FR, DL, DR, SP = 0,1,2,3,4,5,6
+    state = WL
+    counter = 0
+    outs = []
+    for v in vectors:
+        areset = v['areset']
+        bl = v['bump_left']
+        br = v['bump_right']
+        g = v['ground']
+        d = v['dig']
+        if areset:
+            state = WL
+            counter = 0
+        else:
+            if state == WL:
+                if g == 0:
+                    state = FL; counter = 1
+                elif d == 1:
+                    state = DL
+                elif bl == 1 or br == 1:
+                    state = WR
+            elif state == WR:
+                if g == 0:
+                    state = FR; counter = 1
+                elif d == 1:
+                    state = DR
+                elif bl == 1 or br == 1:
+                    state = WL
+            elif state == FL:
+                if g == 1:
+                    if counter > 20:
+                        state = SP
+                    else:
+                        state = WL
+                else:
+                    counter += 1
+            elif state == FR:
+                if g == 1:
+                    if counter > 20:
+                        state = SP
+                    else:
+                        state = WR
+                else:
+                    counter += 1
+            elif state == DL:
+                if g == 0:
+                    state = FL; counter = 1
+            elif state == DR:
+                if g == 0:
+                    state = FR; counter = 1
+            # SP stays SP
+        if state == WL:
+            o = {'walk_left':1,'walk_right':0,'aaah':0,'digging':0}
+        elif state == WR:
+            o = {'walk_left':0,'walk_right':1,'aaah':0,'digging':0}
+        elif state == FL or state == FR:
+            o = {'walk_left':0,'walk_right':0,'aaah':1,'digging':0}
+        elif state == DL or state == DR:
+            o = {'walk_left':0,'walk_right':0,'aaah':0,'digging':1}
+        else:
+            o = {'walk_left':0,'walk_right':0,'aaah':0,'digging':0}
+        outs.append(o)
+    return outs
+```
+
+Wait, there's a subtle issue with the counter when entering FALL. When we enter FALL, counter=1. But then if the next cycle is also ground=0, we increment to 2. But the increment happens at the posedge. Let me trace R11-like scenario: 21 fall cycles then ground.
+
+Row0: ground=0 → FL, counter=1. (1st fall cycle)
+Row1: ground=0 → FL, counter=2. (2nd)
+...
+Row20: ground=0 → FL, counter=21. (21st)
+Row21: ground=1 → FL, counter=21, 21>20 → SP. (landing after 21 fall cycles)
+
+So 21 fall cycles (rows 0-20) then landing at row21 → splat. ✓
+
+If 20 fall cycles: rows 0-19, counter=20 at row19. Row20 ground=1 → counter=20, 20>20? No → resume. ✓
+
+Good.
+
+But wait, there's an issue: when we enter FALL, we set counter=1. But what if we enter FALL and the NEXT cycle ground=1? Then counter=1, 1>20? No → resume. That's 1 fall cycle. ✓
+
+Now, one more check: the spec says "if a Lemming falls for more than 20 clock cycles then hits the ground". So 21+ cycles → splat. 20 or fewer → OK. Our counter at landing = number of fall cycles. If counter=21 → splat. If counter=20 → OK. ✓
+
+Let me also verify R9: row0 ground=1 → WL. row1 ground=0, bump=1,1, dig=1 → from WL, ground=0 → FL (fall precedence), counter=1, aaah=1. ✓ row2 ground=0 → FL, counter=2, aaah=1. ✓
+
+R8: row0 ground=1 → WL. row1 ground=1, bump_left=1, dig=1 → from WL, ground=1, dig=1 → DL (dig precedence over bump), digging=1. ✓ row2 ground=1, dig=0 → from DL, ground=1 → stay DL, digging=1. ✓
+
+R6: row0 bump=0 → WL. row1 bump_left=1 → from WL, ground=1, dig=0, bump_left=1 → WR, walk_right=1. ✓ row2 bump=0 → from WR, stay WR, walk_right=1. ✓
+
+R7: row1 bump=1,1 → from WL, bump → WR. ✓
+
+All good. Let me finalize.
+
+Actually, one more consideration: the async reset. "areset is positive edge triggered asynchronous reseting". So it's async, active high. When areset=1, state=WL immediately. The output in the same cycle is walk_left=1. Our code does this. ✓
+
+Also, "first_released_cycle": "first posedge clk after areset returns to 0". So after reset deasserts, the first posedge processes normally. Our code: when areset=0, we process transition. ✓
+
+Let me also make sure the output dict has all 4 keys in the right order (doesn't matter for dict).
+
+I'll write the final answer with the three model IDs. Since all three specs are essentially the same (with minor example differences), I'll use the same implementation for all three.
+
+Wait, let me check if there are any differences between the three specs. Looking at 2619d49d32f23d732d, 212162719e2ecfe1cf, 8a591a982865dd128f, 3b9269b7bb798042db — they all have the same states and rules. The examples differ slightly (some have placeholders). The core semantics are identical. So I'll use the same reference function for all.
+
+Actually, let me double-check the R5 example in 3b9269b7bb798042db: it has a note explaining row3 shows SPLAT. But the vectors only have 3 rows. The note says "row3 shows SPLAT all-zero outputs after landing; row1/row2 are falling (aaah=1)". But there's no row3. The expected row2 is all zeros. Hmm, that's inconsistent with our model (row2 should be walk_left=1 after 2 fall cycles). But the note says row1/row2 are falling. So maybe the example intends row2 to be aaah=1? But expected is all zeros. Confusing. I'll stick with spec.
+
+Let me finalize the code. I'll make it clean and self-contained.
+
+```python
+def reference(vectors):
+    WL, WR, FL, FR, DL, DR, SP = 0, 1, 2, 3, 4, 5, 6
+    state = WL
+    counter = 0
+    outs = []
+    for v in vectors:
+        areset = v['areset']
+        bl = v['bump_left']
+        br = v['bump_right']
+        g = v['ground']
+        d = v['dig']
+        if areset:
+            state = WL
+            counter = 0
+        else:
+            if state == WL:
+                if g == 0:
+                    state = FL
+                    counter = 1
+                elif d == 1:
+                    state = DL
+                elif bl == 1 or br == 1:
+                    state = WR
+            elif state == WR:
+                if g == 0:
+                    state = FR
+                    counter = 1
+                elif d == 1:
+                    state = DR
+                elif bl == 1 or br == 1:
+                    state = WL
+            elif state == FL:
+                if g == 1:
+                    if counter > 20:
+                        state = SP
+                    else:
+                        state = WL
+                else:
+                    counter += 1
+            elif state == FR:
+                if g == 1:
+                    if counter > 20:
+                        state = SP
+                    else:
+                        state = WR
+                else:
+                    counter += 1
+            elif state == DL:
+                if g == 0:
+                    state = FL
+                    counter = 1
+            elif state == DR:
+                if g == 0:
+                    state = FR
+                    counter = 1
+        if state == WL:
+            o = {'walk_left': 1, 'walk_right': 0, 'aaah': 0, 'digging': 0}
+        elif state == WR:
+            o = {'walk_left': 0, 'walk_right': 1, 'aaah': 0, 'digging': 0}
+        elif state == FL or state == FR:
+            o = {'walk_left': 0, 'walk_right': 0, 'aaah': 1, 'digging': 0}
+        elif state == DL or state == DR:
+            o = {'walk_left': 0, 'walk_right': 0, 'aaah': 0, 'digging': 1}
+        else:
+            o = {'walk_left': 0, 'walk_right': 0, 'aaah': 0, 'digging': 0}
+        outs.append(o)
+    return outs
+```
+
+This should be correct. Let me output the JSON.

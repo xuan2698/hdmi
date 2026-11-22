@@ -1,0 +1,27 @@
+def reference(vectors):
+    # Contract:
+    # - 8 D flip-flops, positive-edge clk, active-high synchronous reset.
+    # - On posedge: if reset==1 -> q=0; else q=d.
+    # - q holds between edges. Outputs sampled after posedge settles.
+    # - Each row: inputs driven before sampled edge; mid changes occur AFTER
+    #   sampling (before next edge) and carry to start of next row.
+    # - Power-up unspecified -> use 0.
+    q = 0
+    out = []
+    for row in vectors:
+        clk = row.get('clk', 0)
+        reset = row.get('reset', 0)
+        d = row.get('d', 0)
+        # Determine if this row's sampled edge is a posedge.
+        # We treat each row as providing the state at the sampled edge.
+        # The protocol: values driven before sampled edge; mid changes after.
+        # We assume each row corresponds to a clock edge event where clk=1
+        # (posedge) unless clk=0 (no edge -> hold).
+        if clk == 1:
+            if reset == 1:
+                q = 0
+            else:
+                q = d & 0xFF
+        # else: no posedge, hold q
+        out.append({'q': q & 0xFF})
+    return out

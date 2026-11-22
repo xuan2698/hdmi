@@ -1,0 +1,81 @@
+def reference(vectors):
+    # Initial state per contract: S0 and start_shifting=0 before any reset.
+    state = "S0"
+    start_shifting = 0
+    cur_reset = 0
+    cur_data = 0
+    outputs = []
+
+    for row in vectors:
+        # Drive row inputs before the sampled posedge. Missing inputs retain prior values,
+        # including values carried from a previous row's mid changes.
+        if "reset" in row:
+            cur_reset = int(row["reset"]) & 1
+        if "data" in row:
+            cur_data = int(row["data"]) & 1
+
+        reset = cur_reset
+        data = cur_data
+
+        if reset == 1:
+            # R_RESET_CLEAR: synchronous active-high reset forces state S0 and start_shifting=0.
+            state = "S0"
+            start_shifting = 0
+        else:
+            # R_SET_OR_HOLD_1101 / R_KEEP_ZERO_UNTIL_FOUND:
+            # next_cycle interpretation: output remains 0 on the detection posedge,
+            # then becomes 1 on the following posedge and holds until reset.
+            if start_shifting == 1 or state == "FOUND":
+                next_start_shifting = 1
+            else:
+                next_start_shifting = 0
+
+            # Explicit state transitions.
+            if state == "S0":
+                if data == 1:
+                    next_state = "S1"
+                else:
+                    next_state = "S0"
+            elif state == "S1":
+                if data == 1:
+                    next_state = "S11"
+                else:
+                    next_state = "S0"
+            elif state == "S11":
+                if data == 1:
+                    next_state = "S11"
+                else:
+                    next_state = "S110"
+            elif state == "S110":
+                if data == 1:
+                    next_state = "FOUND"
+                else:
+                    next_state = "S0"
+            elif state == "FOUND":
+                next_state = "FOUND"
+            else:
+                next_state = "S0"
+
+            state = next_state
+            start_shifting = next_start_shifting
+
+        outputs.append({"start_shifting": start_shifting})
+
+        # Mid input changes occur AFTER sampling, before the other edge,
+        # and are carried to the start of the next row.
+        if "mid" in row and row["mid"] is not None:
+            mid = row["mid"]
+            if isinstance(mid, dict):
+                if "reset" in mid:
+                    cur_reset = int(mid["reset"]) & 1
+                if "data" in mid:
+                    cur_data = int(mid["data"]) & 1
+            elif isinstance(mid, (list, tuple)):
+                for change in mid:
+                    if isinstance(change, dict):
+                        if "reset" in change:
+                            cur_reset = int(change["reset"]) & 1
+                        if "data" in change:
+                            cur_data = int(change["data"]) & 1
+
+    return outputs

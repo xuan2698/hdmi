@@ -1,0 +1,26 @@
+def reference(vectors):
+    # Power-up unspecified; choose concrete initial values.
+    q = 0
+    prev_a = 0
+    outputs = []
+
+    for vec in vectors:
+        a = vec['a']
+
+        # Explicit transitions at each posedge sample.
+        if a == 1:
+            # R1_a_high_load4: a == 1 at posedge => q <= 4 (priority 1).
+            q = 4
+        elif prev_a == 1:
+            # R2_first_low_hold: a == 0 && prev_a == 1 => hold q (priority 2).
+            q = q
+        else:
+            # R3_count_low: a == 0 && prev_a == 0 => q <= (q + 1) mod 7 (priority 3).
+            q = (q + 1) % 7
+
+        # prev_a updates to current a on each posedge.
+        prev_a = a
+
+        outputs.append({'q': q})
+
+    return outputs

@@ -1,0 +1,64 @@
+```python
+def reference(vectors):
+    # Internal state
+    cur = {'reset': 0, 'in': 0}
+    out = 0
+    prev_in = 0
+    results = []
+
+    for row in vectors:
+        # Apply inputs driven before the sampled posedge.
+        if isinstance(row, dict):
+            for k, v in row.items():
+                if k == 'mid':
+                    continue
+                if isinstance(k, str) and k.startswith('mid_'):
+                    continue
+                if k == 'reset':
+                    cur['reset'] = int(v) & 0x1
+                elif k == 'in':
+                    cur['in'] = int(v) & 0xFFFFFFFF
+
+        reset_val = cur.get('reset', 0) & 0x1
+        in_val = cur.get('in', 0) & 0xFFFFFFFF
+
+        if reset_val:
+            # Rule synchronous_active_high_reset
+            out = 0
+            # Rule global: reset clears/suppresses prev_in history
+            prev_in = 0
+        else:
+            # Rule falling_edge_capture_and_hold
+            falling = prev_in & ((~in_val) & 0xFFFFFFFF)
+            out = (out | falling) & 0xFFFFFFFF
+            prev_in = in_val
+
+        results.append({'out': out})
+
+        # Process optional mid changes after sampling.
+        if isinstance(row, dict):
+            mid_changes = {}
+            mid = row.get('mid', None)
+
+            if isinstance(mid, dict):
+                mid_changes.update(mid)
+            elif isinstance(mid, list):
+                for m in mid:
+                    if isinstance(m, dict):
+                        mid_changes.update(m)
+                    elif isinstance(m, (list, tuple)) and len(m) == 2:
+                        mid_changes[m[0]] = m[1]
+
+            for k, v in row.items():
+                if isinstance(k, str) and k.startswith('mid_'):
+                    sig = k[4:]
+                    mid_changes[sig] = v
+
+            for k, v in mid_changes.items():
+                if k == 'reset':
+                    cur['reset'] = int(v) & 0x1
+                elif k == 'in':
+                    cur['in'] = int(v) & 0xFFFFFFFF
+
+    return results
+```

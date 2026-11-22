@@ -1,0 +1,131 @@
+{
+  "ports": {
+    "inputs": {
+      "a": 1,
+      "b": 1
+    },
+    "outputs": {
+      "q": 1,
+      "state": 1
+    },
+    "clock": "clk"
+  },
+  "states": [
+    {
+      "name": "state",
+      "meaning": "one-bit flip-flop storing the current carry/state used by q",
+      "update_time": "posedge clk",
+      "update_during_reset": false
+    }
+  ],
+  "rules": [
+    {
+      "id": "state_update",
+      "outputs": [
+        "state"
+      ],
+      "condition": "On each posedge clk, next_state = (a & b) | (state & (a | b)); equivalently, majority(state,a,b).",
+      "edge": "posedge",
+      "visible": "next_cycle",
+      "priority": 1,
+      "spec_quote": "// 75ns            1               0               0               1               1",
+      "uncertain": false,
+      "example": {
+        "vectors": [
+          {
+            "a": 0,
+            "b": 0
+          },
+          {
+            "a": 1,
+            "b": 1
+          },
+          {
+            "a": 0,
+            "b": 1
+          },
+          {
+            "a": 0,
+            "b": 0
+          }
+        ],
+        "expected": [
+          {
+            "state": 0
+          },
+          {
+            "state": 1
+          },
+          {
+            "state": 1
+          },
+          {
+            "state": 0
+          }
+        ]
+      }
+    },
+    {
+      "id": "q_comb",
+      "outputs": [
+        "q"
+      ],
+      "condition": "q = a XOR b XOR state.",
+      "edge": "combinational",
+      "visible": "same_cycle",
+      "priority": 2,
+      "spec_quote": "// 45ns            1               0               1               0               1",
+      "uncertain": false,
+      "example": {
+        "vectors": [
+          {
+            "a": 0,
+            "b": 0
+          },
+          {
+            "a": 1,
+            "b": 1
+          },
+          {
+            "a": 0,
+            "b": 1
+          },
+          {
+            "a": 0,
+            "b": 0
+          }
+        ],
+        "expected": [
+          {
+            "q": 0,
+            "state": 0
+          },
+          {
+            "q": 1,
+            "state": 1
+          },
+          {
+            "q": 0,
+            "state": 1
+          },
+          {
+            "q": 0,
+            "state": 0
+          }
+        ]
+      }
+    }
+  ],
+  "reset": {
+    "kind": "none",
+    "name": null,
+    "active": "none",
+    "values": {
+      "q": null,
+      "state": null
+    },
+    "first_released_cycle": "n/a"
+  },
+  "mid": "Inputs may change between clock edges; q responds combinationally, while state updates only at posedge clk from the values present just before the edge.",
+  "uncertain": []
+}

@@ -1,0 +1,42 @@
+def reference(vectors):
+    # Rule sync_active_high_reset: synchronous active-high reset clears out_reg
+    # Rule capture_sticky_one_to_zero: sticky capture of per-bit 1-to-0 transitions
+    MASK = 0xFFFFFFFF
+    out_reg = 0
+    prev_in = 0
+    cur_reset = 0
+    cur_in = 0
+    result = []
+    for row in vectors:
+        # Each row's values are driven before the sampled posedge
+        if 'reset' in row:
+            cur_reset = row['reset']
+        if 'in' in row:
+            cur_in = row['in'] & MASK
+
+        # Sampled posedge
+        if cur_reset == 1:
+            # Rule sync_active_high_reset: reset has priority and clears all bits
+            out_reg = 0
+        else:
+            # Rule capture_sticky_one_to_zero: capture bits where prev_in is 1 and in is 0
+            falling = prev_in & (~cur_in) & MASK
+            out_reg = (out_reg | falling) & MASK
+
+        # prev_in updates on every posedge, including reset cycles
+        prev_in = cur_in
+
+        # Output visible same cycle after posedge
+        result.append({'out': out_reg & MASK})
+
+        # Optional mid-row changes occur after sampling, before the next posedge.
+        # They update carried input values for the start of the next row and do not alter out until the next sampled posedge.
+        if 'mid' in row:
+            mid = row['mid']
+            if mid is not None:
+                if 'reset' in mid:
+                    cur_reset = mid['reset']
+                if 'in' in mid:
+                    cur_in = mid['in'] & MASK
+
+    return result

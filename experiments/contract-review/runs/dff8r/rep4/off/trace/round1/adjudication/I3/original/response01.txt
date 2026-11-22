@@ -1,0 +1,49 @@
+```python
+def reference(vectors):
+    # Contract implementation.
+    # State: q_reg (8-bit), power-up unspecified -> concrete 0.
+    # R1_sync_reset: on posedge, if reset==1, q_reg <= 0 (priority 1).
+    # R2_dff_capture: on posedge, if reset==0, q_reg <= d (priority 2).
+    # Sampling: each row's inputs are driven before the sampled posedge.
+    # Mid changes occur AFTER sampling, before the other edge, carried to next row.
+    # We model: for each row, apply posedge with current inputs, then apply mid changes
+    # (which affect the next row's starting inputs). Since mid changes are "carried to
+    # the start of the next row", we track pending input overrides.
+
+    q_reg = 0  # power-up unspecified -> concrete 0
+    out = []
+
+    # pending mid changes for next row's starting inputs
+    pending = {}
+
+    for row in vectors:
+        # Build effective inputs: start from row, apply pending mid overrides
+        d = row.get('d', 0)
+        reset = row.get('reset', 0)
+        if 'd' in pending:
+            d = pending['d']
+        if 'reset' in pending:
+            reset = pending['reset']
+        pending = {}
+
+        # posedge sampling with current inputs
+        # R1_sync_reset (priority 1)
+        if reset == 1:
+            q_reg = 0
+        # R2_dff_capture (priority 2)
+        else:
+            q_reg = d & 0xFF
+
+        # Output visible next cycle: record q after this edge
+        out.append({'q': q_reg & 0xFF})
+
+        # Mid changes: optional input changes AFTER sampling, before other edge,
+        # carried to start of next row. If row provides 'mid', apply it.
+        mid = row.get('mid')
+        if isinstance(mid, dict):
+            for k, v in mid.items():
+                if k in ('d', 'reset'):
+                    pending[k] = v
+
+    return out
+```

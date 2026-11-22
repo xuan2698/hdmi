@@ -1,0 +1,123 @@
+{
+  "ports": {
+    "inputs": {
+      "a": 1,
+      "b": 1
+    },
+    "outputs": {
+      "q": 1,
+      "state": 1
+    },
+    "clock": "clk"
+  },
+  "states": [
+    {
+      "name": "state",
+      "meaning": "single flip-flop storing the next value of q; initial value unspecified (x in waveform)",
+      "update_time": "posedge",
+      "update_during_reset": false
+    }
+  ],
+  "rules": [
+    {
+      "id": "R1",
+      "outputs": [
+        "state"
+      ],
+      "condition": "state <= NOT state (toggle each posedge)",
+      "edge": "posedge",
+      "visible": "next_cycle",
+      "priority": 1,
+      "spec_quote": "// 75ns 1 0 0 1 1",
+      "uncertain": false,
+      "example": {
+        "vectors": [
+          {
+            "a": 0,
+            "b": 0
+          },
+          {
+            "a": 0,
+            "b": 0
+          },
+          {
+            "a": 0,
+            "b": 0
+          }
+        ],
+        "expected": [
+          {
+            "state": 1
+          },
+          {
+            "state": 0
+          },
+          {
+            "state": 1
+          }
+        ]
+      }
+    },
+    {
+      "id": "R2",
+      "outputs": [
+        "q"
+      ],
+      "condition": "q <= a AND b",
+      "edge": "posedge",
+      "visible": "next_cycle",
+      "priority": 1,
+      "spec_quote": "// 45ns 1 0 1 0 1",
+      "uncertain": false,
+      "example": {
+        "vectors": [
+          {
+            "a": 0,
+            "b": 0
+          },
+          {
+            "a": 0,
+            "b": 1
+          },
+          {
+            "a": 1,
+            "b": 1
+          }
+        ],
+        "expected": [
+          {
+            "q": 0
+          },
+          {
+            "q": 0
+          },
+          {
+            "q": 1
+          }
+        ]
+      }
+    }
+  ],
+  "reset": {
+    "kind": "none",
+    "name": null,
+    "active": "none",
+    "values": {
+      "q": null,
+      "state": null
+    },
+    "first_released_cycle": "0ns"
+  },
+  "mid": "Optional mid input changes occur AFTER sampling, before the other edge, and are carried to the start of the next row.",
+  "uncertain": [
+    {
+      "rule_id": "R1",
+      "note": "Waveform state transitions do not match any single AND/OR/XOR function of (a,b); state may be a toggle or depend on hidden history.",
+      "candidates": [
+        "state <= NOT state (toggle each posedge)",
+        "state <= a XOR b",
+        "state <= a OR b"
+      ]
+    }
+  ]
+}

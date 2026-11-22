@@ -1,0 +1,70 @@
+def reference(vectors):
+    # Power-up choice: S0, z=0 (concrete value even when unspecified).
+    state = "S0"
+    z = 0
+    cur = {"areset": 0, "x": 0}
+    result = []
+
+    for row in vectors:
+        # Drive row inputs before the sampled posedge.
+        if "areset" in row:
+            cur["areset"] = row["areset"]
+        if "x" in row:
+            cur["x"] = row["x"]
+
+        # async_reset_z0: areset=1 asynchronously forces state S0 and z=0.
+        if cur.get("areset", 0) == 1:
+            state = "S0"
+            z = 0
+        else:
+            # Positive-edge transition when areset=0.
+            if state == "S0":
+                if cur.get("x", 0) == 1:
+                    # s0_x1: S0 --x=1--> S1, z=1 after edge.
+                    state = "S1"
+                    z = 1
+                else:
+                    # s0_x0: S0 --x=0--> S0, z=0 after edge.
+                    state = "S0"
+                    z = 0
+            elif state == "S1":
+                if cur.get("x", 0) == 1:
+                    # s1_x1: S1 --x=1--> S2, z=0 after edge.
+                    state = "S2"
+                    z = 0
+                else:
+                    # s1_x0: S1 --x=0--> S1, z=1 after edge.
+                    state = "S1"
+                    z = 1
+            else:  # state == "S2"
+                if cur.get("x", 0) == 1:
+                    # s2_x1: S2 --x=1--> S2, z=0 after edge.
+                    state = "S2"
+                    z = 0
+                else:
+                    # s2_x0: S2 --x=0--> S1, z=1 after edge.
+                    state = "S1"
+                    z = 1
+
+        result.append({"z": z})
+
+        # Mid changes occur after sampling and are carried to the next row start.
+        mid = row.get("mid") if isinstance(row, dict) else None
+        mids = []
+        if isinstance(mid, dict):
+            mids = [mid]
+        elif isinstance(mid, list):
+            mids = mid
+
+        for m in mids:
+            if isinstance(m, dict):
+                if "areset" in m:
+                    cur["areset"] = m["areset"]
+                if "x" in m:
+                    cur["x"] = m["x"]
+                # async_reset_z0 also applies when reset is asserted by a mid change.
+                if cur.get("areset", 0) == 1:
+                    state = "S0"
+                    z = 0
+
+    return result

@@ -1,0 +1,37 @@
+def reference(vectors):
+    # R_Y0: Y0 = next-state bit 0 of Y[2:0] per state-assigned table.
+    # R_z: z = 1 when present state y[2:0] is 011 or 100, else 0.
+    # State register updates on posedge clk; combinational outputs visible same cycle.
+    # Mid input changes occur AFTER sampling, before the other edge, carried to next row.
+    # No reset; power-up unspecified but we must return concrete values.
+
+    # Next-state bit 0 table: Y0(y, x)
+    # y=000 -> x=0:0, x=1:1
+    # y=001 -> x=0:1, x=1:0
+    # y=010 -> x=0:0, x=1:1
+    # y=011 -> x=0:1, x=1:0
+    # y=100 -> x=0:1, x=1:0
+    # (other states unspecified; default 0)
+    Y0_TABLE = {
+        (0, 0): 0, (0, 1): 1,
+        (1, 0): 1, (1, 1): 0,
+        (2, 0): 0, (2, 1): 1,
+        (3, 0): 1, (3, 1): 0,
+        (4, 0): 1, (4, 1): 0,
+    }
+
+    def y0_of(y, x):
+        return Y0_TABLE.get((y & 0x7, x & 0x1), 0)
+
+    def z_of(y):
+        return 1 if (y & 0x7) in (3, 4) else 0
+
+    results = []
+    for vec in vectors:
+        x = int(vec.get("x", 0)) & 0x1
+        y = int(vec.get("y", 0)) & 0x7
+        results.append({
+            "Y0": y0_of(y, x) & 0x1,
+            "z": z_of(y) & 0x1,
+        })
+    return results

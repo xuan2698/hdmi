@@ -1,0 +1,106 @@
+[
+  {
+    "issue": {
+      "issue_id": "I6",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "high",
+      "detail": "Spec does not define output during reset or whether z is registered vs combinational; contract asserts z=0 during reset and combinational same-cycle output.",
+      "spec_evidence": "The conversion begins when Reset is released and stops when Reset is asserted.",
+      "alternative": "Output z may be registered (visible next cycle) and hold last value during reset rather than forced 0.",
+      "sequence": [
+        {
+          "areset": 1,
+          "x": 1
+        },
+        {
+          "areset": 0,
+          "x": 1
+        },
+        {
+          "areset": 0,
+          "x": 0
+        }
+      ]
+    },
+    "status": "no_effect",
+    "issue_id": "I6",
+    "outputs": {
+      "original": [
+        {
+          "z": 0
+        },
+        {
+          "z": 1
+        },
+        {
+          "z": 1
+        }
+      ],
+      "alternative": [
+        {
+          "z": 0
+        },
+        {
+          "z": 1
+        },
+        {
+          "z": 1
+        }
+      ]
+    },
+    "differences": []
+  },
+  {
+    "issue": {
+      "issue_id": "I7",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec says conversion begins when Reset is released; contract has no explicit rule for first-cycle behavior after release, and R5 example row3 expects z=0 for x=0 which matches R1 but not stated.",
+      "spec_evidence": "The conversion begins when Reset is released and stops when Reset is asserted.",
+      "alternative": "First cycle after reset release may be a don't-care or may output x directly; alternative treats first released cycle as S0 pass-through.",
+      "sequence": [
+        {
+          "areset": 1,
+          "x": 0
+        },
+        {
+          "areset": 0,
+          "x": 1
+        },
+        {
+          "areset": 0,
+          "x": 0
+        }
+      ]
+    },
+    "status": "no_effect",
+    "issue_id": "I7",
+    "outputs": {
+      "original": [
+        {
+          "z": 0
+        },
+        {
+          "z": 1
+        },
+        {
+          "z": 1
+        }
+      ],
+      "alternative": [
+        {
+          "z": 0
+        },
+        {
+          "z": 1
+        },
+        {
+          "z": 1
+        }
+      ]
+    },
+    "differences": []
+  }
+]

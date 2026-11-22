@@ -1,0 +1,140 @@
+[
+  {
+    "issue": {
+      "issue_id": "I4",
+      "rule_id": "R2_mispredict_priority",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec says load with train_history concatenated with train_taken, but does not specify bit order: is train_taken the new LSB (history = {train_history[30:0], train_taken}) or MSB? Rule assumes LSB (shift left, insert at bit 0). Alternative: train_taken becomes MSB (history = {train_taken, train_history[31:1]}). Distinguishing sequence: train_history=1, train_taken=1, train_mispredicted=1 -> LSB gives 3, MSB gives 0x80000001.",
+      "spec_evidence": "This is the history before the mispredicted branch (train_history) concatenated with the actual result of the branch (train_taken).",
+      "alternative": "Concatenate train_taken as the most significant bit: new history = {train_taken, train_history[31:1]}.",
+      "sequence": [
+        {
+          "areset": 0,
+          "predict_valid": 0,
+          "predict_taken": 0,
+          "train_mispredicted": 1,
+          "train_taken": 1,
+          "train_history": 1
+        },
+        {
+          "areset": 0,
+          "predict_valid": 0,
+          "predict_taken": 0,
+          "train_mispredicted": 0,
+          "train_taken": 0,
+          "train_history": 0
+        }
+      ]
+    },
+    "status": "effect",
+    "issue_id": "I4",
+    "outputs": {
+      "original": [
+        {
+          "predict_history": 3
+        },
+        {
+          "predict_history": 3
+        }
+      ],
+      "alternative": [
+        {
+          "predict_history": 2147483648
+        },
+        {
+          "predict_history": 2147483648
+        }
+      ]
+    },
+    "differences": [
+      {
+        "cycle": 1,
+        "original": {
+          "predict_history": 3
+        },
+        "alternative": {
+          "predict_history": 2147483648
+        }
+      },
+      {
+        "cycle": 2,
+        "original": {
+          "predict_history": 3
+        },
+        "alternative": {
+          "predict_history": 2147483648
+        }
+      }
+    ]
+  },
+  {
+    "issue": {
+      "issue_id": "I5",
+      "rule_id": "R3_predict_shift",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec says shift in predict_taken from LSB side, but does not explicitly state shift direction (left vs right) or whether predict_taken becomes new bit 0. Rule assumes left shift with predict_taken as new LSB. Alternative: right shift with predict_taken as new MSB (history = {predict_taken, history[31:1]}). Distinguishing sequence: start history=1, predict_taken=1 -> left shift gives 3, right shift gives 0x80000001.",
+      "spec_evidence": "shift in predict_taken from the LSB side to update the branch history for the predicted branch. (predict_history[0] is the direction of the youngest branch.)",
+      "alternative": "Shift right and insert predict_taken at MSB: new history = {predict_taken, history[31:1]}.",
+      "sequence": [
+        {
+          "areset": 0,
+          "predict_valid": 1,
+          "predict_taken": 1,
+          "train_mispredicted": 0,
+          "train_taken": 0,
+          "train_history": 1
+        },
+        {
+          "areset": 0,
+          "predict_valid": 0,
+          "predict_taken": 0,
+          "train_mispredicted": 0,
+          "train_taken": 0,
+          "train_history": 0
+        }
+      ]
+    },
+    "status": "effect",
+    "issue_id": "I5",
+    "outputs": {
+      "original": [
+        {
+          "predict_history": 1
+        },
+        {
+          "predict_history": 1
+        }
+      ],
+      "alternative": [
+        {
+          "predict_history": 2147483648
+        },
+        {
+          "predict_history": 2147483648
+        }
+      ]
+    },
+    "differences": [
+      {
+        "cycle": 1,
+        "original": {
+          "predict_history": 1
+        },
+        "alternative": {
+          "predict_history": 2147483648
+        }
+      },
+      {
+        "cycle": 2,
+        "original": {
+          "predict_history": 1
+        },
+        "alternative": {
+          "predict_history": 2147483648
+        }
+      }
+    ]
+  }
+]

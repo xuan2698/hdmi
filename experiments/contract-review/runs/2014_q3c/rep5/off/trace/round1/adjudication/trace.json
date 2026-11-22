@@ -1,0 +1,60 @@
+[
+  {
+    "issue": {
+      "issue_id": "I3",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec table only defines next state for x=0 and x=1; contract treats x as 1-bit so complete. But Y0 for states 101,110,111 undefined; contract example uses only defined states. Ambiguity: behavior for undefined present states y=5,6,7 not specified; contract silently omits.",
+      "spec_evidence": "// 100 | 011, 100 | 1",
+      "alternative": "Treat undefined states as don't-care producing Y0=0,z=0",
+      "sequence": [
+        {
+          "x": 0,
+          "y": 5
+        },
+        {
+          "x": 1,
+          "y": 6
+        },
+        {
+          "x": 0,
+          "y": 7
+        }
+      ]
+    },
+    "status": "no_effect",
+    "issue_id": "I3",
+    "outputs": {
+      "original": [
+        {
+          "Y0": 0,
+          "z": 0
+        },
+        {
+          "Y0": 0,
+          "z": 0
+        },
+        {
+          "Y0": 0,
+          "z": 0
+        }
+      ],
+      "alternative": [
+        {
+          "Y0": 0,
+          "z": 0
+        },
+        {
+          "Y0": 0,
+          "z": 0
+        },
+        {
+          "Y0": 0,
+          "z": 0
+        }
+      ]
+    },
+    "differences": []
+  }
+]

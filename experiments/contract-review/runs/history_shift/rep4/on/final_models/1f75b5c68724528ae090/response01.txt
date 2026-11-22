@@ -1,0 +1,56 @@
+```python
+def reference(vectors):
+    # history: 32-bit global branch history shift register.
+    # Initialized to 0 for concrete output (power-up unspecified).
+    history = 0
+    # Inputs carried from previous mid-cycle changes.
+    carried = {
+        'areset': 0,
+        'predict_valid': 0,
+        'predict_taken': 0,
+        'train_mispredicted': 0,
+        'train_taken': 0,
+        'train_history': 0
+    }
+    results = []
+    for row in vectors:
+        # Build inputs for the current sampled posedge.
+        cur = carried.copy()
+        for k in carried:
+            if k in row:
+                cur[k] = row[k]
+        
+        # async_reset: active high, asynchronous, clears history to zero.
+        if cur['areset']:
+            history = 0
+        else:
+            # mispredict_load: priority 1, load train_history concatenated with train_taken.
+            if cur['train_mispredicted']:
+                th = cur['train_history'] & 0xFFFFFFFF
+                tt = cur['train_taken'] & 1
+                history = ((th << 1) & 0xFFFFFFFF) | tt
+            # predict_shift: priority 2, shift in predict_taken from LSB.
+            elif cur['predict_valid']:
+                pt = cur['predict_taken'] & 1
+                history = ((history << 1) & 0xFFFFFFFF) | pt
+            # hold: priority 3, retain previous history.
+            else:
+                pass
+        # Ensure state remains 32-bit.
+        history &= 0xFFFFFFFF
+        # Output after the sampled posedge has settled.
+        results.append({'predict_history': history})
+        
+        # Inputs persist after the edge until mid-cycle changes.
+        carried = cur.copy()
+        # Process optional mid-cycle changes (after sampling, before next edge).
+        mid = row.get('mid')
+        if isinstance(mid, dict):
+            for k, v in mid.items():
+                if k in carried:
+                    carried[k] = v
+            # async_reset: if areset goes high mid-cycle, clear history immediately.
+            if carried['areset']:
+                history = 0
+    return results
+```

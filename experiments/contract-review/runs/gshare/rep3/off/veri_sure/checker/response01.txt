@@ -1,0 +1,65 @@
+```python
+def reference(vectors):
+    # State
+    ghr = 0
+    pht = [0] * 128  # 2-bit counters, 0..3
+
+    out = []
+
+    for row in vectors:
+        # Apply asynchronous reset if asserted (active high)
+        if row.get('areset', 0):
+            ghr = 0
+            pht = [0] * 128
+
+        # Combinational outputs based on current state (pre-edge)
+        predict_valid = row.get('predict_valid', 0)
+        predict_pc = row.get('predict_pc', 0) & 0x7F
+        train_valid = row.get('train_valid', 0)
+        train_taken = row.get('train_taken', 0) & 1
+        train_mispredicted = row.get('train_mispredicted', 0) & 1
+        train_history = row.get('train_history', 0) & 0x7F
+        train_pc = row.get('train_pc', 0) & 0x7F
+
+        if predict_valid:
+            idx = (predict_pc ^ ghr) & 0x7F
+            counter = pht[idx]
+            predict_taken = (counter >> 1) & 1
+            predict_history = ghr
+        else:
+            predict_taken = 0
+            predict_history = ghr
+
+        # Compute next state (applied at posedge)
+        new_ghr = ghr
+        new_pht = list(pht)
+
+        # Training PHT update
+        if train_valid:
+            tidx = (train_pc ^ train_history) & 0x7F
+            c = new_pht[tidx]
+            if train_taken:
+                if c < 3:
+                    c += 1
+            else:
+                if c > 0:
+                    c -= 1
+            new_pht[tidx] = c
+
+        # History update: training recovery takes precedence
+        if train_valid and train_mispredicted:
+            new_ghr = ((train_history << 1) | train_taken) & 0x7F
+        elif predict_valid:
+            new_ghr = ((ghr << 1) | predict_taken) & 0x7F
+
+        # Commit state
+        ghr = new_ghr
+        pht = new_pht
+
+        out.append({
+            'predict_taken': predict_taken & 1,
+            'predict_history': predict_history & 0x7F,
+        })
+
+    return out
+```

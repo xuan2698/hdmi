@@ -1,0 +1,113 @@
+{
+  "coverage": {
+    "S01": [
+      "bcd_counter_increment"
+    ],
+    "S02": [
+      "bcd_counter_increment"
+    ],
+    "S03": [
+      "upper_digit_enables"
+    ],
+    "S04": [
+      "sync_active_high_reset"
+    ]
+  },
+  "issues": [
+    {
+      "issue_id": "I1",
+      "rule_id": "sync_active_high_reset",
+      "type": "grounding",
+      "severity": "medium",
+      "detail": "S04 only mandates synchronous active-high reset; reset-to-zero and ena=0 are not stated but rule uncertain=false.",
+      "spec_evidence": "Include a synchronous active-high reset.",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I2",
+      "rule_id": "upper_digit_enables",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec does not define ena bit ordering; contract fixes ena[0]=tens, ena[1]=hundreds, ena[2]=thousands.",
+      "spec_evidence": "For digits [3:1], also output an enable signal indicating when each of the upper three digits should be incremented.",
+      "alternative": "Reverse bit order: ena[2] is the tens enable, so at q=9 ena=3'b100 instead of 3'b001.",
+      "sequence": [
+        {
+          "reset": 1
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        }
+      ]
+    },
+    {
+      "issue_id": "I3",
+      "rule_id": "upper_digit_enables",
+      "type": "ambiguity",
+      "severity": "low",
+      "detail": "Spec does not state ena timing; contract assumes combinational current-q enable and flags this as uncertain.",
+      "spec_evidence": "For digits [3:1], also output an enable signal indicating when each of the upper three digits should be incremented.",
+      "alternative": "Registered enable from carry: after 9->10 transition ena[0]=1 while q=10, unlike combinational current-q where ena[0]=0 at q=10.",
+      "sequence": [
+        {
+          "reset": 1
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        }
+      ]
+    }
+  ]
+}

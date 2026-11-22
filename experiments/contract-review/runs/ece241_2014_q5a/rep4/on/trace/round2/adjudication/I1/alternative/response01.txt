@@ -1,0 +1,63 @@
+def reference(vectors):
+    # State encoding: 0=START(z=0), 1=INV0(z=0), 2=INV1(z=1)
+    def output_z(state):
+        return 1 if state == 2 else 0
+
+    state = 0
+    cur_areset = 1  # active-low default released
+    cur_x = 0
+    result = []
+
+    for row in vectors:
+        # Drive this row's values before the sampled posedge.
+        if isinstance(row, dict):
+            if 'areset' in row:
+                cur_areset = int(row['areset']) & 1
+            if 'x' in row:
+                cur_x = int(row['x']) & 1
+
+        # R_RESET: active-low asynchronous reset. Asserted (0) forces START/z=0.
+        if cur_areset == 0:
+            state = 0
+
+        # Sampled posedge; reset has priority.
+        if cur_areset == 0:
+            # R_RESET: while asserted, hold START and z=0.
+            state = 0
+        else:
+            # R_CONVERT: serial two's-complement conversion, LSB first.
+            if state == 0:  # START: copy first 1, otherwise stay START.
+                if cur_x == 0:
+                    state = 0
+                else:
+                    state = 2
+            elif state == 1:  # INV0: invert x; z from resulting state.
+                if cur_x == 0:
+                    state = 2
+                else:
+                    state = 1
+            else:  # INV1: invert x; z from resulting state.
+                if cur_x == 0:
+                    state = 2
+                else:
+                    state = 1
+
+        # Moore output after the sampled posedge has settled.
+        result.append({'z': output_z(state)})
+
+        # Optional mid changes occur after sampling and before the next edge.
+        mid = row.get('mid') if isinstance(row, dict) else None
+        if mid is not None:
+            mid_list = mid if isinstance(mid, list) else [mid]
+            for change in mid_list:
+                if not isinstance(change, dict):
+                    continue
+                if 'areset' in change:
+                    cur_areset = int(change['areset']) & 1
+                    # R_RESET: asynchronous assertion during mid-cycle immediately resets.
+                    if cur_areset == 0:
+                        state = 0
+                if 'x' in change:
+                    cur_x = int(change['x']) & 1
+
+    return result

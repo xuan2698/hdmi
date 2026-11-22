@@ -1,0 +1,33 @@
+```python
+def reference(vectors):
+    # R_RESET: active-high synchronous reset; R_COUNT: decade count.
+    q = 0       # initial state, concrete unsigned integer
+    reset = 0   # current input state
+    result = []
+    for row in vectors:
+        # Drive row's inputs before the sampled posedge edge.
+        if "reset" in row:
+            reset = 1 if row["reset"] else 0
+
+        # Posedge update:
+        if reset == 1:
+            q = 0                    # R_RESET
+        else:
+            q = (q + 1) % 10         # R_COUNT
+
+        # Sample after the posedge has settled.
+        result.append({"q": q})
+
+        # Apply optional mid changes after sampling, carried to next row.
+        if "mid" in row:
+            mid = row["mid"]
+            if isinstance(mid, dict):
+                if "reset" in mid:
+                    reset = 1 if mid["reset"] else 0
+            elif isinstance(mid, list):
+                for change in mid:
+                    if isinstance(change, dict) and "reset" in change:
+                        reset = 1 if change["reset"] else 0
+
+    return result
+```

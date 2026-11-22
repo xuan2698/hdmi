@@ -1,0 +1,51 @@
+def reference(vectors):
+    q = 0
+    cur_d = 0
+    cur_reset = 0
+    result = []
+
+    for row in vectors:
+        # Apply row values driven before the sampled positive edge.
+        if isinstance(row, dict):
+            if "d" in row:
+                cur_d = row["d"]
+            if "reset" in row:
+                cur_reset = row["reset"]
+
+        # Positive edge of clk, after inputs are sampled and the edge has settled.
+        if cur_reset == 1:
+            # sync_reset_clear: active-high synchronous reset overrides d and clears q to 0.
+            q = 0
+        else:
+            # d_capture_no_reset: when reset is inactive, q captures d[7:0].
+            q = cur_d & 0xFF
+
+        # Mid-cycle changes occur after sampling and are carried to the next row.
+        if isinstance(row, dict):
+            mid = row.get("mid")
+            if isinstance(mid, dict):
+                if "d" in mid:
+                    cur_d = mid["d"]
+                if "reset" in mid:
+                    cur_reset = mid["reset"]
+            elif isinstance(mid, list):
+                for event in mid:
+                    if isinstance(event, dict):
+                        if "d" in event:
+                            cur_d = event["d"]
+                        if "reset" in event:
+                            cur_reset = event["reset"]
+
+            # Support common explicit mid-key encodings.
+            if "d_mid" in row:
+                cur_d = row["d_mid"]
+            if "mid_d" in row:
+                cur_d = row["mid_d"]
+            if "reset_mid" in row:
+                cur_reset = row["reset_mid"]
+            if "mid_reset" in row:
+                cur_reset = row["mid_reset"]
+
+        result.append({"q": q})
+
+    return result

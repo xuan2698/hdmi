@@ -1,0 +1,76 @@
+def reference(vectors):
+    # State encoding
+    WALK_LEFT, WALK_RIGHT, FALL_LEFT, FALL_RIGHT, DIG_LEFT, DIG_RIGHT, SPLAT = range(7)
+
+    def outputs(state):
+        # R2_walk_outputs
+        if state == WALK_LEFT:
+            return {"walk_left": 1, "walk_right": 0, "aaah": 0, "digging": 0}
+        if state == WALK_RIGHT:
+            return {"walk_left": 0, "walk_right": 1, "aaah": 0, "digging": 0}
+        # R3_fall_outputs
+        if state in (FALL_LEFT, FALL_RIGHT):
+            return {"walk_left": 0, "walk_right": 0, "aaah": 1, "digging": 0}
+        # R4_dig_outputs
+        if state in (DIG_LEFT, DIG_RIGHT):
+            return {"walk_left": 0, "walk_right": 0, "aaah": 0, "digging": 1}
+        # R5_splat_outputs
+        return {"walk_left": 0, "walk_right": 0, "aaah": 0, "digging": 0}
+
+    state = WALK_LEFT
+    fall_count = 0
+    results = []
+
+    for v in vectors:
+        areset = v.get("areset", 0)
+        bump_left = v.get("bump_left", 0)
+        bump_right = v.get("bump_right", 0)
+        ground = v.get("ground", 1)
+        dig = v.get("dig", 0)
+
+        # R1_reset: async positive edge triggered reset to WALK_LEFT
+        if areset == 1:
+            state = WALK_LEFT
+            fall_count = 0
+            results.append(outputs(state))
+            continue
+
+        # Outputs are combinational based on current state (Moore)
+        results.append(outputs(state))
+
+        # Compute next state (posedge update)
+        if state == SPLAT:
+            # R9_splat_transition: stay splatted forever
+            pass
+        elif state in (WALK_LEFT, WALK_RIGHT):
+            # R6_walk_transitions: fall > dig > bump
+            if ground == 0:
+                state = FALL_LEFT if state == WALK_LEFT else FALL_RIGHT
+                fall_count = 0
+            elif dig == 1:
+                state = DIG_LEFT if state == WALK_LEFT else DIG_RIGHT
+            else:
+                if bump_left == 1 and bump_right == 1:
+                    # switch direction
+                    state = WALK_RIGHT if state == WALK_LEFT else WALK_LEFT
+                elif bump_left == 1:
+                    state = WALK_RIGHT
+                elif bump_right == 1:
+                    state = WALK_LEFT
+        elif state in (FALL_LEFT, FALL_RIGHT):
+            # R7_fall_transitions / R9_splat_transition
+            if ground == 1:
+                if fall_count > 20:
+                    state = SPLAT
+                else:
+                    state = WALK_LEFT if state == FALL_LEFT else WALK_RIGHT
+                fall_count = 0
+            else:
+                fall_count += 1
+        elif state in (DIG_LEFT, DIG_RIGHT):
+            # R8_dig_transitions
+            if ground == 0:
+                state = FALL_LEFT if state == DIG_LEFT else FALL_RIGHT
+                fall_count = 0
+
+    return results

@@ -1,0 +1,52 @@
+```python
+def reference(vectors):
+    # State encoding
+    A, B, C, D = 0, 1, 2, 3
+    # Output per state (Moore): A=0, B=0, C=0, D=1
+    # R1: state==A -> out 0
+    # R2: state==B -> out 0
+    # R3: state==C -> out 0
+    # R4: state==D -> out 1
+    out_map = {A: 0, B: 0, C: 0, D: 1}
+
+    # Initial state assumed A (global uncertain candidate)
+    state = A
+
+    results = []
+    for vec in vectors:
+        inp = vec.get('in', 0)
+        rst = vec.get('reset', 0)
+
+        # R5: synchronous active high reset forces state A on posedge.
+        # Output during reset cycle is 0 combinationally same cycle (R5 interpretation).
+        # Compute next state based on current state and input (transition rules R6-R9).
+        if rst == 1:
+            next_state = A
+        else:
+            if state == A:
+                # R6: A && in==0 -> A; A && in==1 -> B
+                next_state = B if inp == 1 else A
+            elif state == B:
+                # R7: B && in==0 -> C; B && in==1 -> B
+                next_state = B if inp == 1 else C
+            elif state == C:
+                # R8: C && in==0 -> A; C && in==1 -> D
+                next_state = D if inp == 1 else A
+            else:  # state == D
+                # R9: D && in==0 -> C; D && in==1 -> B
+                next_state = B if inp == 1 else C
+
+        # Output is combinational from current state (Moore).
+        # During reset cycle, output is 0 (R5 interpretation).
+        if rst == 1:
+            out_val = 0
+        else:
+            out_val = out_map[state]
+
+        results.append({'out': out_val})
+
+        # Advance state at posedge (after sampling)
+        state = next_state
+
+    return results
+```

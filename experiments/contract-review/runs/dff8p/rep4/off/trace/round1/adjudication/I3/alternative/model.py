@@ -1,0 +1,36 @@
+def reference(vectors):
+    # State: q_reg holds the 8 D flip-flop outputs.
+    # Initial power-up value is unspecified; we use 0x34 as a concrete value.
+    q_reg = 0x34
+
+    results = []
+
+    for row in vectors:
+        d = row.get('d', 0) & 0xFF
+        reset = row.get('reset', 0) & 0x1
+
+        # R1_sync_reset / R3_reset_value (candidate interpretation):
+        # Reset value 0x34 becomes visible on q one cycle AFTER the negedge
+        # where reset==1, not on that same negedge.
+        # R2_dff_capture: on negedge with reset==0, q captures d.
+        #
+        # We model the negedge sampling here. Because the candidate
+        # interpretation delays reset visibility by one cycle, we track a
+        # pending reset flag that applies on the NEXT negedge.
+        if reset == 1:
+            # This negedge: q keeps its current value (reset not yet visible).
+            # Schedule reset to take effect on the next negedge.
+            pending_reset = True
+            # q_reg unchanged this cycle
+        else:
+            if pending_reset:
+                # Reset becomes visible now (one cycle after reset==1 negedge).
+                q_reg = 0x34
+                pending_reset = False
+            else:
+                # R2_dff_capture: capture d on negedge.
+                q_reg = d
+
+        results.append({'q': q_reg & 0xFF})
+
+    return results

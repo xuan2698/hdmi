@@ -1,0 +1,33 @@
+```python
+def reference(vectors):
+    # Contract implementation.
+    # r1: q is the registered value of state (q equals state after each posedge).
+    # r2: next state = (a XOR b) XOR state, sampled at posedge.
+    # reset: none; power-up state unspecified -> start at 0.
+    # mid: mid input changes occur AFTER sampling, before the other edge,
+    #      carried to start of next row. We process each row's inputs as
+    #      driven before the sampled posedge; mid changes are applied after
+    #      sampling and thus affect the next row's inputs.
+
+    state = 0  # power-up unspecified; concrete default 0
+    q = 0
+    out = []
+
+    for row in vectors:
+        a = row.get('a', 0) & 1
+        b = row.get('b', 0) & 1
+
+        # r1: q reflects registered state (visible after posedge)
+        q = state
+
+        # r2: compute next state at posedge
+        state_next = (a ^ b) ^ state
+
+        # Emit outputs for this cycle (q and state as observed after posedge)
+        out.append({'q': q & 1, 'state': state & 1})
+
+        # Advance state for next cycle
+        state = state_next & 1
+
+    return out
+```

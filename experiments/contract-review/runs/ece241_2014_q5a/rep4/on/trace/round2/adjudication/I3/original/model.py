@@ -1,0 +1,67 @@
+def reference(vectors):
+    # State encoding: START, INV0, INV1.
+    state = "START"
+    # Moore output of START/INV0 is 0; INV1 is 1.
+    z = 0
+    # Current input pin values, including any mid-cycle changes carried forward.
+    pins = {"areset": 0, "x": 0}
+    out = []
+
+    for row in vectors:
+        # Drive the row's direct input values before the sampled posedge.
+        if "areset" in row:
+            pins["areset"] = row["areset"] & 1
+        if "x" in row:
+            pins["x"] = row["x"] & 1
+
+        # R_RESET: asynchronous active-high reset, as used by the example.
+        # Assertion forces START and z=0.
+        if pins["areset"] == 1:
+            state = "START"
+            z = 0
+
+        # R_CONVERT: posedge clk when reset is deasserted.
+        # Moore output is the state value after the sampled edge has settled.
+        if pins["areset"] == 1:
+            state = "START"
+            z = 0
+        else:
+            if state == "START":
+                if pins["x"] == 0:
+                    state = "START"
+                    z = 0
+                else:
+                    state = "INV1"
+                    z = 1
+            elif state == "INV0":
+                if pins["x"] == 0:
+                    state = "INV1"
+                    z = 1
+                else:
+                    state = "INV0"
+                    z = 0
+            elif state == "INV1":
+                if pins["x"] == 0:
+                    state = "INV1"
+                    z = 1
+                else:
+                    state = "INV0"
+                    z = 0
+
+        out.append({"z": int(z) & 1})
+
+        # Optional mid changes occur after sampling and before the next edge.
+        # They persist to the start of the next row.
+        if "mid" in row and row["mid"] is not None:
+            mid = row["mid"]
+            if "areset" in mid:
+                pins["areset"] = mid["areset"] & 1
+            if "x" in mid:
+                pins["x"] = mid["x"] & 1
+
+            # R_RESET: mid-cycle assertion of asynchronous reset also forces START/z=0.
+            if pins["areset"] == 1:
+                state = "START"
+                z = 0
+
+    return out

@@ -1,0 +1,41 @@
+{
+  "responses": [
+    {
+      "issue_id": "I1",
+      "decision": "accept",
+      "reason": "Spec says training takes precedence over prediction whenever both occur, not only on misprediction; the condition should reflect that training (any train_valid) suppresses the prediction GHR shift.",
+      "spec_quote": "When this happens, training takes precedence, because the branch being predicted will be discarded anyway.",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R2_predict_ghr_update",
+            "condition"
+          ],
+          "value": "predict_valid == 1 and train_valid == 0: GHR shifts in predicted direction at posedge"
+        }
+      ]
+    },
+    {
+      "issue_id": "I3",
+      "decision": "rebut",
+      "reason": "The contract already specifies saturating increment/decrement toward train_taken in the state meaning and rule condition, which is a valid interpretation; the alternative is not mandated by spec.",
+      "spec_quote": "Update the pattern history table (PHT) to train the branch predictor to predict this branch more accurately next time.",
+      "edits": []
+    },
+    {
+      "issue_id": "I7",
+      "decision": "rebut",
+      "reason": "The spec references a timing diagram but provides no waveform; the contract's rule already captures the stated behavior that prediction sees pre-training PHT state, so no edit is warranted.",
+      "spec_quote": "If training and prediction of the same PHT entry happen at the same time, the prediction sees the PHT state before training because training only modifies the PHT at the next positive clock edge.",
+      "edits": []
+    },
+    {
+      "issue_id": "I8",
+      "decision": "rebut",
+      "reason": "The example is illustrative and consistent with reset/initial zero state; no verbatim evidence is required for example values, and the rule itself is grounded in the spec quote.",
+      "spec_quote": "When a branch prediction is requested (predict_valid = 1) for a given pc, the branch predictor produces the predicted branch direction and state of the branch history register used to make the prediction.",
+      "edits": []
+    }
+  ]
+}

@@ -1,0 +1,87 @@
+def reference(vectors):
+    # Y0_next_state_lsb and z_moore_output are implemented as combinational rules below.
+    def _apply(changes, cx, cy):
+        if isinstance(changes, dict):
+            d = changes
+            if isinstance(d.get('inputs'), dict):
+                di = d['inputs']
+                if 'x' in di:
+                    cx = int(di['x']) & 1
+                if 'y' in di:
+                    cy = int(di['y']) & 7
+            if 'x' in d and not isinstance(d['x'], (dict, list, tuple)):
+                cx = int(d['x']) & 1
+            if 'y' in d and not isinstance(d['y'], (dict, list, tuple)):
+                cy = int(d['y']) & 7
+        elif isinstance(changes, (list, tuple)):
+            if len(changes) >= 2 and isinstance(changes[0], str) and changes[0] in ('x', 'y'):
+                if changes[0] == 'x':
+                    cx = int(changes[1]) & 1
+                else:
+                    cy = int(changes[1]) & 7
+            else:
+                for item in changes:
+                    cx, cy = _apply(item, cx, cy)
+        return cx, cy
+
+    cur_x = 0
+    cur_y = 0
+    outs = []
+
+    for row in vectors:
+        x = cur_x
+        y = cur_y
+
+        if isinstance(row, dict):
+            for key in ('inputs', 'in', 'pre', 'before'):
+                d = row.get(key, None)
+                if isinstance(d, dict):
+                    if 'x' in d:
+                        x = int(d['x']) & 1
+                    if 'y' in d:
+                        y = int(d['y']) & 7
+            if 'x' in row and not isinstance(row['x'], (dict, list, tuple)):
+                x = int(row['x']) & 1
+            if 'y' in row and not isinstance(row['y'], (dict, list, tuple)):
+                y = int(row['y']) & 7
+        else:
+            if isinstance(row, (list, tuple)) and len(row) >= 2:
+                if isinstance(row[0], str) and row[0] in ('x', 'y'):
+                    x, y = _apply(row, x, y)
+                else:
+                    x = int(row[0]) & 1
+                    y = int(row[1]) & 7
+
+        cur_x, cur_y = x, y
+
+        # Y0_next_state_lsb
+        y0 = 1 if ((x == 0 and (y == 1 or y == 3 or y == 4)) or
+                   (x == 1 and (y == 0 or y == 2))) else 0
+
+        # z_moore_output
+        z = 1 if (y == 3 or y == 4) else 0
+
+        outs.append({'Y0': y0, 'z': z})
+
+        # Optional mid changes occur after sampling and are carried forward.
+        if isinstance(row, dict):
+            mid = None
+            for key in ('mid', 'after', 'mid_changes', 'post'):
+                if key in row:
+                    mid = row[key]
+                    break
+            if mid is not None:
+                cur_x, cur_y = _apply(mid, cur_x, cur_y)
+            if 'mid_x' in row:
+                cur_x = int(row['mid_x']) & 1
+            if 'mid_y' in row:
+                cur_y = int(row['mid_y']) & 7
+            if 'x_mid' in row:
+                cur_x = int(row['x_mid']) & 1
+            if 'y_mid' in row:
+                cur_y = int(row['y_mid']) & 7
+        else:
+            if isinstance(row, (list, tuple)) and len(row) >= 3:
+                cur_x, cur_y = _apply(row[2], cur_x, cur_y)
+
+    return outs

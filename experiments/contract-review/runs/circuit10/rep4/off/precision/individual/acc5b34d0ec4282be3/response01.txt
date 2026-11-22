@@ -1,0 +1,38 @@
+```python
+def reference(vectors):
+    # Contract implementation.
+    # R1: state toggles on every posedge (state <= NOT state), visible next cycle.
+    # R2: q <= a AND b on posedge, visible next cycle.
+    # reset: none; power-up unspecified -> use 0 for concrete unsigned values.
+    # mid: mid input changes occur AFTER sampling, before the other edge,
+    #      carried to start of next row. We process each row's inputs as
+    #      driven before the sampled posedge; mid changes are applied after
+    #      sampling and thus affect the next row's starting inputs.
+    #      Since vectors give per-row inputs, we treat each row's a,b as the
+    #      values present at the posedge sampling point (after any mid change
+    #      from the previous row has been carried in). We model mid changes
+    #      by allowing the next row's inputs to override, which is already
+    #      the case since each row supplies its own a,b.
+
+    state = 0  # power-up unspecified; concrete default 0
+    q = 0      # power-up unspecified; concrete default 0
+
+    results = []
+    for vec in vectors:
+        a = vec.get('a', 0) & 1
+        b = vec.get('b', 0) & 1
+
+        # Sample at posedge: compute next values from current inputs and state.
+        # R2: q <= a AND b
+        next_q = a & b
+        # R1: state <= NOT state (toggle)
+        next_state = 1 - state
+
+        # Update outputs visible next cycle
+        q = next_q
+        state = next_state
+
+        results.append({'q': q & 1, 'state': state & 1})
+
+    return results
+```

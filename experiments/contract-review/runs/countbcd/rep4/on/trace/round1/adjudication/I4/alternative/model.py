@@ -1,0 +1,59 @@
+def reference(vectors):
+    # Rule sync_active_high_reset: synchronous active-high reset has priority.
+    # Rule bcd_counter_increment: BCD increment by one modulo 10000.
+    # Rule upper_digit_enables: registered active-high ena, visible one cycle
+    # after the carry condition q[3:0]==9 (and its upper-digit extensions) is met.
+
+    q = 0
+    ena = 0
+    outputs = []
+
+    for vec in vectors:
+        reset = vec.get("reset", 0)
+
+        d0 = q & 0xF
+        d1 = (q >> 4) & 0xF
+        d2 = (q >> 8) & 0xF
+        d3 = (q >> 12) & 0xF
+
+        if reset:
+            next_q = 0
+            next_ena = 0
+        else:
+            # bcd_counter_increment
+            if d0 == 9:
+                nd0 = 0
+                if d1 == 9:
+                    nd1 = 0
+                    if d2 == 9:
+                        nd2 = 0
+                        if d3 == 9:
+                            nd3 = 0
+                        else:
+                            nd3 = d3 + 1
+                    else:
+                        nd2 = d2 + 1
+                        nd3 = d3
+                else:
+                    nd1 = d1 + 1
+                    nd2 = d2
+                    nd3 = d3
+            else:
+                nd0 = d0 + 1
+                nd1 = d1
+                nd2 = d2
+                nd3 = d3
+
+            next_q = nd0 | (nd1 << 4) | (nd2 << 8) | (nd3 << 12)
+
+            # upper_digit_enables: registered from current q, so visible after edge.
+            e0 = 1 if d0 == 9 else 0
+            e1 = 1 if (d0 == 9 and d1 == 9) else 0
+            e2 = 1 if (d0 == 9 and d1 == 9 and d2 == 9) else 0
+            next_ena = e0 | (e1 << 1) | (e2 << 2)
+
+        q = next_q
+        ena = next_ena
+        outputs.append({"q": q, "ena": ena})
+
+    return outputs

@@ -1,0 +1,176 @@
+[
+  {
+    "issue": {
+      "issue_id": "I5",
+      "rule_id": "R1",
+      "type": "ambiguity",
+      "severity": "high",
+      "detail": "R1 next-state function uncertain; waveform suggests state<=a AND b but S21 contradicts. Alternative: state<=a XOR b fits some rows but not S25.",
+      "spec_evidence": "one bit of memory (i.e., one flip-flop)",
+      "alternative": "state <= a XOR b",
+      "sequence": [
+        {
+          "a": 0,
+          "b": 0
+        },
+        {
+          "a": 0,
+          "b": 1
+        },
+        {
+          "a": 1,
+          "b": 0
+        },
+        {
+          "a": 1,
+          "b": 1
+        }
+      ]
+    },
+    "status": "effect",
+    "issue_id": "I5",
+    "outputs": {
+      "original": [
+        {
+          "q": 0,
+          "state": 0
+        },
+        {
+          "q": 0,
+          "state": 0
+        },
+        {
+          "q": 0,
+          "state": 0
+        },
+        {
+          "q": 1,
+          "state": 1
+        }
+      ],
+      "alternative": [
+        {
+          "q": 0,
+          "state": 0
+        },
+        {
+          "q": 1,
+          "state": 1
+        },
+        {
+          "q": 1,
+          "state": 1
+        },
+        {
+          "q": 0,
+          "state": 0
+        }
+      ]
+    },
+    "differences": [
+      {
+        "cycle": 2,
+        "original": {
+          "q": 0,
+          "state": 0
+        },
+        "alternative": {
+          "q": 1,
+          "state": 1
+        }
+      },
+      {
+        "cycle": 3,
+        "original": {
+          "q": 0,
+          "state": 0
+        },
+        "alternative": {
+          "q": 1,
+          "state": 1
+        }
+      },
+      {
+        "cycle": 4,
+        "original": {
+          "q": 1,
+          "state": 1
+        },
+        "alternative": {
+          "q": 0,
+          "state": 0
+        }
+      }
+    ]
+  },
+  {
+    "issue": {
+      "issue_id": "I6",
+      "rule_id": "R2",
+      "type": "ambiguity",
+      "severity": "high",
+      "detail": "q relationship uncertain: could be combinational next-state (a AND b) rather than registered state.",
+      "spec_evidence": "The output of the flip-flop has been made observable through the output state.",
+      "alternative": "q = a AND b (combinational)",
+      "sequence": [
+        {
+          "a": 0,
+          "b": 1
+        },
+        {
+          "a": 1,
+          "b": 0
+        },
+        {
+          "a": 1,
+          "b": 1
+        }
+      ]
+    },
+    "status": "effect",
+    "issue_id": "I6",
+    "outputs": {
+      "original": [
+        {
+          "q": 0,
+          "state": 0
+        },
+        {
+          "q": 0,
+          "state": 0
+        },
+        {
+          "q": 1,
+          "state": 1
+        }
+      ],
+      "alternative": [
+        {
+          "q": 0,
+          "state": 0
+        },
+        {
+          "q": 0,
+          "state": 0
+        },
+        {
+          "q": 1,
+          "state": 0
+        }
+      ]
+    },
+    "differences": [
+      {
+        "cycle": 3,
+        "original": {
+          "q": 1,
+          "state": 1
+        },
+        "alternative": {
+          "q": 1,
+          "state": 0
+        }
+      }
+    ]
+  }
+]

@@ -1,0 +1,80 @@
+```python
+def reference(vectors):
+    # Rule async_reset: areset high asynchronously forces state A and z=0.
+    # Rule serial_twos_complement: LSB-first Moore FSM transitions and Moore output z.
+    state = "A"
+    sig = {"areset": 0, "x": 0}
+    result = []
+
+    for row in vectors:
+        # Each row's values are driven before the sampled posedge.
+        if isinstance(row, dict):
+            for k, v in row.items():
+                if k == "mid" or k == "clk" or (isinstance(k, str) and k.startswith("mid_")):
+                    continue
+                if k in sig:
+                    sig[k] = int(v) & 1
+
+        a = sig.get("areset", 0) & 1
+        x = sig.get("x", 0) & 1
+
+        # Rule async_reset: asynchronous reset dominates and is visible same cycle.
+        if a:
+            state = "A"
+            z = 0
+        else:
+            # Rule serial_twos_complement: explicit Moore-state posedge transitions.
+            if state == "A":
+                if x == 0:
+                    state = "A"
+                else:
+                    state = "B"
+            elif state == "B":
+                if x == 0:
+                    state = "B"
+                else:
+                    state = "C"
+            elif state == "C":
+                if x == 0:
+                    state = "B"
+                else:
+                    state = "C"
+            else:
+                state = "A"
+
+            # Moore output after the settled posedge.
+            z = 1 if state == "B" else 0
+
+        result.append({"z": int(z)})
+
+        # Mid changes occur after sampling, do not affect this row's output,
+        # and are carried to the start of the next row.
+        mid_changes = []
+        if isinstance(row, dict):
+            if "mid" in row:
+                mid = row.get("mid")
+                if isinstance(mid, dict):
+                    mid_changes.append(mid)
+                elif isinstance(mid, (list, tuple)):
+                    for item in mid:
+                        if isinstance(item, dict):
+                            mid_changes.append(item)
+
+            for k, v in row.items():
+                if isinstance(k, str) and k.startswith("mid_"):
+                    base = k[4:]
+                    if base in sig:
+                        mid_changes.append({base: v})
+
+        for changes in mid_changes:
+            for k, v in changes.items():
+                if k == "clk":
+                    continue
+                if k in sig:
+                    sig[k] = int(v) & 1
+                # Rule async_reset: reset asserted during mid goes to state A.
+                if k == "areset" and (int(v) & 1) == 1:
+                    state = "A"
+
+    return result
+```

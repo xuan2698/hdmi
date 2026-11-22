@@ -1,0 +1,110 @@
+[
+  {
+    "issue": {
+      "issue_id": "I4",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec says period 10 but does not specify behavior when reset is released mid-count; contract assumes resume from 0. Alternative: resume from held value.",
+      "spec_evidence": "counts from 0 through 9, inclusive, with a period of 10",
+      "alternative": "On reset release, counter resumes from the value it held before reset rather than restarting at 0.",
+      "sequence": [
+        {
+          "reset": 1
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        }
+      ]
+    },
+    "status": "no_effect",
+    "issue_id": "I4",
+    "outputs": {
+      "original": [
+        {
+          "q": 0
+        },
+        {
+          "q": 1
+        },
+        {
+          "q": 2
+        }
+      ],
+      "alternative": [
+        {
+          "q": 0
+        },
+        {
+          "q": 1
+        },
+        {
+          "q": 2
+        }
+      ]
+    },
+    "differences": []
+  },
+  {
+    "issue": {
+      "issue_id": "I5",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "low",
+      "detail": "Initial value before reset unspecified; contract states unspecified but examples assume q=0 start. Alternative: power-up value is 9.",
+      "spec_evidence": "",
+      "alternative": "Power-up initial count is 9, so first non-reset cycle wraps to 0.",
+      "sequence": [
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        }
+      ]
+    },
+    "status": "effect",
+    "issue_id": "I5",
+    "outputs": {
+      "original": [
+        {
+          "q": 1
+        },
+        {
+          "q": 2
+        }
+      ],
+      "alternative": [
+        {
+          "q": 0
+        },
+        {
+          "q": 1
+        }
+      ]
+    },
+    "differences": [
+      {
+        "cycle": 1,
+        "original": {
+          "q": 1
+        },
+        "alternative": {
+          "q": 0
+        }
+      },
+      {
+        "cycle": 2,
+        "original": {
+          "q": 2
+        },
+        "alternative": {
+          "q": 1
+        }
+      }
+    ]
+  }
+]

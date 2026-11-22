@@ -1,0 +1,34 @@
+```python
+def reference(vectors):
+    # State-assigned table: for each present state y (0..7) and x, next state Y.
+    # y=000: x=0 -> 000, x=1 -> 001
+    # y=001: x=0 -> 001, x=1 -> 100
+    # y=010: x=0 -> 010, x=1 -> 001
+    # y=011: x=0 -> 001, x=1 -> 010
+    # y=100: x=0 -> 011, x=1 -> 100
+    # Undefined states (101,110,111): don't-care -> Y0=0, z=0 (global interpretation)
+    next_state = {
+        0: {0: 0, 1: 1},
+        1: {0: 1, 1: 4},
+        2: {0: 2, 1: 1},
+        3: {0: 1, 1: 2},
+        4: {0: 3, 1: 4},
+    }
+    # R_z: z = 1 for present states 011 (3) and 100 (4), else 0
+    z_table = {3: 1, 4: 1}
+
+    results = []
+    for vec in vectors:
+        x = vec["x"] & 1
+        y = vec["y"] & 7
+        # R_Y0: Y0 = next-state bit 0 as function of y and x
+        if y in next_state:
+            Y = next_state[y][x]
+        else:
+            Y = 0  # global: undefined states -> Y0=0
+        Y0 = Y & 1
+        # R_z: z = 1 for present states 011 and 100, else 0
+        z = z_table.get(y, 0)
+        results.append({"Y0": Y0, "z": z})
+    return results
+```

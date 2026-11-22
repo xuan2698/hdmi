@@ -1,0 +1,55 @@
+```json
+{
+  "module_name": "top_module",
+  "io": [
+    {
+      "name": "clk",
+      "dir": "input",
+      "width": 1,
+      "description": "Clock signal; all state updates occur on the posedge."
+    },
+    {
+      "name": "L",
+      "dir": "input",
+      "width": 1,
+      "description": "Load enable. When high at a posedge, q is loaded from r; when low, q is updated by the LFSR-style next-state function."
+    },
+    {
+      "name": "r",
+      "dir": "input",
+      "width": 3,
+      "description": "Parallel load data, sampled into q when L is high at a posedge."
+    },
+    {
+      "name": "q",
+      "dir": "output",
+      "width": 3,
+      "description": "Registered 3-bit state output. Updated on each posedge of clk."
+    }
+  ],
+  "clocking": {
+    "clock": {
+      "name": "clk",
+      "edge": "posedge"
+    },
+    "reset": null
+  },
+  "timing": {
+    "outputs": {
+      "q": {
+        "latency_cycles": 1
+      }
+    }
+  },
+  "functional_summary": {
+    "overview": "top_module is a 3-bit registered state machine built hierarchically from three identical submodules, each containing a 1-bit flip-flop and a 2-to-1 multiplexer. On each posedge of clk, if L is high the register loads r; otherwise it applies the next-state function q_next = {q[1]^q[2], q[0], q[2]}. The three submodules together realize the full 3-bit behavior.",
+    "rules": [
+      "On each posedge of clk, if L == 1 then q <= r (parallel load).",
+      "On each posedge of clk, if L == 0 then q <= {q[1] ^ q[2], q[0], q[2]} (LFSR-style next state).",
+      "q is a registered output updated only on the posedge of clk; it holds its value between edges.",
+      "There is no reset; initial state is unspecified until the first posedge.",
+      "The design is composed of three instances of a submodule, each containing one 1-bit flip-flop and one 2-to-1 multiplexer, together implementing the 3-bit register and next-state logic."
+    ]
+  }
+}
+```

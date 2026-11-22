@@ -1,0 +1,17 @@
+Looking at the waveform:
+
+- At 5ns (first posedge), a=1, q becomes 4 (initial value 4, holds while a=1)
+- q stays 4 while a=1 through 45ns
+- At 45ns posedge, a=0 (was 1 before), q stays 4
+- At 55ns posedge, a=0 (was 0 before), q becomes 5
+- At 65ns posedge, a=0 (was 0 before), q becomes 6
+- At 75ns posedge, a=0 (was 0 before), q becomes 0 (wraps 3-bit)
+- At 85ns posedge, a=0 (was 0 before), q becomes 1
+
+So q increments on posedge when a==0 AND previous a==0. It holds when a==1 or previous a==1. Initial value is 4 (first posedge shows 4 with a=1, meaning it held from initial 4).
+
+This matches model `929941d3430db0b004`: hold when a==1 or prev==1; increment when a==0 and prev==0.
+
+```json
+{"models":{"929941d3430db0b004":"def reference(vectors):\n    q = 4\n    prev_a = 1\n    out = []\n    for v in vectors:\n        a = v['a']\n        if a == 0 and prev_a == 0:\n            q = (q + 1) % 8\n        out.append({'q': q})\n        prev_a = a\n    return out"}}
+```

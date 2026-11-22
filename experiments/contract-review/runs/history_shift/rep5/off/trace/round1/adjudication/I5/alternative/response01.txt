@@ -1,0 +1,79 @@
+```python
+def reference(vectors):
+    # Contract implementation.
+    # State: history (32-bit global branch history shift register).
+    # Bit 0 is the direction of the youngest branch.
+    #
+    # Rules:
+    # R1_async_reset: areset==1 -> predict_history=0, asynchronous, same cycle.
+    # R2_mispredict_priority: areset==0 && train_mispredicted==1 ->
+    #     history = (train_history << 1) | train_taken, next cycle.
+    #     (train_history is history before mispredicted branch; concatenated
+    #      with actual result train_taken. Bit 0 = youngest = train_taken.)
+    # R3_predict_shift: areset==0 && train_mispredicted==0 && predict_valid==1 ->
+    #     shift right and insert predict_taken at MSB:
+    #     new history = {predict_taken, history[31:1]}.
+    # R4_hold: areset==0 && train_mispredicted==0 && predict_valid==0 ->
+    #     history unchanged.
+    #
+    # Mid input changes occur AFTER sampling, before the other edge, and are
+    # carried to the start of the next row. We model this by applying mid
+    # changes to the input values used for the next row's evaluation.
+
+    MASK = 0xFFFFFFFF
+    history = 0  # power-up unspecified; use 0
+
+    # Current input values (driven before the sampled edge).
+    cur = {
+        'areset': 0,
+        'predict_valid': 0,
+        'predict_taken': 0,
+        'train_mispredicted': 0,
+        'train_taken': 0,
+        'train_history': 0,
+    }
+
+    results = []
+
+    for row in vectors:
+        # Apply any mid changes from previous row (already stored in cur).
+        # Then apply this row's driven values (they override mid changes).
+        for k in cur:
+            if k in row:
+                cur[k] = row[k]
+
+        # Evaluate combinational output for this cycle (before posedge).
+        # R1_async_reset: asynchronous reset visible same cycle.
+        if cur['areset'] == 1:
+            out = 0
+        else:
+            out = history & MASK
+
+        results.append({'predict_history': out})
+
+        # Compute next state at posedge clk.
+        if cur['areset'] == 1:
+            # R1: async reset -> history = 0
+            history = 0
+        elif cur['train_mispredicted'] == 1:
+            # R2_mispredict_priority: misprediction takes precedence.
+            # history = train_history concatenated with train_taken.
+            # train_history is history before mispredicted branch (32 bits),
+            # train_taken is actual result (1 bit) -> 33 bits, keep low 32.
+            history = ((cur['train_history'] << 1) | (cur['train_taken'] & 1)) & MASK
+        elif cur['predict_valid'] == 1:
+            # R3_predict_shift: shift right, insert predict_taken at MSB.
+            history = (((cur['predict_taken'] & 1) << 31) | (history >> 1)) & MASK
+        else:
+            # R4_hold: history unchanged.
+            pass
+
+        # Apply optional mid changes (occur AFTER sampling, before other edge,
+        # carried to start of next row). These are provided as 'mid' key in row.
+        if 'mid' in row and isinstance(row['mid'], dict):
+            for k, v in row['mid'].items():
+                if k in cur:
+                    cur[k] = v
+
+    return results
+```

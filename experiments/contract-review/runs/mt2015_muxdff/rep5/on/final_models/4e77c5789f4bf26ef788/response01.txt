@@ -1,0 +1,43 @@
+def reference(vectors):
+    # Initial registered output Q is unspecified by reset; choose concrete 0.
+    # It will be overwritten at the first sampled posedge.
+    Q = 0
+    # Current input values carried between cycles (including mid-cycle changes).
+    cur = {'L': 0, 'q_in': 0, 'r_in': 0}
+    outs = []
+    for row in vectors:
+        # Apply row input values driven before the sampled posedge.
+        for port in ('L', 'q_in', 'r_in'):
+            if port in row:
+                cur[port] = int(row[port]) & 1
+
+        # R_Q_POSEDGE: On posedge clk, Q is updated to L ? r_in : q_in;
+        # q_in is the external else-data (next-state bit), not Q feedback.
+        L = cur['L']
+        q_in = cur['q_in']
+        r_in = cur['r_in']
+        next_Q = r_in if L else q_in
+        Q = next_Q & 1
+        outs.append({'Q': Q})
+
+        # Process optional mid-cycle changes AFTER sampling; they affect only
+        # the next posedge and are carried to the start of the next row.
+        if 'mid' in row:
+            mid = row['mid']
+            if isinstance(mid, dict):
+                for port, val in mid.items():
+                    if port in ('L', 'q_in', 'r_in'):
+                        cur[port] = int(val) & 1
+            elif isinstance(mid, list):
+                for d in mid:
+                    if isinstance(d, dict):
+                        for port, val in d.items():
+                            if port in ('L', 'q_in', 'r_in'):
+                                cur[port] = int(val) & 1
+
+        # Also allow mid_<port> keys for mid-cycle updates.
+        for port in ('L', 'q_in', 'r_in'):
+            mid_key = 'mid_' + port
+            if mid_key in row:
+                cur[port] = int(row[mid_key]) & 1
+    return outs

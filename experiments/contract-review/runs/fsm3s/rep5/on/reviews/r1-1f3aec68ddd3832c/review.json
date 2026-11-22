@@ -1,0 +1,71 @@
+{
+  "coverage": {
+    "S01": [
+      "unrelated"
+    ],
+    "S02": [
+      "unrelated"
+    ],
+    "S03": [
+      "missing"
+    ],
+    "S04": [
+      "unrelated"
+    ],
+    "S05": [
+      "out_A"
+    ],
+    "S06": [
+      "out_B"
+    ],
+    "S07": [
+      "out_C"
+    ],
+    "S08": [
+      "out_D"
+    ]
+  },
+  "issues": [
+    {
+      "issue_id": "I1",
+      "rule_id": "global",
+      "type": "coverage",
+      "severity": "medium",
+      "detail": "S03 reset-to-A has no rule ID; reset.values only specifies out=0, and reset-to-A relies on the ambiguous state flag.",
+      "spec_evidence": "Include a synchronous active high reset that resets the FSM to state A.",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I2",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "high",
+      "detail": "If update_during_reset=false means B/C/D hold during reset, then reset from B does not force A; reset target is not explicit.",
+      "spec_evidence": "Include a synchronous active high reset that resets the FSM to state A.",
+      "alternative": "reset is synchronous but update_during_reset=false for B-D means those current states do not update while reset=1, so B remains B rather than becoming A.",
+      "sequence": [
+        {
+          "in": 0,
+          "reset": 1
+        },
+        {
+          "in": 1,
+          "reset": 0
+        },
+        {
+          "in": 0,
+          "reset": 1
+        },
+        {
+          "in": 0,
+          "reset": 0
+        },
+        {
+          "in": 1,
+          "reset": 0
+        }
+      ]
+    }
+  ]
+}

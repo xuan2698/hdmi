@@ -1,0 +1,78 @@
+{
+  "coverage": {
+    "S01": [
+      "R1_sync_reset",
+      "R2_dff_capture"
+    ],
+    "S02": [
+      "R1_sync_reset",
+      "R2_dff_capture"
+    ]
+  },
+  "issues": [
+    {
+      "issue_id": "I1",
+      "rule_id": "R1_sync_reset",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "Reset example expected[1] q=0 contradicts rule: at second posedge reset==0 so q should capture d=85, not 0.",
+      "spec_evidence": "active high synchronous reset setting the output to zero",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I2",
+      "rule_id": "R2_dff_capture",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "Capture example omits reset field; with reset unspecified/0 it is fine, but expected[0] q=1 implies prior state ignored; also no reset column makes vectors width-invalid vs ports.",
+      "spec_evidence": "Create 8 D flip-flops",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I3",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec does not state reset priority vs D capture when reset=1 and d nonzero; contract assumes reset wins.",
+      "spec_evidence": "active high synchronous reset setting the output to zero",
+      "alternative": "D capture has priority over reset, so q<=d even when reset==1",
+      "sequence": [
+        {
+          "d": 170,
+          "reset": 1
+        },
+        {
+          "d": 85,
+          "reset": 0
+        }
+      ]
+    },
+    {
+      "issue_id": "I4",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "low",
+      "detail": "Spec silent on initial q before first posedge; contract does not define power-up value.",
+      "spec_evidence": "",
+      "alternative": "q initializes to 0 at time 0 before any clock edge",
+      "sequence": [
+        {
+          "d": 255,
+          "reset": 0
+        }
+      ]
+    },
+    {
+      "issue_id": "I5",
+      "rule_id": "R1_sync_reset",
+      "type": "grounding",
+      "severity": "low",
+      "detail": "Rule quote supports reset-to-zero but not the specific example expected values; example not derivable from spec alone.",
+      "spec_evidence": "active high synchronous reset setting the output to zero",
+      "alternative": "",
+      "sequence": []
+    }
+  ]
+}

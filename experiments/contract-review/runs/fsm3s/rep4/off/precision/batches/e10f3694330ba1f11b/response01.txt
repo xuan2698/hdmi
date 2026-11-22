@@ -1,0 +1,372 @@
+We need to implement the Moore FSM described. The three items differ only in the "uncertain" note about initial state. Let me analyze:
+
+- Item 1 (`ecd33cdceb09c1eac3`): uncertain initial state — output undefined until first posedge establishes state. But we must return width-valid outputs each cycle. The safest interpretation: assume initial state A (output 0) since we need to produce something. Actually the note says "Output is undefined (X) until first posedge establishes state" OR "Assume initial state A". Since we must return width-valid outputs, we'll assume initial state A.
+
+- Item 2 (`673ac1c5faf97c2870`): same uncertain note as item 1.
+
+- Item 3 (`a843bfbc087e532119`): uncertain note says "Assume initial state A and output 0 before first posedge".
+
+All three are functionally identical for our implementation: assume initial state A, output 0.
+
+The FSM:
+- State A: out=0; in=0→A, in=1→B
+- State B: out=0; in=0→C, in=1→B
+- State C: out=0; in=0→A, in=1→D
+- State D: out=1; in=0→C, in=1→B
+- Synchronous active-high reset → state A
+
+The `reference(vectors)` function: vectors is a list of dicts with 'in' and 'reset'. Each row's values are driven before the sampled posedge. Output is combinational based on current state (Moore). We sample after posedge settles.
+
+Protocol: "Each row's values are driven before the sampled edge." So for each vector, we set inputs, then the posedge occurs (state updates based on reset and current state), then we sample output based on new state.
+
+Wait — Moore output is combinational from state. After posedge, state updates, then output reflects new state. So for each cycle: apply inputs, compute next state (reset→A else transition), update state, output = f(state).
+
+Let me write the reference function:
+
+```python
+def reference(vectors):
+    state = 'A'
+    outs = []
+    for v in vectors:
+        i = v['in']
+        r = v['reset']
+        if r == 1:
+            state = 'A'
+        else:
+            if state == 'A':
+                state = 'B' if i == 1 else 'A'
+            elif state == 'B':
+                state = 'C' if i == 0 else 'B'
+            elif state == 'C':
+                state = 'D' if i == 1 else 'A'
+            elif state == 'D':
+                state = 'C' if i == 0 else 'B'
+        out = 1 if state == 'D' else 0
+        outs.append({'out': out})
+    return outs
+```
+
+Let me verify against examples:
+
+Item 1 R8: vectors [{in:1,reset:0},{in:0,reset:0},{in:0,reset:0}], expected [{out:0},{out:1},{out:0}]
+- Start A. v1: in=1 → B, out=0. ✓
+- v2: in=0, state B → C, out=0. Expected out=1? Hmm, expected[1]={out:1}. But state C gives out=0. 
+
+Wait, let me re-read. R8 example: "state == C && in == 0 -> A; state == C && in == 1 -> D". The example vectors start from state C presumably? No — "transition-rule examples assume starting state C" per the state meaning. So the example starts in state C, not A!
+
+Ah, the examples assume the starting state is the state mentioned in the rule. So for R8, start in C:
+- v1: in=1, state C → D, out=1. Expected {out:0}? No, expected[0]={out:0}. Hmm.
+
+Wait, let me reconsider. Maybe output is sampled BEFORE the edge (same cycle, combinational from current state before update)? Let's check R8 with start C:
+- v1: state C, out=0 (before edge). Then edge: in=1 → D. Expected[0]={out:0} ✓
+- v2: state D, out=1 (before edge). Then edge: in=0 → C. Expected[1]={out:1} ✓
+- v3: state C, out=0. Then edge: in=0 → A. Expected[2]={out:0} ✓
+
+Yes! So output is sampled based on the state BEFORE the posedge (i.e., the state at the start of the cycle, which is the state after the previous posedge). This is standard: inputs driven, output reflects current state (combinational), then posedge updates state.
+
+Wait but that contradicts "sample after the posedge edge has settled". Let me re-read: "Clock clk; sample after the posedge edge has settled. Each row's values are driven before the sampled edge."
+
+Hmm. "sample after the posedge has settled" — so we sample output after posedge. But then R8 example wouldn't match with start C...
+
+Let me recheck R8 with "sample after posedge" and start C:
+- v1: in=1, reset=0. Posedge: C→D. Sample: state D, out=1. Expected {out:0}. ✗
+
+With "sample before posedge" (output = f(state before edge)):
+- v1: state C, out=0. ✓
+
+So the examples clearly use output = f(state before posedge). But the protocol says sample after posedge. There's a contradiction. Let me check R9 item 1: vectors [{in:0,reset:0},{in:1,reset:0},{in:0,reset:0}], expected [{out:1},{out:1},{out:1}]. Start state D (rule R9 is about D).
+
+Sample before posedge:
+- v1: state D, out=1. Edge: in=0 → C. ✓
+- v2: state C, out=0. Expected {out:1}. ✗
+
+Hmm, that fails. Let me try sample after posedge, start D:
+- v1: in=0. Edge: D→C. Sample: state C, out=0. Expected {out:1}. ✗
+
+Neither works for R9 item1. Let me re-read R9 item1: "state == D && in == 0 -> C; state == D && in == 1 -> B", example vectors [{in:0,reset:0},{in:1,reset:0},{in:0,reset:0}], expected [{out:1},{out:1},{out:1}].
+
+Hmm expected all 1s. If start D and sample before edge:
+- v1: D, out=1, edge in=0→C
+- v2: C, out=0 ✗
+
+If start D and sample after edge:
+- v1: edge in=0→C, out=0 ✗
+
+What if the example doesn't start in D but the "expected" reflects... Let me try start A with sample after posedge:
+- v1: A, in=0→A, out=0. Expected 1 ✗
+
+Start A sample before:
+- v1: A out=0 ✗
+
+Hmm. Let me look at R9 item2 (673ac...): vectors [{in:0,reset:0},{in:0,reset:0},{in:1,reset:0}], expected [{out:1},{out:0},{out:0}]. Start D.
+
+Sample before edge:
+- v1: D out=1, edge in=0→C ✓
+- v2: C out=0, edge in=0→A ✓
+- v3: A out=0, edge in=1→B ✓
+All match! 
+
+So item2 R9 works with "sample before edge, start D". Item1 R9 with same approach: v1 D out=1 edge in=0→C; v2 C out=0 edge in=1→D; v3 D out=1 edge in=0→C. Expected [{1},{1},{1}]. Got [{1},{0},{1}]. Mismatch at v2.
+
+Hmm, item1 R9 expected all 1s. That's odd. Maybe item1's R9 example is just wrong/uncertain? Or maybe I'm misreading. Let me recheck item1 R9: "example":{"vectors":[{"in":0,"reset":0},{"in":1,"reset":0},{"in":0,"reset":0}],"expected":[{"out":1},{"out":1},{"out":1}]}. 
+
+With start D, sample before edge: D(1)→C, C(0)→D, D(1)→C. Outputs 1,0,1. Doesn't match.
+
+Maybe the examples are just illustrative and not all consistent. The key spec is the state transition table. Let me focus on that and the protocol.
+
+The protocol says "sample after the posedge edge has settled". This means: drive inputs, posedge occurs (state updates), then sample output. So output = f(new state). Let me verify with item2 R8: vectors [{in:1,reset:0},{in:0,reset:0},{in:0,reset:0}], expected [{out:0},{out:1},{out:0}]. Start C (rule R8).
+
+Sample after posedge, start C:
+- v1: in=1, edge C→D, out=1. Expected 0 ✗
+
+Sample before posedge, start C:
+- v1: C out=0, edge in=1→D ✓
+- v2: D out=1, edge in=0→C ✓
+- v3: C out=0, edge in=0→A ✓
+Matches!
+
+So the examples consistently use "output = f(state before posedge)". But protocol says sample after posedge. This is contradictory. However, the examples are more concrete. But wait — maybe "sample after posedge" means the output is registered? No, it's a Moore machine, output is combinational from state.
+
+Actually, re-reading: "Each row's values are driven before the sampled edge." So the sampled edge is the posedge. "sample after the posedge edge has settled" — sample the OUTPUT after posedge. If output is combinational from state, then after posedge state has updated, so output = f(new state).
+
+But examples show f(old state). Unless... the state update happens and then output is sampled, but the "expected" in examples is the output during that cycle which is f(state at start of cycle). 
+
+Hmm, let me reconsider. Maybe the convention is: at cycle k, inputs are driven, output is combinational = f(state_k), then posedge updates to state_{k+1}. The "sample after posedge" might refer to sampling the state for the NEXT cycle's computation, not the output.
+
+Given the examples clearly show output = f(state at start of cycle), and the reset example R5: vectors [{in:0,reset:1},{in:1,reset:0},{in:0,reset:0}], expected [{out:0},{out:0},{out:0}]. Start A (assume). 
+- v1: reset=1, state A out=0, edge→A ✓
+- v2: state A out=0, edge in=1→B ✓
+- v3: state B out=0, edge in=0→C ✓
+All 0. Matches either way.
+
+Let me check R6 item1: vectors [{in:1,reset:0},{in:0,reset:0},{in:0,reset:0}], expected [{0},{0},{0}]. Start A.
+Before edge: A(0)→B, B(0)→C, C(0)→A. Outputs 0,0,0 ✓.
+After edge: B(0), C(0), A(0) → 0,0,0 ✓. Both match.
+
+R7 item1: vectors [{in:1,reset:0},{in:1,reset:0},{in:0,reset:0}], expected [{0},{0},{0}]. Start B.
+Before: B(0)→B, B(0)→B, B(0)→C. Outputs 0,0,0 ✓.
+After: B(0), B(0), C(0) → 0,0,0 ✓.
+
+R8 item1: vectors [{in:1,reset:0},{in:0,reset:0},{in:0,reset:0}], expected [{0},{1},{0}]. Start C.
+Before: C(0)→D, D(1)→C, C(0)→A. Outputs 0,1,0 ✓.
+After: D(1), C(0), A(0) → 1,0,0 ✗.
+
+So R8 item1 confirms "before edge" (output = f(state at start of cycle)).
+
+R9 item2: vectors [{in:0,reset:0},{in:0,reset:0},{in:1,reset:0}], expected [{1},{0},{0}]. Start D.
+Before: D(1)→C, C(0)→A, A(0)→B. Outputs 1,0,0 ✓.
+After: C(0), A(0), B(0) → 0,0,0 ✗.
+
+Confirms "before edge".
+
+So the correct semantics: output = f(current state) where current state is the state at the beginning of the cycle (before posedge). Then posedge updates state.
+
+But wait, the protocol says "sample after the posedge edge has settled". Maybe the intended meaning: the output is sampled after the posedge, but the output reflects the state that was present before the posedge (because the state update is what the posedge does, and output is combinational from the pre-edge state during the setup). Actually in real hardware, at the posedge, the state register updates. The output is combinational from the register. So immediately after posedge, output = f(new state). But the "expected" in examples is f(old state).
+
+Hmm, unless the examples are showing the output during the cycle BEFORE the posedge (i.e., the output that was stable leading up to the posedge). "sample after the posedge edge has settled" might mean: we look at the output that was present just before the posedge (which is f(old state)), because after posedge it changes.
+
+Actually, I think the cleanest interpretation matching all examples: for each vector, output = f(state) where state is the current state (before applying this vector's transition). Then update state based on reset and in.
+
+Let me just go with that. It matches R8 and R9 examples.
+
+But then the protocol "sample after posedge" is confusing. Let me reconsider: maybe the vectors represent cycles, and for cycle k, the inputs are driven, then posedge occurs, then we sample output. The state used for output is the state AFTER the posedge. But examples contradict.
+
+Given the examples are the concrete ground truth, I'll use: output = f(state before posedge), then update.
+
+Wait, but actually let me reconsider the reset. "synchronous active high reset that resets the FSM to state A". If reset is high at posedge, state becomes A. The output during that cycle (before posedge) is f(old state). After posedge, state=A, output=0.
+
+R5 example: [{in:0,reset:1},{in:1,reset:0},{in:0,reset:0}], expected [{0},{0},{0}]. Start A.
+Before: A(0), reset→A; A(0), in=1→B; B(0), in=0→C. Outputs 0,0,0 ✓.
+
+OK so my model: 
+```
+state = 'A'
+for v in vectors:
+    out = 1 if state=='D' else 0
+    outs.append({'out': out})
+    # update state
+    if v['reset']==1:
+        state='A'
+    else:
+        # transition based on state and in
+```
+
+Wait, but this means output is computed BEFORE the update. Let me re-examine: "Each row's values are driven before the sampled edge." So inputs driven, then edge, then sample. If we sample output after edge, output=f(new state). But examples show f(old state).
+
+Unless... the "expected" outputs in examples are the outputs during the cycle, which in a Moore machine is f(state) where state is the current registered state. The registered state updates at posedge. So during cycle k (between posedge k-1 and posedge k), state = state_k, output = f(state_k). At posedge k, state becomes state_{k+1}. So the output sampled "after posedge k has settled" would be f(state_{k+1}).
+
+But examples show f(state_k). So either the examples are labeled differently, or "sample after posedge" means something else.
+
+I'll trust the examples. Let me also check: does the reset affect output in the same cycle? R5: reset=1 at v1, output 0. If state was D before, output would be 1 before reset takes effect. But example starts at A so can't tell. The spec says reset is synchronous, so it only takes effect at posedge. Output during the cycle with reset=1 but before posedge is f(old state). After posedge, state=A.
+
+Given ambiguity, and that all examples start from the rule's state, I'll implement: output = f(state) computed at start of cycle, then state updates.
+
+Actually, let me reconsider once more. The phrase "sample after the posedge edge has settled" combined with "Each row's values are driven before the sampled edge" suggests: for each row, drive inputs, wait for posedge, then sample output. If output is combinational from state, and state updated at posedge, then output = f(new state).
+
+But R8 item1 clearly shows f(old state). Let me re-verify R8 item1 very carefully:
+Rule R8: "state == C && in == 0 -> A; state == C && in == 1 -> D". Example vectors: in=1, in=0, in=0. Expected out: 0, 1, 0. Start state C.
+
+If output = f(new state) after posedge:
+- v1: in=1, C→D, out=f(D)=1. Expected 0. ✗
+
+If output = f(old state) before posedge:
+- v1: state C, out=0. Then C→D. ✓
+- v2: state D, out=1. Then D→C (in=0). ✓
+- v3: state C, out=0. Then C→A (in=0). ✓
+
+Definitely f(old state). So the "sample after posedge" must mean: the output is sampled after the posedge, but it reflects the state that was clocked in at the PREVIOUS posedge (i.e., the current state during this cycle). In other words, the output is stable during the cycle and we sample it after the posedge that STARTS the cycle. Hmm, that's a stretch.
+
+Actually, maybe the protocol means: the testbench drives inputs, then at posedge the DUT samples inputs and updates state, then after posedge settles, the testbench samples the output. The output after posedge = f(new state). But the examples show f(old state)...
+
+I'm going in circles. Let me just go with the examples: output = f(state at start of cycle). This is the most consistent with the concrete data.
+
+Hmm, but wait. Let me reconsider the possibility that the examples' "expected" is the output BEFORE the edge, and the protocol's "sample after posedge" refers to sampling the STATE (for verification of next state), not the output. The output is combinational and visible same_cycle (per rules R1-R4: "edge":"combinational","visible":"same_cycle"). So output is visible in the same cycle as the state, before any edge. That's consistent with output = f(current state) where current state is the state during that cycle.
+
+And the posedge rules (R5-R9) have "visible":"next_cycle" — meaning the effect of the transition is visible next cycle. So the transition at posedge k affects the state (and thus output) in cycle k+1.
+
+So: cycle k has state S_k, output f(S_k). At posedge k, state becomes S_{k+1}. Cycle k+1 has state S_{k+1}, output f(S_{k+1}).
+
+The vectors list represents cycles. For vector k, we drive inputs, the output during cycle k is f(S_k), and at the posedge ending cycle k, state updates to S_{k+1} based on inputs and reset.
+
+Wait, but "Each row's values are driven before the sampled edge" — the sampled edge is the posedge. So for row k, inputs are driven, then posedge occurs (updating state), then we sample. If we sample output after posedge, we get f(S_{k+1}). But examples show f(S_k).
+
+Unless the "sampled edge" for row k is the posedge at the END of row k, and the output sampled is the output during row k (before that posedge). That would be f(S_k). This matches!
+
+So: for each row, drive inputs, the output during this row is f(current state), then at the posedge (end of row), state updates. The "sample after posedge" might be a red herring or refer to sampling the state for the next row.
+
+OK, I'm confident: output = f(state at start of row), then update state at posedge.
+
+Let me also handle the reset: synchronous, so at posedge, if reset=1, state→A. The output during the row with reset=1 is f(old state). After posedge, state=A.
+
+Now, the initial state: assume A (per item3's note, and as a reasonable default for items 1&2 since we must output something).
+
+Let me write the final code. All three items get the same implementation.
+
+```python
+def reference(vectors):
+    state = 'A'
+    outs = []
+    for v in vectors:
+        i = v['in']
+        r = v['reset']
+        out = 1 if state == 'D' else 0
+        outs.append({'out': out})
+        if r == 1:
+            state = 'A'
+        else:
+            if state == 'A':
+                state = 'B' if i == 1 else 'A'
+            elif state == 'B':
+                state = 'C' if i == 0 else 'B'
+            elif state == 'C':
+                state = 'D' if i == 1 else 'A'
+            elif state == 'D':
+                state = 'C' if i == 0 else 'B'
+    return outs
+```
+
+Let me double check R9 item1 with this: start D (but our code starts A). The example assumes start D. Our code starts A. So for the actual test, the vectors would presumably include a reset or the test harness sets initial state. Since we can't know, we assume A. The examples are just illustrative of the rule from that state.
+
+Actually, the examples might be run with the initial state set to the rule's state. But our reference function always starts at A. If the test harness runs the example vectors directly against our function, we'd fail R9 item1 (which expects start D). But we can't detect the starting state from vectors alone. The spec says "Initial state before first posedge is unspecified" for items 1&2, and "assumed to be A" for item3. So we assume A. The examples are just documentation.
+
+Hmm, but if the grader runs the examples, we need to match. Let me check: for R9 item1, if we start A: v1 in=0→A out=0; v2 in=1→B out=0; v3 in=0→C out=0. Expected [1,1,1]. Fail.
+
+But the example is for rule R9 which is about state D. The example assumes starting state D. Our function can't know that. Unless the vectors include a reset to get to D? No.
+
+I think the examples are just illustrative and the actual test will provide vectors that include reset or start from A. The spec says "transition-rule examples assume starting state X" — so these examples are meant to be run with the FSM initialized to state X. But our reference function has no way to know X. 
+
+Given the constraints, I'll assume initial state A for all. This matches item3's explicit note and is the reasonable default.
+
+Actually, wait. Maybe the test harness for each item will run vectors that start with a reset to establish state A, then test. Or maybe the examples are run with the FSM pre-set. Since we can't control that, and the spec says "Initial state before first posedge is unspecified" (items 1&2) or "assumed to be A" (item3), I'll go with A.
+
+Let me finalize. All three items get identical code.
+
+Actually, let me reconsider whether output should be sampled after the state update. Let me re-read the protocol one more time: "Clock clk; sample after the posedge edge has settled. Each row's values are driven before the sampled edge."
+
+"sample after the posedge edge has settled" — sample what? The output. So output is sampled after posedge. If output is combinational from state, and state updated at posedge, then output = f(new state).
+
+But examples show f(old state). Contradiction.
+
+Unless the state update is not at the posedge but the output is registered? No, it's a Moore machine with combinational output (rules R1-R4 say combinational, same_cycle).
+
+Let me try yet another interpretation: maybe the vectors represent the inputs during each cycle, and the "expected" output is the output during that cycle (which is f(state at start of cycle)). The posedge at the end of the cycle updates state. The "sample after posedge" might mean the testbench samples the output after the posedge that ends the PREVIOUS cycle (i.e., at the start of the current cycle). So for row k, we sample output after posedge k-1 (which started cycle k), giving f(S_k). This matches examples!
+
+Yes, I think that's it: "sample after the posedge edge has settled" means after the posedge that begins the current cycle. So output = f(state at start of cycle). Then the posedge at the end of the cycle updates state.
+
+OK, final answer with output = f(state at start of row), then update.
+
+Let me write clean code for all three.
+
+```python
+def reference(vectors):
+    state = 'A'
+    outs = []
+    for v in vectors:
+        i = v['in']
+        r = v['reset']
+        out = 1 if state == 'D' else 0
+        outs.append({'out': out})
+        if r == 1:
+            state = 'A'
+        elif state == 'A':
+            state = 'B' if i == 1 else 'A'
+        elif state == 'B':
+            state = 'C' if i == 0 else 'B'
+        elif state == 'C':
+            state = 'D' if i == 1 else 'A'
+        else:  # D
+            state = 'C' if i == 0 else 'B'
+    return outs
+```
+
+This is the same for all three items. Let me produce the JSON.
+
+Wait, I should double-check the reset behavior: "synchronous active high reset that resets the FSM to state A". So at posedge, if reset=1, state→A regardless of in. My code does that. Good.
+
+Also, "update_during_reset":true for all states — meaning the state updates during reset (to A). Good.
+
+Let me also verify R5 example with my code: vectors [{in:0,reset:1},{in:1,reset:0},{in:0,reset:0}], expected [{0},{0},{0}]. Start A.
+- v1: state A, out=0. reset=1→A. ✓
+- v2: state A, out=0. in=1→B. ✓
+- v3: state B, out=0. in=0→C. ✓
+All 0. ✓
+
+R6 item1: [{in:1,reset:0},{in:0,reset:0},{in:0,reset:0}], expected [{0},{0},{0}]. Start A.
+- v1: A out=0, in=1→B ✓
+- v2: B out=0, in=0→C ✓
+- v3: C out=0, in=0→A ✓
+✓
+
+R7 item1: [{in:1,reset:0},{in:1,reset:0},{in:0,reset:0}], expected [{0},{0},{0}]. Start B.
+Our code starts A. v1: A out=0, in=1→B. v2: B out=0, in=1→B. v3: B out=0, in=0→C. Outputs 0,0,0 ✓ (matches expected even though start differs, because outputs are all 0).
+
+R8 item1: [{in:1,reset:0},{in:0,reset:0},{in:0,reset:0}], expected [{0},{1},{0}]. Start C.
+Our code starts A: v1 A out=0 in=1→B; v2 B out=0 in=0→C; v3 C out=0 in=0→A. Outputs 0,0,0. Expected 0,1,0. ✗
+
+So if the grader runs R8 example directly against our function starting at A, we fail. But the example assumes start C. The grader must set initial state to C for this example. Since our function can't know, we'd fail. But the spec says initial state is unspecified/assumed A. So the grader probably doesn't run these examples directly, or runs them with the appropriate initial state somehow.
+
+Given the constraints, I'll go with initial state A. This is the best we can do.
+
+Actually, maybe the grader runs each example with the FSM initialized to the rule's state. But our function signature is fixed: reference(vectors). We can't receive initial state. So either the grader prepends a reset sequence, or it accepts our A-start behavior.
+
+I'll proceed with A-start.
+
+Let me write the final JSON. All three items get the same source string.
+
+```json
+{"models":{"ecd33cdceb09c1eac3":"def reference(vectors):\n    state = 'A'\n    outs = []\n    for v in vectors:\n        i = v['in']\n        r = v['reset']\n        out = 1 if state == 'D' else 0\n        outs.append({'out': out})\n        if r == 1:\n            state = 'A'\n        elif state == 'A':\n            state = 'B' if i == 1 else 'A'\n        elif state == 'B':\n            state = 'C' if i == 0 else 'B'\n        elif state == 'C':\n            state = 'D' if i == 1 else 'A'\n        else:\n            state = 'C' if i == 0 else 'B'\n    return outs","673ac1c5faf97c2870":"...same...","a843bfbc087e532119":"...same..."}}
+```
+
+Let me write it out properly. I'll use the same string for all three.
+
+Actually, let me reconsider one more time whether output should be after state update. The protocol explicitly says "sample after the posedge edge has settled". If the grader follows this literally, output = f(new state). Let me check if any example distinguishes and favors "after":
+
+R8 item1: expected [0,1,0]. After-update: v1 C→D out=1 (expected 0) ✗. Before-update: 0 ✓. So before-update wins.
+
+R9 item2: expected [1,0,0]. After-update: v1 D→C out=0 (expected 1) ✗. Before-update: 1 ✓. Before-update wins.
+
+So examples definitively favor before-update (output = f(state at start of cycle)). I'll go with that.
+
+Final answer.</think>```json
+{"models":{"ecd33cdceb09c1eac3":"def reference(vectors):\n    state = 'A'\n    outs = []\n    for v in vectors:\n        i = v['in']\n        r = v['reset']\n        out = 1 if state == 'D' else 0\n        outs.append({'out': out})\n        if r == 1:\n            state = 'A'\n        elif state == 'A':\n            state = 'B' if i == 1 else 'A'\n        elif state == 'B':\n            state = 'C' if i == 0 else 'B'\n        elif state == 'C':\n            state = 'D' if i == 1 else 'A'\n        else:\n            state = 'C' if i == 0 else 'B'\n    return outs","673ac1c5faf97c2870":"def reference(vectors):\n    state = 'A'\n    outs = []\n    for v in vectors:\n        i = v['in']\n        r = v['reset']\n        out = 1 if state == 'D' else 0\n        outs.append({'out': out})\n        if r == 1:\n            state = 'A'\n        elif state == 'A':\n            state = 'B' if i == 1 else 'A'\n        elif state == 'B':\n            state = 'C' if i == 0 else 'B'\n        elif state == 'C':\n            state = 'D' if i == 1 else 'A'\n        else:\n            state = 'C' if i == 0 else 'B'\n    return outs","a843bfbc087e532119":"def reference(vectors):\n    state = 'A'\n    outs = []\n    for v in vectors:\n        i = v['in']\n        r = v['reset']\n        out = 1 if state == 'D' else 0\n        outs.append({'out': out})\n        if r == 1:\n            state = 'A'\n        elif state == 'A':\n            state = 'B' if i == 1 else 'A'\n        elif state == 'B':\n            state = 'C' if i == 0 else 'B'\n        elif state == 'C':\n            state = 'D' if i == 1 else 'A'\n        else:\n            state = 'C' if i == 0 else 'B'\n    return outs"}}
+```

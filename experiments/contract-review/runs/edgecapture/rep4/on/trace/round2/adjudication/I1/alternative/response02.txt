@@ -1,0 +1,47 @@
+```python
+def reference(vectors):
+    # Rule sync_active_high_reset: active high synchronous reset, priority 1.
+    # Rule capture_sticky_one_to_zero: sticky capture of 1->0 transitions, priority 2.
+    # Uncertainty resolution: prev_in is cleared during reset, so first reset==0 posedge cannot capture from reset-cycle input.
+    MASK = 0xFFFFFFFF
+    out_reg = 0
+    prev_in = 0
+    carry_reset = 0
+    carry_in = 0
+    results = []
+    for row in vectors:
+        # Drive row inputs before sampled posedge.
+        if 'reset' in row:
+            carry_reset = row['reset'] & 1
+        reset_val = carry_reset
+        if 'in' in row:
+            carry_in = row['in'] & MASK
+        in_val = carry_in
+
+        # Sampled posedge state update.
+        if reset_val == 1:
+            # sync_active_high_reset: clear out and prev_in per uncertainty resolution.
+            out_reg = 0
+            prev_in = 0
+        else:
+            # capture_sticky_one_to_zero: detect per-bit 1->0 transitions using prev_in.
+            capture = prev_in & (in_val ^ MASK)
+            out_reg = (out_reg | capture) & MASK
+            prev_in = in_val & MASK
+
+        results.append({'out': out_reg & MASK})
+
+        # Apply optional mid changes after sampling; carried to start of next row.
+        if 'mid' in row:
+            mid = row['mid']
+            if mid is not None:
+                if mid.__class__.__name__ == 'dict':
+                    if 'reset' in mid:
+                        carry_reset = mid['reset'] & 1
+                    if 'in' in mid:
+                        carry_in = mid['in'] & MASK
+                else:
+                    # Treat bare integer mid value as new in value.
+                    carry_in = mid & MASK
+    return results
+```

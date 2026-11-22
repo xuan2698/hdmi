@@ -1,0 +1,155 @@
+{
+  "coverage": {
+    "S01": [
+      "R1",
+      "R2",
+      "R3",
+      "R4",
+      "R6",
+      "R7",
+      "R8",
+      "R9"
+    ],
+    "S02": [
+      "R1",
+      "R2",
+      "R3",
+      "R4",
+      "R6",
+      "R7",
+      "R8",
+      "R9"
+    ],
+    "S03": [
+      "R5"
+    ],
+    "S04": [
+      "R1",
+      "R2",
+      "R3",
+      "R4"
+    ],
+    "S05": [
+      "R1",
+      "R6"
+    ],
+    "S06": [
+      "R2",
+      "R7"
+    ],
+    "S07": [
+      "R3",
+      "R8"
+    ],
+    "S08": [
+      "R4",
+      "R9"
+    ]
+  },
+  "issues": [
+    {
+      "issue_id": "I1",
+      "rule_id": "R5",
+      "type": "consistency",
+      "severity": "medium",
+      "detail": "R5 example expects out=0 at first vector with reset=1, but reset values say out=0 and state A output is 0; example is consistent but R5's 'visible:next_cycle' with reset asserted at first posedge is ambiguous whether out reflects reset state same cycle.",
+      "spec_evidence": "Include a synchronous active high reset that resets the FSM to state A.",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I2",
+      "rule_id": "R1",
+      "type": "ambiguity",
+      "severity": "high",
+      "detail": "R1-R4 are combinational output rules keyed on state, but state is only defined after a posedge; initial state before first reset/edge is unspecified, so out before first posedge is undefined.",
+      "spec_evidence": "The following is the state transition table for a Moore state machine with one input, one output, and four states.",
+      "alternative": "Output is undefined (X) until first posedge establishes state; alternatively assume initial state A.",
+      "sequence": [
+        {
+          "in": 0,
+          "reset": 0
+        },
+        {
+          "in": 1,
+          "reset": 0
+        }
+      ]
+    },
+    {
+      "issue_id": "I3",
+      "rule_id": "R6",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Transition rules R6-R9 use 'visible:next_cycle' but examples show outputs for the same vectors without indicating state progression; example expected values are all 0 for R6-R8 and all 1 for R9, which only holds if starting state matches the rule's state, not derivable from vectors alone.",
+      "spec_evidence": "A | A, B | 0",
+      "alternative": "Examples assume initial state equals the rule's source state; without reset the starting state is ambiguous.",
+      "sequence": [
+        {
+          "in": 0,
+          "reset": 0
+        },
+        {
+          "in": 1,
+          "reset": 0
+        },
+        {
+          "in": 0,
+          "reset": 0
+        }
+      ]
+    },
+    {
+      "issue_id": "I4",
+      "rule_id": "global",
+      "type": "consistency",
+      "severity": "medium",
+      "detail": "R5 priority 0 vs R1-R4 priority 1: reset should override output, but R1-R4 are combinational on state and R5 is posedge next_cycle; during reset assertion, out should be 0 per reset.values, but combinational rules may drive out based on current state before reset takes effect.",
+      "spec_evidence": "synchronous active high reset that resets the FSM to state A",
+      "alternative": "Reset forces out=0 combinationally while asserted; or only after posedge.",
+      "sequence": [
+        {
+          "in": 1,
+          "reset": 1
+        },
+        {
+          "in": 0,
+          "reset": 0
+        }
+      ]
+    },
+    {
+      "issue_id": "I5",
+      "rule_id": "R4",
+      "type": "spec_example",
+      "severity": "low",
+      "detail": "R4 example vectors {in:0,reset:0},{in:1,reset:0},{in:0,reset:0} expect out=1 for all, but reaching state D requires specific prior transitions; vectors alone don't establish state D at start.",
+      "spec_evidence": "D | C, B | 1",
+      "alternative": "Example presumes initial state D; otherwise out would differ.",
+      "sequence": [
+        {
+          "in": 0,
+          "reset": 0
+        },
+        {
+          "in": 1,
+          "reset": 0
+        },
+        {
+          "in": 0,
+          "reset": 0
+        }
+      ]
+    },
+    {
+      "issue_id": "I6",
+      "rule_id": "global",
+      "type": "grounding",
+      "severity": "low",
+      "detail": "Spec S01-S08 fully mapped; no missing segments. All rules have verbatim spec_quote present in spec. No uncertain flags needed.",
+      "spec_evidence": "",
+      "alternative": "",
+      "sequence": []
+    }
+  ]
+}

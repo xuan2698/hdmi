@@ -1,0 +1,107 @@
+```python
+def reference(vectors):
+    # Initial state: 12:00:00 AM. (Power-up unspecified; contract examples assume reset state.)
+    pm = 0
+    hh = 0x12
+    mm = 0x00
+    ss = 0x00
+    # Current input signals carried between rows.
+    reset = 0
+    ena = 0
+    outputs = []
+
+    for row in vectors:
+        # Drive row input values before the sampled posedge.
+        if isinstance(row, dict):
+            # Support optional nested "inputs"/"in" dictionaries.
+            for key in ("inputs", "in"):
+                if key in row and isinstance(row[key], dict):
+                    sub = row[key]
+                    if "reset" in sub:
+                        reset = sub["reset"]
+                    if "ena" in sub:
+                        ena = sub["ena"]
+            # Direct keys take precedence.
+            if "reset" in row:
+                reset = row["reset"]
+            if "ena" in row:
+                ena = row["ena"]
+
+        # Rule reset_priority: synchronous reset has priority over enable.
+        if reset:
+            pm = 0
+            hh = 0x12
+            mm = 0x00
+            ss = 0x00
+        # Rule increment_clock: reset==0 and ena==1, advance 12-hour BCD clock.
+        elif ena:
+            # Seconds increment and carry.
+            if ss == 0x59:
+                ss = 0x00
+                carry_ss = True
+            else:
+                low = ss & 0x0F
+                high = (ss >> 4) & 0x0F
+                if low == 9:
+                    low = 0
+                    high += 1
+                else:
+                    low += 1
+                ss = (high << 4) | low
+                carry_ss = False
+
+            if carry_ss:
+                # Minutes increment and carry.
+                if mm == 0x59:
+                    mm = 0x00
+                    carry_mm = True
+                else:
+                    low = mm & 0x0F
+                    high = (mm >> 4) & 0x0F
+                    if low == 9:
+                        low = 0
+                        high += 1
+                    else:
+                        low += 1
+                    mm = (high << 4) | low
+                    carry_mm = False
+
+                if carry_mm:
+                    # Hours increment with 12->01 and AM/PM toggle on 11->12.
+                    if hh == 0x12:
+                        hh = 0x01
+                        # pm unchanged
+                    elif hh == 0x11:
+                        hh = 0x12
+                        pm = 1 - pm
+                    else:
+                        low = hh & 0x0F
+                        high = (hh >> 4) & 0x0F
+                        if low == 9:
+                            low = 0
+                            high += 1
+                        else:
+                            low += 1
+                        hh = (high << 4) | low
+        # Rule hold_clock: reset==0 and ena==0, hold state.
+        else:
+            pass
+
+        # Output after posedge has settled.
+        outputs.append({
+            "pm": pm & 0x1,
+            "hh": hh & 0xFF,
+            "mm": mm & 0xFF,
+            "ss": ss & 0xFF
+        })
+
+        # Apply optional mid input changes after sampling, before next edge.
+        if isinstance(row, dict) and "mid" in row and isinstance(row["mid"], dict):
+            mid = row["mid"]
+            if "reset" in mid:
+                reset = mid["reset"]
+            if "ena" in mid:
+                ena = mid["ena"]
+
+    return outputs
+```

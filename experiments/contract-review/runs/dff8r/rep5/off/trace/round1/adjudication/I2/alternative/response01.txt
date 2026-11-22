@@ -1,0 +1,18 @@
+```python
+def reference(vectors):
+    # State: q_reg holds the 8-bit flip-flop storage (R1_sync_reset, R2_d_capture)
+    q_reg = 0  # power-up unspecified; concrete value chosen
+    out = []
+    for row in vectors:
+        d = row.get('d', 0)
+        reset = row.get('reset', 0)
+        # R1_sync_reset: on posedge with reset=1, capture d instead of clearing q
+        # (per candidate interpretation for unresolved R1_sync_reset)
+        if reset == 1:
+            q_reg = d & 0xFF
+        else:
+            # R2_d_capture: on posedge with reset=0, capture d
+            q_reg = d & 0xFF
+        out.append({'q': q_reg & 0xFF})
+    return out
+```

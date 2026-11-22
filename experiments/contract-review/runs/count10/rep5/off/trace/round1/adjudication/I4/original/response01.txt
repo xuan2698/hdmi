@@ -1,0 +1,25 @@
+```python
+def reference(vectors):
+    # Contract implementation for a synchronous active-high reset decade counter.
+    # State: q (4-bit), initialized to 0 (power-up unspecified but concrete).
+    q = 0
+    out = []
+    for row in vectors:
+        # Inputs are driven before the sampled posedge.
+        reset = row.get("reset", 0)
+        # R1: reset == 1 -> q = 0 (sync, posedge, priority 1)
+        # R2: reset == 0 && q < 9 -> q = q + 1 (priority 2)
+        # R3: reset == 0 && q == 9 -> q = 0 (priority 3)
+        if reset == 1:
+            q = 0
+        else:
+            if q < 9:
+                q = q + 1
+            else:
+                q = 0
+        # Output visible same cycle after posedge settles.
+        out.append({"q": q & 0xF})
+        # Mid changes occur AFTER sampling; carried to next row start.
+        # (No mid inputs affect this design beyond reset, which is sampled.)
+    return out
+```

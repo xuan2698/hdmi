@@ -1,0 +1,59 @@
+def reference(vectors):
+    # State encoding: 0=S0 (z=0), 1=S1 (z=1), 2=S2 (z=0)
+    state = 0
+    z = 0
+    areset = 1  # active-low unresolved interpretation: 0 asserts reset, 1 releases
+    x = 0
+    result = []
+
+    for row in vectors:
+        if 'areset' in row:
+            areset = row['areset']
+        if 'x' in row:
+            x = row['x']
+
+        # async_reset_z0: active-low areset=0 asynchronously forces state S0 and z=0
+        if areset == 0:
+            state = 0
+            z = 0
+        else:
+            # s0_x0: S0 with x=0 stays S0, z=0
+            if state == 0 and x == 0:
+                state = 0
+                z = 0
+            # s0_x1: S0 with x=1 goes S1, z=1
+            elif state == 0 and x == 1:
+                state = 1
+                z = 1
+            # s1_x0: S1 with x=0 stays S1, z=1
+            elif state == 1 and x == 0:
+                state = 1
+                z = 1
+            # s1_x1: S1 with x=1 goes S2, z=0
+            elif state == 1 and x == 1:
+                state = 2
+                z = 0
+            # s2_x0: S2 with x=0 goes S1, z=1
+            elif state == 2 and x == 0:
+                state = 1
+                z = 1
+            # s2_x1: S2 with x=1 stays S2, z=0
+            else:  # state == 2 and x == 1
+                state = 2
+                z = 0
+
+        result.append({'z': z})
+
+        # mid changes happen after sampling, before the next clock edge
+        if 'mid' in row:
+            mid = row['mid']
+            if 'areset' in mid:
+                areset = mid['areset']
+            if 'x' in mid:
+                x = mid['x']
+            # async_reset_z0: mid assertion of active-low reset asynchronously forces S0 and z=0
+            if areset == 0:
+                state = 0
+                z = 0
+
+    return result

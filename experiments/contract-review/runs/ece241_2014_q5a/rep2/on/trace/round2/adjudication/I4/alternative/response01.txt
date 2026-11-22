@@ -1,0 +1,79 @@
+def reference(vectors):
+    if isinstance(vectors, dict) and 'vectors' in vectors:
+        vectors = vectors['vectors']
+    out = []
+    state = 0  # S0
+    z_reg = 0
+    cur = {'areset': 0, 'x': 0}
+    for row in vectors:
+        # Drive row primary inputs before the sampled posedge.
+        if 'areset' in row:
+            cur['areset'] = 1 if row['areset'] else 0
+        if 'x' in row:
+            cur['x'] = 1 if row['x'] else 0
+
+        # async_reset_z0: active-high asynchronous reset forces state S0 and z=0
+        # while asserted, before the sampled posedge.
+        if cur['areset'] == 1:
+            state = 0
+            z_reg = 0
+
+        pre_state = state
+        x = cur['x']
+
+        if cur['areset'] == 1:
+            # async_reset_z0: reset remains asserted; state S0, z=0 after settled edge.
+            state = 0
+            z_reg = 0
+            row_z = 0
+        else:
+            # global: One-cycle-latent registered Moore output based on pre-edge state.
+            # Moore output: S0=0, S1=1, S2=0.
+            if pre_state == 1:
+                nxt_z = 1
+            else:
+                nxt_z = 0
+
+            # State transitions at sampled posedge with areset=0.
+            if pre_state == 0:
+                if x == 0:
+                    # s0_x0
+                    state = 0
+                else:
+                    # s0_x1
+                    state = 1
+            elif pre_state == 1:
+                if x == 0:
+                    # s1_x0
+                    state = 1
+                else:
+                    # s1_x1
+                    state = 2
+            else:
+                if x == 0:
+                    # s2_x0
+                    state = 1
+                else:
+                    # s2_x1
+                    state = 2
+
+            z_reg = nxt_z
+            row_z = z_reg
+
+        out.append({'z': int(row_z & 1)})
+
+        # Mid changes occur after sampling, before the other edge, and carry to next row.
+        if 'mid' in row and row['mid'] is not None:
+            mid = row['mid']
+            if 'areset' in mid:
+                cur['areset'] = 1 if mid['areset'] else 0
+            if 'x' in mid:
+                cur['x'] = 1 if mid['x'] else 0
+
+            # async_reset_z0: a mid-row assertion of async reset takes effect
+            # immediately after the sampled edge.
+            if cur['areset'] == 1:
+                state = 0
+                z_reg = 0
+
+    return out

@@ -1,0 +1,63 @@
+def reference(vectors):
+    # Rule async_reset: active-low reset (candidate interpretation)
+    # Rule serial_twos_complement: FSM transitions and Moore output
+    A, B, C = 0, 1, 2
+    state = A
+    cur_areset = 1  # active-low reset is inactive by default
+    cur_x = 0
+    out = []
+    for row in vectors:
+        # Sample inputs driven before the posedge
+        if 'areset' in row:
+            cur_areset = row['areset']
+        if 'x' in row:
+            cur_x = row['x']
+        # Rule async_reset: if areset=0 (active), force state A asynchronously
+        if cur_areset == 0:
+            state = A
+        else:
+            # Rule serial_twos_complement: posedge transition when areset=1
+            if state == A:
+                if cur_x == 1:
+                    state = B
+            elif state == B:
+                if cur_x == 1:
+                    state = C
+            elif state == C:
+                if cur_x == 0:
+                    state = B
+        # Rule serial_twos_complement: Moore output after settled posedge
+        z = 1 if state == B else 0
+        out.append({'z': z})
+        # Process any mid changes occurring after sampling
+        mid_changes = []
+        if 'mid' in row:
+            mid_changes.append(row['mid'])
+        if 'mid_changes' in row:
+            mid_changes.append(row['mid_changes'])
+        for mid in mid_changes:
+            if isinstance(mid, dict):
+                if 'areset' in mid:
+                    cur_areset = mid['areset']
+                    # Rule async_reset: asynchronous reset if active-low asserted mid-cycle
+                    if cur_areset == 0:
+                        state = A
+                if 'x' in mid:
+                    cur_x = mid['x']
+            elif isinstance(mid, list):
+                for m in mid:
+                    if isinstance(m, dict):
+                        if 'areset' in m:
+                            cur_areset = m['areset']
+                            if cur_areset == 0:
+                                state = A
+                        if 'x' in m:
+                            cur_x = m['x']
+        # Support alternate encoding of mid changes as individual keys
+        if 'mid_areset' in row:
+            cur_areset = row['mid_areset']
+            if cur_areset == 0:
+                state = A
+        if 'mid_x' in row:
+            cur_x = row['mid_x']
+    return out

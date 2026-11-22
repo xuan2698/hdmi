@@ -1,0 +1,65 @@
+{
+  "coverage": {
+    "S01": [
+      "R_CONVERT"
+    ],
+    "S02": [
+      "R_CONVERT"
+    ],
+    "S03": [
+      "R_CONVERT"
+    ],
+    "S04": [
+      "R_RESET",
+      "R_CONVERT"
+    ],
+    "S05": [
+      "R_RESET",
+      "R_CONVERT"
+    ]
+  },
+  "issues": [
+    {
+      "issue_id": "I1_RESET_POLARITY",
+      "rule_id": "R_RESET",
+      "type": "ambiguity",
+      "severity": "high",
+      "detail": "Spec does not define areset polarity; contract leaves active unspecified while example assumes areset=1 asserted.",
+      "spec_evidence": "The circuit requires a positive edge triggered asynchronous reset.",
+      "alternative": "active-low areset: 0 asserts reset (z=0), 1 releases; sequence gives active-high z=0,0,1 vs active-low z=1,0,0.",
+      "sequence": [
+        {
+          "areset": 1,
+          "x": 1
+        },
+        {
+          "areset": 0,
+          "x": 0
+        },
+        {
+          "areset": 0,
+          "x": 1
+        }
+      ]
+    },
+    {
+      "issue_id": "I2_RESET_VALUE",
+      "rule_id": "R_RESET",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec does not state z while reset asserted; contract forces z=0. Alternative reset stops conversion but holds previous z.",
+      "spec_evidence": "The conversion begins when Reset is released and stops when Reset is asserted.",
+      "alternative": "active-high reset asserted but z holds previous value instead of forcing 0.",
+      "sequence": [
+        {
+          "areset": 0,
+          "x": 1
+        },
+        {
+          "areset": 1,
+          "x": 0
+        }
+      ]
+    }
+  ]
+}

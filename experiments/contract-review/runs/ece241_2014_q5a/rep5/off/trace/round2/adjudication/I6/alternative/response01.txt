@@ -1,0 +1,50 @@
+```python
+def reference(vectors):
+    # State machine for 2's complementer (LSB first).
+    # States: S0 = no 1 seen yet (pass through), S1 = 1 seen (complement).
+    # R5: async reset forces state to S0 immediately.
+    # R1: in S0, z = x.
+    # R2: in S1, z = NOT x.
+    # R3: posedge, S0 + x=1 -> S1; S0 + x=0 -> S0.
+    # R4: posedge, S1 -> S1 regardless of x.
+    # Mid changes occur after sampling, carried to next row.
+
+    state = "S0"  # power-up unspecified but we pick S0; reset will set it
+    results = []
+
+    for row in vectors:
+        areset = row.get("areset", 0)
+        x = row.get("x", 0)
+
+        # R5: asynchronous reset asserted -> state S0 immediately
+        if areset == 1:
+            state = "S0"
+
+        # Combinational output based on current state (after possible async reset)
+        # R1: S0 -> z = x
+        # R2: S1 -> z = NOT x
+        if state == "S0":
+            z = x & 1
+        else:
+            z = (~x) & 1
+
+        results.append({"z": z})
+
+        # Posedge update (sampling happens at posedge; mid changes after sampling
+        # are carried to next row, so we use current row's x for state update).
+        # R3 / R4: state transition
+        if areset == 1:
+            # reset holds state at S0 (update_during_reset false, but async reset
+            # already forced S0; posedge with reset asserted keeps S0)
+            state = "S0"
+        else:
+            if state == "S0":
+                if x == 1:
+                    state = "S1"  # R3
+                else:
+                    state = "S0"  # R3
+            else:
+                state = "S1"  # R4
+
+    return results
+```

@@ -1,0 +1,81 @@
+def reference(vectors):
+    # Explicit FSM states.
+    S0 = 0
+    S1 = 1
+    S11 = 2
+    S110 = 3
+    FOUND = 4
+
+    state = S0
+    start_shifting = 0
+    cur_reset = 0
+    cur_data = 0
+    result = []
+
+    for row in vectors:
+        # Inputs driven before the sampled posedge.
+        if type(row) is dict:
+            if "reset" in row:
+                cur_reset = row["reset"] & 1
+            if "data" in row:
+                cur_data = row["data"] & 1
+
+        if cur_reset == 1:
+            # R_RESET_CLEAR: overridden interpretation: reset clears
+            # start_shifting to 0 but leaves the search state unchanged.
+            next_state = state
+            next_start = 0
+        else:
+            if state == FOUND:
+                # R_SET_OR_HOLD_1101: FOUND remains FOUND and holds 1.
+                next_state = FOUND
+                next_start = 1
+            elif state == S110:
+                if cur_data == 1:
+                    # R_SET_OR_HOLD_1101: same_cycle detection of 1101.
+                    next_state = FOUND
+                    next_start = 1
+                else:
+                    # R_KEEP_ZERO_UNTIL_FOUND.
+                    next_state = S0
+                    next_start = 0
+            elif state == S11:
+                if cur_data == 1:
+                    next_state = S11
+                else:
+                    next_state = S110
+                next_start = 0  # R_KEEP_ZERO_UNTIL_FOUND.
+            elif state == S1:
+                if cur_data == 1:
+                    next_state = S11
+                else:
+                    next_state = S0
+                next_start = 0  # R_KEEP_ZERO_UNTIL_FOUND.
+            else:
+                if cur_data == 1:
+                    next_state = S1
+                else:
+                    next_state = S0
+                next_start = 0  # R_KEEP_ZERO_UNTIL_FOUND.
+
+        # Settled posedge edge updates state and visible output.
+        state = next_state
+        start_shifting = next_start
+        result.append({"start_shifting": start_shifting})
+
+        # Optional mid input changes occur after sampling and are carried
+        # to the start of the next row.
+        if type(row) is dict:
+            if "mid" in row:
+                mid = row["mid"]
+                if type(mid) is dict:
+                    if "reset" in mid:
+                        cur_reset = mid["reset"] & 1
+                    if "data" in mid:
+                        cur_data = mid["data"] & 1
+            if "mid_reset" in row:
+                cur_reset = row["mid_reset"] & 1
+            if "mid_data" in row:
+                cur_data = row["mid_data"] & 1
+
+    return result

@@ -1,0 +1,81 @@
+I'll provide a complete reference implementation for the gshare branch predictor. Since the request asks for a single artifact covering all assigned items, I'll implement one model that satisfies the shared specification (all four items describe the same predictor with identical rules; they differ only in the uncertain R6 handling, which I'll resolve consistently).
+
+```python
+def reference(vectors):
+    # State
+    pht = [0] * 128          # 2-bit saturating counters, init 0
+    ghr = 0                  # 7-bit global history register
+
+    outputs = []
+
+    for v in vectors:
+        areset = v["areset"]
+        predict_valid = v["predict_valid"]
+        predict_pc = v["predict_pc"] & 0x7F
+        train_valid = v["train_valid"]
+        train_taken = v["train_taken"] & 1
+        train_mispredicted = v["train_mispredicted"] & 1
+        train_history = v["train_history"] & 0x7F
+        train_pc = v["train_pc"] & 0x7F
+
+        # ---- Asynchronous reset: outputs forced to 0, state cleared ----
+        if areset:
+            pht = [0] * 128
+            ghr = 0
+            outputs.append({"predict_taken": 0, "predict_history": 0})
+            continue
+
+        # ---- Combinational outputs (use current state, pre-edge) ----
+        if predict_valid:
+            idx = (predict_pc ^ ghr) & 0x7F
+            ctr = pht[idx]
+            predict_taken = 1 if ctr >= 2 else 0
+            predict_history = ghr
+        else:
+            predict_taken = 0
+            predict_history = 0
+
+        outputs.append({
+            "predict_taken": predict_taken,
+            "predict_history": predict_history,
+        })
+
+        # ---- Sequential updates at posedge ----
+        # Training updates PHT (uses train_history for index)
+        if train_valid:
+            tidx = (train_pc ^ train_history) & 0x7F
+            ctr = pht[tidx]
+            if train_taken:
+                if ctr < 3:
+                    ctr += 1
+            else:
+                if ctr > 0:
+                    ctr -= 1
+            pht[tidx] = ctr
+
+        # GHR update: training takes precedence over prediction
+        if train_valid:
+            if train_mispredicted:
+                # Recover GHR to state after mispredicting branch
+                ghr = train_history
+            else:
+                # Normal training: shift in actual outcome
+                ghr = ((train_history << 1) | train_taken) & 0x7F
+        elif predict_valid:
+            # Update GHR with predicted direction
+            ghr = ((ghr << 1) | predict_taken) & 0x7F
+
+    return outputs
+```
+
+**Notes on semantics implemented:**
+
+- **R1/R6 (combinational predict):** `predict_taken` and `predict_history` are computed from the *current* (pre-edge) `ghr` and `pht`, so a same-cycle training does not affect the prediction output — matching "prediction sees the PHT state before training."
+- **R2 (predict updates GHR):** On a posedge with `predict_valid` and no `train_valid`, GHR shifts in the predicted direction.
+- **R3 (train updates PHT):** 2-bit saturating counter at `train_pc ^ train_history` increments on taken, decrements on not-taken, clamped to [0,3].
+- **R4 (mispredict recovers GHR):** When `train_mispredicted`, GHR is set to `train_history` (the state immediately after the mispredicting branch).
+- **R5 (train priority):** If both `train_valid` and `predict_valid`, only the training path modifies GHR.
+- **R7 (async reset):** `areset` high forces outputs to 0 and clears `pht`/`ghr` in the same cycle.
+- **R8 (xor index):** Index = `(pc ^ history) & 0x7F` for both prediction and training.
+
+For the uncertain R6 case (predict_history when training also occurs same cycle), I chose the "pre-train GHR" candidate, which is consistent with the combinational-output rule that predictions reflect state before the edge.

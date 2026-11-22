@@ -1,0 +1,14 @@
+def reference(vectors):
+    vals={'L':0,'q_in':0,'r_in':0}
+    out=[]
+    for row in vectors:
+        for k in vals:
+            if k in row:
+                vals[k]=row[k]
+        Q=(vals['r_in'] if vals['L'] else vals['q_in'])&1
+        out.append({'Q':Q})
+        if 'mid' in row and isinstance(row['mid'],dict):
+            for k,v in row['mid'].items():
+                if k in vals:
+                    vals[k]=v
+    return out

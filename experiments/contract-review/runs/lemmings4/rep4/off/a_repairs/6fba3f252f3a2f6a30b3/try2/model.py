@@ -1,0 +1,104 @@
+def reference(vectors):
+    # Contract implementation of the Lemmings Moore FSM.
+    # States: WALK_LEFT, WALK_RIGHT, FALL_LEFT, FALL_RIGHT, DIG_LEFT, DIG_RIGHT, SPLAT
+    # Outputs are combinational from state (Moore).
+    # areset is async active-high: when areset=1, state -> WALK_LEFT immediately (R1_reset).
+    # Timing: each row's inputs are driven before the sampled posedge; outputs shown
+    # are the state's outputs at that sample point (after any async reset applied).
+    # Mid changes occur after sampling and are carried to next row (handled by
+    # simply using each row's own inputs at its sample point).
+
+    WALK_LEFT, WALK_RIGHT = 0, 1
+    FALL_LEFT, FALL_RIGHT = 2, 3
+    DIG_LEFT, DIG_RIGHT = 4, 5
+    SPLAT = 6
+
+    def outputs(state):
+        # R2_walk_outputs
+        if state == WALK_LEFT:
+            return {"walk_left": 1, "walk_right": 0, "aaah": 0, "digging": 0}
+        if state == WALK_RIGHT:
+            return {"walk_left": 0, "walk_right": 1, "aaah": 0, "digging": 0}
+        # R3_fall_outputs
+        if state in (FALL_LEFT, FALL_RIGHT):
+            return {"walk_left": 0, "walk_right": 0, "aaah": 1, "digging": 0}
+        # R4_dig_outputs
+        if state in (DIG_LEFT, DIG_RIGHT):
+            return {"walk_left": 0, "walk_right": 0, "aaah": 0, "digging": 1}
+        # R5_splat_outputs
+        return {"walk_left": 0, "walk_right": 0, "aaah": 0, "digging": 0}
+
+    state = WALK_LEFT
+    fall_count = 0
+    result = []
+
+    for row in vectors:
+        areset = row.get("areset", 0)
+        bump_left = row.get("bump_left", 0)
+        bump_right = row.get("bump_right", 0)
+        ground = row.get("ground", 0)
+        dig = row.get("dig", 0)
+
+        # R1_reset: async active-high reset -> WALK_LEFT, visible same cycle
+        if areset:
+            state = WALK_LEFT
+            fall_count = 0
+            result.append(outputs(state))
+            continue
+
+        # Sample outputs for current state (Moore, combinational)
+        result.append(outputs(state))
+
+        # Compute next state on posedge
+        ns = state
+        nfc = fall_count
+
+        if state == WALK_LEFT or state == WALK_RIGHT:
+            # R9_walk_fall: ground=0 -> fall (highest precedence)
+            if ground == 0:
+                ns = FALL_LEFT if state == WALK_LEFT else FALL_RIGHT
+                nfc = 0
+            # R8_walk_start_dig: dig=1 on ground -> dig (precedence over bump)
+            elif dig == 1:
+                ns = DIG_LEFT if state == WALK_LEFT else DIG_RIGHT
+                nfc = 0
+            # R6_walk_bump_switch / R7_walk_bump_both_switch
+            elif bump_left == 1 or bump_right == 1:
+                ns = WALK_RIGHT if state == WALK_LEFT else WALK_LEFT
+                nfc = 0
+            else:
+                nfc = 0
+
+        elif state == FALL_LEFT or state == FALL_RIGHT:
+            if ground == 1:
+                # R11_fall_splat: fall_count > 20 -> SPLAT
+                if fall_count > 20:
+                    ns = SPLAT
+                else:
+                    # R10_fall_land: resume walking in remembered direction
+                    ns = WALK_LEFT if state == FALL_LEFT else WALK_RIGHT
+                nfc = 0
+            else:
+                # R15_fall_continue: stay falling, increment counter
+                ns = state
+                nfc = fall_count + 1
+
+        elif state == DIG_LEFT or state == DIG_RIGHT:
+            if ground == 0:
+                # R13_dig_to_fall
+                ns = FALL_LEFT if state == DIG_LEFT else FALL_RIGHT
+                nfc = 0
+            else:
+                # R12_dig_continue
+                ns = state
+                nfc = 0
+
+        elif state == SPLAT:
+            # R14_splat_hold
+            ns = SPLAT
+            nfc = 0
+
+        state = ns
+        fall_count = nfc
+
+    return result

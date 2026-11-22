@@ -1,0 +1,48 @@
+def reference(vectors):
+    # Rule sync_active_high_reset and capture_sticky_one_to_zero are implemented below.
+    mask = (1 << 32) - 1
+    out = 0
+    prev_in = 0
+    cur_reset = 0
+    cur_in = 0
+    results = []
+
+    for row in vectors:
+        # Each row's values are driven before the sampled posedge.
+        if "reset" in row:
+            cur_reset = row["reset"]
+        if "in" in row:
+            cur_in = row["in"]
+
+        reset_val = cur_reset & 1
+        in_val = cur_in & mask
+
+        # Rule sync_active_high_reset: active-high synchronous reset clears out.
+        if reset_val == 1:
+            out = 0
+        else:
+            # Rule capture_sticky_one_to_zero: sticky per-bit capture of sampled 1-to-0.
+            out = (out | (prev_in & (in_val ^ mask))) & mask
+
+        # prev_in updates on every posedge, including reset cycles.
+        prev_in = in_val
+
+        results.append({"out": out & mask})
+
+        # Optional mid-row changes occur after sampling and carry to the next row.
+        mid = row.get("mid", None)
+        if mid is not None:
+            if isinstance(mid, dict):
+                if "reset" in mid:
+                    cur_reset = mid["reset"]
+                if "in" in mid:
+                    cur_in = mid["in"]
+            elif isinstance(mid, (list, tuple)):
+                for change in mid:
+                    if isinstance(change, dict):
+                        if "reset" in change:
+                            cur_reset = change["reset"]
+                        if "in" in change:
+                            cur_in = change["in"]
+
+    return results

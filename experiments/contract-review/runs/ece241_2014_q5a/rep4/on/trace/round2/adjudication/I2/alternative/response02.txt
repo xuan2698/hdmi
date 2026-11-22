@@ -1,0 +1,64 @@
+def reference(vectors):
+    # R_RESET: active-high areset; on assertion state -> START, z holds previous value (candidate interpretation).
+    # R_CONVERT: posedge conversion when areset deasserted; serial 2's complement, LSB first.
+    state = 'START'
+    z = 0
+    areset = 0
+    x = 0
+    result = []
+    for row in vectors:
+        # Drive row inputs before the sampled edge.
+        if 'areset' in row:
+            areset = row['areset']
+        if 'x' in row:
+            x = row['x']
+
+        # R_RESET: asynchronous reset is level-sensitive.
+        if areset == 1:
+            state = 'START'
+            # z retains its previous value.
+
+        # Sampled posedge.
+        if areset == 1:
+            # R_RESET: during reset, state stays START and z holds.
+            state = 'START'
+        else:
+            # R_CONVERT: update state and Moore output based on current state and x.
+            if state == 'START':
+                if x == 0:
+                    state = 'START'
+                    z = 0
+                else:
+                    state = 'INV1'
+                    z = 1
+            elif state == 'INV0':
+                if x == 0:
+                    state = 'INV1'
+                    z = 1
+                else:
+                    state = 'INV0'
+                    z = 0
+            elif state == 'INV1':
+                if x == 0:
+                    state = 'INV1'
+                    z = 1
+                else:
+                    state = 'INV0'
+                    z = 0
+
+        # Sample output after the posedge has settled.
+        result.append({'z': z})
+
+        # Apply mid changes after sampling, before the next edge.
+        if 'mid' in row:
+            mid = row['mid']
+            if 'areset' in mid:
+                areset = mid['areset']
+                if areset == 1:
+                    # R_RESET: asynchronous reset on mid assertion.
+                    state = 'START'
+                    # z retains its previous value.
+            if 'x' in mid:
+                x = mid['x']
+
+    return result

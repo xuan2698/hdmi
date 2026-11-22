@@ -1,0 +1,54 @@
+```python
+def reference(vectors):
+    # State encoding: A=0, B=1, C=2, D=3
+    # Output: A->0, B->0, C->0, D->1
+    # R1-R4: combinational output based on current state (same_cycle)
+    # R5: synchronous active high reset forces state A on posedge
+    # R6-R9: state transitions on posedge based on current state and input
+    # Initial state assumed A with output 0 (global uncertain note)
+
+    state = 0  # A
+    out = 0
+    results = []
+
+    for vec in vectors:
+        # Mid changes are carried to start of next row; inputs are driven before sampled edge.
+        # Sample inputs for this row (values driven before the edge).
+        in_val = vec.get('in', 0) & 1
+        reset_val = vec.get('reset', 0) & 1
+
+        # R1-R4: combinational output visible same cycle based on current state
+        if state == 0:      # R1: state A -> out 0
+            out = 0
+        elif state == 1:    # R2: state B -> out 0
+            out = 0
+        elif state == 2:    # R3: state C -> out 0
+            out = 0
+        else:               # R4: state D -> out 1
+            out = 1
+
+        # Record output for this row (sampled after posedge settled; output reflects current state)
+        results.append({'out': out & 1})
+
+        # Compute next state on posedge
+        if reset_val == 1:
+            # R5: synchronous active high reset -> state A
+            next_state = 0
+        else:
+            if state == 0:
+                # R6: A && in==0 -> A; A && in==1 -> B
+                next_state = 0 if in_val == 0 else 1
+            elif state == 1:
+                # R7: B && in==0 -> C; B && in==1 -> B
+                next_state = 2 if in_val == 0 else 1
+            elif state == 2:
+                # R8: C && in==0 -> A; C && in==1 -> D
+                next_state = 0 if in_val == 0 else 3
+            else:
+                # R9: D && in==0 -> C; D && in==1 -> B
+                next_state = 2 if in_val == 0 else 1
+
+        state = next_state
+
+    return results
+```

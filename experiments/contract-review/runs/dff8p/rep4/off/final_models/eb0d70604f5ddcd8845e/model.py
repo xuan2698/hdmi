@@ -1,0 +1,26 @@
+def reference(vectors):
+    # State: q_reg holds the 8 D flip-flop outputs.
+    # Initial value is unspecified at power-up; we use 0x34 as a concrete
+    # placeholder (any concrete value is acceptable per the contract).
+    q_reg = 0x34
+
+    results = []
+
+    for row in vectors:
+        d = row['d'] & 0xFF
+        reset = row['reset'] & 0x1
+
+        # R1_sync_reset / R3_reset_value: on negedge clk with reset==1,
+        # q_reg is synchronously loaded with 0x34 (52).
+        # R2_dff_capture: on negedge clk with reset==0, q_reg captures d.
+        # Both rules are evaluated at the negedge; the sampled value is
+        # visible in the same cycle.
+        if reset == 1:
+            q_reg = 0x34  # R1_sync_reset, R3_reset_value
+        else:
+            q_reg = d     # R2_dff_capture
+
+        # Output is the registered value after the negedge has settled.
+        results.append({'q': q_reg & 0xFF})
+
+    return results

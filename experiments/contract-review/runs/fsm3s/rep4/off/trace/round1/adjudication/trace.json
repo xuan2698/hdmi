@@ -1,0 +1,96 @@
+[
+  {
+    "issue": {
+      "issue_id": "I2",
+      "rule_id": "R1",
+      "type": "ambiguity",
+      "severity": "high",
+      "detail": "R1-R4 are combinational output rules keyed on state, but state is only defined after a posedge; initial state before first reset/edge is unspecified, so out before first posedge is undefined.",
+      "spec_evidence": "The following is the state transition table for a Moore state machine with one input, one output, and four states.",
+      "alternative": "Output is undefined (X) until first posedge establishes state; alternatively assume initial state A.",
+      "sequence": [
+        {
+          "in": 0,
+          "reset": 0
+        },
+        {
+          "in": 1,
+          "reset": 0
+        }
+      ]
+    },
+    "status": "no_effect",
+    "issue_id": "I2",
+    "outputs": {
+      "original": [
+        {
+          "out": 0
+        },
+        {
+          "out": 0
+        }
+      ],
+      "alternative": [
+        {
+          "out": 0
+        },
+        {
+          "out": 0
+        }
+      ]
+    },
+    "differences": []
+  },
+  {
+    "issue": {
+      "issue_id": "I3",
+      "rule_id": "R6",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Transition rules R6-R9 use 'visible:next_cycle' but examples show outputs for the same vectors without indicating state progression; example expected values are all 0 for R6-R8 and all 1 for R9, which only holds if starting state matches the rule's state, not derivable from vectors alone.",
+      "spec_evidence": "A | A, B | 0",
+      "alternative": "Examples assume initial state equals the rule's source state; without reset the starting state is ambiguous.",
+      "sequence": [
+        {
+          "in": 0,
+          "reset": 0
+        },
+        {
+          "in": 1,
+          "reset": 0
+        },
+        {
+          "in": 0,
+          "reset": 0
+        }
+      ]
+    },
+    "status": "no_effect",
+    "issue_id": "I3",
+    "outputs": {
+      "original": [
+        {
+          "out": 0
+        },
+        {
+          "out": 0
+        },
+        {
+          "out": 0
+        }
+      ],
+      "alternative": [
+        {
+          "out": 0
+        },
+        {
+          "out": 0
+        },
+        {
+          "out": 0
+        }
+      ]
+    },
+    "differences": []
+  }
+]

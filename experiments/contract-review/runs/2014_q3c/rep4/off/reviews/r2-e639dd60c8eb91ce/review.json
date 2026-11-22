@@ -1,0 +1,93 @@
+{
+  "coverage": {
+    "S01": [
+      "R_Y0",
+      "R_z"
+    ],
+    "S02": [
+      "R_Y0",
+      "R_z"
+    ],
+    "S03": [
+      "R_Y0",
+      "R_z"
+    ],
+    "S04": [
+      "R_Y0",
+      "R_z"
+    ],
+    "S05": [
+      "R_Y0",
+      "R_z"
+    ],
+    "S06": [
+      "R_Y0",
+      "R_z"
+    ],
+    "S07": [
+      "R_Y0",
+      "R_z"
+    ]
+  },
+  "issues": [
+    {
+      "issue_id": "I1",
+      "rule_id": "R_Y0",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "R_Y0 condition omits y=101,110,111; table only defines 000-100, so next-state for undefined states is unspecified.",
+      "spec_evidence": "// Present state y[2:0] | Next state Y[2:0] x=0, Next state Y[2:0] x=1 | Output z",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I2",
+      "rule_id": "R_z",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "R_z condition omits y=101,110,111; table only defines z for 000-100, so output for undefined states is unspecified.",
+      "spec_evidence": "// 100 | 011, 100 | 1",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I3",
+      "rule_id": "R_Y0",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec table gives next-state Y[2:0] but contract exposes only Y0; whether Y0 is bit 0 of Y is inferred, not stated.",
+      "spec_evidence": "Next state Y[2:0] x=0, Next state Y[2:0] x=1",
+      "alternative": "Y0 could be bit 2 (MSB) of Y[2:0] instead of bit 0.",
+      "sequence": [
+        {
+          "x": 0,
+          "y": 0
+        },
+        {
+          "x": 0,
+          "y": 1
+        }
+      ]
+    },
+    {
+      "issue_id": "I4",
+      "rule_id": "R_Y0",
+      "type": "spec_example",
+      "severity": "low",
+      "detail": "R_Y0 example vectors use y as integer 0/3; y=3 is 011, expected Y0=1 for x=0 and 0 for x=1, matching table bit0.",
+      "spec_evidence": "// 011 | 001, 010 | 1",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I5",
+      "rule_id": "R_z",
+      "type": "spec_example",
+      "severity": "low",
+      "detail": "R_z example y=2 (010) z=0, y=3 (011) z=1, y=4 (100) z=1, y=0 z=0; matches table.",
+      "spec_evidence": "// 011 | 001, 010 | 1",
+      "alternative": "",
+      "sequence": []
+    }
+  ]
+}

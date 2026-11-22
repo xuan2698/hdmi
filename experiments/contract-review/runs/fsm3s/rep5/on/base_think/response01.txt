@@ -1,0 +1,27 @@
+def reference(vectors):
+    s=0
+    h={'in':0,'reset':0}
+    r=[]
+    for v in vectors:
+        for k in ('in','reset'):
+            if k in v:
+                h[k]=int(v[k])
+        if h['reset']:
+            s=0
+        else:
+            x=int(h['in'])
+            if s==0:
+                s=1 if x else 0
+            elif s==1:
+                s=1 if x else 2
+            elif s==2:
+                s=3 if x else 0
+            else:
+                s=1 if x else 2
+        r.append({'out':1 if s==3 else 0})
+        m=v.get('mid')
+        if isinstance(m,dict):
+            for k in ('in','reset'):
+                if k in m:
+                    h[k]=int(m[k])
+    return r

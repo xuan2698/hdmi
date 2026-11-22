@@ -1,0 +1,91 @@
+[
+  {
+    "issue": {
+      "issue_id": "I3",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Initial q value before first reset is unspecified; affects first released cycle output.",
+      "spec_evidence": "",
+      "alternative": "q initializes to 0 at time 0 (power-up) vs q undefined until first reset",
+      "sequence": [
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        }
+      ]
+    },
+    "status": "no_effect",
+    "issue_id": "I3",
+    "outputs": {
+      "original": [
+        {
+          "q": 1
+        },
+        {
+          "q": 2
+        }
+      ],
+      "alternative": [
+        {
+          "q": 1
+        },
+        {
+          "q": 2
+        }
+      ]
+    },
+    "differences": []
+  },
+  {
+    "issue": {
+      "issue_id": "I4",
+      "rule_id": "R2",
+      "type": "ambiguity",
+      "severity": "low",
+      "detail": "Wrap behavior from 9 to 0 not explicitly stated as a rule; R3 covers q!=9 increment but 9->0 transition only implied by period 10.",
+      "spec_evidence": "counts from 0 through 9, inclusive, with a period of 10",
+      "alternative": "On q==9 with reset==0, next q=0 (wrap) vs hold at 9",
+      "sequence": [
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        }
+      ]
+    },
+    "status": "no_effect",
+    "issue_id": "I4",
+    "outputs": {
+      "original": [
+        {
+          "q": 1
+        },
+        {
+          "q": 2
+        },
+        {
+          "q": 3
+        }
+      ],
+      "alternative": [
+        {
+          "q": 1
+        },
+        {
+          "q": 2
+        },
+        {
+          "q": 3
+        }
+      ]
+    },
+    "differences": []
+  }
+]

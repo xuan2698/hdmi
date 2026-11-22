@@ -1,0 +1,71 @@
+def reference(vectors):
+    # Initial Moore state A and carried input values.
+    state = 'A'
+    cur = {'areset': 0, 'x': 0}
+    result = []
+    for row in vectors:
+        # Apply row inputs driven before the sampled posedge.
+        if isinstance(row, dict):
+            if 'areset' in row:
+                cur['areset'] = int(row['areset']) & 1
+            if 'x' in row:
+                cur['x'] = int(row['x']) & 1
+
+        # async_reset: active-low reset (areset=0) forces state A and z=0 asynchronously,
+        # visible same cycle with priority 0.
+        if cur['areset'] == 0:
+            state = 'A'
+            z = 0
+        else:
+            # serial_twos_complement: on posedge clk with reset released (areset=1),
+            # sample x and update Moore state.
+            x = cur['x'] & 1
+            if state == 'A':
+                if x == 0:
+                    state = 'A'
+                else:
+                    state = 'B'
+            elif state == 'B':
+                if x == 0:
+                    state = 'B'
+                else:
+                    state = 'C'
+            else:  # state == 'C'
+                if x == 0:
+                    state = 'B'
+                else:
+                    state = 'C'
+
+            # Moore output from settled next state.
+            if state == 'A':
+                z = 0
+            elif state == 'B':
+                z = 1
+            else:  # state == 'C'
+                z = 0
+
+        result.append({'z': z})
+
+        # mid: changes occur after sampling, do not affect current row's output,
+        # and carry to the start of the next row.
+        if isinstance(row, dict) and 'mid' in row:
+            mid = row['mid']
+            if isinstance(mid, dict):
+                mids = [mid]
+            elif isinstance(mid, list):
+                mids = mid
+            else:
+                mids = []
+            for m in mids:
+                if isinstance(m, dict):
+                    if 'areset' in m:
+                        cur['areset'] = int(m['areset']) & 1
+                        # async_reset: if reset is asserted during mid, state becomes A for next row.
+                        if cur['areset'] == 0:
+                            state = 'A'
+                    if 'x' in m:
+                        cur['x'] = int(m['x']) & 1
+            if cur['areset'] == 0:
+                state = 'A'
+
+    return result

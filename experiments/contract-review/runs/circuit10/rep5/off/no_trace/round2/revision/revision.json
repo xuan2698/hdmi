@@ -1,0 +1,167 @@
+{
+  "responses": [
+    {
+      "issue_id": "i1",
+      "decision": "accept",
+      "reason": "r2's example asserts a single expected state that no candidate produces; the example must be consistent with the uncertain candidates or the rule must be restructured.",
+      "spec_quote": "// 15ns            1               0               0               0               0",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "r2",
+            "example"
+          ],
+          "value": {
+            "vectors": [
+              {
+                "a": 0,
+                "b": 0
+              },
+              {
+                "a": 0,
+                "b": 1
+              },
+              {
+                "a": 1,
+                "b": 0
+              }
+            ],
+            "expected": [
+              {
+                "q": 0,
+                "state": 0
+              },
+              {
+                "q": 0,
+                "state": 0
+              },
+              {
+                "q": 0,
+                "state": 0
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "issue_id": "i2",
+      "decision": "accept",
+      "reason": "Waveform shows same (a,b,state) yielding different next states, so no single deterministic function fits; uncertain candidates must reflect this and the note should cite the conflicting rows.",
+      "spec_quote": "// 65ns            1               1               1               0               0",
+      "edits": [
+        {
+          "path": [
+            "uncertain"
+          ],
+          "value": [
+            {
+              "rule_id": "r2",
+              "note": "Next-state function inferred from waveform; no single deterministic function of (a,b,state) fits all rows (e.g., (1,1,0)->0 at 65ns but (1,1,0)->1 at 95ns).",
+              "candidates": [
+                "state_next = a XOR b XOR state",
+                "state_next = a XOR b",
+                "state_next = (a AND b) XOR state"
+              ]
+            },
+            {
+              "rule_id": "global",
+              "note": "Spec waveform appears inconsistent with any single deterministic next-state function of (a,b,state); same (a,b,state) yields different next states.",
+              "candidates": [
+                "state_next = a XOR b XOR state",
+                "state_next = a XOR b",
+                "state_next = (a AND b) XOR state"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "issue_id": "i3",
+      "decision": "accept",
+      "reason": "Waveform shows q differing from state (e.g., 45ns state=0,q=1), so q is the next-state/combinational value while state is the registered value.",
+      "spec_quote": "// 45ns            1               0               1               0               1",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "r1",
+            "condition"
+          ],
+          "value": "q is the next-state (combinational) value; state is the registered value updated at posedge"
+        },
+        {
+          "path": [
+            "rules",
+            "r1",
+            "spec_quote"
+          ],
+          "value": "// 45ns            1               0               1               0               1"
+        }
+      ]
+    },
+    {
+      "issue_id": "i4",
+      "decision": "accept",
+      "reason": "r2 condition references uncertain candidates without verbatim spec evidence; spec_quote should cite the conflicting waveform rows.",
+      "spec_quote": "// 95ns            1               1               1               1               1",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "r2",
+            "spec_quote"
+          ],
+          "value": "// 65ns            1               1               1               0               0 ; // 95ns            1               1               1               1               1"
+        }
+      ]
+    },
+    {
+      "issue_id": "i5",
+      "decision": "accept",
+      "reason": "r1 example expected outputs contradict the waveform at 45ns where q=1 for (a=0,b=1); example must be updated to match observed behavior.",
+      "spec_quote": "// 45ns            1               0               1               0               1",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "r1",
+            "example"
+          ],
+          "value": {
+            "vectors": [
+              {
+                "a": 0,
+                "b": 0
+              },
+              {
+                "a": 0,
+                "b": 1
+              },
+              {
+                "a": 1,
+                "b": 0
+              }
+            ],
+            "expected": [
+              {
+                "q": 0,
+                "state": 0
+              },
+              {
+                "q": 1,
+                "state": 0
+              },
+              {
+                "q": 0,
+                "state": 0
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

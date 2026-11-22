@@ -1,0 +1,59 @@
+def reference(vectors):
+    # State encoding: A = reset/no-first-1, B = started/output-1, C = started/output-0
+    A = 0
+    B = 1
+    C = 2
+
+    state = A
+    cur_areset = 1
+    cur_x = 0
+    results = []
+
+    for row in vectors:
+        # Drive row inputs before the sampled posedge.
+        if "areset" in row:
+            cur_areset = row["areset"] & 1
+        if "x" in row:
+            cur_x = row["x"] & 1
+
+        # async_reset_assert: active-high asynchronous reset forces state A and z=0.
+        if cur_areset == 1:
+            state = A
+
+        # Posedge transition rules when reset is not asserted.
+        if cur_areset == 0:
+            if state == A:
+                if cur_x == 0:
+                    state = A  # A_on_x0
+                else:
+                    state = B  # A_on_x1
+            elif state == B:
+                if cur_x == 0:
+                    state = B  # B_on_x0
+                else:
+                    state = C  # B_on_x1
+            elif state == C:
+                if cur_x == 0:
+                    state = B  # C_on_x0
+                else:
+                    state = C  # C_on_x1
+        else:
+            # async_reset_assert: while reset is asserted, remain in reset state A.
+            state = A
+
+        # Moore output after the sampled edge has settled.
+        z = 1 if state == B else 0
+        results.append({"z": z})
+
+        # Mid input changes occur after sampling and are carried into the next row.
+        if "mid" in row:
+            mid = row["mid"]
+            if "areset" in mid:
+                cur_areset = mid["areset"] & 1
+                if cur_areset == 1:
+                    # async_reset_assert: asynchronous reset from mid-cycle assertion.
+                    state = A
+            if "x" in mid:
+                cur_x = mid["x"] & 1
+
+    return results

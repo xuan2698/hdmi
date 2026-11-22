@@ -1,0 +1,68 @@
+def reference(vectors):
+    # R_RESET: active-high areset=1 asynchronously forces START and z=0.
+    # R_CONVERT: posedge conversion proceeds LSB-first while areset is deasserted.
+    state = 0  # 0=START, 1=INV0, 2=INV1
+    cur_areset = 0
+    cur_x = 0
+    result = []
+
+    for row in vectors:
+        if "areset" in row:
+            cur_areset = row["areset"]
+        if "x" in row:
+            cur_x = row["x"]
+
+        # R_RESET: asynchronous reset level before the sampled posedge.
+        if cur_areset == 1:
+            state = 0
+
+        # R_CONVERT: posedge clk samples x when reset is deasserted.
+        if cur_areset == 0:
+            if state == 0:  # START
+                if cur_x == 1:
+                    state = 2  # INV1
+                else:
+                    state = 0  # START
+            elif state == 1:  # INV0
+                if cur_x == 0:
+                    state = 2  # INV1
+                else:
+                    state = 1  # INV0
+            else:  # INV1
+                if cur_x == 0:
+                    state = 2  # INV1
+                else:
+                    state = 1  # INV0
+
+        # R_CONVERT: Moore output after the sampled posedge has settled.
+        result.append({"z": 1 if state == 2 else 0})
+
+        # Mid changes occur after sampling and carry to the next row.
+        if "mid" in row and row["mid"] is not None:
+            mid = row["mid"]
+            if isinstance(mid, dict):
+                changes = [mid]
+            elif isinstance(mid, (list, tuple)):
+                changes = mid
+            else:
+                changes = []
+
+            for change in changes:
+                if isinstance(change, dict):
+                    if "areset" in change:
+                        cur_areset = change["areset"]
+                    if "x" in change:
+                        cur_x = change["x"]
+                elif isinstance(change, (list, tuple)) and len(change) >= 2:
+                    key = change[0]
+                    val = change[1]
+                    if key == "areset":
+                        cur_areset = val
+                    elif key == "x":
+                        cur_x = val
+
+                # R_RESET: asynchronous reset can also be asserted by mid.
+                if cur_areset == 1:
+                    state = 0
+
+    return result

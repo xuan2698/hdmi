@@ -1,0 +1,27 @@
+Looking at the waveform, I need to determine the actual next-state function. Let me trace through the posedge samples:
+
+- 15ns: a=0,b=0,state=0 → next state=0
+- 25ns: a=0,b=0,state=0 → next state=0
+- 35ns: a=0,b=0,state=0 → next state=0
+- 45ns: a=0,b=1,state=0 → next state=1
+- 55ns: a=1,b=0,state=0 → next state=1
+- 65ns: a=1,b=1,state=0 → next state=0
+- 75ns: a=0,b=0,state=1 → next state=1
+- 85ns: a=1,b=1,state=0 → next state=0
+- 95ns: a=1,b=1,state=1 → next state=1
+- 105ns: a=1,b=1,state=1 → next state=1
+- 115ns: a=1,b=0,state=1 → next state=0
+- 125ns: a=0,b=1,state=1 → next state=0
+- 135ns: a=0,b=0,state=1 → next state=1
+- 145ns: a=0,b=0,state=0 → next state=0
+
+Testing `state_next = (a AND b) XOR state`:
+- (0,0,0)→0 ✓, (0,1,0)→1 ✓, (1,0,0)→1 ✓, (1,1,0)→0 ✓
+- (0,0,1)→1 ✓, (1,1,0)→0 ✓, (1,1,1)→1 ✓, (1,0,1)→0 ✓
+- (0,1,1)→0 ✓, (0,0,1)→1 ✓, (0,0,0)→0 ✓
+
+All match. So `state_next = (a AND b) XOR state`.
+
+```json
+{"models":{"70d4f2d3b80d380f19":"def reference(vectors):\n    state = 0\n    out = []\n    for v in vectors:\n        a = v['a']; b = v['b']\n        nxt = ((a & b) ^ state) & 1\n        out.append({'q': state, 'state': state})\n        state = nxt\n    return out\n","550299cea4a0c74814":"def reference(vectors):\n    state = 0\n    out = []\n    for v in vectors:\n        a = v['a']; b = v['b']\n        nxt = ((a & b) ^ state) & 1\n        out.append({'q': state, 'state': state})\n        state = nxt\n    return out\n","121209ec23e89cefef":"def reference(vectors):\n    state = 0\n    out = []\n    for v in vectors:\n        a = v['a']; b = v['b']\n        nxt = ((a & b) ^ state) & 1\n        out.append({'q': state, 'state': state})\n        state = nxt\n    return out\n","8aa699d9b4a584ecb5":"def reference(vectors):\n    state = 0\n    out = []\n    for v in vectors:\n        a = v['a']; b = v['b']\n        nxt = ((a & b) ^ state) & 1\n        out.append({'q': state, 'state': state})\n        state = nxt\n    return out\n"}}
+```

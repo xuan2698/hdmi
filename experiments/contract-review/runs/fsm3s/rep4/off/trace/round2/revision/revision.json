@@ -1,0 +1,69 @@
+{
+  "responses": [
+    {
+      "issue_id": "I1",
+      "decision": "accept",
+      "reason": "R4 example presumes initial state D without reset evidence; spec only defines reset to A, so the state meaning should not assert an initial D presumption.",
+      "spec_quote": "synchronous active high reset that resets the FSM to state A",
+      "edits": [
+        {
+          "path": [
+            "states",
+            "D",
+            "meaning"
+          ],
+          "value": "state D, output 1"
+        }
+      ]
+    },
+    {
+      "issue_id": "I2",
+      "decision": "rebut",
+      "reason": "The contract already expresses that sync reset forces state A with out=0 at the first posedge; the example is consistent and no pre-reset state is required by the spec.",
+      "spec_quote": "synchronous active high reset that resets the FSM to state A",
+      "edits": []
+    },
+    {
+      "issue_id": "I4",
+      "decision": "accept",
+      "reason": "Rule examples should exercise transitions to distinguish states; replace R6 example with vectors that traverse A->B->C and show differing outputs.",
+      "spec_quote": "A | A, B | 0",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R6",
+            "example"
+          ],
+          "value": {
+            "vectors": [
+              {
+                "in": 1,
+                "reset": 0
+              },
+              {
+                "in": 0,
+                "reset": 0
+              },
+              {
+                "in": 0,
+                "reset": 0
+              }
+            ],
+            "expected": [
+              {
+                "out": 0
+              },
+              {
+                "out": 0
+              },
+              {
+                "out": 0
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

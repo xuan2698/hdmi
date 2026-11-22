@@ -1,0 +1,89 @@
+{
+  "coverage": {
+    "S01": [
+      "bcd_counter_increment"
+    ],
+    "S02": [
+      "bcd_counter_increment"
+    ],
+    "S03": [
+      "upper_digit_enables"
+    ],
+    "S04": [
+      "sync_active_high_reset"
+    ]
+  },
+  "issues": [
+    {
+      "issue_id": "I1",
+      "rule_id": "upper_digit_enables",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "Example only supplies reset=0 but expects q to jump 9->16->17; impossible under increment-by-one and q-based combinational enable.",
+      "spec_evidence": "",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I2",
+      "rule_id": "bcd_counter_increment",
+      "type": "grounding",
+      "severity": "medium",
+      "detail": "Condition asserts exact BCD bit mapping and modulo 10000, but spec_quote only cites S01; S02 encoding is not quoted and wrap is not verbatim.",
+      "spec_evidence": "Each decimal digit is encoded using 4 bits: q[3:0] is the ones digit, q[7:4] is the tens digit, etc.",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I3",
+      "rule_id": "upper_digit_enables",
+      "type": "consistency",
+      "severity": "medium",
+      "detail": "Rule maps upper digits to ena[0..2], while spec names digits [3:1]; port ena:3 has no declared range.",
+      "spec_evidence": "For digits [3:1], also output an enable signal indicating when each of the upper three digits should be incremented.",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I4",
+      "rule_id": "upper_digit_enables",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec is silent on ena timing; rule assumes combinational same-cycle. Alternative: registered enable visible next cycle; at q=9 contract ena=1, alternative ena=0.",
+      "spec_evidence": "For digits [3:1], also output an enable signal indicating when each of the upper three digits should be incremented.",
+      "alternative": "Registered active-high ena, visible one cycle after the carry condition q[3:0]==9 is met.",
+      "sequence": [
+        {
+          "reset": 1
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        }
+      ]
+    }
+  ]
+}

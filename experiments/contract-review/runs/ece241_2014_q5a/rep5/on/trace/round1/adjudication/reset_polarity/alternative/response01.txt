@@ -1,0 +1,85 @@
+```python
+def reference(vectors):
+    # Initial state: assume reset/no-first-1 state A; power-up is concretely resolved here.
+    state = "A"
+    current_areset = 0  # active-low reset: asserted at 0 initially
+    current_x = 0
+
+    def z_of(s):
+        # Moore output: A -> 0, B -> 1, C -> 0
+        if s == "B":
+            return 1
+        return 0
+
+    results = []
+
+    for row in vectors:
+        # Drive each row's inputs before the sampled posedge.
+        if "areset" in row:
+            current_areset = int(row["areset"]) & 1
+        if "x" in row:
+            current_x = int(row["x"]) & 1
+
+        # async_reset_assert: active-low reset asserted when areset=0.
+        # While asserted, state is forced to A with z=0 asynchronously.
+        if current_areset == 0:
+            state = "A"
+
+        # Sample positive edge. Reset has priority when asserted.
+        if current_areset == 0:
+            # async_reset_assert: z=0 through reset state A.
+            state = "A"
+        else:
+            if state == "A":
+                if current_x == 0:
+                    # A_on_x0: remain A, z=0
+                    state = "A"
+                else:
+                    # A_on_x1: become B, z=1
+                    state = "B"
+            elif state == "B":
+                if current_x == 0:
+                    # B_on_x0: remain B, z=1
+                    state = "B"
+                else:
+                    # B_on_x1: become C, z=0
+                    state = "C"
+            elif state == "C":
+                if current_x == 0:
+                    # C_on_x0: become B, z=1
+                    state = "B"
+                else:
+                    # C_on_x1: remain C, z=0
+                    state = "C"
+            else:
+                state = "A"
+
+        # Record the settled output after the sampled posedge.
+        results.append({"z": z_of(state)})
+
+        # mid changes occur AFTER sampling, before the next posedge,
+        # and are carried into the next row's starting inputs.
+        mid = row.get("mid")
+        if mid is not None:
+            changes = []
+            if isinstance(mid, dict):
+                changes = [mid]
+            else:
+                try:
+                    for item in mid:
+                        if isinstance(item, dict):
+                            changes.append(item)
+                except TypeError:
+                    changes = []
+
+            for change in changes:
+                if "areset" in change:
+                    current_areset = int(change["areset"]) & 1
+                    # async_reset_assert: a mid-cycle assertion asynchronously forces A.
+                    if current_areset == 0:
+                        state = "A"
+                if "x" in change:
+                    current_x = int(change["x"]) & 1
+
+    return results
+```

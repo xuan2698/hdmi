@@ -1,0 +1,159 @@
+I'll analyze the four models and implement each with its exact state semantics. The key differences are in reset behavior and output during reset:
+
+- **0fe7944e2cad61572d**: Reset forces z=0 immediately (R5 says "forces state to S0 and z=0 immediately")
+- **0271354a2635ed622c**: Reset forces state to S0, z follows R1/R2 from resulting state (so z=x during reset)
+- **6861c9062c1f5bb446**: Same as 0271 but example shows z=1 when areset=1,x=1 (z=x during reset)
+- **a490feed20f4fb22be**: Same reset semantics as 6861, but R4 example shows z=1 for x=1 in S1 (which contradicts R2... but I follow the rule text: z=NOT x in S1)
+
+Let me carefully determine each model's semantics from rules and examples:
+
+**Model 1 (0fe7944e2cad61572d)**: R5 explicitly says z=0 during reset. Examples confirm: areset=1,x=1 → z=0.
+
+**Model 2 (0271354a2635ed622c)**: R5 says "z follows R1/R2 from the resulting state" — state is S0 during reset, so z=x. Examples: areset=1,x=1→z=0? Wait, example shows z=0 for areset=1,x=1. But R1 says in S0, z=x, so z should be 1. The example contradicts. Hmm — but the example for model 2 shows `{"areset":1,"x":1}` → `{"z":0}`. That matches z=0 during reset, not z=x. But R5 text says z follows R1/R2. 
+
+Let me re-read: model 2's R5 example: areset=1,x=1→z=0; areset=1,x=0→z=0; areset=0,x=0→z=0. If z=x during reset, first would be z=1. So example says z=0. But text says "z follows R1/R2 from resulting state". These conflict. I'll follow the example since it's concrete: z=0 during reset for model 2.
+
+Wait, but then model 2 and model 1 are identical? Let me check model 3.
+
+**Model 3 (6861c9062c1f5bb446)**: R5 example: areset=1,x=1→z=1; areset=1,x=0→z=0; areset=0,x=0→z=0. This matches z=x during reset (S0 state, R1). So model 3: during reset, state=S0, z=x.
+
+**Model 4 (a490feed20f4fb22be)**: R5 example: areset=1,x=1→z=1; areset=1,x=0→z=0. Same as model 3: z=x during reset. But R4 example: x=1 in S1 → z=1 (contradicts R2 which says z=NOT x=0). The rule text R2 says z=NOT x. I'll follow rule text R2 (z=NOT x in S1) since that's the actual semantic rule; the R4 example appears erroneous but R4 is about state transition, not output.
+
+Actually wait — for model 4, R4's example shows z=1 for all three cycles with x=1,0,0. If S1 gives z=NOT x: x=1→z=0, x=0→z=1, x=0→z=1. That gives 0,1,1 not 1,1,1. The example is wrong per R2. I'll trust R2's rule text.
+
+So the distinguishing factor is reset output behavior:
+- Model 1: z=0 during reset
+- Model 2: z=0 during reset (per example)
+- Model 3: z=x during reset
+- Model 4: z=x during reset
+
+Let me write the reference functions. The interface: `reference(vectors)` returns list of dicts with output values per cycle.
+
+Semantics per cycle:
+1. If areset=1: state becomes S0 (async). Output depends on model.
+2. Else: output based on current state (S0: z=x, S1: z=NOT x). Then at posedge, update state: if x=1 → S1, else stay.
+
+Wait — need to be careful about ordering. The output is combinational based on current state and x. State updates at posedge. Reset is async.
+
+For a cycle with areset=0: output = f(state, x), then state updates.
+For a cycle with areset=1: state forced to S0, output per model's reset rule.
+
+Let me code this:
+
+```python
+def reference(vectors):
+    results = []
+    state = 0  # 0=S0, 1=S1
+    for v in vectors:
+        areset = v['areset']
+        x = v['x']
+        if areset:
+            state = 0
+            z = 0  # model 1 & 2
+        else:
+            if state == 0:
+                z = x
+            else:
+                z = 1 - x
+            # posedge update
+            if x == 1:
+                state = 1
+        results.append({'z': z})
+    return results
+```
+
+For models 3 & 4, reset gives z=x (state is S0, so z=x):
+
+```python
+        if areset:
+            state = 0
+            z = x  # models 3 & 4
+```
+
+Let me verify against examples:
+
+Model 1: [areset=0,x=0],[0,0],[0,1] → state S0: z=0,0,1. ✓ (expected 0,0,1)
+Model 1 R2: [0,1],[0,0],[0,1] → S0:z=1,state→S1; S1:z=1,state stays; S1:z=0. Expected 0,1,0. ✗!
+
+Hmm. R2 example: vectors [x=1],[x=0],[x=1], expected z=[0,1,0]. With my code: cycle1 S0,x=1→z=1. But expected z=0. 
+
+So the output must reflect the state AFTER the posedge? Or the state update happens before output? Let me reconsider.
+
+If output is based on state after posedge update: cycle1: x=1, state becomes S1, z=NOT x=0. ✓. cycle2: x=0, state stays S1, z=NOT 0=1. ✓. cycle3: x=1, state S1, z=NOT 1=0. ✓. 
+
+So the model is: at each cycle, first update state based on x (posedge), then compute output from new state. But that's odd for "combinational same_cycle" output...
+
+Actually, re-reading: "Each row's values are driven before the sampled edge." So inputs are set, then posedge samples. The output visible "same_cycle" — but the state used for output... Let me check R1 example: [0,0],[0,0],[0,1] → z=[0,0,1]. With post-update: cycle1 x=0, state stays S0, z=x=0 ✓. cycle2 x=0, S0, z=0 ✓. cycle3 x=1, state→S1, z=NOT 1=0. But expected z=1! ✗.
+
+Contradiction. R1 expects z=1 for x=1 in S0 (pre-update), R2 expects z=0 for x=1 in S0 (post-update).
+
+Hmm, R2's first vector x=1: if pre-update S0, z=x=1, but expected 0. If post-update S1, z=NOT x=0 ✓.
+
+R1's third vector x=1: pre-update S0, z=x=1 ✓. Post-update S1, z=0 ✗.
+
+These are inconsistent unless... R2's example starts in S1? No, initial state is S0.
+
+Wait — maybe R2's example is just wrong/illustrative of S1 behavior, not starting from reset. The examples may not all start from S0. Let me check: R2 says "In state S1, z=NOT x". The example might assume we're already in S1. But the vectors don't show how we got to S1.
+
+Given the ambiguity, I'll trust R1 (S0: z=x, pre-update) and R2 (S1: z=NOT x, pre-update) as the rule text, and treat examples as illustrative. The standard 2's complementer: pass bits until first 1, then complement. Output at each cycle uses current state (before posedge update).
+
+Let me recheck R2 with pre-update assuming we start in S1 (as the rule states "In state S1"): x=1→z=0, x=0→z=1, x=1→z=0. Expected 0,1,0 ✓. So R2's example assumes starting in S1. Good.
+
+R3 example: [0,0],[0,1],[0,0] expected z=[0,1,1]. Pre-update: cycle1 S0,x=0→z=0,state stays S0. cycle2 S0,x=1→z=1,state→S1. cycle3 S1,x=0→z=1. ✓ 
+
+R4 example: [0,1],[0,0],[0,0] expected z=[0,1,1]. Pre-update: cycle1 S0,x=1→z=1. Expected 0. ✗. Hmm.
+
+R4 assumes starting in S1: x=1→z=0, x=0→z=1, x=0→z=1. Expected 0,1,1 ✓. So R4 example also assumes starting in S1.
+
+OK so R2 and R4 examples assume initial state S1. R1 and R3 assume S0. That's consistent with the rule descriptions. Good — pre-update output, standard semantics.
+
+Now R5 examples:
+Model 1: [1,1],[1,0],[0,0] expected z=[0,0,0]. Reset: z=0. cycle3 areset=0,x=0,S0→z=0. ✓
+Model 2: same expected [0,0,0]. Reset z=0. ✓
+Model 3: [1,1],[1,0],[0,0] expected z=[1,0,0]. Reset z=x: 1,0. cycle3 S0,x=0→z=0. ✓
+Model 4: same as model 3: [1,0,0]. ✓
+
+Great, so:
+- Models 1,2: reset → z=0
+- Models 3,4: reset → z=x (state S0)
+
+Now let me also double check model 4's R4 example: [0,1],[0,0],[0,0] expected z=[1,1,1]. If starting S1: x=1→z=0. Expected 1. ✗. If starting S0: x=1→z=1, state→S1; x=0→z=1; x=0→z=1. Expected 1,1,1 ✓! So model 4's R4 example starts from S0 and gives z=x for first bit then NOT x. That's consistent with standard semantics starting from S0. Good, model 4 is standard.
+
+Model 3's R4 example: [0,1],[0,0],[0,0] expected z=[0,1,1]. Starting S1: 0,1,1 ✓. Starting S0: 1,1,1 ✗. So model 3's R4 example starts from S1. Inconsistent with model 4 but both are just examples. The rule text is the same. I'll use standard semantics for both.
+
+Final code:
+
+```python
+def reference(vectors):
+    results = []
+    state = 0
+    for v in vectors:
+        areset = v['areset']
+        x = v['x']
+        if areset:
+            state = 0
+            z = 0  # or x for models 3,4
+        else:
+            if state == 0:
+                z = x
+            else:
+                z = 1 - x
+            if x == 1:
+                state = 1
+        results.append({'z': z})
+    return results
+```
+
+Now let me produce the JSON with all four models.
+
+```json
+{"models":{"0fe7944e2cad61572d":"def reference(vectors):\n    results = []\n    state = 0\n    for v in vectors:\n        areset = v['areset']\n        x = v['x']\n        if areset:\n            state = 0\n            z = 0\n        else:\n            if state == 0:\n                z = x\n            else:\n                z = 1 - x\n            if x == 1:\n                state = 1\n        results.append({'z': z})\n    return results","0271354a2635ed622c":"def reference(vectors):\n    results = []\n    state = 0\n    for v in vectors:\n        areset = v['areset']\n        x = v['x']\n        if areset:\n            state = 0\n            z = 0\n        else:\n            if state == 0:\n                z = x\n            else:\n                z = 1 - x\n            if x == 1:\n                state = 1\n        results.append({'z': z})\n    return results","6861c9062c1f5bb446":"def reference(vectors):\n    results = []\n    state = 0\n    for v in vectors:\n        areset = v['areset']\n        x = v['x']\n        if areset:\n            state = 0\n            z = x\n        else:\n            if state == 0:\n                z = x\n            else:\n                z = 1 - x\n            if x == 1:\n                state = 1\n        results.append({'z': z})\n    return results","a490feed20f4fb22be":"def reference(vectors):\n    results = []\n    state = 0\n    for v in vectors:\n        areset = v['areset']\n        x = v['x']\n        if areset:\n            state = 0\n            z = x\n        else:\n            if state == 0:\n                z = x\n            else:\n                z = 1 - x\n            if x == 1:\n                state = 1\n        results.append({'z': z})\n    return results"}}
+```
+
+Let me verify model 2's R5 example once more: [1,1],[1,0],[0,0] expected [0,0,0]. My code: reset z=0,0; cycle3 S0,x=0→z=0. ✓
+
+Model 3 R5: [1,1],[1,0],[0,0] expected [1,0,0]. My code: reset z=x=1,0; cycle3 z=0. ✓
+
+Model 4 R5: same [1,0,0]. ✓
+
+All good. Let me finalize.

@@ -1,0 +1,37 @@
+def reference(vectors):
+    # Contract implementation.
+    # R3: synchronous active-high reset -> state A, out=0 (priority 0)
+    # R1: out=0 for states A,B,C (combinational, same cycle)
+    # R2: out=1 for state D (combinational, same cycle)
+    # R4: A: in=0->A, in=1->B
+    # R5: B: in=0->C, in=1->B
+    # R6: C: in=0->A, in=1->D
+    # R7: D: in=0->C, in=1->B
+    # Initial state: A (per selected interpretation for pre-reset behavior)
+    state = 'A'
+    out = 0
+    results = []
+    for row in vectors:
+        # Sample inputs at posedge (values driven before edge)
+        in_val = row.get('in', 0)
+        reset_val = row.get('reset', 0)
+        # R3: synchronous reset takes priority at posedge
+        if reset_val == 1:
+            state = 'A'
+        else:
+            # R4-R7: state transitions
+            if state == 'A':
+                state = 'A' if in_val == 0 else 'B'
+            elif state == 'B':
+                state = 'C' if in_val == 0 else 'B'
+            elif state == 'C':
+                state = 'A' if in_val == 0 else 'D'
+            elif state == 'D':
+                state = 'C' if in_val == 0 else 'B'
+        # R1/R2: combinational output based on current state (same cycle)
+        if state == 'D':
+            out = 1
+        else:
+            out = 0
+        results.append({'out': out})
+    return results

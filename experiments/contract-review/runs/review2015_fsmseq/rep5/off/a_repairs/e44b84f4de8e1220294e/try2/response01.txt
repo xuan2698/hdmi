@@ -1,0 +1,45 @@
+```python
+def reference(vectors):
+    # State encoding: 0=S0, 1=S1, 2=S2, 3=S3, 4=S4
+    state = 0
+    start_shifting = 0
+    out = []
+    for v in vectors:
+        reset = v.get('reset', 0)
+        data = v.get('data', 0)
+        # Compute next state and output based on current state and inputs
+        if reset == 1:
+            # R1: synchronous reset, priority 1
+            next_state = 0
+            next_out = 0
+        else:
+            if state == 4:
+                # R2/R5: latched high forever until reset
+                next_state = 4
+                next_out = 1
+            else:
+                # Determine next state from current state and data
+                if state == 0:
+                    next_state = 1 if data == 1 else 0
+                elif state == 1:
+                    next_state = 2 if data == 1 else 1 if data == 1 else (1 if data == 1 else 0)
+                    # correct: S1 on data==1 -> S2; data==0 -> S0
+                    next_state = 2 if data == 1 else 0
+                elif state == 2:
+                    next_state = 3 if data == 0 else 2
+                elif state == 3:
+                    next_state = 4 if data == 1 else 0
+                else:
+                    next_state = 0
+                # R3: transition into S4 sets output high same cycle
+                if next_state == 4:
+                    next_out = 1
+                else:
+                    # R4: no match, output stays 0
+                    next_out = 0
+        # Sample after posedge: update state and output
+        state = next_state
+        start_shifting = next_out
+        out.append({'start_shifting': start_shifting})
+    return out
+```

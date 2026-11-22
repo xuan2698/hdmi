@@ -1,0 +1,41 @@
+{
+  "coverage": {
+    "S01": ["R1_sync_reset", "R2_dff_capture"],
+    "S02": ["R1_sync_reset", "R2_dff_capture"]
+  },
+  "issues": [
+    {
+      "issue_id": "I1",
+      "rule_id": "R1_sync_reset",
+      "type": "consistency",
+      "severity": "medium",
+      "detail": "Rule example expected q after reset posedge is 0, but contract states q_reg value before first posedge is unspecified; example assumes known initial state.",
+      "spec_evidence": "active high synchronous reset setting the output to zero",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I2",
+      "rule_id": "R2_dff_capture",
+      "type": "ambiguity",
+      "severity": "low",
+      "detail": "Spec does not specify behavior when reset is high and d changes; rule covers only reset==0 capture, but reset==1 overrides.",
+      "spec_evidence": "Create 8 D flip-flops with active high synchronous reset setting the output to zero.",
+      "alternative": "During reset==1, q is forced to 0 regardless of d; during reset==0, q captures d.",
+      "sequence": [
+        {"d": 255, "reset": 1},
+        {"d": 0, "reset": 0}
+      ]
+    },
+    {
+      "issue_id": "I3",
+      "rule_id": "global",
+      "type": "grounding",
+      "severity": "low",
+      "detail": "Spec says '8 D flip-flops' but does not explicitly state output port name q or width 8; contract infers q:8.",
+      "spec_evidence": "Create 8 D flip-flops",
+      "alternative": "",
+      "sequence": []
+    }
+  ]
+}

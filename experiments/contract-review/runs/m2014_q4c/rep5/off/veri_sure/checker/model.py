@@ -1,0 +1,21 @@
+def reference(vectors):
+    # D flip-flop with active-high synchronous reset.
+    # q updates on posedge clk: q <= 0 if r else d.
+    # Mid changes occur after sampling, before next edge.
+    q = 0  # power-up unspecified; use 0 as concrete value
+    out = []
+    for row in vectors:
+        clk = row.get('clk', 0)
+        d = row.get('d', 0)
+        r = row.get('r', 0)
+        # Determine if this row represents a posedge sample.
+        # Protocol: values driven before sampled edge; mid changes after sampling.
+        # We treat each row as a clock cycle where posedge occurs.
+        # Sample on posedge: if clk indicates edge (assume row is a posedge sample)
+        # Apply synchronous reset/data
+        if r:
+            q = 0
+        else:
+            q = d & 1
+        out.append({'q': q & 1})
+    return out

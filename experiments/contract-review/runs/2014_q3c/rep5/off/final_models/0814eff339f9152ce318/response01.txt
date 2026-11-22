@@ -1,0 +1,36 @@
+```python
+def reference(vectors):
+    # Contract implementation.
+    # R_Y0: Y0 = next-state bit 0 as function of y and x per state-assigned table.
+    # R_z:  z = 1 for present states 011 and 100, else 0.
+    # State is provided directly via input y (present state). Outputs are combinational.
+    # Mid changes: inputs are driven before the sampled edge; we compute outputs
+    # from the current row's x and y (present state) values.
+
+    def next_state(y, x):
+        # State-assigned table: (present state) -> (next state for x=0, next state for x=1)
+        table = {
+            0b000: (0b000, 0b001),
+            0b001: (0b001, 0b100),
+            0b010: (0b010, 0b001),
+            0b011: (0b001, 0b010),
+            0b100: (0b011, 0b100),
+        }
+        return table[y][x]
+
+    def z_out(y):
+        # R_z: z = 1 for present states 011 and 100, else 0
+        return 1 if y in (0b011, 0b100) else 0
+
+    results = []
+    for row in vectors:
+        x = row['x'] & 0x1
+        y = row['y'] & 0x7
+        ns = next_state(y, x)
+        # R_Y0: Y0 = next-state bit 0
+        Y0 = ns & 0x1
+        # R_z: output z from present state
+        z = z_out(y)
+        results.append({'Y0': Y0, 'z': z})
+    return results
+```

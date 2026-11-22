@@ -1,0 +1,88 @@
+```python
+def reference(vectors):
+    # State encoding
+    WALK_LEFT, WALK_RIGHT, FALL_LEFT, FALL_RIGHT, DIG_LEFT, DIG_RIGHT, SPLAT = range(7)
+
+    # Outputs per state (R2, R3, R4, R5)
+    def outputs(state):
+        if state == WALK_LEFT:
+            return {"walk_left": 1, "walk_right": 0, "aaah": 0, "digging": 0}
+        if state == WALK_RIGHT:
+            return {"walk_left": 0, "walk_right": 1, "aaah": 0, "digging": 0}
+        if state in (FALL_LEFT, FALL_RIGHT):
+            return {"walk_left": 0, "walk_right": 0, "aaah": 1, "digging": 0}
+        if state in (DIG_LEFT, DIG_RIGHT):
+            return {"walk_left": 0, "walk_right": 0, "aaah": 0, "digging": 1}
+        # SPLAT
+        return {"walk_left": 0, "walk_right": 0, "aaah": 0, "digging": 0}
+
+    state = WALK_LEFT
+    fall_count = 0
+    result = []
+
+    for row in vectors:
+        areset = row.get("areset", 0)
+        bump_left = row.get("bump_left", 0)
+        bump_right = row.get("bump_right", 0)
+        ground = row.get("ground", 1)
+        dig = row.get("dig", 0)
+
+        # R1_reset: async reset -> WALK_LEFT, visible same cycle
+        if areset:
+            state = WALK_LEFT
+            fall_count = 0
+            result.append(outputs(state))
+            continue
+
+        # Outputs are combinational from current state (R2-R5)
+        result.append(outputs(state))
+
+        # Compute next state (posedge)
+        if state == WALK_LEFT or state == WALK_RIGHT:
+            # R6_walk_transitions: fall > dig > switch
+            if ground == 0:
+                if state == WALK_LEFT:
+                    state = FALL_LEFT
+                else:
+                    state = FALL_RIGHT
+                fall_count = 0
+            elif dig == 1:
+                if state == WALK_LEFT:
+                    state = DIG_LEFT
+                else:
+                    state = DIG_RIGHT
+            elif bump_left == 1 or bump_right == 1:
+                # toggle direction
+                if state == WALK_LEFT:
+                    state = WALK_RIGHT
+                else:
+                    state = WALK_LEFT
+        elif state == FALL_LEFT or state == FALL_RIGHT:
+            # R7_fall_transitions / R9_splat_transition
+            if ground == 1:
+                # splat if fell > 20 cycles
+                if fall_count > 20:
+                    state = SPLAT
+                else:
+                    if state == FALL_LEFT:
+                        state = WALK_LEFT
+                    else:
+                        state = WALK_RIGHT
+                fall_count = 0
+            else:
+                fall_count += 1
+        elif state == DIG_LEFT or state == DIG_RIGHT:
+            # R8_dig_transitions
+            if ground == 0:
+                if state == DIG_LEFT:
+                    state = FALL_LEFT
+                else:
+                    state = FALL_RIGHT
+                fall_count = 0
+            # else stay digging
+        elif state == SPLAT:
+            # R9_splat_transition: stay forever
+            pass
+
+    return result
+```

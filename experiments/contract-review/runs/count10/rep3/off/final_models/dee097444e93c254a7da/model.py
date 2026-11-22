@@ -1,0 +1,25 @@
+def reference(vectors):
+    # State: current decade count value, 0..9 inclusive.
+    # R1: reset == 1 at posedge -> q = 0 (synchronous, active high, priority 1).
+    # R2: reset == 0 && q == 9 at posedge -> q = 0 (wrap, priority 2).
+    # R3: reset == 0 && q != 9 at posedge -> q = q + 1 (priority 3).
+    # Outputs are visible same cycle (registered state sampled after posedge settles).
+    # Mid input changes occur AFTER sampling, before the other edge, carried to next row.
+    count = 0  # power-up unspecified; start at 0
+    out = []
+    for row in vectors:
+        reset = row.get("reset", 0)
+        # Sample: compute next state based on current state and inputs at posedge.
+        if reset == 1:
+            # R1
+            count = 0
+        elif count == 9:
+            # R2
+            count = 0
+        else:
+            # R3
+            count = count + 1
+        # Output q reflects the state after the posedge (same_cycle visible).
+        out.append({"q": count & 0xF})
+        # Mid changes: none modeled beyond inputs already applied per row.
+    return out

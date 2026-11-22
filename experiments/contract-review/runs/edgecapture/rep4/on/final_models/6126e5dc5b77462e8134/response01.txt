@@ -1,0 +1,77 @@
+def reference(vectors):
+    # State: out_reg is the 32-bit sticky capture register.
+    # State: prev_in is the sampled input from the immediately preceding posedge.
+    out_reg = 0
+    prev_in = 0
+    mask = (1 << 32) - 1
+
+    # Carried input values at the start of each row, possibly modified by previous mid changes.
+    carried_reset = 0
+    carried_in = 0
+
+    results = []
+
+    if isinstance(vectors, dict) and "vectors" in vectors:
+        rows = vectors["vectors"]
+    else:
+        rows = vectors
+
+    for row in rows:
+        # Inputs driven before the sampled posedge; missing inputs retain carried values.
+        reset_val = carried_reset
+        in_val = carried_in
+
+        if "reset" in row:
+            reset_val = row["reset"]
+        if "in" in row:
+            in_val = row["in"]
+
+        reset_val = int(reset_val) & 1
+        in_val = int(in_val) & mask
+
+        # Rule sync_active_high_reset: active high synchronous reset has priority.
+        # At a sampled posedge with reset == 1, out is cleared to 0.
+        if reset_val == 1:
+            out_reg = 0
+            # prev_in updates on every posedge, including reset cycles.
+            prev_in = in_val
+        else:
+            # Rule capture_sticky_one_to_zero: capture sampled 1-to-0 transitions and hold sticky.
+            # Bit becomes 1 if prev_in bit is 1 and current in bit is 0, or if already 1.
+            transitions = prev_in & ((~in_val) & mask)
+            out_reg = (out_reg | transitions) & mask
+            prev_in = in_val
+
+        # Output is visible in the same cycle after the sampled posedge.
+        results.append({"out": out_reg & mask})
+
+        # Inputs remain at the sampled row values after the posedge unless changed by optional mid changes.
+        carried_reset = reset_val
+        carried_in = in_val
+
+        # Mid changes occur after sampling and before the next posedge.
+        # They update carried inputs for the start of the next row but do not alter out until the next sampled posedge.
+        if "mid" in row:
+            mid = row["mid"]
+
+            if isinstance(mid, dict):
+                if "reset" in mid:
+                    carried_reset = int(mid["reset"]) & 1
+                if "in" in mid:
+                    carried_in = int(mid["in"]) & mask
+
+            elif isinstance(mid, (list, tuple)):
+                for change in mid:
+                    if isinstance(change, dict):
+                        if "reset" in change:
+                            carried_reset = int(change["reset"]) & 1
+                        if "in" in change:
+                            carried_in = int(change["in"]) & mask
+                    elif isinstance(change, (list, tuple)) and len(change) == 2:
+                        name, value = change
+                        if name == "reset":
+                            carried_reset = int(value) & 1
+                        elif name == "in":
+                            carried_in = int(value) & mask
+
+    return results

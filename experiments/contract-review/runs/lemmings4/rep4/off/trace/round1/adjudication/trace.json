@@ -1,0 +1,362 @@
+[
+  {
+    "issue": {
+      "issue_id": "I7",
+      "rule_id": "R8_walk_start_dig",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec says dig starts when dig=1 while walking on ground, but does not specify whether dig input is level-sensitive or edge-triggered; contract treats it as level sampled at posedge. Alternative: dig only starts on rising edge of dig.",
+      "spec_evidence": "it starts digging when dig=1",
+      "alternative": "Dig starts only on a 0->1 transition of dig while walking on ground; holding dig=1 does not restart digging after landing.",
+      "sequence": [
+        {
+          "areset": 0,
+          "bump_left": 0,
+          "bump_right": 0,
+          "ground": 1,
+          "dig": 1
+        },
+        {
+          "areset": 0,
+          "bump_left": 0,
+          "bump_right": 0,
+          "ground": 0,
+          "dig": 1
+        },
+        {
+          "areset": 0,
+          "bump_left": 0,
+          "bump_right": 0,
+          "ground": 1,
+          "dig": 1
+        }
+      ]
+    },
+    "status": "effect",
+    "issue_id": "I7",
+    "outputs": {
+      "original": [
+        {
+          "walk_left": 1,
+          "walk_right": 0,
+          "aaah": 0,
+          "digging": 0
+        },
+        {
+          "walk_left": 0,
+          "walk_right": 0,
+          "aaah": 0,
+          "digging": 1
+        },
+        {
+          "walk_left": 0,
+          "walk_right": 0,
+          "aaah": 1,
+          "digging": 0
+        }
+      ],
+      "alternative": [
+        {
+          "walk_left": 0,
+          "walk_right": 0,
+          "aaah": 0,
+          "digging": 1
+        },
+        {
+          "walk_left": 0,
+          "walk_right": 0,
+          "aaah": 1,
+          "digging": 0
+        },
+        {
+          "walk_left": 1,
+          "walk_right": 0,
+          "aaah": 0,
+          "digging": 0
+        }
+      ]
+    },
+    "differences": [
+      {
+        "cycle": 1,
+        "original": {
+          "walk_left": 1,
+          "walk_right": 0,
+          "aaah": 0,
+          "digging": 0
+        },
+        "alternative": {
+          "walk_left": 0,
+          "walk_right": 0,
+          "aaah": 0,
+          "digging": 1
+        }
+      },
+      {
+        "cycle": 2,
+        "original": {
+          "walk_left": 0,
+          "walk_right": 0,
+          "aaah": 0,
+          "digging": 1
+        },
+        "alternative": {
+          "walk_left": 0,
+          "walk_right": 0,
+          "aaah": 1,
+          "digging": 0
+        }
+      },
+      {
+        "cycle": 3,
+        "original": {
+          "walk_left": 0,
+          "walk_right": 0,
+          "aaah": 1,
+          "digging": 0
+        },
+        "alternative": {
+          "walk_left": 1,
+          "walk_right": 0,
+          "aaah": 0,
+          "digging": 0
+        }
+      }
+    ]
+  },
+  {
+    "issue": {
+      "issue_id": "I8",
+      "rule_id": "R9_walk_fall",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec says bumped in same cycle as ground disappears does not affect walking direction, but contract R9 enters FALL and remembers direction; alternative could ignore bump and keep walking direction, which is same remembered direction, so no distinguishing output. Need case where bump would switch before fall.",
+      "spec_evidence": "being bumped in the same cycle as ground disappears (but not yet falling), or when the ground reappears while still falling, also does not affect the walking direction",
+      "alternative": "If ground=0 and bump occurs in same cycle, Lemming falls but remembers the direction it would have switched to due to bump.",
+      "sequence": [
+        {
+          "areset": 0,
+          "bump_left": 1,
+          "bump_right": 0,
+          "ground": 0,
+          "dig": 0
+        },
+        {
+          "areset": 0,
+          "bump_left": 0,
+          "bump_right": 0,
+          "ground": 0,
+          "dig": 0
+        },
+        {
+          "areset": 0,
+          "bump_left": 0,
+          "bump_right": 0,
+          "ground": 1,
+          "dig": 0
+        }
+      ]
+    },
+    "status": "effect",
+    "issue_id": "I8",
+    "outputs": {
+      "original": [
+        {
+          "walk_left": 1,
+          "walk_right": 0,
+          "aaah": 0,
+          "digging": 0
+        },
+        {
+          "walk_left": 0,
+          "walk_right": 0,
+          "aaah": 1,
+          "digging": 0
+        },
+        {
+          "walk_left": 0,
+          "walk_right": 0,
+          "aaah": 1,
+          "digging": 0
+        }
+      ],
+      "alternative": [
+        {
+          "walk_left": 0,
+          "walk_right": 0,
+          "aaah": 1,
+          "digging": 0
+        },
+        {
+          "walk_left": 0,
+          "walk_right": 0,
+          "aaah": 1,
+          "digging": 0
+        },
+        {
+          "walk_left": 0,
+          "walk_right": 1,
+          "aaah": 0,
+          "digging": 0
+        }
+      ]
+    },
+    "differences": [
+      {
+        "cycle": 1,
+        "original": {
+          "walk_left": 1,
+          "walk_right": 0,
+          "aaah": 0,
+          "digging": 0
+        },
+        "alternative": {
+          "walk_left": 0,
+          "walk_right": 0,
+          "aaah": 1,
+          "digging": 0
+        }
+      },
+      {
+        "cycle": 3,
+        "original": {
+          "walk_left": 0,
+          "walk_right": 0,
+          "aaah": 1,
+          "digging": 0
+        },
+        "alternative": {
+          "walk_left": 0,
+          "walk_right": 1,
+          "aaah": 0,
+          "digging": 0
+        }
+      }
+    ]
+  },
+  {
+    "issue": {
+      "issue_id": "I9",
+      "rule_id": "R6_walk_bump_switch",
+      "type": "ambiguity",
+      "severity": "low",
+      "detail": "Spec says switch directions if bumped, but does not specify behavior when bump_left and bump_right both 1 while dig=1 and ground=1; contract gives dig precedence. Alternative: bump precedence over dig.",
+      "spec_evidence": "If more than one of these conditions are satisfied, fall has higher precedence than dig, which has higher precedence than switching directions.",
+      "alternative": "Bump has higher precedence than dig when both bump and dig are asserted while walking on ground.",
+      "sequence": [
+        {
+          "areset": 0,
+          "bump_left": 1,
+          "bump_right": 0,
+          "ground": 1,
+          "dig": 1
+        },
+        {
+          "areset": 0,
+          "bump_left": 0,
+          "bump_right": 0,
+          "ground": 1,
+          "dig": 0
+        },
+        {
+          "areset": 0,
+          "bump_left": 0,
+          "bump_right": 0,
+          "ground": 1,
+          "dig": 0
+        }
+      ]
+    },
+    "status": "effect",
+    "issue_id": "I9",
+    "outputs": {
+      "original": [
+        {
+          "walk_left": 1,
+          "walk_right": 0,
+          "aaah": 0,
+          "digging": 0
+        },
+        {
+          "walk_left": 0,
+          "walk_right": 0,
+          "aaah": 0,
+          "digging": 1
+        },
+        {
+          "walk_left": 0,
+          "walk_right": 0,
+          "aaah": 0,
+          "digging": 1
+        }
+      ],
+      "alternative": [
+        {
+          "walk_left": 0,
+          "walk_right": 1,
+          "aaah": 0,
+          "digging": 0
+        },
+        {
+          "walk_left": 0,
+          "walk_right": 1,
+          "aaah": 0,
+          "digging": 0
+        },
+        {
+          "walk_left": 0,
+          "walk_right": 1,
+          "aaah": 0,
+          "digging": 0
+        }
+      ]
+    },
+    "differences": [
+      {
+        "cycle": 1,
+        "original": {
+          "walk_left": 1,
+          "walk_right": 0,
+          "aaah": 0,
+          "digging": 0
+        },
+        "alternative": {
+          "walk_left": 0,
+          "walk_right": 1,
+          "aaah": 0,
+          "digging": 0
+        }
+      },
+      {
+        "cycle": 2,
+        "original": {
+          "walk_left": 0,
+          "walk_right": 0,
+          "aaah": 0,
+          "digging": 1
+        },
+        "alternative": {
+          "walk_left": 0,
+          "walk_right": 1,
+          "aaah": 0,
+          "digging": 0
+        }
+      },
+      {
+        "cycle": 3,
+        "original": {
+          "walk_left": 0,
+          "walk_right": 0,
+          "aaah": 0,
+          "digging": 1
+        },
+        "alternative": {
+          "walk_left": 0,
+          "walk_right": 1,
+          "aaah": 0,
+          "digging": 0
+        }
+      }
+    ]
+  }
+]

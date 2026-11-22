@@ -1,0 +1,106 @@
+```python
+def reference(vectors):
+    # Moore FSM for Lemmings.
+    # States: WALK_LEFT, WALK_RIGHT, FALL_LEFT, FALL_RIGHT, DIG_LEFT, DIG_RIGHT, SPLAT
+    # Outputs are combinational from state.
+    # R1_reset: async positive-edge areset -> WALK_LEFT (visible same cycle)
+    # R2_walk_outputs / R3_fall_outputs / R4_dig_outputs / R5_splat_outputs: combinational
+    # R6_walk_transitions / R7_fall_transitions / R8_dig_transitions / R9_splat_transition: posedge
+
+    WALK_LEFT, WALK_RIGHT = 0, 1
+    FALL_LEFT, FALL_RIGHT = 2, 3
+    DIG_LEFT, DIG_RIGHT = 4, 5
+    SPLAT = 6
+
+    def outputs(state):
+        # R2_walk_outputs
+        if state == WALK_LEFT:
+            return {"walk_left": 1, "walk_right": 0, "aaah": 0, "digging": 0}
+        if state == WALK_RIGHT:
+            return {"walk_left": 0, "walk_right": 1, "aaah": 0, "digging": 0}
+        # R3_fall_outputs
+        if state in (FALL_LEFT, FALL_RIGHT):
+            return {"walk_left": 0, "walk_right": 0, "aaah": 1, "digging": 0}
+        # R4_dig_outputs
+        if state in (DIG_LEFT, DIG_RIGHT):
+            return {"walk_left": 0, "walk_right": 0, "aaah": 0, "digging": 1}
+        # R5_splat_outputs
+        return {"walk_left": 0, "walk_right": 0, "aaah": 0, "digging": 0}
+
+    state = WALK_LEFT
+    fall_count = 0
+    result = []
+
+    for row in vectors:
+        areset = row.get("areset", 0)
+        bump_left = row.get("bump_left", 0)
+        bump_right = row.get("bump_right", 0)
+        ground = row.get("ground", 1)
+        dig = row.get("dig", 0)
+
+        # R1_reset: async positive-edge areset -> WALK_LEFT, visible same cycle
+        if areset == 1:
+            state = WALK_LEFT
+            fall_count = 0
+            result.append(outputs(state))
+            continue
+
+        # Combinational outputs for current state (sampled before edge)
+        result.append(outputs(state))
+
+        # Posedge transition logic
+        new_state = state
+        new_fall_count = fall_count
+
+        if state == WALK_LEFT:
+            # R6_walk_transitions: fall > dig > switch
+            if ground == 0:
+                new_state = FALL_LEFT
+                new_fall_count = 0
+            elif dig == 1:
+                new_state = DIG_LEFT
+            elif bump_left == 1 or bump_right == 1:
+                new_state = WALK_RIGHT
+        elif state == WALK_RIGHT:
+            if ground == 0:
+                new_state = FALL_RIGHT
+                new_fall_count = 0
+            elif dig == 1:
+                new_state = DIG_RIGHT
+            elif bump_left == 1 or bump_right == 1:
+                new_state = WALK_LEFT
+        elif state == FALL_LEFT:
+            # R7_fall_transitions / R9_splat_transition
+            if ground == 1:
+                if fall_count > 20:
+                    new_state = SPLAT
+                else:
+                    new_state = WALK_LEFT
+                new_fall_count = 0
+            else:
+                new_fall_count = fall_count + 1
+        elif state == FALL_RIGHT:
+            if ground == 1:
+                if fall_count > 20:
+                    new_state = SPLAT
+                else:
+                    new_state = WALK_RIGHT
+                new_fall_count = 0
+            else:
+                new_fall_count = fall_count + 1
+        elif state == DIG_LEFT:
+            # R8_dig_transitions
+            if ground == 0:
+                new_state = FALL_LEFT
+                new_fall_count = 0
+        elif state == DIG_RIGHT:
+            if ground == 0:
+                new_state = FALL_RIGHT
+                new_fall_count = 0
+        # SPLAT: stay forever
+
+        state = new_state
+        fall_count = new_fall_count
+
+    return result
+```

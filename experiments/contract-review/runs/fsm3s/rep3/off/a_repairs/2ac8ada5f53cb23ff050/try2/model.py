@@ -1,0 +1,44 @@
+def reference(vectors):
+    # State encoding
+    A, B, C, D = 0, 1, 2, 3
+    state = A  # power-up unspecified; start at reset state
+
+    out = 0
+    results = []
+
+    for vec in vectors:
+        # Apply inputs for this row (driven before sampled edge)
+        inp = vec.get('in', 0)
+        rst = vec.get('reset', 0)
+
+        # R1: combinational output for states A, B, C -> 0
+        # R2: combinational output for state D -> 1
+        if state == D:
+            out = 1
+        else:
+            out = 0
+
+        # Record output for this row (same_cycle visibility)
+        results.append({'out': out & 1})
+
+        # Compute next state at posedge
+        if rst == 1:
+            # R3: synchronous active high reset -> state A
+            state = A
+        else:
+            # R4-R7: explicit transitions
+            if state == A:
+                state = B if inp == 1 else A  # R4
+            elif state == B:
+                state = B if inp == 1 else C  # R5
+            elif state == C:
+                state = D if inp == 1 else A  # R6
+            elif state == D:
+                state = B if inp == 1 else C  # R7
+
+        # Mid input changes occur AFTER sampling, before other edge,
+        # carried to start of next row. Since we read inputs at the
+        # start of each row, mid changes are naturally handled by
+        # the next row's input values.
+
+    return results

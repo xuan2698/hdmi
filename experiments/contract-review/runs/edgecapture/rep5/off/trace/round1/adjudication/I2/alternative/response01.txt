@@ -1,0 +1,33 @@
+```python
+def reference(vectors):
+    # State: out (32-bit sticky), prev_in (32-bit previous sampled input)
+    out = 0
+    prev_in = 0
+    results = []
+
+    for row in vectors:
+        reset = row.get('reset', 0) & 1
+        inp = row.get('in', 0) & 0xFFFFFFFF
+
+        # R1_reset_clear: synchronous active-high reset clears out (priority 1)
+        if reset == 1:
+            out = 0
+        else:
+            # R2_capture_falling (candidate interpretation): set out[i] when
+            # in[i]==0 and (out[i] previously set OR in[i] was 1 in any prior
+            # cycle since reset). Track "seen 1" per bit via prev_in OR'd in.
+            # We maintain a "seen_one" mask implicitly: any bit that has ever
+            # been 1 since reset. Use prev_in to accumulate.
+            # R3_hold: bits without a qualifying 0-after-1 stay unchanged.
+            seen_one = prev_in  # bits that have been 1 at some prior sample
+            # For each bit: if in[i]==0 and (out[i] or seen_one[i]) -> set out[i]
+            zero_mask = (~inp) & 0xFFFFFFFF
+            set_mask = zero_mask & (out | seen_one)
+            out = out | set_mask
+            # Update seen_one: any bit currently 1 becomes "seen"
+            prev_in = prev_in | inp
+
+        results.append({'out': out & 0xFFFFFFFF})
+
+    return results
+```

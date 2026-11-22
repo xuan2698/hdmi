@@ -1,0 +1,44 @@
+def reference(vectors):
+    # Q_posedge_update: At each posedge, after settlement, Q becomes r_in
+    # when L=1; otherwise Q becomes q_in. Between edges Q holds.
+    # mid: Optional mid changes occur after sampling and are carried to the
+    # start of the next row; they do not change Q for the current row.
+    if isinstance(vectors, dict) and "vectors" in vectors:
+        vectors = vectors["vectors"]
+
+    cur = {"L": 0, "q_in": 0, "r_in": 0}
+    Q = 0  # concrete state value; initial Q does not affect the muxed update
+    out = []
+
+    for row in vectors:
+        # Apply inputs driven before the sampled posedge edge.
+        if isinstance(row, dict):
+            for k in ("L", "q_in", "r_in"):
+                if k in row:
+                    cur[k] = int(row[k]) & 1
+
+        # Q_posedge_update: posedge clk after settlement selects r_in or q_in.
+        if cur["L"] == 1:
+            Q = cur["r_in"] & 1
+        else:
+            Q = cur["q_in"] & 1
+
+        out.append({"Q": int(Q)})
+
+        # Apply optional mid changes after sampling; carry them forward.
+        if isinstance(row, dict) and "mid" in row:
+            mid = row["mid"]
+            if isinstance(mid, dict):
+                mids = [mid]
+            elif isinstance(mid, (list, tuple)):
+                mids = mid
+            else:
+                mids = []
+
+            for change in mids:
+                if isinstance(change, dict):
+                    for k in ("L", "q_in", "r_in"):
+                        if k in change:
+                            cur[k] = int(change[k]) & 1
+
+    return out

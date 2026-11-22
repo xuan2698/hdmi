@@ -1,0 +1,40 @@
+```python
+def reference(vectors):
+    # State encoding: 0=S0, 1=S1, 2=S2, 3=S3, 4=S4
+    state = 0
+    start_shifting = 0
+    results = []
+    for vec in vectors:
+        reset = vec.get('reset', 0)
+        data = vec.get('data', 0)
+        # R1: synchronous active-high reset forces start_shifting=0 and state=S0
+        if reset == 1:
+            state = 0
+            start_shifting = 0
+        else:
+            # Compute next state based on current state and data
+            if state == 0:
+                next_state = 1 if data == 1 else 0
+            elif state == 1:
+                next_state = 2 if data == 1 else 1 if data == 1 else (1 if data == 1 else 0)
+                # explicit: S1 matched '1'; on data==1 -> S2, on data==0 -> S0
+                next_state = 2 if data == 1 else 0
+            elif state == 2:
+                # matched '11'; on data==0 -> S3, on data==1 -> S2
+                next_state = 3 if data == 0 else 2
+            elif state == 3:
+                # matched '110'; on data==1 -> S4, on data==0 -> S0
+                next_state = 4 if data == 1 else 0
+            else:  # state == 4
+                next_state = 4
+            # R3: transition into S4 sets start_shifting=1 same cycle
+            if state != 4 and next_state == 4:
+                start_shifting = 1
+            # R2/R5: once in S4, start_shifting stays 1
+            if state == 4:
+                start_shifting = 1
+            # R4: otherwise start_shifting remains 0 (already 0 unless latched)
+            state = next_state
+        results.append({'start_shifting': start_shifting & 1})
+    return results
+```

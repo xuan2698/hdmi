@@ -1,0 +1,56 @@
+[
+  {
+    "issue": {
+      "issue_id": "A1",
+      "rule_id": "R_Q_POSEDGE",
+      "type": "ambiguity",
+      "severity": "high",
+      "detail": "q_in meaning is left open; spec feedback expression implies external mux data, not current-Q hold. External-q_in sequence gives Q=1,0; hold gives Q=1,1.",
+      "spec_evidence": "//         q <= {q[1] ^ q[2], q[0], q[2]};",
+      "alternative": "q_in is current Q feedback; when L=0 Q holds and ignores q_in.",
+      "sequence": [
+        {
+          "L": 1,
+          "q_in": 0,
+          "r_in": 1
+        },
+        {
+          "L": 0,
+          "q_in": 0,
+          "r_in": 1
+        }
+      ]
+    },
+    "status": "effect",
+    "issue_id": "A1",
+    "outputs": {
+      "original": [
+        {
+          "Q": 1
+        },
+        {
+          "Q": 0
+        }
+      ],
+      "alternative": [
+        {
+          "Q": 1
+        },
+        {
+          "Q": 1
+        }
+      ]
+    },
+    "differences": [
+      {
+        "cycle": 2,
+        "original": {
+          "Q": 0
+        },
+        "alternative": {
+          "Q": 1
+        }
+      }
+    ]
+  }
+]

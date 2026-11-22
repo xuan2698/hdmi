@@ -1,0 +1,22 @@
+def reference(vectors):
+    # Contract implementation.
+    # R1: state toggles on every posedge (state <= NOT state), visible next cycle.
+    # R2: q <= a AND b on posedge, visible next cycle.
+    # Initial state/q unspecified -> use 0 as concrete power-up value.
+    # Mid input changes occur AFTER sampling; we process each row's inputs
+    # at the posedge (sampling point), then carry values forward.
+    state = 0
+    q = 0
+    out = []
+    for row in vectors:
+        a = row.get('a', 0) & 1
+        b = row.get('b', 0) & 1
+        # R2: q <= a AND b (sampled at posedge)
+        new_q = a & b
+        # R1: state <= NOT state (toggle each posedge)
+        new_state = 1 - state
+        # Update memory (posedge update)
+        q = new_q
+        state = new_state
+        out.append({'q': q & 1, 'state': state & 1})
+    return out

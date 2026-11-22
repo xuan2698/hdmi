@@ -1,0 +1,76 @@
+[
+  {
+    "issue": {
+      "issue_id": "I1",
+      "rule_id": "hold",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec does not define idle-cycle behavior when neither prediction nor misprediction occurs; contract selects hold, while an idle shift-in-0 alternative is plausible. Contract marks hold uncertain, but output remains ambiguous.",
+      "spec_evidence": "",
+      "alternative": "On idle cycles (areset=0, predict_valid=0, train_mispredicted=0), history_next = (history << 1) & 0xFFFFFFFF, shifting in 0 instead of holding.",
+      "sequence": [
+        {
+          "areset": 1,
+          "predict_valid": 0,
+          "predict_taken": 0,
+          "train_mispredicted": 0,
+          "train_taken": 0,
+          "train_history": 0
+        },
+        {
+          "areset": 0,
+          "predict_valid": 1,
+          "predict_taken": 1,
+          "train_mispredicted": 0,
+          "train_taken": 0,
+          "train_history": 0
+        },
+        {
+          "areset": 0,
+          "predict_valid": 0,
+          "predict_taken": 0,
+          "train_mispredicted": 0,
+          "train_taken": 0,
+          "train_history": 0
+        }
+      ]
+    },
+    "status": "effect",
+    "issue_id": "I1",
+    "outputs": {
+      "original": [
+        {
+          "predict_history": 0
+        },
+        {
+          "predict_history": 1
+        },
+        {
+          "predict_history": 1
+        }
+      ],
+      "alternative": [
+        {
+          "predict_history": 0
+        },
+        {
+          "predict_history": 1
+        },
+        {
+          "predict_history": 2
+        }
+      ]
+    },
+    "differences": [
+      {
+        "cycle": 3,
+        "original": {
+          "predict_history": 1
+        },
+        "alternative": {
+          "predict_history": 2
+        }
+      }
+    ]
+  }
+]

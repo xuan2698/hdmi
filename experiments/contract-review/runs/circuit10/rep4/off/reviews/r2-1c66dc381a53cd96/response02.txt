@@ -1,0 +1,139 @@
+{
+  "coverage": {
+    "S01": ["R1", "R2"],
+    "S02": ["R1", "R2"],
+    "S03": ["R2"],
+    "S04": ["unrelated"],
+    "S05": ["unrelated"],
+    "S06": ["unrelated"],
+    "S07": ["unrelated"],
+    "S08": ["unrelated"],
+    "S09": ["R1", "R2"],
+    "S10": ["R1", "R2"],
+    "S11": ["R1", "R2"],
+    "S12": ["R1", "R2"],
+    "S13": ["R1", "R2"],
+    "S14": ["R1", "R2"],
+    "S15": ["R1", "R2"],
+    "S16": ["R1", "R2"],
+    "S17": ["R1", "R2"],
+    "S18": ["R1", "R2"],
+    "S19": ["R1", "R2"],
+    "S20": ["R1", "R2"],
+    "S21": ["R1", "R2"],
+    "S22": ["R1", "R2"],
+    "S23": ["R1", "R2"],
+    "S24": ["R1", "R2"],
+    "S25": ["R1", "R2"],
+    "S26": ["R1", "R2"],
+    "S27": ["R1", "R2"],
+    "S28": ["R1", "R2"],
+    "S29": ["R1", "R2"],
+    "S30": ["R1", "R2"],
+    "S31": ["R1", "R2"],
+    "S32": ["R1", "R2"],
+    "S33": ["R1", "R2"],
+    "S34": ["R1", "R2"],
+    "S35": ["R1", "R2"],
+    "S36": ["R1", "R2"],
+    "S37": ["R1", "R2"],
+    "S38": ["R1", "R2"],
+    "S39": ["R1", "R2"],
+    "S40": ["R1", "R2"],
+    "S41": ["R1", "R2"],
+    "S42": ["R1", "R2"],
+    "S43": ["R1", "R2"],
+    "S44": ["R1", "R2"]
+  },
+  "issues": [
+    {
+      "issue_id": "I1",
+      "rule_id": "R1",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "R1 condition says state <= a AND b, but its example expects state=1 for a=0,b=1 and a=1,b=0, which contradicts AND.",
+      "spec_evidence": "// 45ns            1               0               1               0               1",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I2",
+      "rule_id": "R2",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "R2 says q = state registered, but example expects q=1 after a=0,b=1 while state would be 0 under AND; also q changes one cycle after state in spec.",
+      "spec_evidence": "// 45ns            1               0               1               0               1",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I3",
+      "rule_id": "R1",
+      "type": "grounding",
+      "severity": "high",
+      "detail": "R1 spec_quote only supports one flip-flop, not the AND condition; no verbatim spec evidence for state <= a AND b.",
+      "spec_evidence": "one bit of memory (i.e., one flip-flop)",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I4",
+      "rule_id": "R2",
+      "type": "grounding",
+      "severity": "medium",
+      "detail": "R2 spec_quote supports observability but not q = state registered; no verbatim evidence for exact q update relation.",
+      "spec_evidence": "The output of the flip-flop has been made observable through the output state.",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I5",
+      "rule_id": "R1",
+      "type": "ambiguity",
+      "severity": "high",
+      "detail": "Spec waveform suggests state updates to a XOR b (or similar) at posedge, not a AND b; alternative semantics distinguish at 45ns.",
+      "spec_evidence": "// 45ns            1               0               1               0               1",
+      "alternative": "state <= a XOR b at posedge",
+      "sequence": [
+        {"clk": 1, "a": 0, "b": 1},
+        {"clk": 0, "a": 0, "b": 1},
+        {"clk": 1, "a": 1, "b": 0}
+      ]
+    },
+    {
+      "issue_id": "I6",
+      "rule_id": "R2",
+      "type": "ambiguity",
+      "severity": "high",
+      "detail": "Spec shows q following state with one-cycle delay (q at 45ns=1 while state=0, then state=1 at 75ns and q=1 at 75ns?); alternative q <= state at posedge vs q = state combinational.",
+      "spec_evidence": "// 75ns            1               0               0               1               1",
+      "alternative": "q is registered from state at posedge (q <= state)",
+      "sequence": [
+        {"clk": 1, "a": 0, "b": 1},
+        {"clk": 0, "a": 0, "b": 1},
+        {"clk": 1, "a": 1, "b": 0},
+        {"clk": 0, "a": 1, "b": 0}
+      ]
+    },
+    {
+      "issue_id": "I7",
+      "rule_id": "global",
+      "type": "spec_example",
+      "severity": "high",
+      "detail": "Derived outputs from spec waveform contradict R1/R2 examples: at 45ns state=0,q=1; at 75ns state=1,q=1; at 95ns state=1,q=1; at 115ns state=1,q=0; at 135ns state=1,q=1; at 145ns state=0,q=0.",
+      "spec_evidence": "// 45ns            1               0               1               0               1",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I8",
+      "rule_id": "global",
+      "type": "coverage",
+      "severity": "low",
+      "detail": "S04-S08 are comments/header/initial unknown rows; mapped unrelated, but S06-S08 contain x values not covered by rules.",
+      "spec_evidence": "// 0ns             0               1               x               x               x",
+      "alternative": "",
+      "sequence": []
+    }
+  ]
+}

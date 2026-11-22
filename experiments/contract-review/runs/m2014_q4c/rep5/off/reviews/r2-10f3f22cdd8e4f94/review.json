@@ -1,0 +1,94 @@
+{
+  "coverage": {
+    "S01": [
+      "R1",
+      "R2"
+    ]
+  },
+  "issues": [
+    {
+      "issue_id": "I1",
+      "rule_id": "R1",
+      "type": "grounding",
+      "severity": "high",
+      "detail": "R1 spec_quote is verbatim but does not state the full reset semantics; R1 condition r==1 is grounded only by 'active high synchronous reset (reset output to 0)'.",
+      "spec_evidence": "active high synchronous reset (reset output to 0)",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I2",
+      "rule_id": "R2",
+      "type": "grounding",
+      "severity": "high",
+      "detail": "R2 spec_quote 'Implement a simple D flip flop' does not verbatim support the r==0 load condition or same-cycle visibility.",
+      "spec_evidence": "Implement a simple D flip flop",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I3",
+      "rule_id": "R1",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "R1 example expected q=1 on first vector (d=1,r=0) contradicts R1 condition r==1 and reset q=0; also contradicts state note that first posedge with r==0 loads d.",
+      "spec_evidence": "active high synchronous reset (reset output to 0)",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I4",
+      "rule_id": "R2",
+      "type": "consistency",
+      "severity": "medium",
+      "detail": "R2 example expected q=0 on second vector (d=0,r=0) is consistent with load, but first vector q=1 conflicts with R1 example's first vector q=1 under r=0; no contradiction within R2 itself.",
+      "spec_evidence": "Implement a simple D flip flop",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I5",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "high",
+      "detail": "Spec says synchronous reset but does not specify whether reset has priority over load when r==1 and d changes; contract gives R1 priority 1, but alternative could be load priority.",
+      "spec_evidence": "active high synchronous reset (reset output to 0)",
+      "alternative": "Reset and load both active on same posedge; load d takes priority over reset, so q follows d when r==1.",
+      "sequence": [
+        {
+          "d": 1,
+          "r": 1
+        },
+        {
+          "d": 0,
+          "r": 1
+        }
+      ]
+    },
+    {
+      "issue_id": "I6",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec does not define initial q before first posedge; contract says unspecified, but alternative could be q=0 initially.",
+      "spec_evidence": "Implement a simple D flip flop",
+      "alternative": "Initial q is 0 before any clock edge.",
+      "sequence": [
+        {
+          "d": 1,
+          "r": 0
+        }
+      ]
+    },
+    {
+      "issue_id": "I7",
+      "rule_id": "global",
+      "type": "spec_example",
+      "severity": "high",
+      "detail": "Derived outputs from spec: first posedge r=0 loads d=1 => q=1; second posedge r=1 resets => q=0; third posedge r=0 loads d=0 => q=0. R1 example expected [1,0,0] matches this, but R1 condition r==1 would predict q=0 on first vector, so R1 example contradicts its own rule condition.",
+      "spec_evidence": "active high synchronous reset (reset output to 0)",
+      "alternative": "",
+      "sequence": []
+    }
+  ]
+}

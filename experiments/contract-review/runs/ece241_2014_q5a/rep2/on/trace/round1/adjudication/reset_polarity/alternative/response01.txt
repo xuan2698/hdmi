@@ -1,0 +1,70 @@
+def reference(vectors):
+    # Rule async_reset_z0: active-low reset (areset=0) asynchronously forces state S0 and z=0.
+    state = "S0"  # power-up concrete choice consistent with reset state
+    carry = {}
+    results = []
+    for row in vectors:
+        current = {}
+        for k, v in carry.items():
+            current[k] = v
+        for k, v in row.items():
+            if k == "mid":
+                continue
+            current[k] = v
+
+        areset_val = current.get("areset", 1)
+        x_val = current.get("x", 0)
+
+        if areset_val == 0:
+            # Rule async_reset_z0: reset asserted; force S0 and z=0.
+            state = "S0"
+            z_val = 0
+        else:
+            if state == "S0":
+                if x_val == 0:
+                    # Rule s0_x0
+                    state = "S0"
+                else:
+                    # Rule s0_x1
+                    state = "S1"
+            elif state == "S1":
+                if x_val == 0:
+                    # Rule s1_x0
+                    state = "S1"
+                else:
+                    # Rule s1_x1
+                    state = "S2"
+            else:  # state == "S2"
+                if x_val == 0:
+                    # Rule s2_x0
+                    state = "S1"
+                else:
+                    # Rule s2_x1
+                    state = "S2"
+            z_val = 1 if state == "S1" else 0
+
+        results.append({"z": int(z_val)})
+
+        # Mid changes occur after sampling and are carried to the start of the next row.
+        carry = {}
+        for k, v in current.items():
+            carry[k] = v
+
+        if "mid" in row and row["mid"] is not None:
+            mid = row["mid"]
+            if isinstance(mid, dict):
+                for k, v in mid.items():
+                    carry[k] = v
+                if "areset" in mid and mid["areset"] == 0:
+                    # Rule async_reset_z0: asynchronous reset assertion during mid.
+                    state = "S0"
+            elif isinstance(mid, (list, tuple)):
+                for m in mid:
+                    if isinstance(m, dict):
+                        for k, v in m.items():
+                            carry[k] = v
+                        if "areset" in m and m["areset"] == 0:
+                            # Rule async_reset_z0: asynchronous reset assertion during mid.
+                            state = "S0"
+
+    return results

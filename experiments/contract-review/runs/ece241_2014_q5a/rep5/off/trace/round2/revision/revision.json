@@ -1,0 +1,234 @@
+{
+  "responses": [
+    {
+      "issue_id": "I1",
+      "decision": "accept",
+      "reason": "R1 example expected values contradict z=x; row2 x=0 must give z=0 and row3 x=1 must give z=1.",
+      "spec_quote": "the output (Z) is the 2's complement of the input",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R1",
+            "example"
+          ],
+          "value": {
+            "vectors": [
+              {
+                "areset": 0,
+                "x": 1
+              },
+              {
+                "areset": 0,
+                "x": 0
+              },
+              {
+                "areset": 0,
+                "x": 1
+              }
+            ],
+            "expected": [
+              {
+                "z": 1
+              },
+              {
+                "z": 0
+              },
+              {
+                "z": 1
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "issue_id": "I2",
+      "decision": "accept",
+      "reason": "R2 example row1 x=1 must give z=0 under z=NOT x.",
+      "spec_quote": "the output (Z) is the 2's complement of the input",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R2",
+            "example"
+          ],
+          "value": {
+            "vectors": [
+              {
+                "areset": 0,
+                "x": 1
+              },
+              {
+                "areset": 0,
+                "x": 0
+              },
+              {
+                "areset": 0,
+                "x": 1
+              }
+            ],
+            "expected": [
+              {
+                "z": 0
+              },
+              {
+                "z": 1
+              },
+              {
+                "z": 0
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "issue_id": "I3",
+      "decision": "accept",
+      "reason": "R3 is a state-transition rule; its example should reflect state transitions rather than mixing z outputs.",
+      "spec_quote": "beginning with the least-significant bit of the number",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R3",
+            "example"
+          ],
+          "value": {
+            "vectors": [
+              {
+                "areset": 0,
+                "x": 0
+              },
+              {
+                "areset": 0,
+                "x": 1
+              },
+              {
+                "areset": 0,
+                "x": 0
+              }
+            ],
+            "expected": [
+              {
+                "z": 0
+              },
+              {
+                "z": 0
+              },
+              {
+                "z": 1
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "issue_id": "I4",
+      "decision": "accept",
+      "reason": "R4 example row1 x=1 in S1 must give z=0 under R2.",
+      "spec_quote": "accept input numbers of arbitrary length",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R4",
+            "example"
+          ],
+          "value": {
+            "vectors": [
+              {
+                "areset": 0,
+                "x": 1
+              },
+              {
+                "areset": 0,
+                "x": 0
+              },
+              {
+                "areset": 0,
+                "x": 0
+              }
+            ],
+            "expected": [
+              {
+                "z": 0
+              },
+              {
+                "z": 1
+              },
+              {
+                "z": 1
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "issue_id": "I5",
+      "decision": "rebut",
+      "reason": "R5 example is consistent with the async reset rule; demonstrating async timing is not required by the contract.",
+      "spec_quote": "positive edge triggered asynchronous reset"
+    },
+    {
+      "issue_id": "I7",
+      "decision": "accept",
+      "reason": "Spec says conversion stops when Reset is asserted; clarify that z is forced to 0 during areset=1.",
+      "spec_quote": "The conversion begins when Reset is released and stops when Reset is asserted.",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R5",
+            "condition"
+          ],
+          "value": "Asynchronous reset asserted (areset=1) forces state to S0 immediately, independent of clk, and forces z=0 (conversion stopped); when areset=0, z follows R1/R2 from the current state."
+        },
+        {
+          "path": [
+            "rules",
+            "R5",
+            "example"
+          ],
+          "value": {
+            "vectors": [
+              {
+                "areset": 1,
+                "x": 1
+              },
+              {
+                "areset": 1,
+                "x": 0
+              },
+              {
+                "areset": 0,
+                "x": 0
+              }
+            ],
+            "expected": [
+              {
+                "z": 0
+              },
+              {
+                "z": 0
+              },
+              {
+                "z": 0
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "issue_id": "I8",
+      "decision": "rebut",
+      "reason": "The spec quote is the closest verbatim support available; per-state pass/complement is the standard derivation of 2's complement from LSB-first input.",
+      "spec_quote": "the output (Z) is the 2's complement of the input"
+    }
+  ]
+}

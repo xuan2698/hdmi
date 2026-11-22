@@ -1,0 +1,131 @@
+{
+  "responses": [
+    {
+      "issue_id": "I1",
+      "decision": "accept",
+      "reason": "Spec shows q=x at 0ns with no reset; contract lacks initial-value clarification. Add uncertain note preserving shape.",
+      "spec_quote": "// 0ns             0               1               x",
+      "edits": [
+        {
+          "path": [
+            "uncertain"
+          ],
+          "value": [
+            {
+              "rule_id": "global",
+              "note": "Initial q is unspecified (x) before first posedge; no physical reset.",
+              "candidates": [
+                "q starts as x (unknown) until first posedge",
+                "q starts as 0 until first posedge"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "issue_id": "I2",
+      "decision": "accept",
+      "reason": "Spec shows a=0 posedge at 45ns does not increment; hold_when_a_high condition is wrong. Change to falling-edge detection.",
+      "spec_quote": "// 45ns            1               0               4",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "hold_when_a_high",
+            "condition"
+          ],
+          "value": "a == 1 or previous a == 0"
+        },
+        {
+          "path": [
+            "rules",
+            "hold_when_a_high",
+            "spec_quote"
+          ],
+          "value": "// 45ns            1               0               4"
+        }
+      ]
+    },
+    {
+      "issue_id": "I3",
+      "decision": "accept",
+      "reason": "Increment is not unconditional on a=0; it occurs on falling transition of a. Update condition and example.",
+      "spec_quote": "// 55ns            1               0               5",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "increment_when_a_low",
+            "condition"
+          ],
+          "value": "a == 0 and previous a == 1"
+        },
+        {
+          "path": [
+            "rules",
+            "increment_when_a_low",
+            "example"
+          ],
+          "value": {
+            "vectors": [
+              {
+                "a": 1
+              },
+              {
+                "a": 0
+              },
+              {
+                "a": 0
+              }
+            ],
+            "expected": [
+              {
+                "q": 4
+              },
+              {
+                "q": 5
+              },
+              {
+                "q": 5
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "issue_id": "I4",
+      "decision": "accept",
+      "reason": "Ambiguity resolved: increment only on posedge where a=0 and previous sampled a=1. Encode in rule condition.",
+      "spec_quote": "// 45ns            1               0               4",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "increment_when_a_low",
+            "condition"
+          ],
+          "value": "a == 0 and previous a == 1"
+        }
+      ],
+      "already_applied_by_earlier_issue": true
+    },
+    {
+      "issue_id": "I5",
+      "decision": "accept",
+      "reason": "Contract rules predicted increment at 45ns; spec holds. Fixing conditions to falling-edge detection aligns derived waveform.",
+      "spec_quote": "// 45ns            1               0               4",
+      "edits": [
+        {
+          "path": [
+            "states",
+            "count",
+            "meaning"
+          ],
+          "value": "3-bit accumulator that increments by 1 on posedge only when a=0 and previous sampled a=1 (falling transition), and holds otherwise"
+        }
+      ]
+    }
+  ]
+}

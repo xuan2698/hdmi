@@ -1,0 +1,50 @@
+def reference(vectors):
+    # Contract implementation.
+    # State encoding: A=0, B=1, C=2, D=3
+    # R3: synchronous active-high reset -> state A, out=0 during reset.
+    # R1/R2: combinational output from current state (A,B,C -> 0; D -> 1).
+    # R4-R7: next-state transitions on posedge when reset==0.
+    # Mid changes: applied after sampling, carried to next row (handled by
+    # updating inputs after computing outputs for the current row).
+
+    state = 0  # initial state A (per contract assumption)
+    out = 0
+    results = []
+
+    for row in vectors:
+        # Apply any mid changes from previous row already stored in row inputs.
+        # (Inputs are given per row; mid changes are represented by the next
+        # row's input values, which we use directly.)
+        inp = row.get('in', 0)
+        rst = row.get('reset', 0)
+
+        # R3: synchronous reset forces state A and out=0 at this posedge.
+        # R1/R2: combinational output based on current state.
+        if rst == 1:
+            # R3: reset -> state A, out 0
+            state = 0
+            out = 0
+        else:
+            # R1: state A/B/C -> out 0 ; R2: state D -> out 1
+            if state == 3:
+                out = 1  # R2
+            else:
+                out = 0  # R1
+
+            # R4-R7: next state transitions (posedge, reset==0)
+            if state == 0:  # A
+                # R4
+                state = 1 if inp == 1 else 0
+            elif state == 1:  # B
+                # R5
+                state = 2 if inp == 0 else 1
+            elif state == 2:  # C
+                # R6
+                state = 3 if inp == 1 else 0
+            else:  # D
+                # R7
+                state = 1 if inp == 1 else 2
+
+        results.append({'out': out & 1})
+
+    return results

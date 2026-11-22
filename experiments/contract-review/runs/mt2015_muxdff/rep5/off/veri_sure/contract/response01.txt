@@ -1,0 +1,55 @@
+```json
+{
+  "module_name": "top_module",
+  "io": [
+    {
+      "name": "clk",
+      "dir": "input",
+      "width": 1,
+      "description": "Clock signal; all state updates occur on the posedge of clk."
+    },
+    {
+      "name": "r",
+      "dir": "input",
+      "width": 3,
+      "description": "3-bit parallel load data input, sampled into the shift/feedback register when L is high."
+    },
+    {
+      "name": "L",
+      "dir": "input",
+      "width": 1,
+      "description": "Load enable. When high at a posedge, q is loaded from r; when low, q is updated by the feedback/shift function."
+    },
+    {
+      "name": "q",
+      "dir": "output",
+      "width": 3,
+      "description": "3-bit state register output. Updated on posedge clk: q <= r if L, else q <= {q[1]^q[2], q[0], q[2]}."
+    }
+  ],
+  "clocking": {
+    "clock": {
+      "name": "clk",
+      "edge": "posedge"
+    },
+    "reset": null
+  },
+  "timing": {
+    "outputs": {
+      "q": {
+        "latency_cycles": 1
+      }
+    }
+  },
+  "functional_summary": {
+    "overview": "Hierarchical 3-bit loadable feedback/shift register. A single-bit flipflop and a 2-to-1 multiplexer are packaged in a submodule that is instantiated three times to form the 3-bit register. On each posedge of clk, if L is high the register loads r; otherwise each bit is updated by the feedback/shift function {q[1]^q[2], q[0], q[2]}.",
+    "rules": [
+      "On posedge clk, if L == 1 then q <= r (parallel load).",
+      "On posedge clk, if L == 0 then q <= {q[1] ^ q[2], q[0], q[2]} (feedback/shift).",
+      "Output q reflects the registered state and updates one clock cycle after the sampled edge.",
+      "No reset is present; initial state is unspecified until the first posedge clk.",
+      "The design is composed of three identical submodule instances, each containing one flipflop and one 2-to-1 multiplexer, corresponding to bits q[0], q[1], and q[2]."
+    ]
+  }
+}
+```

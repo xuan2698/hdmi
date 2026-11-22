@@ -1,0 +1,47 @@
+def reference(vectors):
+    # Contract implementation.
+    # State: COUNT (current decade count 0..9), updated at posedge clk.
+    # Power-on value: choose 0 (one of the allowed uncertain interpretations).
+    # R1: reset == 1 at posedge -> q becomes 0 (sync, active high, priority 1).
+    # R2: reset == 0 && q < 9 at posedge -> q becomes q + 1.
+    # R3: reset == 0 && q == 9 at posedge -> q becomes 0.
+    # Mid changes occur AFTER sampling, before next edge, carried to next row.
+    # Each row's inputs are driven before the sampled edge.
+
+    q = 0  # power-on count value (uncertain interpretation: 0)
+    out = []
+    pending = None  # mid changes carried to start of next row
+
+    for row in vectors:
+        # Apply any mid changes carried from previous row (before this row's edge)
+        if pending is not None:
+            row = dict(row)
+            row.update(pending)
+            pending = None
+
+        reset = row.get("reset", 0)
+
+        # Sample at posedge clk: compute next state based on current q and reset
+        # R1: sync active-high reset has priority
+        if reset == 1:
+            q_next = 0
+        # R2: count up when q < 9
+        elif q < 9:
+            q_next = q + 1
+        # R3: wrap from 9 to 0
+        else:
+            q_next = 0
+
+        # Output visible same cycle (after edge settles)
+        out.append({"q": q_next & 0xF})
+
+        # Update state
+        q = q_next
+
+        # Handle optional mid input changes: keys not in the standard input set
+        # are treated as mid changes applied after sampling, carried forward.
+        mid = {k: v for k, v in row.items() if k not in ("reset",)}
+        if mid:
+            pending = mid
+
+    return out

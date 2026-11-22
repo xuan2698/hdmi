@@ -1,0 +1,46 @@
+def reference(vectors):
+    # R_Q_POSEDGE: On posedge clk, Q updates to L ? r_in : q_in.
+    # The state Q is registered, but its next value depends only on the
+    # sampled inputs at the posedge. There is no reset.
+    L = 0
+    q_in = 0
+    r_in = 0
+    result = []
+    for row in vectors:
+        # Drive inputs before the sampled posedge.
+        if "L" in row:
+            L = row["L"]
+        if "q_in" in row:
+            q_in = row["q_in"]
+        if "r_in" in row:
+            r_in = row["r_in"]
+
+        # R_Q_POSEDGE: registered update at posedge.
+        val = r_in if L else q_in
+        Q = val & 1
+        result.append({"Q": Q})
+
+        # Optional mid-cycle changes after sampling, carried to next row start.
+        if "mid" in row:
+            mid = row["mid"]
+            if "L" in mid:
+                L = mid["L"]
+            if "q_in" in mid:
+                q_in = mid["q_in"]
+            if "r_in" in mid:
+                r_in = mid["r_in"]
+        # Also support flattened mid keys.
+        if "L_mid" in row:
+            L = row["L_mid"]
+        if "q_in_mid" in row:
+            q_in = row["q_in_mid"]
+        if "r_in_mid" in row:
+            r_in = row["r_in_mid"]
+        if "mid_L" in row:
+            L = row["mid_L"]
+        if "mid_q_in" in row:
+            q_in = row["mid_q_in"]
+        if "mid_r_in" in row:
+            r_in = row["mid_r_in"]
+
+    return result

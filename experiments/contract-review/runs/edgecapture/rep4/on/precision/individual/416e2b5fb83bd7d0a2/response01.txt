@@ -1,0 +1,44 @@
+```python
+def reference(vectors):
+    MASK = (1 << 32) - 1
+    out_reg = 0
+    prev_in = 0
+    carried = {'reset': 0, 'in': 0}
+    results = []
+
+    for row in vectors:
+        # Determine inputs driven before the sampled posedge.
+        posedge_inputs = dict(carried)
+        if 'reset' in row:
+            posedge_inputs['reset'] = row['reset']
+        if 'in' in row:
+            posedge_inputs['in'] = row['in']
+
+        reset_val = posedge_inputs.get('reset', 0)
+        in_val = posedge_inputs.get('in', 0)
+
+        if reset_val:
+            # Rule sync_active_high_reset: synchronous active high reset clears out.
+            out_reg = 0
+            # prev_in updates on every posedge, including reset cycles.
+            prev_in = in_val & MASK
+        else:
+            # Rule capture_sticky_one_to_zero: capture per-bit 1->0 transitions,
+            # retaining any previously captured sticky bits.
+            transitions = prev_in & (~in_val & MASK) & MASK
+            out_reg = (out_reg | transitions) & MASK
+            prev_in = in_val & MASK
+
+        results.append({'out': out_reg})
+
+        # After sampling, carry current inputs and apply optional mid changes
+        # for the start of the next row. These do not alter out until the next posedge.
+        carried = dict(posedge_inputs)
+        mid = row.get('mid')
+        if isinstance(mid, dict):
+            for k, v in mid.items():
+                if k == 'reset' or k == 'in':
+                    carried[k] = v
+
+    return results
+```

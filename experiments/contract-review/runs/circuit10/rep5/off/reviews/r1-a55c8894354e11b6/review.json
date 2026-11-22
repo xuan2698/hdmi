@@ -1,0 +1,341 @@
+{
+  "coverage": {
+    "S01": [
+      "r1",
+      "r2"
+    ],
+    "S02": [
+      "r1",
+      "r2"
+    ],
+    "S03": [
+      "r1"
+    ],
+    "S04": [
+      "r1",
+      "r2"
+    ],
+    "S05": [
+      "r1",
+      "r2"
+    ],
+    "S06": [
+      "r1",
+      "r2"
+    ],
+    "S07": [
+      "r1",
+      "r2"
+    ],
+    "S08": [
+      "r1",
+      "r2"
+    ],
+    "S09": [
+      "r1",
+      "r2"
+    ],
+    "S10": [
+      "r1",
+      "r2"
+    ],
+    "S11": [
+      "r1",
+      "r2"
+    ],
+    "S12": [
+      "r1",
+      "r2"
+    ],
+    "S13": [
+      "r1",
+      "r2"
+    ],
+    "S14": [
+      "r1",
+      "r2"
+    ],
+    "S15": [
+      "r1",
+      "r2"
+    ],
+    "S16": [
+      "r1",
+      "r2"
+    ],
+    "S17": [
+      "r1",
+      "r2"
+    ],
+    "S18": [
+      "r1",
+      "r2"
+    ],
+    "S19": [
+      "r1",
+      "r2"
+    ],
+    "S20": [
+      "r1",
+      "r2"
+    ],
+    "S21": [
+      "r1",
+      "r2"
+    ],
+    "S22": [
+      "r1",
+      "r2"
+    ],
+    "S23": [
+      "r1",
+      "r2"
+    ],
+    "S24": [
+      "r1",
+      "r2"
+    ],
+    "S25": [
+      "r1",
+      "r2"
+    ],
+    "S26": [
+      "r1",
+      "r2"
+    ],
+    "S27": [
+      "r1",
+      "r2"
+    ],
+    "S28": [
+      "r1",
+      "r2"
+    ],
+    "S29": [
+      "r1",
+      "r2"
+    ],
+    "S30": [
+      "r1",
+      "r2"
+    ],
+    "S31": [
+      "r1",
+      "r2"
+    ],
+    "S32": [
+      "r1",
+      "r2"
+    ],
+    "S33": [
+      "r1",
+      "r2"
+    ],
+    "S34": [
+      "r1",
+      "r2"
+    ],
+    "S35": [
+      "r1",
+      "r2"
+    ],
+    "S36": [
+      "r1",
+      "r2"
+    ],
+    "S37": [
+      "r1",
+      "r2"
+    ],
+    "S38": [
+      "r1",
+      "r2"
+    ],
+    "S39": [
+      "r1",
+      "r2"
+    ],
+    "S40": [
+      "r1",
+      "r2"
+    ],
+    "S41": [
+      "r1",
+      "r2"
+    ],
+    "S42": [
+      "r1",
+      "r2"
+    ],
+    "S43": [
+      "r1",
+      "r2"
+    ],
+    "S44": [
+      "r1",
+      "r2"
+    ]
+  },
+  "issues": [
+    {
+      "issue_id": "i1",
+      "rule_id": "r2",
+      "type": "grounding",
+      "severity": "high",
+      "detail": "r2 next-state equation has no verbatim spec evidence; spec only gives waveform.",
+      "spec_evidence": "The circuit consists of combinational logic and one bit of memory",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "i2",
+      "rule_id": "r2",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "r2 example expected state stays 0 but equation (a XOR b) XOR state gives state 1 after first vector.",
+      "spec_evidence": "// 45ns            1               0               1               0               1",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "i3",
+      "rule_id": "r1",
+      "type": "consistency",
+      "severity": "medium",
+      "detail": "r1 example expected q=1,state=0 at third vector contradicts q equals state after posedge.",
+      "spec_evidence": "The output of the flip-flop has been made observable through the output state.",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "i4",
+      "rule_id": "r2",
+      "type": "ambiguity",
+      "severity": "high",
+      "detail": "Waveform fits state_next = a XOR b (state unused) as well as XOR-with-state; r2 marks uncertain but contract still asserts XOR-with-state.",
+      "spec_evidence": "// 15ns            1               0               0               0               0",
+      "alternative": "state_next = a XOR b",
+      "sequence": [
+        {
+          "a": 0,
+          "b": 0
+        },
+        {
+          "a": 0,
+          "b": 1
+        },
+        {
+          "a": 1,
+          "b": 0
+        },
+        {
+          "a": 1,
+          "b": 1
+        }
+      ]
+    },
+    {
+      "issue_id": "i5",
+      "rule_id": "r2",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Waveform also fits state_next = (a AND b) XOR state for observed rows; distinguishing input needed.",
+      "spec_evidence": "// 55ns            1               1               0               0               1",
+      "alternative": "state_next = (a AND b) XOR state",
+      "sequence": [
+        {
+          "a": 0,
+          "b": 1
+        },
+        {
+          "a": 1,
+          "b": 0
+        },
+        {
+          "a": 1,
+          "b": 1
+        }
+      ]
+    },
+    {
+      "issue_id": "i6",
+      "rule_id": "global",
+      "type": "spec_example",
+      "severity": "high",
+      "detail": "Contract r2 equation does not reproduce spec waveform: at 45ns state should become 1 but spec shows state 0 at 50ns.",
+      "spec_evidence": "// 45ns            1               0               1               0               1",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "i7",
+      "rule_id": "global",
+      "type": "spec_example",
+      "severity": "high",
+      "detail": "Contract r2 equation fails 55ns row: (1 XOR 0) XOR 0 = 1, but spec state at 60ns is 1? check: spec 60ns state 1, q 1; actually matches. Next 65ns (1 XOR 1) XOR 1 = 1, spec 70ns state 0 -> mismatch.",
+      "spec_evidence": "// 65ns            1               1               1               0               0",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "i8",
+      "rule_id": "global",
+      "type": "spec_example",
+      "severity": "high",
+      "detail": "Contract r2 equation fails 75ns row: (0 XOR 0) XOR 0 = 0, but spec state at 80ns is 1.",
+      "spec_evidence": "// 75ns            1               0               0               1               1",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "i9",
+      "rule_id": "global",
+      "type": "spec_example",
+      "severity": "high",
+      "detail": "Contract r2 equation fails 95ns row: (1 XOR 1) XOR 0 = 0, but spec state at 100ns is 1.",
+      "spec_evidence": "// 95ns            1               1               1               1               1",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "i10",
+      "rule_id": "global",
+      "type": "spec_example",
+      "severity": "high",
+      "detail": "Contract r2 equation fails 115ns row: (1 XOR 0) XOR 1 = 0, but spec state at 120ns is 1.",
+      "spec_evidence": "// 115ns           1               1               0               1               0",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "i11",
+      "rule_id": "global",
+      "type": "spec_example",
+      "severity": "high",
+      "detail": "Contract r2 equation fails 125ns row: (0 XOR 1) XOR 1 = 0, but spec state at 130ns is 1.",
+      "spec_evidence": "// 125ns           1               0               1               1               0",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "i12",
+      "rule_id": "global",
+      "type": "spec_example",
+      "severity": "high",
+      "detail": "Contract r2 equation fails 135ns row: (0 XOR 0) XOR 1 = 1, spec state at 140ns is 1 matches; 145ns (0 XOR 0) XOR 1 = 1, spec state at 150ns is 0 -> mismatch.",
+      "spec_evidence": "// 145ns           1               0               0               0               0",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "i13",
+      "rule_id": "global",
+      "type": "spec_example",
+      "severity": "medium",
+      "detail": "Spec waveform itself is inconsistent with any single deterministic next-state function of (a,b,state) across all rows; e.g. same (a,b,state) yields different next state.",
+      "spec_evidence": "// 15ns            1               0               0               0               0",
+      "alternative": "",
+      "sequence": []
+    }
+  ]
+}

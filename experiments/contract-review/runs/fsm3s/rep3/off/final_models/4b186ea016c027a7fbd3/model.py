@@ -1,0 +1,45 @@
+def reference(vectors):
+    # State encoding: A=0, B=1, C=2, D=3
+    A, B, C, D = 0, 1, 2, 3
+
+    # R1/R2: output is combinational function of state (Moore)
+    def out_of(state):
+        # R2: state == D -> out 1
+        if state == D:
+            return 1
+        # R1: state in {A,B,C} -> out 0
+        return 0
+
+    # global: initial state is A even before first reset release
+    state = A
+
+    results = []
+    for row in vectors:
+        # Inputs driven before the sampled posedge
+        in_val = row["in"]
+        reset_val = row["reset"]
+
+        # R3: synchronous active high reset -> state A on posedge
+        # R4-R7: next-state logic when reset == 0
+        if reset_val == 1:
+            next_state = A  # R3
+        else:
+            if state == A:
+                next_state = A if in_val == 0 else B  # R4
+            elif state == B:
+                next_state = C if in_val == 0 else B  # R5
+            elif state == C:
+                next_state = A if in_val == 0 else D  # R6
+            else:  # state == D
+                next_state = C if in_val == 0 else B  # R7
+
+        # Output visible same cycle, combinational from current state
+        # R1/R2
+        out_val = out_of(state)
+
+        results.append({"out": out_val & 0x1})
+
+        # Advance state at posedge (sampled edge has settled)
+        state = next_state
+
+    return results

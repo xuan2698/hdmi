@@ -1,0 +1,47 @@
+def reference(vectors):
+    # State encoding
+    S0, S1, S2, S3, S4 = 0, 1, 2, 3, 4
+
+    # Initialize state (power-up unspecified; start at S0)
+    state = S0
+    start_shifting = 0
+
+    results = []
+    for vec in vectors:
+        reset = vec.get('reset', 0) & 1
+        data = vec.get('data', 0) & 1
+
+        # R1: reset == 1 -> start_shifting = 0, state = S0 (sync, same cycle)
+        if reset == 1:
+            state = S0
+            start_shifting = 0
+            results.append({'start_shifting': start_shifting})
+            continue
+
+        # Compute next state from current state and data
+        if state == S0:
+            nxt = S1 if data == 1 else S0
+        elif state == S1:
+            nxt = S2 if data == 1 else S0
+        elif state == S2:
+            nxt = S3 if data == 0 else S2
+        elif state == S3:
+            nxt = S4 if data == 1 else S0
+        else:  # S4
+            nxt = S4
+
+        # R2: reset == 0 and state == S4 -> start_shifting = 1 (same cycle)
+        # R3: reset == 0 and state != S4 and next_state == S4 -> start_shifting = 1 (next cycle)
+        # R4: reset == 0 and state != S4 and next_state != S4 -> start_shifting = 0 (same cycle)
+        if state == S4:
+            start_shifting = 1
+        elif nxt == S4:
+            # R3: visible next cycle; this cycle output remains 0
+            start_shifting = 0
+        else:
+            start_shifting = 0
+
+        state = nxt
+        results.append({'start_shifting': start_shifting})
+
+    return results

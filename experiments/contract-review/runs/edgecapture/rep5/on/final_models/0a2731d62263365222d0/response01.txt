@@ -1,0 +1,60 @@
+def reference(vectors):
+    # Rule synchronous_active_high_reset: reset == 1 at posedge clears out with priority.
+    # Rule falling_edge_capture_and_hold: out |= prev_in & ~in; prev_in <= in.
+    # Contract note: prev_in is updated during reset cycles.
+    MASK = (1 << 32) - 1
+    out = 0
+    prev_in = 0
+    cur_reset = 0
+    cur_in = 0
+    results = []
+
+    for row in vectors:
+        # Drive row values before the sampled posedge.
+        if isinstance(row, dict):
+            if 'reset' in row and row['reset'] is not None:
+                cur_reset = row['reset'] & 1
+            if 'in' in row and row['in'] is not None:
+                cur_in = row['in'] & MASK
+
+        sampled_in = cur_in & MASK
+
+        # synchronous_active_high_reset: priority 20
+        # falling_edge_capture_and_hold: priority 10
+        if cur_reset:
+            out = 0
+            prev_in = sampled_in
+        else:
+            out = (out | (prev_in & ((~sampled_in) & MASK))) & MASK
+            prev_in = sampled_in
+
+        results.append({'out': out})
+
+        # Optional mid changes occur after sampling and are carried to next row start.
+        if isinstance(row, dict):
+            mid = row.get('mid')
+            if isinstance(mid, dict):
+                for key, value in mid.items():
+                    if key == 'reset' and value is not None:
+                        cur_reset = value & 1
+                    elif key == 'in' and value is not None:
+                        cur_in = value & MASK
+            elif isinstance(mid, (list, tuple)):
+                for change in mid:
+                    if isinstance(change, dict):
+                        for key, value in change.items():
+                            if key == 'reset' and value is not None:
+                                cur_reset = value & 1
+                            elif key == 'in' and value is not None:
+                                cur_in = value & MASK
+
+            if 'reset_mid' in row and row['reset_mid'] is not None:
+                cur_reset = row['reset_mid'] & 1
+            if 'in_mid' in row and row['in_mid'] is not None:
+                cur_in = row['in_mid'] & MASK
+            if 'mid_reset' in row and row['mid_reset'] is not None:
+                cur_reset = row['mid_reset'] & 1
+            if 'mid_in' in row and row['mid_in'] is not None:
+                cur_in = row['mid_in'] & MASK
+
+    return results

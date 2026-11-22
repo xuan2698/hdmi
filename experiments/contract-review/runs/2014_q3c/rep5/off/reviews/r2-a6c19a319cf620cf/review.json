@@ -1,0 +1,101 @@
+{
+  "coverage": {
+    "S01": [
+      "R_Y0",
+      "R_z"
+    ],
+    "S02": [
+      "R_Y0",
+      "R_z"
+    ],
+    "S03": [
+      "R_Y0",
+      "R_z"
+    ],
+    "S04": [
+      "R_Y0",
+      "R_z"
+    ],
+    "S05": [
+      "R_Y0",
+      "R_z"
+    ],
+    "S06": [
+      "R_Y0",
+      "R_z"
+    ],
+    "S07": [
+      "R_Y0",
+      "R_z"
+    ]
+  },
+  "issues": [
+    {
+      "issue_id": "I1",
+      "rule_id": "R_Y0",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "R_Y0 example vector x=0,y=3 expects Y0=1 but table S06 says next state for 011,x=0 is 001 (bit0=1) — actually consistent; however x=1,y=3 expects Y0=0 from 010 (bit0=0) consistent. No contradiction.",
+      "spec_evidence": "",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I2",
+      "rule_id": "R_z",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "R_z example x=0,y=3 expects z=1 (state 011) consistent; x=0,y=4 expects z=1 (state 100) consistent. No contradiction.",
+      "spec_evidence": "",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I3",
+      "rule_id": "R_Y0",
+      "type": "grounding",
+      "severity": "medium",
+      "detail": "R_Y0 example x=1,y=0 expects Y0=1 from next state 001 (bit0=1) consistent; x=0,y=0 expects Y0=0 from 000 consistent. Grounded.",
+      "spec_evidence": "",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I4",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Undefined present states 101,110,111 have unspecified next state and z; contract lists candidates but no rule resolves them.",
+      "spec_evidence": "// 100 | 011, 100 | 1",
+      "alternative": "Treat undefined states as don't-care producing Y0=0,z=0",
+      "sequence": [
+        {
+          "x": 0,
+          "y": 5
+        },
+        {
+          "x": 1,
+          "y": 5
+        },
+        {
+          "x": 0,
+          "y": 6
+        },
+        {
+          "x": 1,
+          "y": 7
+        }
+      ]
+    },
+    {
+      "issue_id": "I5",
+      "rule_id": "R_Y0",
+      "type": "spec_example",
+      "severity": "low",
+      "detail": "Derived table outputs match R_Y0/R_z examples for defined states; no mismatch found.",
+      "spec_evidence": "// 011 | 001, 010 | 1",
+      "alternative": "",
+      "sequence": []
+    }
+  ]
+}

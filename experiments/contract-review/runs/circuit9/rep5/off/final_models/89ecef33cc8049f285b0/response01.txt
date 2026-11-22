@@ -1,0 +1,18 @@
+```python
+def reference(vectors):
+    # Rule global: q starts as 0 until first posedge (candidate interpretation)
+    q = 0
+    prev_a = None  # previous sampled a; None means no previous sample yet
+    out = []
+    for row in vectors:
+        a = row['a']
+        # At posedge: evaluate transition
+        # Rule hold_when_a_high: a==1 or prev_a==1 -> hold
+        # Rule increment_when_a_low: a==0 and prev_a==0 -> increment
+        if prev_a is not None and a == 0 and prev_a == 0:
+            q = (q + 1) & 0x7  # increment_when_a_low
+        # else hold (hold_when_a_high covers a==1 or prev_a==1; also first cycle holds)
+        prev_a = a
+        out.append({'q': q})
+    return out
+```

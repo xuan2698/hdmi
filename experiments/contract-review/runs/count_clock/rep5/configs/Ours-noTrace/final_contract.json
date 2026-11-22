@@ -1,0 +1,385 @@
+{
+  "ports": {
+    "inputs": {
+      "reset": 1,
+      "ena": 1
+    },
+    "outputs": {
+      "pm": 1,
+      "hh": 8,
+      "mm": 8,
+      "ss": 8
+    },
+    "clock": "clk"
+  },
+  "states": [
+    {
+      "name": "ss_ones",
+      "meaning": "BCD ones digit of seconds (0-9)",
+      "update_time": "posedge clk when ena and not reset",
+      "update_during_reset": true
+    },
+    {
+      "name": "ss_tens",
+      "meaning": "BCD tens digit of seconds (0-5)",
+      "update_time": "posedge clk when ena and not reset",
+      "update_during_reset": true
+    },
+    {
+      "name": "mm_ones",
+      "meaning": "BCD ones digit of minutes (0-9)",
+      "update_time": "posedge clk when ena and not reset",
+      "update_during_reset": true
+    },
+    {
+      "name": "mm_tens",
+      "meaning": "BCD tens digit of minutes (0-5)",
+      "update_time": "posedge clk when ena and not reset",
+      "update_during_reset": true
+    },
+    {
+      "name": "hh_ones",
+      "meaning": "BCD ones digit of hours; valid hour values are 01-12, so hh_ones is 0-2 with hh_tens constrained to form 01-12",
+      "update_time": "posedge clk when ena and not reset",
+      "update_during_reset": true
+    },
+    {
+      "name": "hh_tens",
+      "meaning": "BCD tens digit of hours; valid hour values are 01-12, so hh_tens is 0 or 1 and hh_tens=1 only with hh_ones 0-2",
+      "update_time": "posedge clk when ena and not reset",
+      "update_during_reset": true
+    },
+    {
+      "name": "pm_state",
+      "meaning": "AM/PM indicator",
+      "update_time": "posedge clk when ena and not reset",
+      "update_during_reset": true
+    }
+  ],
+  "rules": [
+    {
+      "id": "R1_reset",
+      "outputs": [
+        "pm",
+        "hh",
+        "mm",
+        "ss"
+      ],
+      "condition": "reset == 1",
+      "edge": "posedge",
+      "visible": "next_cycle",
+      "priority": 1,
+      "spec_quote": "Reset is the active high synchronous signal that resets the clock to \"12:00 AM.\" Reset has higher priority than enable and can occur even when not enabled.",
+      "uncertain": true,
+      "example": {
+        "vectors": [
+          {
+            "reset": 1,
+            "ena": 0
+          },
+          {
+            "reset": 0,
+            "ena": 0
+          },
+          {
+            "reset": 0,
+            "ena": 0
+          }
+        ],
+        "expected": [
+          {
+            "pm": 0,
+            "hh": 18,
+            "mm": 0,
+            "ss": 0
+          },
+          {
+            "pm": 0,
+            "hh": 18,
+            "mm": 0,
+            "ss": 0
+          },
+          {
+            "pm": 0,
+            "hh": 18,
+            "mm": 0,
+            "ss": 0
+          }
+        ]
+      }
+    },
+    {
+      "id": "R2_seconds",
+      "outputs": [
+        "ss"
+      ],
+      "condition": "reset == 0 && ena == 1 && ss != 8'h59",
+      "edge": "posedge",
+      "visible": "next_cycle",
+      "priority": 2,
+      "spec_quote": "ss are two BCD (Binary-Coded Decimal) digits each for hours (01-12), minutes (00-59), and seconds (00-59)",
+      "uncertain": true,
+      "example": {
+        "vectors": [
+          {
+            "reset": 0,
+            "ena": 1
+          },
+          {
+            "reset": 0,
+            "ena": 1
+          },
+          {
+            "reset": 0,
+            "ena": 0
+          }
+        ],
+        "expected": [
+          {
+            "pm": 0,
+            "hh": 18,
+            "mm": 0,
+            "ss": 1
+          },
+          {
+            "pm": 0,
+            "hh": 18,
+            "mm": 0,
+            "ss": 2
+          },
+          {
+            "pm": 0,
+            "hh": 18,
+            "mm": 0,
+            "ss": 2
+          }
+        ]
+      }
+    },
+    {
+      "id": "R3_seconds_rollover",
+      "outputs": [
+        "ss",
+        "mm"
+      ],
+      "condition": "reset == 0 && ena == 1 && ss == 8'h59 && mm != 8'h59",
+      "edge": "posedge",
+      "visible": "next_cycle",
+      "priority": 2,
+      "spec_quote": "minutes (00-59), and seconds (00-59)",
+      "uncertain": true,
+      "example": {
+        "vectors": [
+          {
+            "reset": 0,
+            "ena": 1
+          },
+          {
+            "reset": 0,
+            "ena": 1
+          },
+          {
+            "reset": 0,
+            "ena": 0
+          }
+        ],
+        "expected": [
+          {
+            "pm": 0,
+            "hh": 18,
+            "mm": 1,
+            "ss": 0
+          },
+          {
+            "pm": 0,
+            "hh": 18,
+            "mm": 1,
+            "ss": 1
+          },
+          {
+            "pm": 0,
+            "hh": 18,
+            "mm": 1,
+            "ss": 1
+          }
+        ]
+      }
+    },
+    {
+      "id": "R4_minutes_rollover",
+      "outputs": [
+        "mm",
+        "hh",
+        "pm"
+      ],
+      "condition": "reset == 0 && ena == 1 && ss == 8'h59 && mm == 8'h59 && hh != 8'h12",
+      "edge": "posedge",
+      "visible": "next_cycle",
+      "priority": 2,
+      "spec_quote": "hours (01-12), minutes (00-59)",
+      "uncertain": true,
+      "example": {
+        "vectors": [
+          {
+            "reset": 0,
+            "ena": 1
+          },
+          {
+            "reset": 0,
+            "ena": 1
+          },
+          {
+            "reset": 0,
+            "ena": 0
+          }
+        ],
+        "expected": [
+          {
+            "pm": 0,
+            "hh": 2,
+            "mm": 0,
+            "ss": 0
+          },
+          {
+            "pm": 0,
+            "hh": 2,
+            "mm": 0,
+            "ss": 1
+          },
+          {
+            "pm": 0,
+            "hh": 2,
+            "mm": 0,
+            "ss": 1
+          }
+        ]
+      }
+    },
+    {
+      "id": "R5_hour_rollover_am_pm",
+      "outputs": [
+        "hh",
+        "mm",
+        "ss",
+        "pm"
+      ],
+      "condition": "reset == 0 && ena == 1 && ss == 8'h59 && mm == 8'h59 && hh == 8'h12",
+      "edge": "posedge",
+      "visible": "next_cycle",
+      "priority": 2,
+      "spec_quote": "The signal \"pm\" is asserted if the clock is PM, or is otherwise AM.",
+      "uncertain": true,
+      "example": {
+        "vectors": [
+          {
+            "reset": 0,
+            "ena": 1
+          },
+          {
+            "reset": 0,
+            "ena": 1
+          },
+          {
+            "reset": 0,
+            "ena": 0
+          }
+        ],
+        "expected": [
+          {
+            "pm": 1,
+            "hh": 1,
+            "mm": 0,
+            "ss": 0
+          },
+          {
+            "pm": 1,
+            "hh": 1,
+            "mm": 0,
+            "ss": 1
+          },
+          {
+            "pm": 1,
+            "hh": 1,
+            "mm": 0,
+            "ss": 1
+          }
+        ]
+      }
+    },
+    {
+      "id": "R6_hold",
+      "outputs": [
+        "pm",
+        "hh",
+        "mm",
+        "ss"
+      ],
+      "condition": "reset == 0 && ena == 0",
+      "edge": "posedge",
+      "visible": "next_cycle",
+      "priority": 3,
+      "spec_quote": "with a pulse on ena whenever your clock should increment",
+      "uncertain": true,
+      "example": {
+        "vectors": [
+          {
+            "reset": 0,
+            "ena": 0
+          },
+          {
+            "reset": 0,
+            "ena": 0
+          },
+          {
+            "reset": 0,
+            "ena": 1
+          }
+        ],
+        "expected": [
+          {
+            "pm": 0,
+            "hh": 18,
+            "mm": 0,
+            "ss": 0
+          },
+          {
+            "pm": 0,
+            "hh": 18,
+            "mm": 0,
+            "ss": 0
+          },
+          {
+            "pm": 0,
+            "hh": 18,
+            "mm": 0,
+            "ss": 1
+          }
+        ]
+      }
+    }
+  ],
+  "reset": {
+    "kind": "sync",
+    "name": "reset",
+    "active": "high",
+    "values": {
+      "pm": 0,
+      "hh": 18,
+      "mm": 0,
+      "ss": 0
+    },
+    "first_released_cycle": "first posedge clk with reset==0"
+  },
+  "mid": "Optional mid input changes occur AFTER sampling, before the other edge, and are carried to the start of the next row.",
+  "uncertain": [],
+  "remaining_uncertain_fields": {
+    "R1_reset": [],
+    "R2_seconds": [],
+    "R3_seconds_rollover": [],
+    "R4_minutes_rollover": [],
+    "R5_hour_rollover_am_pm": [],
+    "R6_hold": [],
+    "global": []
+  },
+  "selected_interpretations": []
+}

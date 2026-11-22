@@ -1,0 +1,54 @@
+def reference(vectors):
+    # State Q: 0 (Q0) or 1 (Q1). Power-up unspecified -> initialize to 0.
+    q_state = 0
+    # Current input values (after previous mid changes)
+    L = 0
+    q_in = 0
+    r_in = 0
+    out = []
+    for row in vectors:
+        mid = {}
+        if isinstance(row, dict):
+            # Apply primary inputs driven before the posedge.
+            for k, v in row.items():
+                if k in ("L", "q_in", "r_in"):
+                    val = v & 1
+                    if k == "L":
+                        L = val
+                    elif k == "q_in":
+                        q_in = val
+                    else:
+                        r_in = val
+                elif k == "mid" and isinstance(v, dict):
+                    for mk, mv in v.items():
+                        if mk in ("L", "q_in", "r_in"):
+                            mid[mk] = mv & 1
+                elif k in ("mid_changes", "mid_inputs") and isinstance(v, dict):
+                    for mk, mv in v.items():
+                        if mk in ("L", "q_in", "r_in"):
+                            mid[mk] = mv & 1
+                elif k.endswith("_mid"):
+                    base = k[:-4]
+                    if base in ("L", "q_in", "r_in"):
+                        mid[base] = v & 1
+                elif k.endswith("_after"):
+                    base = k[:-6]
+                    if base in ("L", "q_in", "r_in"):
+                        mid[base] = v & 1
+        # Q_posedge_update: at posedge clk after settlement.
+        # Candidate interpretation: when L=1, Q becomes r_in; when L=0, hold previous Q.
+        if L == 1:
+            next_q = r_in & 1
+        else:
+            next_q = q_state
+        q_state = next_q & 1
+        out.append({"Q": q_state})
+        # Mid changes occur after sampling and before next edge.
+        for k, v in mid.items():
+            if k == "L":
+                L = v & 1
+            elif k == "q_in":
+                q_in = v & 1
+            elif k == "r_in":
+                r_in = v & 1
+    return out

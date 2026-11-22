@@ -1,0 +1,166 @@
+We need to produce Python source strings for each of the four models (e8a097317f2ef6a36f, c07add9324585a96a9, c000f284974142d977, f5f07de67c6fd10291). Each defines `reference(vectors)` returning per-cycle outputs.
+
+Let me reason about the semantics carefully.
+
+**Common semantics:**
+- 128-entry PHT of 2-bit saturating counters, indexed by `pc ^ ghr` (7-bit).
+- 7-bit GHR.
+- Async reset: when `areset==1`, outputs are 0 and state resets (PHT all 0, GHR 0). Reset is asynchronous — so if areset is high at sample time, outputs are 0 regardless of other inputs, and state is reset.
+- Prediction (combinational, same cycle): if `predict_valid` and not reset, `predict_taken` = MSB of PHT[pc^ghr], `predict_history` = current ghr.
+- At posedge (next cycle effect):
+  - If reset: PHT=0, GHR=0.
+  - Else:
+    - If train_valid: update PHT[train_pc ^ train_history] with saturating counter based on train_taken. If train_mispredicted: GHR = {train_history[5:0], train_taken} (recovery to state after mispredicting branch). Training takes precedence over prediction for GHR.
+    - Else if predict_valid: GHR = {ghr[5:0], predict_taken}.
+
+**Uncertainties per model:**
+
+1. **e8a097317f2ef6a36f**: uncertain R4 — GHR recovery value. Candidates: `{train_history[5:0], train_taken}` (most natural), or train_history unchanged, or shifted. I'll pick `{train_history[5:0], train_taken}` — the standard gshare recovery: the branch history after the mispredicting branch is the history at that branch shifted in with its actual outcome.
+
+2. **c07add9324585a96a9**: uncertain R3 — PHT update policy. Candidates: saturating inc/dec, or set to train_taken. Standard gshare uses saturating counters. I'll use saturating increment/decrement.
+
+3. **c000f284974142d977**: uncertain R1 — predict_taken mapping. Candidates: MSB of counter, or counter>=2. For 2-bit counter, MSB is bit1, and counter>=2 is also bit1. These are identical! So no real ambiguity. Use MSB.
+
+4. **f5f07de67c6fd10291**: uncertain R6 — predict_history pre- or post-train GHR. Since prediction is combinational and training only affects state at next posedge, predict_history should reflect pre-train GHR (current ghr). Use pre-train.
+
+Now let me write the code. Each model is a self-contained function.
+
+```python
+def reference(vectors):
+    # state
+    pht = [0]*128
+    ghr = 0
+    out = []
+    for v in vectors:
+        areset = v['areset']
+        if areset:
+            # async reset: outputs 0, state reset
+            pht = [0]*128
+            ghr = 0
+            out.append({'predict_taken':0,'predict_history':0})
+            continue
+        # combinational outputs
+        pv = v['predict_valid']
+        if pv:
+            idx = (v['predict_pc'] ^ ghr) & 0x7f
+            pt = (pht[idx] >> 1) & 1
+            ph = ghr
+        else:
+            pt = 0
+            ph = 0
+        out.append({'predict_taken':pt,'predict_history':ph})
+        # posedge updates
+        tv = v['train_valid']
+        if tv:
+            tidx = (v['train_pc'] ^ v['train_history']) & 0x7f
+            c = pht[tidx]
+            if v['train_taken']:
+                if c < 3: c += 1
+            else:
+                if c > 0: c -= 1
+            pht[tidx] = c
+            if v['train_mispredicted']:
+                ghr = ((v['train_history'] << 1) | v['train_taken']) & 0x7f
+        elif pv:
+            ghr = ((ghr << 1) | pt) & 0x7f
+    return out
+```
+
+Wait — for the mispredicted GHR recovery: `{train_history[5:0], train_taken}` means shift train_history left by 1, drop top bit, insert train_taken at LSB. That's `((train_history << 1) | train_taken) & 0x7f`. Yes.
+
+But careful: when train_valid and predict_valid both, training takes precedence for GHR — handled since we use `if tv: ... elif pv:`.
+
+Also note: when train_valid but not mispredicted, GHR is NOT updated by training (only PHT). The spec says GHR recovery only on mispredict. But what about normal training — does GHR update? The spec says prediction updates GHR; training only recovers on mispredict. So if train_valid and not mispredicted, GHR unchanged. That's what the code does (only updates ghr inside `if train_mispredicted`).
+
+Hmm, but is that right? In real gshare, the GHR is updated at prediction time (speculative), and training only corrects on mispredict. Yes, that matches.
+
+Now for model 2 (c07add...), PHT update is saturating — same as above. Good.
+
+For model 3 (c000f...), predict_taken = MSB — same.
+
+For model 4 (f5f07...), predict_history = pre-train ghr — same as above (we output ghr before posedge update).
+
+So actually all four models have identical code except the uncertain choices, and I've resolved them all to the same natural interpretation. Let me double check each:
+
+- Model 1: R4 recovery = `{train_history[5:0], train_taken}` ✓ (my code)
+- Model 2: R3 saturating ✓
+- Model 3: R1 MSB ✓
+- Model 4: R6 pre-train ✓
+
+All identical. That's fine — they're the same spec with different uncertainties, and I resolve them consistently.
+
+Let me verify with the examples. Example R1: reset=0, predict_valid=1, pc=5, ghr=0. idx=5, pht[5]=0, MSB=0, predict_taken=0, predict_history=0. ✓
+
+R3 example: train_valid=1, train_taken=1, train_pc=3, train_history=0. idx=3, pht[3] 0→1. Next cycle predict pc=3, ghr=0 (train not mispredicted so ghr unchanged). idx=3, pht[3]=1, MSB=0, predict_taken=0. ✓ matches expected.
+
+R4 example: train_valid=1, train_mispredicted=1, train_history=5, train_taken=1. ghr = (5<<1|1)&0x7f = 11. Next cycle predict pc=3, ghr=11. idx=3^11=8, pht[8]=0, predict_taken=0, predict_history=11. But expected shows predict_history=0! Hmm.
+
+Wait, expected for R4 example: `[{"predict_taken":0,"predict_history":0},{"predict_taken":0,"predict_history":0},{"predict_taken":0,"predict_history":0}]`. Second cycle predict_history=0, but my ghr=11. That contradicts.
+
+Hmm, but these examples are auto-generated and may not be reliable. The expected values in the examples seem to all be 0 — possibly placeholder. Let me check R2 example: predict_valid=1, pc=5, ghr=0. predict_taken=0, predict_history=0. Next cycle predict pc=6, ghr should be (0<<1|0)=0. predict_history=0. ✓ consistent.
+
+R5 example: predict_valid=1 pc=5, train_valid=1 train_mispredicted=1 train_history=2 train_taken=1. Training takes precedence: ghr=(2<<1|1)=5. Next cycle predict pc=3, ghr=5, predict_history=5. Expected shows 0. So expected is wrong/placeholder.
+
+These examples appear to have placeholder expected values (all zeros). I'll trust the spec logic over the examples.
+
+Actually wait — maybe the examples are generated with a reference that has different behavior. But the task says "implement its exact state semantics independently". The examples might be from a specific reference. Let me reconsider.
+
+Hmm, the examples all show 0 outputs. For R4, if the reference used "GHR becomes train_history unchanged" then ghr=5, predict_history=5, still not 0. If reference used something else... Actually maybe the examples are just not meaningful (all-zero placeholder). Given the uncertainty notes, the examples likely don't disambiguate.
+
+I'll go with the natural interpretation. Let me also reconsider: maybe predict_history output when predict_valid=0 should still be ghr? The spec says "produces the predicted branch direction and state of the branch history register used to make the prediction" — only when predict_valid. When not valid, output 0 seems fine (examples show 0).
+
+Actually, let me reconsider whether predict_history should always output ghr regardless of predict_valid. The examples with predict_valid=0 show predict_history=0, and ghr might be nonzero. E.g., R4 third cycle: predict_valid=0, ghr=11 (from my calc), expected predict_history=0. So output 0 when not predicting. OK.
+
+Let me also handle: what if areset and predict_valid both? Reset wins, output 0. ✓
+
+One more: the "mid" note about input changes after sampling — that's about testbench timing, not our model. We just process each vector as given.
+
+Let me finalize the code. I'll write it cleanly.
+
+Actually, let me reconsider the GHR update on prediction: `ghr = ((ghr << 1) | pt) & 0x7f`. pt is the predicted taken. Yes.
+
+And for training mispredict recovery: the spec says "recover the branch history register to the state immediately after the mispredicting branch completes execution." The branch history at that branch is `train_history`, and after the branch executes with outcome `train_taken`, the history becomes `{train_history[5:0], train_taken}`. Yes.
+
+Let me write the final JSON.
+
+```python
+def reference(vectors):
+    pht = [0]*128
+    ghr = 0
+    out = []
+    for v in vectors:
+        if v['areset']:
+            pht = [0]*128
+            ghr = 0
+            out.append({'predict_taken':0,'predict_history':0})
+            continue
+        pv = v['predict_valid']
+        if pv:
+            idx = (v['predict_pc'] ^ ghr) & 0x7f
+            pt = (pht[idx] >> 1) & 1
+            ph = ghr
+        else:
+            pt = 0
+            ph = 0
+        out.append({'predict_taken':pt,'predict_history':ph})
+        tv = v['train_valid']
+        if tv:
+            tidx = (v['train_pc'] ^ v['train_history']) & 0x7f
+            c = pht[tidx]
+            if v['train_taken']:
+                if c < 3: c += 1
+            else:
+                if c > 0: c -= 1
+            pht[tidx] = c
+            if v['train_mispredicted']:
+                ghr = ((v['train_history'] << 1) | v['train_taken']) & 0x7f
+        elif pv:
+            ghr = ((ghr << 1) | pt) & 0x7f
+    return out
+```
+
+This is the same for all four models given my resolutions. I'll output it for each id.
+
+Let me double-check the R6 example: predict_valid=1 pc=3, train_valid=1 train_taken=1 train_pc=3 train_history=0. ghr=0. idx=3. pht[3]=0, pt=0, ph=0. Output {0,0}. ✓ (prediction sees pre-train PHT). Then posedge: train updates pht[3] 0→1. Next cycle predict pc=3, ghr=0 (train not mispredicted), idx=3, pht[3]=1, pt=0, ph=0. ✓
+
+Good. Final answer.

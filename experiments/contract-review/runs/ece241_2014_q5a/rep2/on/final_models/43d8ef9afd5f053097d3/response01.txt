@@ -1,0 +1,80 @@
+def reference(vectors):
+    # State meaning/output: S0->0, S1->1, S2->0.
+    state = "S0"
+    z = 0
+    areset = 0
+    x = 0
+    result = []
+
+    for row in vectors:
+        # Drive row values before the sampled posedge. Carried mid values remain
+        # unless this row directly drives the same input.
+        if "areset" in row:
+            areset = row["areset"]
+        if "x" in row:
+            x = row["x"]
+
+        # async_reset_z0: active-high asynchronous reset forces S0 and z=0.
+        if areset == 1:
+            state = "S0"
+            z = 0
+
+        # Sample the posedge. The Moore output is same-cycle from the post-edge
+        # state, per the resolved global timing convention.
+        if areset == 1:
+            # async_reset_z0: reset held through the sampled posedge.
+            state = "S0"
+            z = 0
+        else:
+            if state == "S0":
+                if x == 0:
+                    # s0_x0: S0 --x=0--> S0, z=0.
+                    state = "S0"
+                else:
+                    # s0_x1: S0 --x=1--> S1, z=1.
+                    state = "S1"
+            elif state == "S1":
+                if x == 0:
+                    # s1_x0: S1 --x=0--> S1, z=1.
+                    state = "S1"
+                else:
+                    # s1_x1: S1 --x=1--> S2, z=0.
+                    state = "S2"
+            else:
+                if x == 0:
+                    # s2_x0: S2 --x=0--> S1, z=1.
+                    state = "S1"
+                else:
+                    # s2_x1: S2 --x=1--> S2, z=0.
+                    state = "S2"
+
+            if state == "S1":
+                z = 1
+            else:
+                z = 0
+
+        result.append({"z": z})
+
+        # Mid changes occur after the sampled posedge and carry to the next row.
+        mid = row.get("mid", None)
+        if mid is not None:
+            if isinstance(mid, dict):
+                mid_changes = [mid]
+            elif isinstance(mid, (list, tuple)):
+                mid_changes = mid
+            else:
+                mid_changes = []
+
+            for change in mid_changes:
+                if not isinstance(change, dict):
+                    continue
+                if "x" in change:
+                    x = change["x"]
+                if "areset" in change:
+                    areset = change["areset"]
+                # async_reset_z0: a mid-asserted areset asynchronously resets.
+                if areset == 1:
+                    state = "S0"
+                    z = 0
+
+    return result

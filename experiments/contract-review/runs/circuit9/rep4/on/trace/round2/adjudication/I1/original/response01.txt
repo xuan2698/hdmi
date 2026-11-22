@@ -1,0 +1,21 @@
+def reference(vectors):
+    # Contract rules implemented:
+    # R1_a_high_load4: a == 1 at posedge => q <= 4.
+    # R2_first_low_hold: a == 0 && prev_a == 1 at posedge => q <= q.
+    # R3_count_low: a == 0 && prev_a == 0 at posedge => q <= (q + 1) mod 7.
+    # Power-up is unspecified; use concrete q=0 and prev_a=1.
+    q = 0
+    prev_a = 1
+    result = []
+    for vector in vectors:
+        a = vector["a"]
+        if a == 1:
+            q = 4  # R1_a_high_load4
+        else:
+            if prev_a == 1:
+                q = q  # R2_first_low_hold
+            else:
+                q = (q + 1) % 7  # R3_count_low
+        prev_a = a  # prev_a updates to current a on each posedge
+        result.append({"q": q})
+    return result

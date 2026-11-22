@@ -1,0 +1,76 @@
+def reference(vectors):
+    S0, S1, S2 = 0, 1, 2
+    state = S0
+    z = 0
+    cur_areset = 0
+    cur_x = 0
+    out = []
+
+    for row in vectors:
+        # Drive row inputs before the sampled posedge.
+        if 'areset' in row:
+            cur_areset = int(row['areset']) & 1
+        if 'x' in row:
+            cur_x = int(row['x']) & 1
+
+        # async_reset_z0: active-high asynchronous reset forces state S0.
+        # Candidate interpretation: z holds its previous value while areset=1.
+        if cur_areset == 1:
+            state = S0
+            # z unchanged
+
+        # Posedge clk after the edge settles.
+        if cur_areset == 1:
+            # async_reset_z0: reset remains asserted; state S0, z holds previous.
+            state = S0
+            # z unchanged
+        else:
+            if state == S0:
+                if cur_x == 0:
+                    # s0_x0
+                    state = S0
+                else:
+                    # s0_x1
+                    state = S1
+            elif state == S1:
+                if cur_x == 0:
+                    # s1_x0
+                    state = S1
+                else:
+                    # s1_x1
+                    state = S2
+            else:  # state == S2
+                if cur_x == 0:
+                    # s2_x0
+                    state = S1
+                else:
+                    # s2_x1
+                    state = S2
+
+            # Moore output after the edge is output(next_state).
+            if state == S0:
+                z = 0
+            elif state == S1:
+                z = 1
+            else:  # S2
+                z = 0
+
+        out.append({'z': z & 1})
+
+        # Optional mid changes occur AFTER sampling, before the other edge.
+        mid = row.get('mid')
+        if mid:
+            if 'x' in mid:
+                cur_x = int(mid['x']) & 1
+            if 'areset' in mid:
+                cur_areset = int(mid['areset']) & 1
+                if cur_areset == 1:
+                    # async_reset_z0: asynchronous assertion forces S0; z holds.
+                    state = S0
+                    # z unchanged
+            if cur_areset == 1:
+                # async_reset_z0: while reset is asserted, state stays S0; z holds.
+                state = S0
+                # z unchanged
+
+    return out

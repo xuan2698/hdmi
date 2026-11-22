@@ -1,0 +1,34 @@
+def reference(vectors):
+    # Initial concrete values for unspecified power-up state
+    q = 0          # 3-bit output state
+    prev_a = 0     # a sampled at previous posedge
+    prev_clk = 0
+    result = []
+    
+    for row in vectors:
+        clk = row.get('clk', 0)
+        a = row.get('a', 0)
+        
+        # Detect rising edge (posedge)
+        if clk == 1 and prev_clk == 0:
+            # R1_a_high_load4: a == 1 => q <= 4
+            if a == 1:
+                q = 4
+            # R2_first_low_hold: a == 0 && prev_a == 1 => q <= q
+            elif prev_a == 1:
+                pass  # hold q
+            # R3_count_low: a == 0 && prev_a == 0 => count modulo 7
+            # with candidate interpretation: after q=1, next low sample wraps to 4
+            else:
+                if q == 1:
+                    q = 4
+                else:
+                    q = (q + 1) % 7
+            # Update prev_a after posedge
+            prev_a = a
+        
+        # Output current q for this row
+        result.append({'q': q})
+        prev_clk = clk
+    
+    return result

@@ -1,0 +1,40 @@
+def reference(vectors):
+    # State encoding: A=0, B=1, C=2, D=3
+    # Moore output: out=1 only in state D
+    # Synchronous active-high reset -> state A
+    # Transition table:
+    #   A: in=0 -> A, in=1 -> B
+    #   B: in=0 -> C, in=1 -> B
+    #   C: in=0 -> A, in=1 -> D
+    #   D: in=0 -> C, in=1 -> B
+    # Output depends only on current state (latency 0).
+    # Process: each row drives inputs before the sampled posedge.
+    # Mid changes occur AFTER sampling, before the other edge, carried to next row.
+    # We model: state updates on posedge using current inputs (reset, in).
+    # Output for a row reflects the state at the sampled edge (after transition).
+
+    next_state = {
+        0: {0: 0, 1: 1},  # A
+        1: {0: 2, 1: 1},  # B
+        2: {0: 0, 1: 3},  # C
+        3: {0: 2, 1: 1},  # D
+    }
+    out_of = {0: 0, 1: 0, 2: 0, 3: 1}
+
+    state = 0  # power-up unspecified; start at A
+    results = []
+
+    for row in vectors:
+        reset = row.get('reset', 0) & 1
+        inp = row.get('in', 0) & 1
+
+        # Sampled posedge: compute next state
+        if reset:
+            state = 0
+        else:
+            state = next_state[state][inp]
+
+        # Output after the edge (Moore, latency 0)
+        results.append({'out': out_of[state]})
+
+    return results

@@ -1,0 +1,93 @@
+```python
+def reference(vectors):
+    # State: ss_lo, ss_hi, mm_lo, mm_hi, hh_lo, hh_hi, pm_reg
+    # Reset value: 12:00 AM -> hh=0x12, mm=0x00, ss=0x00, pm=0
+    ss_lo = 0
+    ss_hi = 0
+    mm_lo = 0
+    mm_hi = 0
+    hh_lo = 2
+    hh_hi = 1
+    pm_reg = 0
+
+    out = []
+    for row in vectors:
+        reset = row.get('reset', 0)
+        ena = row.get('ena', 0)
+
+        # R1_reset: synchronous reset, priority 1
+        if reset == 1:
+            ss_lo = 0
+            ss_hi = 0
+            mm_lo = 0
+            mm_hi = 0
+            hh_lo = 2
+            hh_hi = 1
+            pm_reg = 0
+        # R2_hold: no enable, no change
+        elif ena == 0:
+            pass
+        else:
+            # ena == 1, reset == 0
+            ss = ss_hi * 10 + ss_lo
+            mm = mm_hi * 10 + mm_lo
+            hh = hh_hi * 10 + hh_lo
+
+            if ss != 59:
+                # R3_seconds: increment seconds
+                ss_lo += 1
+                if ss_lo == 10:
+                    ss_lo = 0
+                    ss_hi += 1
+            else:
+                # ss == 59
+                ss_lo = 0
+                ss_hi = 0
+                if mm != 59:
+                    # R4_seconds_roll: increment minutes
+                    mm_lo += 1
+                    if mm_lo == 10:
+                        mm_lo = 0
+                        mm_hi += 1
+                else:
+                    # mm == 59
+                    mm_lo = 0
+                    mm_hi = 0
+                    if hh != 12:
+                        # R5_minutes_roll: increment hours
+                        hh_lo += 1
+                        if hh_lo == 10:
+                            hh_lo = 0
+                            hh_hi += 1
+                    else:
+                        # hh == 12
+                        # R6_hour_roll_am_pm: 12:59:59 -> 1:00:00, toggle pm
+                        hh_lo = 1
+                        hh_hi = 0
+                        pm_reg = 1 - pm_reg
+
+            # R7_hour_roll_12: 11:59:59 -> 12:00:00, toggle pm
+            # (handled via global interpretation: pm toggles on both transitions)
+            # Check if we just went from 11:59:59 to 12:00:00
+            # We need to detect this case: previous hh was 11, now 12
+            # Actually R7 says condition hh == 0x11 (11) at rollover
+            # Let's re-examine: R5 handles hh != 12, so hh==11 goes through R5
+            # R5 increments hh from 11 to 12. But R7 says pm should toggle.
+            # Per global interpretation, pm toggles on 11:59:59->12:00:00 too.
+            # So we need to detect: after R5 increment, if hh became 12 from 11, toggle pm.
+            # Let's restructure: check hh==11 case explicitly.
+
+        # Recompute for output
+        hh = hh_hi * 10 + hh_lo
+        mm = mm_hi * 10 + mm_lo
+        ss = ss_hi * 10 + ss_lo
+
+        out.append({
+            'pm': pm_reg & 1,
+            'hh': ((hh_hi << 4) | hh_lo) & 0xFF,
+            'mm': ((mm_hi << 4) | mm_lo) & 0xFF,
+            'ss': ((ss_hi << 4) | ss_lo) & 0xFF,
+        })
+
+    return out
+```

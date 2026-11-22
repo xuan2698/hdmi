@@ -1,0 +1,41 @@
+def reference(vectors):
+    def inc(x):
+        l=x&15
+        h=x>>4
+        l+=1
+        if l==10:
+            l=0
+            h+=1
+        return (h<<4)|l
+    st={'hh':0x12,'mm':0,'ss':0,'pm':0}
+    inp={'reset':0,'ena':0}
+    res=[]
+    for row in vectors:
+        for k in ('reset','ena'):
+            if k in row:
+                inp[k]=int(row[k])&1
+        if inp['reset']:
+            st={'hh':0x12,'mm':0,'ss':0,'pm':0}
+        elif inp['ena']:
+            if st['ss']==0x59:
+                st['ss']=0
+                if st['mm']==0x59:
+                    st['mm']=0
+                    old=st['hh']
+                    if old==0x12:
+                        st['hh']=0x01
+                    else:
+                        st['hh']=inc(old)
+                    if old==0x11:
+                        st['pm']^=1
+                else:
+                    st['mm']=inc(st['mm'])
+            else:
+                st['ss']=inc(st['ss'])
+        res.append({'pm':st['pm']&1,'hh':st['hh']&0xff,'mm':st['mm']&0xff,'ss':st['ss']&0xff})
+        mid=row.get('mid')
+        if isinstance(mid,dict):
+            for k,v in mid.items():
+                if k in ('reset','ena'):
+                    inp[k]=int(v)&1
+    return res

@@ -1,0 +1,30 @@
+```python
+def reference(vectors):
+    # State-assigned table:
+    # y=000: x=0 -> Y=000, x=1 -> Y=001
+    # y=001: x=0 -> Y=001, x=1 -> Y=100
+    # y=010: x=0 -> Y=010, x=1 -> Y=001
+    # y=011: x=0 -> Y=001, x=1 -> Y=010
+    # y=100: x=0 -> Y=011, x=1 -> Y=100
+    # z = 1 for y in {011, 100}, else 0 (R_z: undefined states -> 0)
+
+    next_state = {
+        (0b000, 0): 0b000, (0b000, 1): 0b001,
+        (0b001, 0): 0b001, (0b001, 1): 0b100,
+        (0b010, 0): 0b010, (0b010, 1): 0b001,
+        (0b011, 0): 0b001, (0b011, 1): 0b010,
+        (0b100, 0): 0b011, (0b100, 1): 0b100,
+    }
+
+    results = []
+    for vec in vectors:
+        x = vec['x'] & 1
+        y = vec['y'] & 0b111
+        # R_Y0: Y0 = next-state bit 0 (combinational, same cycle)
+        Y = next_state.get((y, x), 0b000)
+        Y0 = Y & 1
+        # R_z: z=1 for present states 011 and 100, else 0 (undefined -> 0)
+        z = 1 if y in (0b011, 0b100) else 0
+        results.append({'Y0': Y0, 'z': z})
+    return results
+```

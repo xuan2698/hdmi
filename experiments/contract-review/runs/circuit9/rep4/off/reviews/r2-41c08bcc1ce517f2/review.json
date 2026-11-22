@@ -1,0 +1,202 @@
+{
+  "coverage": {
+    "S01": [
+      "hold_when_a_high",
+      "increment_when_a_low"
+    ],
+    "S02": [
+      "hold_when_a_high",
+      "increment_when_a_low"
+    ],
+    "S03": [
+      "hold_when_a_high",
+      "increment_when_a_low"
+    ],
+    "S04": [
+      "hold_when_a_high",
+      "increment_when_a_low"
+    ],
+    "S05": [
+      "hold_when_a_high"
+    ],
+    "S06": [
+      "hold_when_a_high"
+    ],
+    "S07": [
+      "hold_when_a_high"
+    ],
+    "S08": [
+      "hold_when_a_high"
+    ],
+    "S09": [
+      "hold_when_a_high"
+    ],
+    "S10": [
+      "hold_when_a_high"
+    ],
+    "S11": [
+      "hold_when_a_high"
+    ],
+    "S12": [
+      "hold_when_a_high"
+    ],
+    "S13": [
+      "hold_when_a_high"
+    ],
+    "S14": [
+      "hold_when_a_high"
+    ],
+    "S15": [
+      "increment_when_a_low"
+    ],
+    "S16": [
+      "increment_when_a_low"
+    ],
+    "S17": [
+      "increment_when_a_low"
+    ],
+    "S18": [
+      "increment_when_a_low"
+    ],
+    "S19": [
+      "increment_when_a_low"
+    ],
+    "S20": [
+      "increment_when_a_low"
+    ],
+    "S21": [
+      "increment_when_a_low"
+    ],
+    "S22": [
+      "increment_when_a_low"
+    ]
+  },
+  "issues": [
+    {
+      "issue_id": "I1",
+      "rule_id": "increment_when_a_low",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "Rule condition uses prev_a==0 but spec_quote S15 shows a=0 at the posedge itself; also example expected[0] q=4 for first vector a=0 contradicts 'increment' semantics (should be 5 if prev_a=0).",
+      "spec_evidence": "// 55ns            1               0               5",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I2",
+      "rule_id": "hold_when_a_high",
+      "type": "consistency",
+      "severity": "medium",
+      "detail": "Rule condition 'a==1 && initialized' uses current a, but state meaning says hold when previous a=1; example vectors all a=1 cannot distinguish current vs previous semantics.",
+      "spec_evidence": "// 5ns             1               1               4",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I3",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "high",
+      "detail": "Spec waveform shows q=4 at 5ns with a=1, but does not reveal whether first posedge loads 4 or whether q was already 4; contract marks uncertain but rules assume load-on-first-posedge.",
+      "spec_evidence": "// 5ns             1               1               4",
+      "alternative": "q has implicit power-on value 4 and first posedge with a=1 holds it (no load)",
+      "sequence": [
+        {
+          "a": 1
+        },
+        {
+          "a": 1
+        },
+        {
+          "a": 0
+        },
+        {
+          "a": 0
+        }
+      ]
+    },
+    {
+      "issue_id": "I4",
+      "rule_id": "increment_when_a_low",
+      "type": "ambiguity",
+      "severity": "high",
+      "detail": "Spec S19 shows q going 6->0 at 75ns with a=0, consistent with 3-bit wrap; but contract example expected[3] q=0 after four a=0 vectors starting from 4 gives 4,5,6,7 not 0, so example is internally inconsistent with wrap semantics.",
+      "spec_evidence": "// 75ns            1               0               0",
+      "alternative": "counter wraps modulo 8 (4,5,6,7,0) vs saturates or resets",
+      "sequence": [
+        {
+          "a": 0
+        },
+        {
+          "a": 0
+        },
+        {
+          "a": 0
+        },
+        {
+          "a": 0
+        },
+        {
+          "a": 0
+        }
+      ]
+    },
+    {
+      "issue_id": "I5",
+      "rule_id": "increment_when_a_low",
+      "type": "spec_example",
+      "severity": "high",
+      "detail": "Derived outputs from spec waveform: q sequence at posedges (5,15,25,35,45,55,65,75,85) = 4,4,4,4,4,5,6,0,1. Contract example for increment gives 4,5,6,0 for four a=0 vectors, which does not match spec (first a=0 posedge at 55ns yields 5 from prior 4, but contract example starts at 4 then 5 — actually matches if first vector is the load; but contract example lacks the initial load row and the hold rows).",
+      "spec_evidence": "// 45ns            1               0               4",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I6",
+      "rule_id": "global",
+      "type": "grounding",
+      "severity": "medium",
+      "detail": "S04 shows q=x at 0ns before any posedge; contract reset kind none and first_released_cycle 0ns, but no rule covers q=x initial state; uncertain note acknowledges but rules do not encode x.",
+      "spec_evidence": "// 0ns             0               1               x",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I7",
+      "rule_id": "hold_when_a_high",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec S13 (45ns, a=0, q=4) then S15 (55ns, a=0, q=5) shows increment on a=0 posedge; but S05-S13 with a=1 hold. Contract rule hold uses current a==1; alternative uses prev_a==1. Distinguishing sequence: a=1 then a=0 at next posedge — current-a rule increments, prev-a rule holds.",
+      "spec_evidence": "// 45ns            1               0               4",
+      "alternative": "hold when previous a==1 (not current a==1)",
+      "sequence": [
+        {
+          "a": 1
+        },
+        {
+          "a": 0
+        },
+        {
+          "a": 0
+        }
+      ]
+    },
+    {
+      "issue_id": "I8",
+      "rule_id": "increment_when_a_low",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Contract example for increment starts expected q=4 for first a=0 vector, implying first posedge loads 4 regardless; but rule condition prev_a==0 would increment from unknown. Alternative: first posedge always loads 4, subsequent a=0 increments. Distinguishing sequence: single a=0 posedge from x.",
+      "spec_evidence": "// 5ns             1               1               4",
+      "alternative": "first posedge loads 4 unconditionally; increment only on later posedges with prev_a==0",
+      "sequence": [
+        {
+          "a": 0
+        },
+        {
+          "a": 0
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,110 @@
+{
+  "responses": [
+    {
+      "issue_id": "i1",
+      "decision": "accept",
+      "reason": "r2's XOR claim is contradicted by waveform rows; replace with a rule grounded in the observed transitions.",
+      "spec_quote": "// 75ns            1               0               0               1               1",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "r2",
+            "condition"
+          ],
+          "value": "next state is determined by the waveform; observed transitions are consistent with state_next = (a AND b) XOR state (e.g., 45ns: a=0,b=1,state=0 -> state=1; 75ns: a=0,b=0,state=1 -> state=1; 95ns: a=1,b=1,state=1 -> state=1)"
+        }
+      ]
+    },
+    {
+      "issue_id": "i2",
+      "decision": "accept",
+      "reason": "Adopt the alternative next-state function that fits the waveform and clear the uncertain flag.",
+      "spec_quote": "// 95ns            1               1               1               1               1",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "r2",
+            "uncertain"
+          ],
+          "value": false
+        },
+        {
+          "path": [
+            "uncertain"
+          ],
+          "value": []
+        }
+      ]
+    },
+    {
+      "issue_id": "i3",
+      "decision": "accept",
+      "reason": "q is not simply registered state; q is the combinational output a XOR b, while state is the registered value.",
+      "spec_quote": "// 45ns            1               0               1               0               1",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "r1",
+            "condition"
+          ],
+          "value": "q is the combinational output a XOR b (e.g., 45ns: a=0,b=1 -> q=1; 65ns: a=1,b=1 -> q=0)"
+        }
+      ]
+    },
+    {
+      "issue_id": "i4",
+      "decision": "accept",
+      "reason": "Replace r1 example with contiguous waveform rows matching the observed q behavior.",
+      "spec_quote": "// 45ns            1               0               1               0               1",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "r1",
+            "example"
+          ],
+          "value": {
+            "vectors": [
+              {
+                "a": 0,
+                "b": 1
+              },
+              {
+                "a": 1,
+                "b": 0
+              },
+              {
+                "a": 1,
+                "b": 1
+              }
+            ],
+            "expected": [
+              {
+                "q": 1,
+                "state": 0
+              },
+              {
+                "q": 1,
+                "state": 0
+              },
+              {
+                "q": 0,
+                "state": 0
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "issue_id": "i5",
+      "decision": "rebut",
+      "reason": "Clock/comment rows are not data rows and need no rule mapping; the contract already covers the sampled posedge behavior.",
+      "spec_quote": "// time            clk             a               b               state           q",
+      "edits": []
+    }
+  ]
+}

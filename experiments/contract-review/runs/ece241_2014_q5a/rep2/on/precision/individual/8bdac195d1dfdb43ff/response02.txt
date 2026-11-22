@@ -1,0 +1,80 @@
+def reference(vectors):
+    # rule async_reset_z0: asynchronous reset forces S0 and z=0
+    state = "S0"
+    z = 0
+    cur = {"areset": 0, "x": 0}
+    result = []
+
+    for row in vectors:
+        # Drive row inputs before the sampled posedge.
+        if type(row) is dict:
+            if "areset" in row:
+                cur["areset"] = int(row["areset"]) & 1
+            if "x" in row:
+                cur["x"] = int(row["x"]) & 1
+
+        # rule async_reset_z0: while areset=1, asynchronously hold S0 with z=0
+        if cur["areset"] == 1:
+            state = "S0"
+            z = 0
+        else:
+            x = cur["x"]
+            if state == "S0":
+                if x == 0:
+                    # rule s0_x0
+                    state = "S0"
+                    z = 0
+                else:
+                    # rule s0_x1
+                    state = "S1"
+                    z = 1
+            elif state == "S1":
+                if x == 0:
+                    # rule s1_x0
+                    state = "S1"
+                    z = 1
+                else:
+                    # rule s1_x1
+                    state = "S2"
+                    z = 0
+            elif state == "S2":
+                if x == 0:
+                    # rule s2_x0
+                    state = "S1"
+                    z = 1
+                else:
+                    # rule s2_x1
+                    state = "S2"
+                    z = 0
+            else:
+                state = "S0"
+                z = 0
+
+        result.append({"z": z & 1})
+
+        # Optional mid changes occur after sampling and carry into the next row.
+        mid = None
+        if type(row) is dict and "mid" in row:
+            mid = row["mid"]
+
+        if type(mid) is dict:
+            mids = [mid]
+        elif type(mid) is list:
+            mids = mid
+        elif type(mid) is tuple:
+            mids = mid
+        else:
+            mids = []
+
+        for item in mids:
+            if type(item) is dict:
+                if "x" in item:
+                    cur["x"] = int(item["x"]) & 1
+                if "areset" in item:
+                    cur["areset"] = int(item["areset"]) & 1
+                    if cur["areset"] == 1:
+                        # rule async_reset_z0: mid assertion asynchronously resets to S0, z=0
+                        state = "S0"
+                        z = 0
+
+    return result

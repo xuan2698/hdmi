@@ -1,0 +1,27 @@
+```python
+def reference(vectors):
+    # R_Y0: Y0 = next-state bit 0 as function of y and x per state-assigned table
+    # R_z: z = 1 for present states 011 and 100, else 0
+    # State table (present y -> next Y for x=0, x=1):
+    # 000 -> 000, 001
+    # 001 -> 001, 100
+    # 010 -> 010, 001
+    # 011 -> 001, 010
+    # 100 -> 011, 100
+    next_table = {
+        0b000: (0b000, 0b001),
+        0b001: (0b001, 0b100),
+        0b010: (0b010, 0b001),
+        0b011: (0b001, 0b010),
+        0b100: (0b011, 0b100),
+    }
+    results = []
+    for vec in vectors:
+        x = vec['x'] & 1
+        y = vec['y'] & 0b111
+        nxt = next_table[y][x]
+        Y0 = nxt & 1  # R_Y0
+        z = 1 if (y == 0b011 or y == 0b100) else 0  # R_z
+        results.append({'Y0': Y0, 'z': z})
+    return results
+```

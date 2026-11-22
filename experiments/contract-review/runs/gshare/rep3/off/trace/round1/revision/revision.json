@@ -1,0 +1,57 @@
+{
+  "responses": [
+    {
+      "issue_id": "I3",
+      "decision": "accept",
+      "reason": "Spec does not define the 2-bit saturating counter update policy, so the contract should record this ambiguity rather than silently assume increment/decrement.",
+      "spec_quote": "Update the pattern history table (PHT) to train the branch predictor to predict this branch more accurately next time.",
+      "edits": [
+        {
+          "path": [
+            "uncertain"
+          ],
+          "value": [
+            {
+              "rule_id": "R3_train_updates_pht",
+              "note": "Spec does not specify whether the 2-bit saturating counter is incremented/decremented or set directly to train_taken when training.",
+              "candidates": [
+                "PHT entry saturates toward taken (increment on taken, decrement on not-taken)",
+                "PHT entry is set directly to train_taken (2'b11 or 2'b00)"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "issue_id": "I5",
+      "decision": "accept",
+      "reason": "Spec does not state whether predict_history reflects pre-train or post-train GHR when a same-cycle training recovery occurs; record the ambiguity.",
+      "spec_quote": "the branch predictor produces the predicted branch direction and state of the branch history register used to make the prediction.",
+      "edits": [
+        {
+          "path": [
+            "uncertain"
+          ],
+          "value": [
+            {
+              "rule_id": "R6_predict_sees_pre_train_pht",
+              "note": "Spec does not state whether predict_history reflects GHR before or after same-cycle training GHR recovery when both occur.",
+              "candidates": [
+                "predict_history reflects pre-train GHR",
+                "predict_history reflects post-train GHR after same-cycle recovery"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "issue_id": "I6",
+      "decision": "rebut",
+      "reason": "The reset rule already specifies asynchronous active-high reset with zeroed outputs, and the example is consistent with R1 excluding areset=1; no contract change is needed.",
+      "spec_quote": "Reset is asynchronous active-high.",
+      "edits": []
+    }
+  ]
+}

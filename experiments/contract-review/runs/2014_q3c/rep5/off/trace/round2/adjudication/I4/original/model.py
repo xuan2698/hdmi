@@ -1,0 +1,37 @@
+def reference(vectors):
+    # R_Y0, R_z: combinational next-state and output logic from the state-assigned table.
+    # Present state y[2:0]; x selects next state; z depends only on present state.
+    # Table:
+    #   y=000: x=0 -> 000, x=1 -> 001, z=0
+    #   y=001: x=0 -> 001, x=1 -> 100, z=0
+    #   y=010: x=0 -> 010, x=1 -> 001, z=0
+    #   y=011: x=0 -> 001, x=1 -> 010, z=1
+    #   y=100: x=0 -> 011, x=1 -> 100, z=1
+    # Unused states (101,110,111) are treated as don't-cares; default to 000/0.
+    next_state_table = {
+        (0, 0): 0b000, (0, 1): 0b001,
+        (1, 0): 0b001, (1, 1): 0b100,
+        (2, 0): 0b010, (2, 1): 0b001,
+        (3, 0): 0b001, (3, 1): 0b010,
+        (4, 0): 0b011, (4, 1): 0b100,
+    }
+    z_table = {0: 0, 1: 0, 2: 0, 3: 1, 4: 1}
+
+    def next_state(y, x):
+        # R_Y0: next-state bit 0 as function of y and x per state-assigned table.
+        return next_state_table.get((y & 0x7, x & 0x1), 0b000)
+
+    def out_z(y):
+        # R_z: z = 1 for present states 011 and 100, else 0.
+        return z_table.get(y & 0x7, 0)
+
+    results = []
+    for vec in vectors:
+        x = int(vec.get("x", 0)) & 0x1
+        y = int(vec.get("y", 0)) & 0x7
+        ns = next_state(y, x)
+        results.append({
+            "Y0": ns & 0x1,   # R_Y0: next-state bit 0, same-cycle combinational
+            "z": out_z(y),    # R_z: output based on present state, same-cycle combinational
+        })
+    return results

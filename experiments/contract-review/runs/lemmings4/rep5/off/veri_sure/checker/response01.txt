@@ -1,0 +1,83 @@
+```python
+def reference(vectors):
+    # Moore FSM for Lemmings.
+    # States: 0=WALK_LEFT, 1=WALK_RIGHT, 2=FALL_LEFT, 3=FALL_RIGHT,
+    #         4=DIG_LEFT, 5=DIG_RIGHT, 6=SPLATTER
+    # Outputs decoded from state.
+    # Fall counter counts cycles in falling state; splatter if >20 when ground returns.
+
+    def decode(state):
+        return {
+            'walk_left': 1 if state == 0 else 0,
+            'walk_right': 1 if state == 1 else 0,
+            'aaah': 1 if state in (2, 3) else 0,
+            'digging': 1 if state in (4, 5) else 0,
+        }
+
+    state = 0
+    fall_count = 0
+    results = []
+
+    for row in vectors:
+        # Apply asynchronous reset if asserted (positive edge triggered async).
+        # In this sampling model, areset=1 forces state to WALK_LEFT before sampling.
+        if row.get('areset', 0):
+            state = 0
+            fall_count = 0
+
+        # Sample outputs (Moore, latency 0) after reset applied.
+        results.append(decode(state))
+
+        # Compute next state based on inputs (values driven before sampled edge).
+        bump_left = row.get('bump_left', 0)
+        bump_right = row.get('bump_right', 0)
+        ground = row.get('ground', 1)
+        dig = row.get('dig', 0)
+
+        if state == 0:  # WALK_LEFT
+            if ground == 0:
+                state = 2
+                fall_count = 0
+            elif dig == 1:
+                state = 4
+            elif bump_left == 1 or bump_right == 1:
+                state = 1
+        elif state == 1:  # WALK_RIGHT
+            if ground == 0:
+                state = 3
+                fall_count = 0
+            elif dig == 1:
+                state = 5
+            elif bump_left == 1 or bump_right == 1:
+                state = 0
+        elif state == 2:  # FALL_LEFT
+            if ground == 1:
+                if fall_count > 20:
+                    state = 6
+                else:
+                    state = 0
+                fall_count = 0
+            else:
+                fall_count += 1
+        elif state == 3:  # FALL_RIGHT
+            if ground == 1:
+                if fall_count > 20:
+                    state = 6
+                else:
+                    state = 1
+                fall_count = 0
+            else:
+                fall_count += 1
+        elif state == 4:  # DIG_LEFT
+            if ground == 0:
+                state = 2
+                fall_count = 0
+        elif state == 5:  # DIG_RIGHT
+            if ground == 0:
+                state = 3
+                fall_count = 0
+        elif state == 6:  # SPLATTER
+            pass
+
+    return results
+```

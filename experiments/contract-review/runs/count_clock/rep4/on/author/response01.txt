@@ -1,0 +1,112 @@
+{
+  "ports": {
+    "inputs": {"reset": 1, "ena": 1},
+    "outputs": {"pm": 1, "hh": 8, "mm": 8, "ss": 8},
+    "clock": "clk"
+  },
+  "states": [
+    {
+      "name": "ss",
+      "meaning": "BCD seconds count 00-59",
+      "update_time": "posedge clk when reset=0 and ena=1; increments modulo 60",
+      "update_during_reset": true
+    },
+    {
+      "name": "mm",
+      "meaning": "BCD minutes count 00-59",
+      "update_time": "posedge clk when reset=0 and ena=1 and seconds rollover occurs; increments modulo 60",
+      "update_during_reset": true
+    },
+    {
+      "name": "hh",
+      "meaning": "BCD hours count 01-12",
+      "update_time": "posedge clk when reset=0 and ena=1 and minute rollover occurs; advances 01..12",
+      "update_during_reset": true
+    },
+    {
+      "name": "pm",
+      "meaning": "AM/PM flag, 0=AM, 1=PM",
+      "update_time": "posedge clk when reset=0 and ena=1 and hour rolls 11->12; toggles",
+      "update_during_reset": true
+    }
+  ],
+  "rules": [
+    {
+      "id": "sync_reset_priority",
+      "outputs": ["pm", "hh", "mm", "ss"],
+      "condition": "reset==1; synchronous reset has priority over ena and forces pm=0, hh=0x12 (BCD 12), mm=0x00, ss=0x00.",
+      "edge": "posedge",
+      "visible": "same_cycle",
+      "priority": 100,
+      "spec_quote": "resets the clock to \"12:00 AM.\"",
+      "uncertain": false,
+      "example": {
+        "vectors": [
+          {"reset": 1, "ena": 0},
+          {"reset": 1, "ena": 1}
+        ],
+        "expected": [
+          {"pm": 0, "hh": 18, "mm": 0, "ss": 0},
+          {"pm": 0, "hh": 18, "mm": 0, "ss": 0}
+        ]
+      }
+    },
+    {
+      "id": "normal_ena_increment",
+      "outputs": ["pm", "hh", "mm", "ss"],
+      "condition": "reset==0 and ena==1; perform one 12-hour clock second increment in BCD: ss:=ss+1 mod 60; if ss rolled 59->00 then mm:=mm+1 mod 60 else mm holds; if ss and mm rolled 59->00 then hh advances 01..12 (01..10 -> next, 11 -> 12 and toggle pm, 12 -> 01) else hh holds; pm toggles only on 11->12 hour rollover, otherwise holds.",
+      "edge": "posedge",
+      "visible": "same_cycle",
+      "priority": 10,
+      "spec_quote": "pulse on ena whenever your clock should increment",
+      "uncertain": false,
+      "example": {
+        "vectors": [
+          {"reset": 1, "ena": 0},
+          {"reset": 0, "ena": 1},
+          {"reset": 0, "ena": 1},
+          {"reset": 0, "ena": 1}
+        ],
+        "expected": [
+          {"pm": 0, "hh": 18, "mm": 0, "ss": 0},
+          {"pm": 0, "hh": 18, "mm": 0, "ss": 1},
+          {"pm": 0, "hh": 18, "mm": 0, "ss": 2},
+          {"pm": 0, "hh": 18, "mm": 0, "ss": 3}
+        ]
+      }
+    },
+    {
+      "id": "hold_without_ena",
+      "outputs": ["pm", "hh", "mm", "ss"],
+      "condition": "reset==0 and ena==0; hold all outputs unchanged.",
+      "edge": "posedge",
+      "visible": "same_cycle",
+      "priority": 5,
+      "spec_quote": "pulse on ena whenever your clock should increment",
+      "uncertain": false,
+      "example": {
+        "vectors": [
+          {"reset": 1, "ena": 0},
+          {"reset": 0, "ena": 1},
+          {"reset": 0, "ena": 0},
+          {"reset": 0, "ena": 0}
+        ],
+        "expected": [
+          {"pm": 0, "hh": 18, "mm": 0, "ss": 0},
+          {"pm": 0, "hh": 18, "mm": 0, "ss": 1},
+          {"pm": 0, "hh": 18, "mm": 0, "ss": 1},
+          {"pm": 0, "hh": 18, "mm": 0, "ss": 1}
+        ]
+      }
+    }
+  ],
+  "reset": {
+    "kind": "sync",
+    "name": "reset",
+    "active": "high",
+    "values": {"pm": 0, "hh": 18, "mm": 0, "ss": 0},
+    "first_released_cycle": "first clk posedge with reset=0; normal ena/hold behavior applies on that edge"
+  },
+  "mid": "Optional mid input changes occur AFTER sampling, before the other edge, and are carried to the start of the next row.",
+  "uncertain": []
+}

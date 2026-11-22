@@ -1,0 +1,90 @@
+```python
+def reference(vectors):
+    # Helper to extract a mid-cycle input change, if present.
+    def _get_mid(row, name):
+        if "mid" in row:
+            m = row["mid"]
+            try:
+                if name in m:
+                    return m[name]
+            except:
+                pass
+            try:
+                pref = "mid_" + name
+                if pref in m:
+                    return m[pref]
+            except:
+                pass
+        pref = "mid_" + name
+        if pref in row:
+            return row[pref]
+        return None
+
+    # State meanings:
+    # A: carry=0, z=0
+    # B: carry=1, z=1
+    # C: carry=1, z=0
+    state = "A"
+
+    # Carried input values at start of the next row.
+    cur_areset = 1
+    cur_x = 0
+
+    results = []
+
+    for row in vectors:
+        # Drive row values before the sampled posedge.
+        if "areset" in row:
+            cur_areset = row["areset"]
+        if "x" in row:
+            cur_x = row["x"]
+
+        # async_reset: active-low. areset=0 asynchronously forces A and z=0.
+        if cur_areset == 0:
+            state = "A"
+
+        # Sample after the posedge has settled.
+        if cur_areset == 0:
+            # async_reset has priority.
+            state = "A"
+            z = 0
+        else:
+            # serial_twos_complement: sample x and update Moore state.
+            if state == "A":
+                if cur_x == 0:
+                    state = "A"
+                else:
+                    state = "B"
+            elif state == "B":
+                if cur_x == 0:
+                    state = "B"
+                else:
+                    state = "C"
+            elif state == "C":
+                if cur_x == 0:
+                    state = "B"
+                else:
+                    state = "C"
+
+            # Moore output after settled state.
+            if state == "B":
+                z = 1
+            else:
+                z = 0
+
+        results.append({"z": z})
+
+        # Mid changes occur after sampling and carry to the next row.
+        mid_a = _get_mid(row, "areset")
+        if mid_a is not None:
+            cur_areset = mid_a
+            # async_reset: asynchronous reset acts immediately.
+            if cur_areset == 0:
+                state = "A"
+
+        mid_x = _get_mid(row, "x")
+        if mid_x is not None:
+            cur_x = mid_x
+
+    return results
+```

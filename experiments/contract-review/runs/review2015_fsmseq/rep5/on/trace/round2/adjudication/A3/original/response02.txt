@@ -1,0 +1,82 @@
+def reference(vectors):
+    # R_RESET_CLEAR priority 1: synchronous active-high reset forces S0 and start_shifting=0 on settled edge
+    state = "S0"
+    cur_reset = 0
+    cur_data = 0
+    results = []
+
+    for row in vectors:
+        # Each row's values are driven before the sampled posedge edge
+        if "reset" in row:
+            cur_reset = row["reset"]
+        if "data" in row:
+            cur_data = row["data"]
+
+        # Sample after posedge: compute next state and same-cycle output
+        if cur_reset == 1:
+            # R_RESET_CLEAR
+            next_state = "S0"
+            start_shifting = 0
+        else:
+            # Explicit FSM transitions
+            if state == "S0":
+                if cur_data == 1:
+                    next_state = "S1"
+                else:
+                    next_state = "S0"
+            elif state == "S1":
+                if cur_data == 1:
+                    next_state = "S11"
+                else:
+                    next_state = "S0"
+            elif state == "S11":
+                if cur_data == 1:
+                    next_state = "S11"
+                else:
+                    next_state = "S110"
+            elif state == "S110":
+                if cur_data == 1:
+                    # R_SET_OR_HOLD_1101: sequence 1101 complete
+                    next_state = "FOUND"
+                else:
+                    next_state = "S0"
+            elif state == "FOUND":
+                # R_SET_OR_HOLD_1101: sticky until reset
+                next_state = "FOUND"
+            else:
+                next_state = "S0"
+
+            if next_state == "FOUND":
+                # R_SET_OR_HOLD_1101
+                start_shifting = 1
+            else:
+                # R_KEEP_ZERO_UNTIL_FOUND
+                start_shifting = 0
+
+        results.append({"start_shifting": start_shifting})
+        state = next_state
+
+        # Optional mid input changes occur AFTER sampling, before the other edge,
+        # and are carried to the start of the next row.
+        if "mid" in row:
+            mid = row["mid"]
+            try:
+                # mid is normally a dict of input changes
+                for k, v in mid.items():
+                    if k == "reset":
+                        cur_reset = v
+                    elif k == "data":
+                        cur_data = v
+            except:
+                try:
+                    # tolerate a list of change dicts
+                    for change in mid:
+                        for k, v in change.items():
+                            if k == "reset":
+                                cur_reset = v
+                            elif k == "data":
+                                cur_data = v
+                except:
+                    pass
+
+    return results

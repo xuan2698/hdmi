@@ -1,0 +1,39 @@
+def reference(vectors):
+    # State-assigned table (present state y[2:0]):
+    # y=000: x=0 -> Y=000, x=1 -> Y=001, z=0
+    # y=001: x=0 -> Y=001, x=1 -> Y=100, z=0
+    # y=010: x=0 -> Y=010, x=1 -> Y=001, z=0
+    # y=011: x=0 -> Y=001, x=1 -> Y=010, z=1
+    # y=100: x=0 -> Y=011, x=1 -> Y=100, z=1
+    # y=101,110,111: unspecified -> treat as Y0=0, z=0
+
+    # R_Y0: Y0 = next-state bit 0 of Y[2:0] per table (combinational, same cycle)
+    # R_z: z = 1 when present state is 011 or 100, else 0 (Moore output)
+    #      (per candidate interpretation, z is Moore here; x does not affect z)
+
+    def next_state(y, x):
+        if y == 0b000:
+            return 0b001 if x else 0b000
+        if y == 0b001:
+            return 0b100 if x else 0b001
+        if y == 0b010:
+            return 0b001 if x else 0b010
+        if y == 0b011:
+            return 0b010 if x else 0b001
+        if y == 0b100:
+            return 0b100 if x else 0b011
+        # unspecified states 101,110,111
+        return 0b000
+
+    def z_out(y):
+        return 1 if (y == 0b011 or y == 0b100) else 0
+
+    results = []
+    for vec in vectors:
+        x = vec.get('x', 0) & 0x1
+        y = vec.get('y', 0) & 0x7
+        Y = next_state(y, x)
+        Y0 = Y & 0x1
+        z = z_out(y)
+        results.append({'Y0': Y0, 'z': z})
+    return results

@@ -1,0 +1,74 @@
+```python
+def reference(vectors):
+    # R_RESET_CLEAR: synchronous active-high reset forces state S0 and output 0.
+    # R_SET_OR_HOLD_1101: entering FOUND sets start_shifting=1; FOUND holds it until reset.
+    # R_KEEP_ZERO_UNTIL_FOUND: after a reset, start_shifting stays 0 unless FOUND.
+    # R_KEEP_ZERO_UNTIL_FOUND override: before the first reset, start_shifting is initially 1 and remains 1.
+
+    state = "S0"
+    has_reset = False
+    carry = {"reset": 0, "data": 0}
+    result = []
+
+    for row in vectors:
+        cur_reset = carry.get("reset", 0)
+        cur_data = carry.get("data", 0)
+
+        if isinstance(row, dict):
+            if isinstance(row.get("inputs"), dict):
+                if "reset" in row["inputs"]:
+                    cur_reset = row["inputs"]["reset"]
+                if "data" in row["inputs"]:
+                    cur_data = row["inputs"]["data"]
+            if "reset" in row:
+                cur_reset = row["reset"]
+            if "data" in row:
+                cur_data = row["data"]
+
+        # Sample reset/data at the posedge and compute the next FSM state.
+        if cur_reset == 1:
+            # R_RESET_CLEAR: reset clears the FSM to S0.
+            next_state = "S0"
+        else:
+            if state == "S0":
+                next_state = "S1" if cur_data == 1 else "S0"
+            elif state == "S1":
+                next_state = "S11" if cur_data == 1 else "S0"
+            elif state == "S11":
+                next_state = "S11" if cur_data == 1 else "S110"
+            elif state == "S110":
+                next_state = "FOUND" if cur_data == 1 else "S0"
+            elif state == "FOUND":
+                next_state = "FOUND"
+            else:
+                next_state = "S0"
+
+        if cur_reset == 1:
+            has_reset = True
+
+        # Compute the settled output after this posedge.
+        if not has_reset:
+            # R_KEEP_ZERO_UNTIL_FOUND override: initial 1 until the first reset.
+            out_val = 1
+        elif cur_reset == 1:
+            # R_RESET_CLEAR: reset forces start_shifting=0.
+            out_val = 0
+        elif next_state == "FOUND":
+            # R_SET_OR_HOLD_1101: detection or FOUND makes start_shifting=1.
+            out_val = 1
+        else:
+            # R_KEEP_ZERO_UNTIL_FOUND: stay 0 until sequence found.
+            out_val = 0
+
+        result.append({"start_shifting": int(out_val) & 1})
+        state = next_state
+
+        # Current driven values persist to the start of the next row, then mid changes occur.
+        carry = {"reset": int(cur_reset) & 1, "data": int(cur_data) & 1}
+        if isinstance(row, dict) and isinstance(row.get("mid"), dict):
+            for key, value in row["mid"].items():
+                if key in ("reset", "data"):
+                    carry[key] = int(value) & 1
+
+    return result
+```

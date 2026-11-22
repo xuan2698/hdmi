@@ -1,0 +1,71 @@
+def reference(vectors):
+    # async_reset_z0: active-high areset asynchronously forces S0 and z=0.
+    # global: one-cycle-latent registered Moore output based on pre-edge state.
+    state = 0  # S0
+    z = 0
+    cur_a = 0
+    cur_x = 0
+    result = []
+    for row in vectors:
+        a = row.get('areset', cur_a)
+        x = row.get('x', cur_x)
+        if a == 1:
+            # async_reset_z0: reset asserted before sampled edge.
+            state = 0
+            z = 0
+        if a == 1:
+            # async_reset_z0: hold S0/z=0 at sampled edge while reset asserted.
+            state = 0
+            z = 0
+        else:
+            # global: registered Moore output based on pre-edge state.
+            if state == 1:
+                z = 1
+            else:
+                z = 0
+            if state == 0:
+                # s0_x0: stay S0; s0_x1: go S1.
+                if x == 0:
+                    state = 0
+                else:
+                    state = 1
+            elif state == 1:
+                # s1_x0: stay S1; s1_x1: go S2.
+                if x == 0:
+                    state = 1
+                else:
+                    state = 2
+            else:
+                # s2_x0: go S1; s2_x1: stay S2.
+                if x == 0:
+                    state = 1
+                else:
+                    state = 2
+        result.append({'z': z})
+        cur_a = a
+        cur_x = x
+        if 'mid' in row:
+            mid = row['mid']
+            if mid:
+                # mid changes occur after sampling; apply async reset immediately.
+                try:
+                    keys = mid.keys()
+                    if 'areset' in mid:
+                        cur_a = mid['areset']
+                        if cur_a == 1:
+                            # async_reset_z0: reset asserted by mid.
+                            state = 0
+                            z = 0
+                    if 'x' in mid:
+                        cur_x = mid['x']
+                except:
+                    for m in mid:
+                        if 'areset' in m:
+                            cur_a = m['areset']
+                            if cur_a == 1:
+                                # async_reset_z0: reset asserted by mid.
+                                state = 0
+                                z = 0
+                        if 'x' in m:
+                            cur_x = m['x']
+    return result

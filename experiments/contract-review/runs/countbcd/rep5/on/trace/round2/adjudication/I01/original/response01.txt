@@ -1,0 +1,59 @@
+```python
+def reference(vectors):
+    # Initial concrete state for unspecified power-up (reset first_released_cycle)
+    q = 0
+    current_reset = 0
+    results = []
+
+    for row in vectors:
+        # Inputs are driven before the sampled posedge.
+        if "reset" in row:
+            current_reset = row["reset"]
+        reset = current_reset
+
+        # rule sync_reset: synchronous active-high reset clears q, priority over increment
+        if reset:
+            q = 0
+        else:
+            # rule bcd_increment: BCD +1 modulo 10000
+            ones = q & 0xF
+            tens = (q >> 4) & 0xF
+            hundreds = (q >> 8) & 0xF
+            thousands = (q >> 12) & 0xF
+
+            ones += 1
+            if ones == 10:
+                ones = 0
+                tens += 1
+                if tens == 10:
+                    tens = 0
+                    hundreds += 1
+                    if hundreds == 10:
+                        hundreds = 0
+                        thousands += 1
+                        if thousands == 10:
+                            thousands = 0
+
+            q = (thousands << 12) | (hundreds << 8) | (tens << 4) | ones
+
+        # rule upper_digit_enables: combinational from current q after settled edge
+        ones = q & 0xF
+        tens = (q >> 4) & 0xF
+        hundreds = (q >> 8) & 0xF
+
+        bit0 = 1 if ones == 9 else 0
+        bit1 = 1 if (ones == 9 and tens == 9) else 0
+        bit2 = 1 if (ones == 9 and tens == 9 and hundreds == 9) else 0
+        ena = bit0 + (bit1 << 1) + (bit2 << 2)
+
+        results.append({"q": q, "ena": ena})
+
+        # Optional mid-cycle changes occur after sampling and carry to next row.
+        mid = row.get("mid")
+        if mid is not None and type(mid) is dict:
+            for key, value in mid.items():
+                if key == "reset":
+                    current_reset = value
+
+    return results
+```

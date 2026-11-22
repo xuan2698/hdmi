@@ -1,0 +1,95 @@
+{
+  "responses": [
+    {
+      "issue_id": "I1",
+      "decision": "accept",
+      "reason": "The reset example is internally inconsistent: the third vector with reset=0 and d=0 expects q=0, contradicting the reset value 0x34 being held until capture. The example must be rewritten so reset==1 yields 0x34 and reset==0 captures d.",
+      "spec_quote": "The flip-flops must be reset to 0x34 rather than zero.",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R1_sync_reset",
+            "example"
+          ],
+          "value": {
+            "vectors": [
+              {
+                "d": 0,
+                "reset": 1
+              },
+              {
+                "d": 255,
+                "reset": 1
+              },
+              {
+                "d": 7,
+                "reset": 0
+              }
+            ],
+            "expected": [
+              {
+                "q": 52
+              },
+              {
+                "q": 52
+              },
+              {
+                "q": 7
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "issue_id": "I2",
+      "decision": "accept",
+      "reason": "The capture example's first vector assumes an initial q=52 with no prior reset, which is not guaranteed. The example should begin from a defined state established by reset, then show capture on subsequent negedges.",
+      "spec_quote": "All DFFs should be triggered by the negative edge of clk.",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R2_dff_capture",
+            "example"
+          ],
+          "value": {
+            "vectors": [
+              {
+                "d": 52,
+                "reset": 1
+              },
+              {
+                "d": 200,
+                "reset": 0
+              },
+              {
+                "d": 7,
+                "reset": 0
+              }
+            ],
+            "expected": [
+              {
+                "q": 52
+              },
+              {
+                "q": 200
+              },
+              {
+                "q": 7
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "issue_id": "I4",
+      "decision": "rebut",
+      "reason": "The contract already correctly grounds the reset value 0x34 in R1_sync_reset, and R2_dff_capture is the capture rule which need not restate the reset value. No missing spec segment exists.",
+      "spec_quote": "The flip-flops must be reset to 0x34 rather than zero.",
+      "edits": []
+    }
+  ]
+}

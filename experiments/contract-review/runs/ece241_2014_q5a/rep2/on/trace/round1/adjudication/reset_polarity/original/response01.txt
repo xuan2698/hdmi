@@ -1,0 +1,84 @@
+def reference(vectors):
+    S0 = 0
+    S1 = 1
+    S2 = 2
+
+    state = S0
+    z = 0
+    carried = {"areset": 0, "x": 0}
+    result = []
+
+    for row in vectors:
+        # Drive row values before the sampled posedge.
+        # Missing inputs keep values carried from previous mid changes.
+        if "areset" in row:
+            carried["areset"] = row["areset"]
+        if "x" in row:
+            carried["x"] = row["x"]
+
+        areset = carried.get("areset", 0)
+        x = carried.get("x", 0)
+
+        # async_reset_z0: asynchronously force state S0 and z=0 while reset is asserted.
+        if areset == 1:
+            state = S0
+            z = 0
+
+        # Sample after posedge has settled.
+        if areset == 1:
+            # async_reset_z0: reset remains asserted, state S0 and z=0.
+            state = S0
+            z = 0
+        else:
+            if state == S0:
+                if x == 0:
+                    # s0_x0
+                    state = S0
+                else:
+                    # s0_x1
+                    state = S1
+            elif state == S1:
+                if x == 0:
+                    # s1_x0
+                    state = S1
+                else:
+                    # s1_x1
+                    state = S2
+            else:
+                if x == 0:
+                    # s2_x0
+                    state = S1
+                else:
+                    # s2_x1
+                    state = S2
+
+            if state == S0:
+                z = 0
+            elif state == S1:
+                z = 1
+            else:
+                z = 0
+
+        result.append({"z": z})
+
+        # Mid changes occur after sampling, before the next sampled edge,
+        # and are carried to the start of the next row.
+        if "mid" in row and row["mid"] is not None:
+            mids = row["mid"]
+            if isinstance(mids, list):
+                mid_list = mids
+            else:
+                mid_list = [mids]
+
+            for mid in mid_list:
+                if "x" in mid:
+                    carried["x"] = mid["x"]
+                if "areset" in mid:
+                    carried["areset"] = mid["areset"]
+
+                # async_reset_z0: mid-cycle reset assertion asynchronously resets state.
+                if carried.get("areset", 0) == 1:
+                    state = S0
+                    z = 0
+
+    return result

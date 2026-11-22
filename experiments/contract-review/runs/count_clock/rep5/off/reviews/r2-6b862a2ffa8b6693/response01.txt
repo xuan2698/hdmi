@@ -1,0 +1,88 @@
+{
+  "coverage": {
+    "S01": ["R1_reset", "R2_seconds", "R3_seconds_rollover", "R4_minutes_rollover", "R5_hour_rollover_am_pm", "R6_hold"],
+    "S02": ["R2_seconds", "R3_seconds_rollover", "R4_minutes_rollover", "R5_hour_rollover_am_pm", "R6_hold"],
+    "S03": ["R1_reset", "R2_seconds", "R3_seconds_rollover", "R4_minutes_rollover", "R5_hour_rollover_am_pm"],
+    "S04": ["R1_reset"]
+  },
+  "issues": [
+    {
+      "issue_id": "I1",
+      "rule_id": "R1_reset",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "Reset example expected hh=18 (0x12) but spec says 12:00 AM; 0x12 is 12 in BCD, so hh should be 8'h12, not 8'h18.",
+      "spec_evidence": "resets the clock to \"12:00 AM.\"",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I2",
+      "rule_id": "R2_seconds",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "R2 example expected hh=18 (0x12) but spec says hours are 01-12 BCD; 0x12 is correct, 0x18 is invalid BCD for 12.",
+      "spec_evidence": "hh, mm, and ss are two BCD (Binary-Coded Decimal) digits each for hours (01-12)",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I3",
+      "rule_id": "R3_seconds_rollover",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "R3 example expected hh=18 (0x12) but spec says hours are 01-12 BCD; 0x12 is correct, 0x18 is invalid BCD for 12.",
+      "spec_evidence": "hh, mm, and ss are two BCD (Binary-Coded Decimal) digits each for hours (01-12)",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I4",
+      "rule_id": "R6_hold",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "R6 example expected hh=18 (0x12) but spec says hours are 01-12 BCD; 0x12 is correct, 0x18 is invalid BCD for 12.",
+      "spec_evidence": "hh, mm, and ss are two BCD (Binary-Coded Decimal) digits each for hours (01-12)",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I5",
+      "rule_id": "R4_minutes_rollover",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "R4 condition hh != 8'h12 and example hh=1->2 implies 12-hour wrap without pm toggle; spec does not define hour increment semantics beyond BCD range, so alternative could increment hh as BCD 01..12 then wrap to 01 with pm toggle only at 12->01.",
+      "spec_evidence": "hours (01-12)",
+      "alternative": "At 11:59:59 AM, increment to 12:00:00 PM (pm toggles) rather than 12:00:00 AM; R4 as written would keep pm unchanged and set hh=12.",
+      "sequence": [
+        {"reset": 0, "ena": 1, "mid": {"hh": 17, "mm": 89, "ss": 89, "pm": 0}},
+        {"reset": 0, "ena": 1},
+        {"reset": 0, "ena": 0}
+      ]
+    },
+    {
+      "issue_id": "I6",
+      "rule_id": "R5_hour_rollover_am_pm",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "R5 toggles pm at 12:59:59 and sets hh=1; spec only says pm asserted if PM, not whether 12:xx is PM or AM, so alternative could treat 12:xx as AM and toggle at 11:59:59.",
+      "spec_evidence": "The signal \"pm\" is asserted if the clock is PM, or is otherwise AM.",
+      "alternative": "12:00:00 is AM (pm=0), so pm toggles at 11:59:59->12:00:00 and at 12:59:59->01:00:00; R5 would produce pm=1 at 12:xx.",
+      "sequence": [
+        {"reset": 0, "ena": 1, "mid": {"hh": 17, "mm": 89, "ss": 89, "pm": 0}},
+        {"reset": 0, "ena": 1},
+        {"reset": 0, "ena": 0}
+      ]
+    },
+    {
+      "issue_id": "I7",
+      "rule_id": "global",
+      "type": "grounding",
+      "severity": "medium",
+      "detail": "Spec S02 says ena pulses once per second while clk is much faster; contract treats ena as the only increment condition and does not model clk frequency or pulse width, which is acceptable but leaves no rule for ena pulse timing beyond edge sampling.",
+      "spec_evidence": "with a pulse on ena whenever your clock should increment (i.e., once per second, while \"clk\" is much faster than once per second).",
+      "alternative": "",
+      "sequence": []
+    }
+  ]
+}

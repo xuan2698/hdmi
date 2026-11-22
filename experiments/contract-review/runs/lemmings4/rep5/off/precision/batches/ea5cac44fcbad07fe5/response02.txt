@@ -1,0 +1,110 @@
+I'll implement the Lemmings finite state machine as a Python reference model. The key challenge is tracking fall duration to determine splatting.
+
+```python
+def reference(vectors):
+    # State encoding
+    WALK_LEFT, WALK_RIGHT = 0, 1
+    FALL_LEFT, FALL_RIGHT = 2, 3
+    DIG_LEFT, DIG_RIGHT = 4, 5
+    SPLAT = 6
+    
+    state = WALK_LEFT
+    fall_count = 0
+    outputs = []
+    
+    for v in vectors:
+        areset = v.get('areset', 0)
+        bump_left = v.get('bump_left', 0)
+        bump_right = v.get('bump_right', 0)
+        ground = v.get('ground', 1)
+        dig = v.get('dig', 0)
+        
+        # Async reset: takes effect same cycle
+        if areset:
+            state = WALK_LEFT
+            fall_count = 0
+        
+        # Compute outputs based on current state (Moore machine)
+        if state == WALK_LEFT:
+            out = {'walk_left': 1, 'walk_right': 0, 'aaah': 0, 'digging': 0}
+        elif state == WALK_RIGHT:
+            out = {'walk_left': 0, 'walk_right': 1, 'aaah': 0, 'digging': 0}
+        elif state == FALL_LEFT or state == FALL_RIGHT:
+            out = {'walk_left': 0, 'walk_right': 0, 'aaah': 1, 'digging': 0}
+        elif state == DIG_LEFT or state == DIG_RIGHT:
+            out = {'walk_left': 0, 'walk_right': 0, 'aaah': 0, 'digging': 1}
+        else:  # SPLAT
+            out = {'walk_left': 0, 'walk_right': 0, 'aaah': 0, 'digging': 0}
+        
+        outputs.append(out)
+        
+        # If reset active, state already set; skip transition
+        if areset:
+            continue
+        
+        # Compute next state (posedge transition)
+        if state == WALK_LEFT:
+            if ground == 0:
+                state = FALL_LEFT
+                fall_count = 0
+            elif dig == 1:
+                state = DIG_LEFT
+            elif bump_left == 1 or bump_right == 1:
+                state = WALK_RIGHT
+        elif state == WALK_RIGHT:
+            if ground == 0:
+                state = FALL_RIGHT
+                fall_count = 0
+            elif dig == 1:
+                state = DIG_RIGHT
+            elif bump_left == 1 or bump_right == 1:
+                state = WALK_LEFT
+        elif state == FALL_LEFT:
+            if ground == 1:
+                # Check splat: fell for more than 20 cycles
+                if fall_count > 20:
+                    state = SPLAT
+                else:
+                    state = WALK_LEFT
+                fall_count = 0
+            else:
+                fall_count += 1
+        elif state == FALL_RIGHT:
+            if ground == 1:
+                if fall_count > 20:
+                    state = SPLAT
+                else:
+                    state = WALK_RIGHT
+                fall_count = 0
+            else:
+                fall_count += 1
+        elif state == DIG_LEFT:
+            if ground == 0:
+                state = FALL_LEFT
+                fall_count = 0
+        elif state == DIG_RIGHT:
+            if ground == 0:
+                state = FALL_RIGHT
+                fall_count = 0
+        # SPLAT: stays forever
+    
+    return outputs
+```
+
+**Key design decisions:**
+
+1. **Fall counting semantics**: The spec says "if a Lemming falls for more than 20 clock cycles then hits the ground, it will splatter." The cycle where ground goes low transitions into FALL but doesn't count as a full fall cycle. Each subsequent cycle spent in FALL_* increments `fall_count`. When ground returns, if `fall_count > 20` (i.e., 21+ full cycles), splat. This matches R9's note: "cycle ground goes low does not count; splat when duration reaches 21."
+
+2. **Reset handling**: `areset` is async and takes effect in the same cycle (outputs reflect WALK_LEFT immediately). After reset, no transition occurs that cycle.
+
+3. **Precedence in WALK states**: ground=0 (fall) > dig=1 (dig) > bump (toggle). Both bumps together still toggle.
+
+4. **FALL states**: bump and dig ignored entirely; only ground matters. On ground=1, resume walking in original direction (or splat).
+
+5. **DIG states**: only ground=0 causes transition (to fall, same direction). dig input ignored while digging.
+
+6. **SPLAT**: terminal state, all outputs 0 forever (until reset).
+
+```json
+{"models":{"702b18addfb98b6403":"def reference(vectors):\n    WALK_LEFT, WALK_RIGHT = 0, 1\n    FALL_LEFT, FALL_RIGHT = 2, 3\n    DIG_LEFT, DIG_RIGHT = 4, 5\n    SPLAT = 6\n    state = WALK_LEFT\n    fall_count = 0\n    outputs = []\n    for v in vectors:\n        areset = v.get('areset', 0)\n        bump_left = v.get('bump_left', 0)\n        bump_right = v.get('bump_right', 0)\n        ground = v.get('ground', 1)\n        dig = v.get('dig', 0)\n        if areset:\n            state = WALK_LEFT\n            fall_count = 0\n        if state == WALK_LEFT:\n            out = {'walk_left': 1, 'walk_right': 0, 'aaah': 0, 'digging': 0}\n        elif state == WALK_RIGHT:\n            out = {'walk_left': 0, 'walk_right': 1, 'aaah': 0, 'digging': 0}\n        elif state == FALL_LEFT or state == FALL_RIGHT:\n            out = {'walk_left': 0, 'walk_right': 0, 'aaah': 1, 'digging': 0}\n        elif state == DIG_LEFT or state == DIG_RIGHT:\n            out = {'walk_left': 0, 'walk_right': 0, 'aaah': 0, 'digging': 1}\n        else:\n            out = {'walk_left': 0, 'walk_right': 0, 'aaah': 0, 'digging': 0}\n        outputs.append(out)\n        if areset:\n            continue\n        if state == WALK_LEFT:\n            if ground == 0:\n                state = FALL_LEFT\n                fall_count = 0\n            elif dig == 1:\n                state = DIG_LEFT\n            elif bump_left == 1 or bump_right == 1:\n                state = WALK_RIGHT\n        elif state == WALK_RIGHT:\n            if ground == 0:\n                state = FALL_RIGHT\n                fall_count = 0\n            elif dig == 1:\n                state = DIG_RIGHT\n            elif bump_left == 1 or bump_right == 1:\n                state = WALK_LEFT\n        elif state == FALL_LEFT:\n            if ground == 1:\n                if fall_count > 20:\n                    state = SPLAT\n                else:\n                    state = WALK_LEFT\n                fall_count = 0\n            else:\n                fall_count += 1\n        elif state == FALL_RIGHT:\n            if ground == 1:\n                if fall_count > 20:\n                    state = SPLAT\n                else:\n                    state = WALK_RIGHT\n                fall_count = 0\n            else:\n                fall_count += 1\n        elif state == DIG_LEFT:\n            if ground == 0:\n                state = FALL_LEFT\n                fall_count = 0\n        elif state == DIG_RIGHT:\n            if ground == 0:\n                state = FALL_RIGHT\n                fall_count = 0\n    return outputs","7f3788586ccfff1d32":"def reference(vectors):\n    WALK_LEFT, WALK_RIGHT = 0, 1\n    FALL_LEFT, FALL_RIGHT = 2, 3\n    DIG_LEFT, DIG_RIGHT = 4, 5\n    SPLAT = 6\n    state = WALK_LEFT\n    fall_count = 0\n    outputs = []\n    for v in vectors:\n        areset = v.get('areset', 0)\n        bump_left = v.get('bump_left', 0)\n        bump_right = v.get('bump_right', 0)\n        ground = v.get('ground', 1)\n        dig = v.get('dig', 0)\n        if areset:\n            state = WALK_LEFT\n            fall_count = 0\n        if state == WALK_LEFT:\n            out = {'walk_left': 1, 'walk_right': 0, 'aaah': 0, 'digging': 0}\n        elif state == WALK_RIGHT:\n            out = {'walk_left': 0, 'walk_right': 1, 'aaah': 0, 'digging': 0}\n        elif state == FALL_LEFT or state == FALL_RIGHT:\n            out = {'walk_left': 0, 'walk_right': 0, 'aaah': 1, 'digging': 0}\n        elif state == DIG_LEFT or state == DIG_RIGHT:\n            out = {'walk_left': 0, 'walk_right': 0, 'aaah': 0, 'digging': 1}\n        else:\n            out = {'walk_left': 0, 'walk_right': 0, 'aaah': 0, 'digging': 0}\n        outputs.append(out)\n        if areset:\n            continue\n        if state == WALK_LEFT:\n            if ground == 0:\n                state = FALL_LEFT\n                fall_count = 0\n            elif dig == 1:\n                state = DIG_LEFT\n            elif bump_left == 1 or bump_right == 1:\n                state = WALK_RIGHT\n        elif state == WALK_RIGHT:\n            if ground == 0:\n                state = FALL_RIGHT\n                fall_count = 0\n            elif dig == 1:\n                state = DIG_RIGHT\n            elif bump_left == 1 or bump_right == 1:\n                state = WALK_LEFT\n        elif state == FALL_LEFT:\n            if ground == 1:\n                if fall_count > 20:\n                    state = SPLAT\n                else:\n                    state = WALK_LEFT\n                fall_count = 0\n            else:\n                fall_count += 1\n        elif state == FALL_RIGHT:\n            if ground == 1:\n                if fall_count > 20:\n                    state = SPLAT\n                else:\n                    state = WALK_RIGHT\n                fall_count = 0\n            else:\n                fall_count += 1\n        elif state == DIG_LEFT:\n            if ground == 0:\n                state = FALL_LEFT\n                fall_count = 0\n        elif state == DIG_RIGHT:\n            if ground == 0:\n                state = FALL_RIGHT\n                fall_count = 0\n    return outputs","9188a8c77e9c171c12":"def reference(vectors):\n    WALK_LEFT, WALK_RIGHT = 0, 1\n    FALL_LEFT, FALL_RIGHT = 2, 3\n    DIG_LEFT, DIG_RIGHT = 4, 5\n    SPLAT = 6\n    state = WALK_LEFT\n    fall_count = 0\n    outputs = []\n    for v in vectors:\n        areset = v.get('areset', 0)\n        bump_left = v.get('bump_left', 0)\n        bump_right = v.get('bump_right', 0)\n        ground = v.get('ground', 1)\n        dig = v.get('dig', 0)\n        if areset:\n            state = WALK_LEFT\n            fall_count = 0\n        if state == WALK_LEFT:\n            out = {'walk_left': 1, 'walk_right': 0, 'aaah': 0, 'digging': 0}\n        elif state == WALK_RIGHT:\n            out = {'walk_left': 0, 'walk_right': 1, 'aaah': 0, 'digging': 0}\n        elif state == FALL_LEFT or state == FALL_RIGHT:\n            out = {'walk_left': 0, 'walk_right': 0, 'aaah': 1, 'digging': 0}\n        elif state == DIG_LEFT or state == DIG_RIGHT:\n            out = {'walk_left': 0, 'walk_right': 0, 'aaah': 0, 'digging': 1}\n        else:\n            out = {'walk_left': 0, 'walk_right': 0, 'aaah': 0, 'digging': 0}\n        outputs.append(out)\n        if areset:\n            continue\n        if state == WALK_LEFT:\n            if ground == 0:\n                state = FALL_LEFT\n                fall_count = 0\n            elif dig == 1:\n                state = DIG_LEFT\n            elif bump_left == 1 or bump_right == 1:\n                state = WALK_RIGHT\n        elif state == WALK_RIGHT:\n            if ground == 0:\n                state = FALL_RIGHT\n                fall_count = 0\n            elif dig == 1:\n                state = DIG_RIGHT\n            elif bump_left == 1 or bump_right == 1:\n                state = WALK_LEFT\n        elif state == FALL_LEFT:\n            if ground == 1:\n                if fall_count > 20:\n                    state = SPLAT\n                else:\n                    state = WALK_LEFT\n                fall_count = 0\n            else:\n                fall_count += 1\n        elif state == FALL_RIGHT:\n            if ground == 1:\n                if fall_count > 20:\n                    state = SPLAT\n                else:\n                    state = WALK_RIGHT\n                fall_count = 0\n            else:\n                fall_count += 1\n        elif state == DIG_LEFT:\n            if ground == 0:\n                state = FALL_LEFT\n                fall_count = 0\n        elif state == DIG_RIGHT:\n            if ground == 0:\n                state = FALL_RIGHT\n                fall_count = 0\n    return outputs","a37b6e451f4ae33e91":"def reference(vectors):\n    WALK_LEFT, WALK_RIGHT = 0, 1\n    FALL_LEFT, FALL_RIGHT = 2, 3\n    DIG_LEFT, DIG_RIGHT = 4, 5\n    SPLAT = 6\n    state = WALK_LEFT\n    fall_count = 0\n    outputs = []\n    for v in vectors:\n        areset = v.get('areset', 0)\n        bump_left = v.get('bump_left', 0)\n        bump_right = v.get('bump_right', 0)\n        ground = v.get('ground', 1)\n        dig = v.get('dig', 0)\n        if areset:\n            state = WALK_LEFT\n            fall_count = 0\n        if state == WALK_LEFT:\n            out = {'walk_left': 1, 'walk_right': 0, 'aaah': 0, 'digging': 0}\n        elif state == WALK_RIGHT:\n            out = {'walk_left': 0, 'walk_right': 1, 'aaah': 0, 'digging': 0}\n        elif state == FALL_LEFT or state == FALL_RIGHT:\n            out = {'walk_left': 0, 'walk_right': 0, 'aaah': 1, 'digging': 0}\n        elif state == DIG_LEFT or state == DIG_RIGHT:\n            out = {'walk_left': 0, 'walk_right': 0, 'aaah': 0, 'digging': 1}\n        else:\n            out = {'walk_left': 0, 'walk_right': 0, 'aaah': 0, 'digging': 0}\n        outputs.append(out)\n        if areset:\n            continue\n        if state == WALK_LEFT:\n            if ground == 0:\n                state = FALL_LEFT\n                fall_count = 0\n            elif dig == 1:\n                state = DIG_LEFT\n            elif bump_left == 1 or bump_right == 1:\n                state = WALK_RIGHT\n        elif state == WALK_RIGHT:\n            if ground == 0:\n                state = FALL_RIGHT\n                fall_count = 0\n            elif dig == 1:\n                state = DIG_RIGHT\n            elif bump_left == 1 or bump_right == 1:\n                state = WALK_LEFT\n        elif state == FALL_LEFT:\n            if ground == 1:\n                if fall_count > 20:\n                    state = SPLAT\n                else:\n                    state = WALK_LEFT\n                fall_count = 0\n            else:\n                fall_count += 1\n        elif state == FALL_RIGHT:\n            if ground == 1:\n                if fall_count > 20:\n                    state = SPLAT\n                else:\n                    state = WALK_RIGHT\n                fall_count = 0\n            else:\n                fall_count += 1\n        elif state == DIG_LEFT:\n            if ground == 0:\n                state = FALL_LEFT\n                fall_count = 0\n        elif state == DIG_RIGHT:\n            if ground == 0:\n                state = FALL_RIGHT\n                fall_count = 0\n    return outputs"}}
+```

@@ -1,0 +1,77 @@
+def reference(vectors):
+    # R_Q_POSEDGE: On posedge clk, Q is updated to L ? r_in : Q.
+    # q_in is interpreted as current Q feedback; when L=0, Q holds and q_in is ignored.
+    # Unspecified power-up is represented by a concrete initial Q = 0.
+    q = 0
+    L = 0
+    r_in = 0
+    q_in = 0  # maintained for input state, but not used to update Q under the selected interpretation
+
+    def apply_changes(changes, L, r_in, q_in):
+        if changes is None:
+            return L, r_in, q_in
+        try:
+            for item in changes:
+                if item == "L" or item == "r_in" or item == "q_in":
+                    val = changes[item] & 1
+                    if item == "L":
+                        L = val
+                    elif item == "r_in":
+                        r_in = val
+                    elif item == "q_in":
+                        q_in = val
+                else:
+                    try:
+                        name = item[0]
+                        val = item[1] & 1
+                        if name == "L":
+                            L = val
+                        elif name == "r_in":
+                            r_in = val
+                        elif name == "q_in":
+                            q_in = val
+                    except:
+                        try:
+                            if "L" in item:
+                                L = item["L"] & 1
+                            if "r_in" in item:
+                                r_in = item["r_in"] & 1
+                            if "q_in" in item:
+                                q_in = item["q_in"] & 1
+                        except:
+                            pass
+        except:
+            pass
+        return L, r_in, q_in
+
+    out = []
+    for row in vectors:
+        # Drive row inputs before the sampled posedge.
+        if "L" in row:
+            L = row["L"] & 1
+        if "r_in" in row:
+            r_in = row["r_in"] & 1
+        if "q_in" in row:
+            q_in = row["q_in"] & 1
+
+        # R_Q_POSEDGE
+        if L == 1:
+            q = r_in & 1
+        # else: L == 0, Q holds (q_in is current Q feedback and is ignored)
+
+        out.append({"Q": q & 1})
+
+        # Mid changes occur after sampling and are carried to the start of the next row.
+        changes = None
+        if "mid" in row:
+            changes = row["mid"]
+        elif "mid_changes" in row:
+            changes = row["mid_changes"]
+        elif "mid_cycle" in row:
+            changes = row["mid_cycle"]
+        elif "midcycle" in row:
+            changes = row["midcycle"]
+        if changes is not None:
+            L, r_in, q_in = apply_changes(changes, L, r_in, q_in)
+
+    return out

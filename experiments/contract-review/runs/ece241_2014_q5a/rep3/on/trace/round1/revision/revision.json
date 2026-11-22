@@ -1,0 +1,97 @@
+{
+  "responses": [
+    {
+      "issue_id": "reset_value_grounding",
+      "decision": "accept",
+      "reason": "The public spec only says conversion stops during reset and does not define z while reset is asserted; the contract's z=0 is an assumption, so record it as uncertain.",
+      "spec_quote": "The conversion begins when Reset is released and stops when Reset is asserted.",
+      "edits": [
+        {
+          "path": [
+            "uncertain"
+          ],
+          "value": [
+            {
+              "rule_id": "async_reset",
+              "note": "Public spec does not specify the output value during asynchronous reset; contract assumes z=0.",
+              "candidates": [
+                "Reset forces z=0 while asserted.",
+                "Reset stops conversion but leaves z unspecified or retains its prior value while asserted."
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "issue_id": "reset_polarity_ambiguity",
+      "decision": "accept",
+      "reason": "The public spec requires an asynchronous reset but does not define its polarity; the contract's active-high assumption should be paired with the active-low interpretation.",
+      "spec_quote": "The circuit requires a positive edge triggered asynchronous reset.",
+      "edits": [
+        {
+          "path": [
+            "uncertain"
+          ],
+          "value": [
+            {
+              "rule_id": "async_reset",
+              "note": "Public spec does not specify the output value during asynchronous reset; contract assumes z=0.",
+              "candidates": [
+                "Reset forces z=0 while asserted.",
+                "Reset stops conversion but leaves z unspecified or retains its prior value while asserted."
+              ]
+            },
+            {
+              "rule_id": "async_reset",
+              "note": "Public spec does not specify reset polarity; contract assumes active-high areset.",
+              "candidates": [
+                "areset is active-high: 1 asserts reset.",
+                "areset is active-low: 0 asserts reset."
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "issue_id": "output_timing_ambiguity",
+      "decision": "accept",
+      "reason": "The public spec states the 2's complement function but does not define pre- versus post-edge output visibility; the contract's same-cycle post-settled-posedge behavior should be marked uncertain against the lag-one-cycle alternative.",
+      "spec_quote": "the output (Z) is the 2's complement of the input",
+      "edits": [
+        {
+          "path": [
+            "uncertain"
+          ],
+          "value": [
+            {
+              "rule_id": "async_reset",
+              "note": "Public spec does not specify the output value during asynchronous reset; contract assumes z=0.",
+              "candidates": [
+                "Reset forces z=0 while asserted.",
+                "Reset stops conversion but leaves z unspecified or retains its prior value while asserted."
+              ]
+            },
+            {
+              "rule_id": "async_reset",
+              "note": "Public spec does not specify reset polarity; contract assumes active-high areset.",
+              "candidates": [
+                "areset is active-high: 1 asserts reset.",
+                "areset is active-low: 0 asserts reset."
+              ]
+            },
+            {
+              "rule_id": "serial_twos_complement",
+              "note": "Public spec does not define pre- versus post-edge output visibility; contract uses same-cycle output after settled posedge.",
+              "candidates": [
+                "z is the state output after the settled posedge, same-cycle as the contract.",
+                "z reflects the pre-edge state and lags one cycle: first x=1 row outputs 0, next row outputs 1."
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

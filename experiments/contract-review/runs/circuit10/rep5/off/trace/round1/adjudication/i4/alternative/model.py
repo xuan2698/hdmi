@@ -1,0 +1,29 @@
+def reference(vectors):
+    # Contract implementation.
+    # State: single flip-flop storing next value of q.
+    # r1: q is registered value of state (q equals state after each posedge).
+    # r2: next state = a XOR b (per resolved candidate interpretation).
+    # Reset: none. Power-up unspecified -> start at 0.
+    # Mid changes: applied after sampling, carried to next row (handled by
+    #   processing each row's inputs at its posedge sample point).
+
+    state = 0  # power-up unspecified; concrete default 0
+    q = 0
+    out = []
+
+    for row in vectors:
+        a = row.get('a', 0) & 1
+        b = row.get('b', 0) & 1
+
+        # r1: q reflects registered state (visible after posedge)
+        q = state
+
+        # r2: next state = a XOR b
+        next_state = a ^ b
+
+        out.append({'q': q & 1, 'state': state & 1})
+
+        # posedge update
+        state = next_state
+
+    return out

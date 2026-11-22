@@ -1,0 +1,57 @@
+```python
+def reference(vectors):
+    # Initial concrete state (power-up unspecified, choose 0)
+    out = 0
+    prev_in = 0
+    # Current input values carried across rows via mid changes
+    cur_reset = 0
+    cur_in = 0
+    results = []
+
+    for row in vectors:
+        # Each row's values are driven before the sampled posedge edge.
+        if 'reset' in row:
+            cur_reset = row['reset'] & 1
+        if 'in' in row:
+            cur_in = row['in'] & 0xFFFFFFFF
+
+        # Sample settled inputs at posedge clk
+        reset_val = cur_reset
+        in_val = cur_in
+
+        # synchronous_active_high_reset:
+        # reset high at sampled posedge clears out, independent of in and prior out.
+        # It has priority over capture/hold.
+        if reset_val:
+            out = 0
+            # prev_in is updated during reset cycles per contract.
+            prev_in = in_val
+        else:
+            # falling_edge_capture_and_hold:
+            # out[i] <= out[i] OR (prev_in[i] AND NOT in[i])
+            falling = prev_in & (~in_val & 0xFFFFFFFF)
+            out = (out | falling) & 0xFFFFFFFF
+            prev_in = in_val
+
+        # Output is visible same cycle after sampled posedge
+        results.append({'out': out & 0xFFFFFFFF})
+
+        # Optional mid input changes occur AFTER sampling, before the next edge,
+        # and are carried to the start of the next row.
+        if 'mid' in row:
+            mid = row['mid']
+            if isinstance(mid, dict):
+                if 'reset' in mid:
+                    cur_reset = mid['reset'] & 1
+                if 'in' in mid:
+                    cur_in = mid['in'] & 0xFFFFFFFF
+            elif isinstance(mid, list):
+                for m in mid:
+                    if isinstance(m, dict):
+                        if 'reset' in m:
+                            cur_reset = m['reset'] & 1
+                        if 'in' in m:
+                            cur_in = m['in'] & 0xFFFFFFFF
+
+    return results
+```

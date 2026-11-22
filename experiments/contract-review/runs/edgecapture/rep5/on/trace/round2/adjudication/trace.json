@@ -1,0 +1,54 @@
+[
+  {
+    "issue": {
+      "issue_id": "I1",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec does not define prev_in history across reset; contract updates prev_in during reset so a 1 under reset then 0 after release captures. Alternative clearing/suppressing prev_in during reset would not capture.",
+      "spec_evidence": "For each bit in a 32-bit vector, capture when the input signal changes from 1 in one clock cycle to 0 the next. \"Capture\" means that the output will remain 1 until the register is reset (active high synchronous reset).",
+      "alternative": "Clear or suppress prev_in while reset is high, so reset=1/in=1 followed by reset=0/in=0 leaves out=0.",
+      "sequence": [
+        {
+          "reset": 1,
+          "in": 1
+        },
+        {
+          "reset": 0,
+          "in": 0
+        }
+      ]
+    },
+    "status": "effect",
+    "issue_id": "I1",
+    "outputs": {
+      "original": [
+        {
+          "out": 0
+        },
+        {
+          "out": 1
+        }
+      ],
+      "alternative": [
+        {
+          "out": 0
+        },
+        {
+          "out": 0
+        }
+      ]
+    },
+    "differences": [
+      {
+        "cycle": 2,
+        "original": {
+          "out": 1
+        },
+        "alternative": {
+          "out": 0
+        }
+      }
+    ]
+  }
+]

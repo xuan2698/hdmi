@@ -1,0 +1,36 @@
+def reference(vectors):
+    L = 0
+    q_in = 0
+    r_in = 0
+    out = []
+    for v in vectors:
+        if "L" in v:
+            L = v["L"] & 1
+        if "q_in" in v:
+            q_in = v["q_in"] & 1
+        if "r_in" in v:
+            r_in = v["r_in"] & 1
+
+        # Q_posedge_update: At each posedge of clk, after settlement, Q becomes r_in when L=1; otherwise Q becomes q_in.
+        Q = r_in if L else q_in
+        out.append({"Q": Q & 1})
+
+        # Mid changes occur after sampling and carry to the start of the next row.
+        if "mid" in v:
+            m = v["mid"]
+            if m:
+                for x in m:
+                    if x == "L":
+                        L = m[x] & 1
+                    elif x == "q_in":
+                        q_in = m[x] & 1
+                    elif x == "r_in":
+                        r_in = m[x] & 1
+                    else:
+                        if "L" in x:
+                            L = x["L"] & 1
+                        if "q_in" in x:
+                            q_in = x["q_in"] & 1
+                        if "r_in" in x:
+                            r_in = x["r_in"] & 1
+    return out

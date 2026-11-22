@@ -1,0 +1,21 @@
+def reference(vectors):
+    # Contract rules:
+    # hold_when_a_high: on posedge, if a==1 or prev_a==1, q holds.
+    # increment_when_a_low: on posedge, if a==0 and prev_a==0, q increments (mod 8).
+    # Initial q is unspecified; use 0 as concrete value (uncertain global).
+    # prev_a initial: treat as 1 so first posedge holds (matches example A start).
+    q = 0
+    prev_a = 1
+    out = []
+    for row in vectors:
+        a = row["a"]
+        # posedge sampling: apply transition based on current a and prev_a
+        if a == 1 or prev_a == 1:
+            # hold_when_a_high
+            pass
+        else:
+            # increment_when_a_low
+            q = (q + 1) % 8
+        prev_a = a
+        out.append({"q": q})
+    return out

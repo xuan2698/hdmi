@@ -1,0 +1,50 @@
+```python
+def reference(vectors):
+    # State: out_reg is the 32-bit sticky capture register.
+    # prev_in is the 32-bit sampled input from the preceding posedge.
+    out_reg = 0
+    prev_in = 0
+    cur_reset = 0
+    cur_in = 0
+    results = []
+
+    for row in vectors:
+        # Drive row values before the sampled posedge.
+        if 'reset' in row:
+            cur_reset = row['reset'] & 1
+        if 'in' in row:
+            cur_in = row['in'] & 0xFFFFFFFF
+
+        reset = cur_reset
+        in_val = cur_in
+
+        # Sampled posedge.
+        if reset == 1:
+            # Rule sync_active_high_reset (priority 1):
+            # active high synchronous reset clears out_reg to 0.
+            out_reg = 0
+            # Candidate interpretation for capture_sticky_one_to_zero:
+            # reset clears/ignores previous input history, so the first cycle
+            # after reset cannot capture a 1-to-0 transition from the reset cycle.
+            prev_in = 0
+        else:
+            # Rule capture_sticky_one_to_zero (priority 2):
+            # out_reg is sticky; capture per-bit 1-to-0 transitions.
+            transitions = prev_in & ((~in_val) & 0xFFFFFFFF)
+            out_reg = (out_reg | transitions) & 0xFFFFFFFF
+            prev_in = in_val & 0xFFFFFFFF
+
+        # Output is visible same cycle after posedge.
+        results.append({'out': out_reg})
+
+        # Mid changes occur after sampling and are carried to next row start.
+        if 'mid' in row and row['mid'] is not None:
+            mid = row['mid']
+            if type(mid) is dict:
+                if 'reset' in mid:
+                    cur_reset = mid['reset'] & 1
+                if 'in' in mid:
+                    cur_in = mid['in'] & 0xFFFFFFFF
+
+    return results
+```

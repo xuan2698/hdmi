@@ -1,0 +1,27 @@
+def reference(vectors):
+    seen=0
+    z=0
+    areset=0
+    x=0
+    out=[]
+    for v in vectors:
+        if 'areset' in v: areset=int(v['areset'])&1
+        if 'x' in v: x=int(v['x'])&1
+        if areset:
+            seen=0
+            z=0
+        else:
+            if seen:
+                z=0 if x else 1
+            else:
+                z=1 if x else 0
+                if x: seen=1
+        out.append({'z': z})
+        m=v.get('mid')
+        if m:
+            if 'areset' in m: areset=int(m['areset'])&1
+            if 'x' in m: x=int(m['x'])&1
+            if areset:
+                seen=0
+                z=0
+    return out

@@ -1,0 +1,69 @@
+{
+  "responses": [
+    {
+      "issue_id": "I4",
+      "decision": "accept",
+      "reason": "Spec does not define initial PHT counter values after reset; the contract should clarify this ambiguity rather than leave it implicit.",
+      "spec_quote": "Reset is asynchronous active-high.",
+      "edits": [
+        {
+          "path": [
+            "uncertain"
+          ],
+          "value": [
+            {
+              "rule_id": "R1_predict_outputs",
+              "note": "Spec does not define initial PHT counter values after reset; counters could reset to 0 (strongly not-taken) or 2 (weakly not-taken).",
+              "candidates": [
+                "PHT counters reset to 0",
+                "PHT counters reset to 2"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "issue_id": "I7",
+      "decision": "rebut",
+      "reason": "The existing R1 example already expresses the rule: it drives predict_valid with a given pc and checks predict_taken/predict_history outputs. The grounding concern about nonzero PHT/GHR values is a coverage suggestion, not a contract defect, and the example already demonstrates the specified prediction behavior.",
+      "spec_quote": "When a branch prediction is requested (predict_valid = 1) for a given pc, the branch predictor produces the predicted branch direction and state of the branch history register used to make the prediction."
+    },
+    {
+      "issue_id": "I8",
+      "decision": "rebut",
+      "reason": "The existing R2 example already expresses the rule: it drives predict_valid with train_valid=0 and checks predict_history outputs across cycles, which is the specified GHR update behavior. The grounding concern is a coverage suggestion, not a contract defect.",
+      "spec_quote": "The branch history register is then updated (at the next positive clock edge) for the predicted branch."
+    },
+    {
+      "issue_id": "I9",
+      "decision": "rebut",
+      "reason": "The existing R3 example already expresses the rule: it drives train_valid with train_taken and train_pc, which is the specified PHT training behavior. The grounding concern about observing the effect on a later prediction is a coverage suggestion, not a contract defect.",
+      "spec_quote": "Update the pattern history table (PHT) to train the branch predictor to predict this branch more accurately next time."
+    },
+    {
+      "issue_id": "I10",
+      "decision": "rebut",
+      "reason": "The existing R4 example already expresses the rule: it drives train_valid with train_mispredicted=1 and train_history=5, which is the specified GHR recovery behavior. The grounding concern about observing the recovered value is a coverage suggestion, not a contract defect.",
+      "spec_quote": "if the branch being trained is mispredicted, also recover the branch history register to the state immediately after the mispredicting branch completes execution."
+    },
+    {
+      "issue_id": "I11",
+      "decision": "rebut",
+      "reason": "The existing R5 example already expresses the rule: it drives both predict_valid and train_valid with train_mispredicted=1 and train_history=3, which is the specified training-precedence behavior. The grounding concern is a coverage suggestion, not a contract defect.",
+      "spec_quote": "When this happens, training takes precedence, because the branch being predicted will be discarded anyway."
+    },
+    {
+      "issue_id": "I12",
+      "decision": "rebut",
+      "reason": "The existing R6 example already expresses the rule: it drives predict_valid and train_valid together on the same PHT index and checks the prediction output, which is the specified pre-training PHT visibility behavior. The grounding concern is a coverage suggestion, not a contract defect.",
+      "spec_quote": "the prediction sees the PHT state before training because training only modifies the PHT at the next positive clock edge."
+    },
+    {
+      "issue_id": "I13",
+      "decision": "rebut",
+      "reason": "The existing R7 example already expresses the rule: it drives areset=1 with active predict/train inputs and checks outputs, which is the specified asynchronous active-high reset behavior. The grounding concern about mid-cycle timing is a coverage suggestion, not a contract defect.",
+      "spec_quote": "Reset is asynchronous active-high."
+    }
+  ]
+}

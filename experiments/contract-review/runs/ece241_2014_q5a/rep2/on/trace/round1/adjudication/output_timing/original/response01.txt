@@ -1,0 +1,77 @@
+def reference(vectors):
+    state = "S0"
+    z = 0
+    cur_areset = 0
+    cur_x = 0
+    result = []
+
+    for row in vectors:
+        # Each row's values are driven before the sampled posedge.
+        if "areset" in row:
+            cur_areset = int(row["areset"]) & 1
+        if "x" in row:
+            cur_x = int(row["x"]) & 1
+
+        # async_reset_z0: active-high asynchronous reset forces state S0 and z=0.
+        if cur_areset == 1:
+            state = "S0"
+            z = 0
+
+        # Sample at posedge clk after the edge has settled.
+        if cur_areset == 1:
+            # async_reset_z0 has priority over clocked transitions while asserted.
+            state = "S0"
+            z = 0
+        else:
+            if state == "S0":
+                if cur_x == 0:
+                    # s0_x0
+                    state = "S0"
+                    z = 0
+                else:
+                    # s0_x1
+                    state = "S1"
+                    z = 1
+            elif state == "S1":
+                if cur_x == 0:
+                    # s1_x0
+                    state = "S1"
+                    z = 1
+                else:
+                    # s1_x1
+                    state = "S2"
+                    z = 0
+            elif state == "S2":
+                if cur_x == 0:
+                    # s2_x0
+                    state = "S1"
+                    z = 1
+                else:
+                    # s2_x1
+                    state = "S2"
+                    z = 0
+
+        result.append({"z": z & 1})
+
+        # Optional mid input changes occur AFTER sampling and carry to the next row.
+        if "mid" in row and row["mid"] is not None:
+            mid = row["mid"]
+            mid_items = []
+            if isinstance(mid, dict):
+                mid_items = [mid]
+            elif isinstance(mid, (list, tuple)):
+                mid_items = mid
+
+            for m in mid_items:
+                if isinstance(m, dict):
+                    if "areset" in m:
+                        cur_areset = int(m["areset"]) & 1
+                    if "x" in m:
+                        cur_x = int(m["x"]) & 1
+
+                    # async_reset_z0: a mid-cycle reset assertion asynchronously forces S0 and z=0.
+                    if cur_areset == 1:
+                        state = "S0"
+                        z = 0
+
+    return result

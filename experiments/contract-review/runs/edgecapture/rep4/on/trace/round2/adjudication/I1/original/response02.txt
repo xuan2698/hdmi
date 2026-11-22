@@ -1,0 +1,61 @@
+def reference(vectors):
+    out = 0
+    prev = 0
+    carried_reset = 0
+    carried_in = 0
+    results = []
+    for row in vectors:
+        if "reset" in row:
+            reset = row["reset"] & 1
+        else:
+            reset = carried_reset
+        if "in" in row:
+            inval = row["in"] & 0xFFFFFFFF
+        else:
+            inval = carried_in
+
+        # Rule sync_active_high_reset: synchronous active-high reset clears out.
+        # Rule capture_sticky_one_to_zero: sticky capture of per-bit 1->0 using prev_in.
+        if reset:
+            out = 0
+        else:
+            out = (out | (prev & (~inval))) & 0xFFFFFFFF
+        prev = inval
+
+        results.append({"out": out})
+
+        carried_reset = reset
+        carried_in = inval
+
+        # Mid changes occur after the sampled posedge and are carried to the next row.
+        if "mid" in row:
+            mid = row["mid"]
+            mid_name = mid.__class__.__name__
+            if mid_name == "dict":
+                if "reset" in mid:
+                    carried_reset = mid["reset"] & 1
+                if "in" in mid:
+                    carried_in = mid["in"] & 0xFFFFFFFF
+            elif mid_name == "list" or mid_name == "tuple":
+                for change in mid:
+                    change_name = change.__class__.__name__
+                    if change_name == "dict":
+                        if "reset" in change:
+                            carried_reset = change["reset"] & 1
+                        if "in" in change:
+                            carried_in = change["in"] & 0xFFFFFFFF
+                    else:
+                        try:
+                            name, value = change
+                            if name == "reset":
+                                carried_reset = value & 1
+                            elif name == "in":
+                                carried_in = value & 0xFFFFFFFF
+                        except:
+                            pass
+        if "mid_reset" in row:
+            carried_reset = row["mid_reset"] & 1
+        if "mid_in" in row:
+            carried_in = row["mid_in"] & 0xFFFFFFFF
+
+    return results

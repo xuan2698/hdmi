@@ -1,0 +1,62 @@
+def reference(vectors):
+    # State initialization: concrete power-up values.
+    out = 0
+    prev_in = 0
+    cur_reset = 0
+    cur_in = 0
+    results = []
+
+    for row in vectors:
+        # Apply row's driven values before the sampled posedge.
+        if "reset" in row:
+            cur_reset = row["reset"]
+        if "in" in row:
+            cur_in = row["in"]
+        if "inputs" in row and isinstance(row["inputs"], dict):
+            inp = row["inputs"]
+            if "reset" in inp:
+                cur_reset = inp["reset"]
+            if "in" in inp:
+                cur_in = inp["in"]
+
+        # Sample posedge.
+        # sync_active_high_reset: active high synchronous reset clears out and overrides capture.
+        if cur_reset == 1:
+            out = 0
+            # capture_sticky_one_to_zero uncertainty: prev_in cleared during reset so first non-reset edge cannot capture from reset cycle.
+            prev_in = 0
+        else:
+            # capture_sticky_one_to_zero: sticky capture of 1-to-0 transitions.
+            changed = prev_in & (~cur_in & 0xFFFFFFFF)
+            out = (out | changed) & 0xFFFFFFFF
+            prev_in = cur_in & 0xFFFFFFFF
+
+        # Output visible same cycle.
+        results.append({"out": out})
+
+        # Apply optional mid changes AFTER sampling, before next posedge.
+        if "mid" in row and isinstance(row["mid"], dict):
+            mid = row["mid"]
+            if "reset" in mid:
+                cur_reset = mid["reset"]
+            if "in" in mid:
+                cur_in = mid["in"]
+
+        # Flat mid keys.
+        for k in row:
+            if k == "mid":
+                continue
+            if k == "mid_reset" or k == "reset_mid":
+                cur_reset = row[k]
+            elif k == "mid_in" or k == "in_mid":
+                cur_in = row[k]
+
+        # Optional nested mid_inputs.
+        if "mid_inputs" in row and isinstance(row["mid_inputs"], dict):
+            mid = row["mid_inputs"]
+            if "reset" in mid:
+                cur_reset = mid["reset"]
+            if "in" in mid:
+                cur_in = mid["in"]
+
+    return results

@@ -1,0 +1,68 @@
+```python
+def reference(vectors):
+    # Contract implementation.
+    # State encoding: A=0, B=1, C=2, D=3
+    # R5: synchronous active high reset forces state A on posedge.
+    # R1-R4: combinational output based on current state.
+    # R6-R9: next-state logic on posedge.
+    # Mid changes occur AFTER sampling, before other edge, carried to next row.
+    # We model: each row drives inputs, then posedge samples -> state updates,
+    # output reflects state AFTER the posedge (Moore output visible same cycle
+    # as the state, i.e., after update). But examples show output for the
+    # state BEFORE the posedge? Let's check: example 1 (R1) vectors all reset=0,
+    # in=0,1,0 expected out=0,0,0. Starting state unspecified -> power-up.
+    # The failure says actual=1 expected=0 for examples 1,2,3,5,6 cycle1.
+    # That means initial state was D (out=1) but should be A (out=0).
+    # So power-up state must be A. Also output is combinational on current
+    # state (before posedge) — Moore output visible same cycle as state.
+    # So: for each row, output = f(current_state) BEFORE applying posedge.
+    # Then apply posedge: if reset -> A else next_state.
+    # Mid changes: after sampling, before other edge, carried to next row.
+    # We'll track pending mid input changes.
+
+    state = 0  # power-up state A (fixes the failure: was D, now A)
+    pending_in = None
+    results = []
+
+    for row in vectors:
+        # Apply any pending mid change from previous row (carried to start)
+        if pending_in is not None:
+            cur_in = pending_in
+            pending_in = None
+        else:
+            cur_in = row.get('in', 0)
+        reset = row.get('reset', 0)
+
+        # R1-R4: combinational output based on current state (same_cycle)
+        if state == 0:      # R1: state A -> out 0
+            out = 0
+        elif state == 1:    # R2: state B -> out 0
+            out = 0
+        elif state == 2:    # R3: state C -> out 0
+            out = 0
+        else:               # R4: state D -> out 1
+            out = 1
+
+        results.append({'out': out})
+
+        # Posedge sampling: compute next state
+        if reset == 1:
+            # R5: synchronous active high reset -> state A
+            state = 0
+        else:
+            # R6-R9: next state logic
+            if state == 0:      # R6
+                state = 1 if cur_in == 1 else 0
+            elif state == 1:    # R7
+                state = 1 if cur_in == 1 else 2
+            elif state == 2:    # R8
+                state = 3 if cur_in == 1 else 0
+            else:               # R9
+                state = 1 if cur_in == 1 else 2
+
+        # Mid input changes: after sampling, before other edge, carried to next row
+        if 'mid_in' in row:
+            pending_in = row['mid_in']
+
+    return results
+```

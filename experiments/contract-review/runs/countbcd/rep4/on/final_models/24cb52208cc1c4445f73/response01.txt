@@ -1,0 +1,68 @@
+def reference(vectors):
+    q = 0
+    ena = 0
+    held_inputs = {"reset": 0}
+    result = []
+
+    for row in vectors:
+        # Merge carried mid-cycle input changes with values driven before this sampled edge.
+        current = {}
+        for k, v in held_inputs.items():
+            current[k] = v
+        if isinstance(row, dict):
+            for k, v in row.items():
+                if k != "mid":
+                    current[k] = v
+
+        reset = current.get("reset", 0)
+
+        # sync_active_high_reset: synchronous active-high reset at rising edge.
+        if reset:
+            q = 0
+        else:
+            # bcd_counter_increment: increment packed BCD digits modulo 10000.
+            d0 = q & 0xF
+            d1 = (q >> 4) & 0xF
+            d2 = (q >> 8) & 0xF
+            d3 = (q >> 12) & 0xF
+
+            d0 += 1
+            if d0 == 10:
+                d0 = 0
+                d1 += 1
+                if d1 == 10:
+                    d1 = 0
+                    d2 += 1
+                    if d2 == 10:
+                        d2 = 0
+                        d3 += 1
+                        if d3 == 10:
+                            d3 = 0
+
+            q = (d0 & 0xF) | ((d1 & 0xF) << 4) | ((d2 & 0xF) << 8) | ((d3 & 0xF) << 12)
+
+        # upper_digit_enables: combinational enables derived from current q after edge.
+        ones = q & 0xF
+        tens = (q >> 4) & 0xF
+        hundreds = (q >> 8) & 0xF
+
+        ena = 0
+        if ones == 9:
+            ena |= 1
+            if tens == 9:
+                ena |= 2
+                if hundreds == 9:
+                    ena |= 4
+
+        # sync_active_high_reset: q=0 after reset also makes ena=0 here.
+        result.append({"q": q, "ena": ena})
+
+        # Process optional mid-cycle input changes after sampling for the next row.
+        held_inputs = current
+        if isinstance(row, dict) and "mid" in row:
+            mid = row["mid"]
+            if isinstance(mid, dict):
+                for k, v in mid.items():
+                    held_inputs[k] = v
+
+    return result

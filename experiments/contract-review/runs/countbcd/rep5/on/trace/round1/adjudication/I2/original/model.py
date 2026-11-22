@@ -1,0 +1,65 @@
+def reference(vectors):
+    # State: 16-bit packed BCD counter; concrete power-up value chosen as 0.
+    q = 0
+    current_reset = 0
+    results = []
+
+    for row in vectors:
+        # Determine inputs driven before the sampled posedge.
+        inp = row
+        if "inputs" in row:
+            inp = row["inputs"]
+
+        # A value driven in this row updates the held reset input.
+        if "reset" in inp:
+            current_reset = inp["reset"]
+
+        # Rule sync_reset: synchronous active-high reset has priority at posedge.
+        # Rule bcd_increment: otherwise increment the 4-digit BCD counter modulo 10000.
+        if current_reset:
+            q = 0
+        else:
+            ones = q & 15
+            tens = (q >> 4) & 15
+            hundreds = (q >> 8) & 15
+            thousands = (q >> 12) & 15
+
+            ones += 1
+            if ones == 10:
+                ones = 0
+                tens += 1
+                if tens == 10:
+                    tens = 0
+                    hundreds += 1
+                    if hundreds == 10:
+                        hundreds = 0
+                        thousands += 1
+                        if thousands == 10:
+                            thousands = 0
+
+            q = (thousands << 12) | (hundreds << 8) | (tens << 4) | ones
+
+        # Rule upper_digit_enables: combinational from the current q after the edge.
+        ones = q & 15
+        tens = (q >> 4) & 15
+        hundreds = (q >> 8) & 15
+
+        bit0 = 1 if ones == 9 else 0
+        bit1 = 1 if (ones == 9 and tens == 9) else 0
+        bit2 = 1 if (ones == 9 and tens == 9 and hundreds == 9) else 0
+        ena = bit0 + 2 * bit1 + 4 * bit2
+
+        results.append({"q": q, "ena": ena})
+
+        # Optional mid-cycle changes occur after sampling and are held into the next row.
+        mid = None
+        if "mid" in row:
+            mid = row["mid"]
+        elif "inputs" in row and "mid" in row["inputs"]:
+            mid = row["inputs"]["mid"]
+
+        if mid is not None:
+            if "reset" in mid:
+                current_reset = mid["reset"]
+
+    return results

@@ -1,0 +1,195 @@
+[
+  {
+    "issue": {
+      "issue_id": "I5",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec says pm asserted if PM, otherwise AM. But no rule defines pm behavior on hour roll from 11:59:59 to 12:00:00 (AM/PM toggle) or from 12:59:59 to 1:00:00 (PM to AM). R6 toggles pm on 12->1, but R7 does not toggle on 11->12. Spec implies pm should toggle at 12:00:00 (AM) and 12:00:00 (PM)? Actually 12-hour clock: 11:59:59 AM -> 12:00:00 PM (pm=1), 11:59:59 PM -> 12:00:00 AM (pm=0). So pm should toggle on both 11->12 and 12->1. R7 does not toggle pm, which is wrong.",
+      "spec_evidence": "The signal \"pm\" is asserted if the clock is PM, or is otherwise AM.",
+      "alternative": "pm should toggle on both 11:59:59->12:00:00 and 12:59:59->1:00:00.",
+      "sequence": [
+        {
+          "reset": 0,
+          "ena": 1
+        },
+        {
+          "reset": 0,
+          "ena": 1
+        }
+      ]
+    },
+    "status": "no_effect",
+    "issue_id": "I5",
+    "outputs": {
+      "original": [
+        {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 0
+        },
+        {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 1
+        }
+      ],
+      "alternative": [
+        {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 0
+        },
+        {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 1
+        }
+      ]
+    },
+    "differences": []
+  },
+  {
+    "issue": {
+      "issue_id": "I13",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "high",
+      "detail": "Spec does not specify whether pm toggles on 11:59:59->12:00:00. R7 does not toggle pm, but 12-hour clock semantics require pm to toggle at 12:00:00 (AM to PM or PM to AM). Alternative: pm should toggle on 11->12 and 12->1.",
+      "spec_evidence": "The signal \"pm\" is asserted if the clock is PM, or is otherwise AM.",
+      "alternative": "pm should toggle on both 11:59:59->12:00:00 and 12:59:59->1:00:00.",
+      "sequence": [
+        {
+          "reset": 0,
+          "ena": 1
+        },
+        {
+          "reset": 0,
+          "ena": 1
+        }
+      ]
+    },
+    "status": "effect",
+    "issue_id": "I13",
+    "outputs": {
+      "original": [
+        {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 0
+        },
+        {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 1
+        }
+      ],
+      "alternative": [
+        {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 1
+        },
+        {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 2
+        }
+      ]
+    },
+    "differences": [
+      {
+        "cycle": 1,
+        "original": {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 0
+        },
+        "alternative": {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 1
+        }
+      },
+      {
+        "cycle": 2,
+        "original": {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 1
+        },
+        "alternative": {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 2
+        }
+      }
+    ]
+  },
+  {
+    "issue": {
+      "issue_id": "I14",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec says hh, mm, ss are two BCD digits each for hours (01-12), minutes (00-59), seconds (00-59). But contract uses hh=18 (0x12) as reset value, which is BCD 12, but examples use decimal 18 which is 0x12. This is confusing but 0x12 is BCD 12. However R5 example increments 0x12 to 0x13 (19 decimal), which is invalid BCD for hours. So ambiguity in how hh is represented.",
+      "spec_evidence": "hh, mm, and ss are two BCD (Binary-Coded Decimal) digits each for hours (01-12)",
+      "alternative": "hh should be BCD encoded, so 12 is 0x12, 1 is 0x01, etc. R5 should not increment 0x12 to 0x13.",
+      "sequence": [
+        {
+          "reset": 0,
+          "ena": 1
+        },
+        {
+          "reset": 0,
+          "ena": 1
+        }
+      ]
+    },
+    "status": "no_effect",
+    "issue_id": "I14",
+    "outputs": {
+      "original": [
+        {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 0
+        },
+        {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 1
+        }
+      ],
+      "alternative": [
+        {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 0
+        },
+        {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 1
+        }
+      ]
+    },
+    "differences": []
+  }
+]

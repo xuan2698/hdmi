@@ -1,0 +1,38 @@
+```python
+def reference(vectors):
+    # Contract implementation.
+    # State: 3-bit counter q, initialized on first posedge to 4 regardless of a.
+    # Rule hold_when_a_high: on posedge, if initialized and prev_a == 1, hold q.
+    # Rule increment_when_a_low: on posedge, if initialized and prev_a == 0, q = (q+1) mod 8.
+    # prev_a is the a value sampled at the previous posedge (carried across rows).
+    # Mid changes occur after sampling; we track a per row as the value driven before the edge.
+
+    q = None          # uninitialized before first posedge
+    prev_a = None     # a value at previous posedge
+    initialized = False
+    results = []
+
+    for row in vectors:
+        a = row['a'] & 1  # 1-bit input
+
+        # Posedge sampling: compute next q
+        if not initialized:
+            # First posedge: load 4 regardless of a (global uncertain note)
+            q = 4
+            initialized = True
+        else:
+            if prev_a == 1:
+                # hold_when_a_high
+                q = q
+            else:
+                # increment_when_a_low
+                q = (q + 1) & 0x7
+
+        # Record output for this row (visible same_cycle)
+        results.append({'q': q & 0x7})
+
+        # Carry a to next row as prev_a (mid changes after sampling are carried)
+        prev_a = a
+
+    return results
+```

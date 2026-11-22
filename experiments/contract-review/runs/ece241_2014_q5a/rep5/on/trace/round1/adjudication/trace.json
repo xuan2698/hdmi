@@ -1,0 +1,116 @@
+[
+  {
+    "issue": {
+      "issue_id": "reset_polarity",
+      "rule_id": "async_reset_assert",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec does not state reset polarity; contract fixes active-high areset=1 without uncertainty. Active-low areset=0 asserts reset, changing reset/release behavior.",
+      "spec_evidence": "The circuit requires a positive edge triggered asynchronous reset.",
+      "alternative": "Reset is active-low: asserted when areset=0, released when areset=1.",
+      "sequence": [
+        {
+          "areset": 1,
+          "x": 0
+        },
+        {
+          "areset": 0,
+          "x": 1
+        }
+      ]
+    },
+    "status": "effect",
+    "issue_id": "reset_polarity",
+    "outputs": {
+      "original": [
+        {
+          "z": 0
+        },
+        {
+          "z": 1
+        }
+      ],
+      "alternative": [
+        {
+          "z": 0
+        },
+        {
+          "z": 0
+        }
+      ]
+    },
+    "differences": [
+      {
+        "cycle": 2,
+        "original": {
+          "z": 1
+        },
+        "alternative": {
+          "z": 0
+        }
+      }
+    ]
+  },
+  {
+    "issue": {
+      "issue_id": "reset_output_value",
+      "rule_id": "async_reset_assert",
+      "type": "ambiguity",
+      "severity": "low",
+      "detail": "Spec says conversion stops on reset but not z during reset; contract infers z=0 and marks uncertain. Holding prior z is plausible.",
+      "spec_evidence": "The conversion begins when Reset is released and stops when Reset is asserted.",
+      "alternative": "While areset=1, z retains its previous value instead of being forced to 0.",
+      "sequence": [
+        {
+          "areset": 1,
+          "x": 0
+        },
+        {
+          "areset": 0,
+          "x": 1
+        },
+        {
+          "areset": 1,
+          "x": 0
+        }
+      ]
+    },
+    "status": "effect",
+    "issue_id": "reset_output_value",
+    "outputs": {
+      "original": [
+        {
+          "z": 0
+        },
+        {
+          "z": 1
+        },
+        {
+          "z": 0
+        }
+      ],
+      "alternative": [
+        {
+          "z": 0
+        },
+        {
+          "z": 1
+        },
+        {
+          "z": 1
+        }
+      ]
+    },
+    "differences": [
+      {
+        "cycle": 3,
+        "original": {
+          "z": 0
+        },
+        "alternative": {
+          "z": 1
+        }
+      }
+    ]
+  }
+]

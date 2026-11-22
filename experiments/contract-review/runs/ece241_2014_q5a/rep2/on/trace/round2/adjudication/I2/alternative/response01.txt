@@ -1,0 +1,72 @@
+def reference(vectors):
+    # State encoding: 0=S0, 1=S1, 2=S2. Moore output z follows the updated state.
+    state = 0
+    z = 0
+    areset = 0  # active-low reset asserted for a concrete initial value
+    x = 0
+    outputs = []
+
+    for row in vectors:
+        # Drive this row's inputs before the sampled posedge.
+        if "areset" in row:
+            areset = int(row["areset"]) & 1
+        if "x" in row:
+            x = int(row["x"]) & 1
+
+        # async_reset_z0: active-low reset asserted asynchronously forces S0 and z=0.
+        if areset == 0:
+            state = 0
+            z = 0
+
+        # Sample at the posedge after the edge settles.
+        if areset == 0:
+            # async_reset_z0: reset asserted keeps S0 and z=0.
+            state = 0
+            z = 0
+        else:
+            if state == 0:
+                if x == 0:
+                    # s0_x0
+                    state = 0
+                    z = 0
+                else:
+                    # s0_x1
+                    state = 1
+                    z = 1
+            elif state == 1:
+                if x == 0:
+                    # s1_x0
+                    state = 1
+                    z = 1
+                else:
+                    # s1_x1
+                    state = 2
+                    z = 0
+            else:
+                if x == 0:
+                    # s2_x0
+                    state = 1
+                    z = 1
+                else:
+                    # s2_x1
+                    state = 2
+                    z = 0
+
+        outputs.append({"z": z & 1})
+
+        # Mid changes occur after sampling and carry to the next row.
+        mid = row.get("mid", None) if isinstance(row, dict) else None
+        if mid is not None:
+            changes = mid if isinstance(mid, (list, tuple)) else [mid]
+            for change in changes:
+                if isinstance(change, dict):
+                    if "x" in change:
+                        x = int(change["x"]) & 1
+                    if "areset" in change:
+                        areset = int(change["areset"]) & 1
+                        if areset == 0:
+                            # async_reset_z0: asynchronous reset assertion during mid.
+                            state = 0
+                            z = 0
+
+    return outputs

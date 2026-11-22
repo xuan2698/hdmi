@@ -1,0 +1,67 @@
+def reference(vectors):
+    # State: 32-bit global branch history shift register.
+    history = 0
+
+    # Persistent nonclock input values, used for mid-cycle updates.
+    inputs = {
+        "areset": 0,
+        "predict_valid": 0,
+        "predict_taken": 0,
+        "train_mispredicted": 0,
+        "train_taken": 0,
+        "train_history": 0,
+    }
+    widths = {
+        "areset": 1,
+        "predict_valid": 1,
+        "predict_taken": 1,
+        "train_mispredicted": 1,
+        "train_taken": 1,
+        "train_history": 32,
+    }
+
+    result = []
+
+    for row in vectors:
+        # Drive all row inputs before the sampled posedge.
+        for key in inputs:
+            if key in row:
+                inputs[key] = int(row[key]) & ((1 << widths[key]) - 1)
+
+        # async_reset: priority 0. Asynchronous active-high reset clears history.
+        if inputs["areset"] & 1:
+            history = 0
+        else:
+            # mispredict_load: priority 1. Misprediction load overrides prediction.
+            if inputs["train_mispredicted"] & 1:
+                history = (
+                    ((inputs["train_history"] << 1) & 0xFFFFFFFF)
+                    | (inputs["train_taken"] & 1)
+                )
+            # predict_shift: priority 2. Shift in predicted direction at LSB.
+            elif inputs["predict_valid"] & 1:
+                history = (
+                    ((history << 1) & 0xFFFFFFFF)
+                    | (inputs["predict_taken"] & 1)
+                )
+            else:
+                # hold override: idle cycles shift in 0, per supplied interpretation.
+                history = (history << 1) & 0xFFFFFFFF
+
+        # Sample output after the posedge has settled.
+        result.append({"predict_history": history & 0xFFFFFFFF})
+
+        # Optional mid-cycle changes occur after sampling and carry to next row.
+        mid = None
+        if isinstance(row, dict) and isinstance(row.get("mid"), dict):
+            mid = row["mid"]
+        if mid is not None:
+            for key in inputs:
+                if key in mid:
+                    inputs[key] = int(mid[key]) & ((1 << widths[key]) - 1)
+
+            # async_reset applies asynchronously if mid asserts it after sampling.
+            if "areset" in mid and (inputs["areset"] & 1):
+                history = 0
+
+    return result

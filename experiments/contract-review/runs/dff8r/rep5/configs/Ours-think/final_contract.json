@@ -1,0 +1,113 @@
+{
+  "ports": {
+    "inputs": {
+      "d": 8,
+      "reset": 1
+    },
+    "outputs": {
+      "q": 8
+    },
+    "clock": "clk"
+  },
+  "states": [
+    {
+      "name": "q",
+      "meaning": "8-bit D flip-flop output register q[7:0]",
+      "update_time": "positive edge of clk after inputs are sampled and the edge has settled",
+      "update_during_reset": true
+    }
+  ],
+  "rules": [
+    {
+      "id": "sync_reset_clear",
+      "outputs": [
+        "q"
+      ],
+      "condition": "reset == 1 at the sampled positive edge; synchronous reset overrides d and clears q to 0",
+      "edge": "posedge",
+      "visible": "same_cycle",
+      "priority": 1,
+      "spec_quote": "active high synchronous reset setting the output to zero",
+      "uncertain": false,
+      "example": {
+        "vectors": [
+          {
+            "d": 17,
+            "reset": 1
+          },
+          {
+            "d": 130,
+            "reset": 1
+          },
+          {
+            "d": 255,
+            "reset": 1
+          }
+        ],
+        "expected": [
+          {
+            "q": 0
+          },
+          {
+            "q": 0
+          },
+          {
+            "q": 0
+          }
+        ]
+      }
+    },
+    {
+      "id": "d_capture_no_reset",
+      "outputs": [
+        "q"
+      ],
+      "condition": "reset == 0 at the sampled positive edge; q captures d[7:0]",
+      "edge": "posedge",
+      "visible": "same_cycle",
+      "priority": 2,
+      "spec_quote": "Create 8 D flip-flops",
+      "uncertain": false,
+      "example": {
+        "vectors": [
+          {
+            "d": 0,
+            "reset": 0
+          },
+          {
+            "d": 42,
+            "reset": 0
+          },
+          {
+            "d": 200,
+            "reset": 0
+          }
+        ],
+        "expected": [
+          {
+            "q": 0
+          },
+          {
+            "q": 42
+          },
+          {
+            "q": 200
+          }
+        ]
+      }
+    }
+  ],
+  "reset": {
+    "kind": "sync",
+    "name": "reset",
+    "active": "high",
+    "values": {
+      "q": 0
+    },
+    "first_released_cycle": "first sampled posedge with reset=0; if reset deasserts mid-cycle after sampling, release is seen at the next sampled posedge"
+  },
+  "mid": "Mid-cycle input changes occur after the sampled posedge and before the other edge; those changed input values are carried to the start of the next row.",
+  "uncertain": [],
+  "remaining_uncertain_fields": {},
+  "selected_interpretations": []
+}

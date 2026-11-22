@@ -1,0 +1,67 @@
+```python
+def reference(vectors):
+    # State encoding: 0=A, 1=B, 2=C. Moore outputs: A=0, B=1, C=0.
+    state = 0
+    inputs = {'areset': 0, 'x': 0}
+    result = []
+
+    for row in vectors:
+        mid = {}
+        if isinstance(row, dict):
+            for k, v in row.items():
+                if k == 'mid' and isinstance(v, dict):
+                    mid.update(v)
+                elif isinstance(k, str) and k.endswith('_mid'):
+                    mid[k[:-4]] = v
+
+        # Drive row inputs before the sampled posedge.
+        if isinstance(row, dict):
+            for k, v in row.items():
+                if k == 'areset' or k == 'x':
+                    inputs[k] = int(v) & 1
+                elif k == 'mid':
+                    continue
+                elif isinstance(k, str) and k.endswith('_mid'):
+                    continue
+
+        # rule async_reset: active-high areset asynchronously forces state A and z=0.
+        if inputs.get('areset', 0):
+            state = 0
+            z = 0
+        else:
+            # rule serial_twos_complement: posedge transition table and Moore output.
+            x = inputs.get('x', 0) & 1
+            if state == 0:       # A
+                if x == 0:
+                    state = 0    # A
+                else:
+                    state = 1    # B
+            elif state == 1:     # B
+                if x == 0:
+                    state = 1    # B
+                else:
+                    state = 2    # C
+            else:                # C
+                if x == 0:
+                    state = 1    # B
+                else:
+                    state = 2    # C
+
+            if state == 1:
+                z = 1
+            else:
+                z = 0
+
+        result.append({'z': z})
+
+        # Mid changes occur after sampling and carry to the start of the next row.
+        for k, v in mid.items():
+            if k == 'areset' or k == 'x':
+                inputs[k] = int(v) & 1
+
+        # rule async_reset: a mid-cycle assertion of areset still forces A before the next row.
+        if inputs.get('areset', 0):
+            state = 0
+
+    return result
+```

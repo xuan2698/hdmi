@@ -1,0 +1,57 @@
+{
+  "coverage": {
+    "S01": ["R1_reset_clear", "R2_capture_falling", "R3_hold"]
+  },
+  "issues": [
+    {
+      "issue_id": "I1",
+      "rule_id": "R2_capture_falling",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "R2 example expected out=0 on first row despite in=0xFFFFFFFF and prev_in initialized to 0; no 1->0 transition, so out should remain 0. However, R2 condition includes out[i] | (prev_in[i] & ~in[i]); with prev_in=0 and in=0xFFFFFFFF, ~in=0, so out=0. Expected matches. No contradiction.",
+      "spec_evidence": "",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I2",
+      "rule_id": "R3_hold",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "R3 example: row1 in=1, prev_in=0 -> no falling edge, out=0. row2 in=0, prev_in=1 -> falling edge, out=1. row3 in=1, prev_in=0 -> no falling edge, out holds 1. row4 in=1, prev_in=1 -> no falling edge, out holds 1. Expected [0,1,1,1] matches. No contradiction.",
+      "spec_evidence": "",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I3",
+      "rule_id": "R2_capture_falling",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec says capture when input changes from 1 to 0; contract uses prev_in initialized to 0. Alternative: prev_in initialized to 1 (or unknown) could cause capture on first row if in=0. Distinguishing sequence: first row reset=0, in=0. Under contract, out=0; under alternative prev_in=1, out=0xFFFFFFFF.",
+      "spec_evidence": "capture when the input signal changes from 1 in one clock cycle to 0 the next",
+      "alternative": "prev_in initialized to all 1s before first sampled posedge",
+      "sequence": [{"reset": 0, "in": 0}]
+    },
+    {
+      "issue_id": "I4",
+      "rule_id": "R1_reset_clear",
+      "type": "ambiguity",
+      "severity": "low",
+      "detail": "Spec says active high synchronous reset; contract says update_during_reset true and visible same_cycle. Alternative: reset clears out on next cycle (registered reset). Distinguishing sequence: reset=1, in=0xFFFFFFFF then reset=0, in=0. Under contract, out=0 on first row; under alternative, out may be 0xFFFFFFFF on first row then 0.",
+      "spec_evidence": "active high synchronous reset",
+      "alternative": "reset clears out on the following cycle (registered reset)",
+      "sequence": [{"reset": 1, "in": 4294967295}, {"reset": 0, "in": 0}]
+    },
+    {
+      "issue_id": "I5",
+      "rule_id": "global",
+      "type": "grounding",
+      "severity": "low",
+      "detail": "R1 spec_quote 'until the register is reset (active high synchronous reset)' is verbatim from S01. R2 and R3 quotes are verbatim. No absent verbatim evidence.",
+      "spec_evidence": "",
+      "alternative": "",
+      "sequence": []
+    }
+  ]
+}

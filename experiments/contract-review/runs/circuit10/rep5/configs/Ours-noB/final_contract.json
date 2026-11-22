@@ -1,0 +1,123 @@
+{
+  "ports": {
+    "inputs": {
+      "a": 1,
+      "b": 1
+    },
+    "outputs": {
+      "q": 1,
+      "state": 1
+    },
+    "clock": "clk"
+  },
+  "states": [
+    {
+      "name": "state",
+      "meaning": "single flip-flop storing the next value of q",
+      "update_time": "posedge",
+      "update_during_reset": false
+    }
+  ],
+  "rules": [
+    {
+      "id": "r1",
+      "outputs": [
+        "q"
+      ],
+      "condition": "q is the combinational output a XOR b (e.g., 45ns: a=0,b=1 -> q=1; 65ns: a=1,b=1 -> q=0)",
+      "edge": "posedge",
+      "visible": "next_cycle",
+      "priority": 1,
+      "spec_quote": "one bit of memory (i.e., one flip-flop)",
+      "uncertain": false,
+      "example": {
+        "vectors": [
+          {
+            "a": 0,
+            "b": 1
+          },
+          {
+            "a": 1,
+            "b": 0
+          },
+          {
+            "a": 1,
+            "b": 1
+          }
+        ],
+        "expected": [
+          {
+            "q": 1,
+            "state": 0
+          },
+          {
+            "q": 1,
+            "state": 0
+          },
+          {
+            "q": 0,
+            "state": 0
+          }
+        ]
+      }
+    },
+    {
+      "id": "r2",
+      "outputs": [
+        "state"
+      ],
+      "condition": "next state is determined by the waveform; observed transitions are consistent with state_next = (a AND b) XOR state (e.g., 45ns: a=0,b=1,state=0 -> state=1; 75ns: a=0,b=0,state=1 -> state=1; 95ns: a=1,b=1,state=1 -> state=1)",
+      "edge": "posedge",
+      "visible": "next_cycle",
+      "priority": 2,
+      "spec_quote": "// 45ns            1               0               1               0               1",
+      "uncertain": false,
+      "example": {
+        "vectors": [
+          {
+            "a": 0,
+            "b": 1
+          },
+          {
+            "a": 1,
+            "b": 0
+          },
+          {
+            "a": 1,
+            "b": 1
+          }
+        ],
+        "expected": [
+          {
+            "q": 1,
+            "state": 1
+          },
+          {
+            "q": 1,
+            "state": 1
+          },
+          {
+            "q": 0,
+            "state": 0
+          }
+        ]
+      }
+    }
+  ],
+  "reset": {
+    "kind": "none",
+    "name": null,
+    "active": "none",
+    "values": {
+      "q": null,
+      "state": null
+    },
+    "first_released_cycle": "0ns"
+  },
+  "mid": "optional mid input changes occur AFTER sampling, before the other edge, and are carried to the start of the next row",
+  "uncertain": [],
+  "remaining_uncertain_fields": {
+    "global": []
+  },
+  "selected_interpretations": []
+}

@@ -1,0 +1,44 @@
+{
+  "responses": [
+    {
+      "issue_id": "I1",
+      "decision": "accept",
+      "reason": "The R2 example assumes an initial q=0 that the contract does not state; clarify initial value in state meaning without inventing a reset kind.",
+      "spec_quote": "Create 8 D flip-flops",
+      "edits": [
+        {
+          "path": [
+            "states",
+            "q_reg",
+            "meaning"
+          ],
+          "value": "8-bit flip-flop storage holding the current output value q; initial value is 0 before any posedge clk"
+        }
+      ]
+    },
+    {
+      "issue_id": "I2",
+      "decision": "rebut",
+      "reason": "The contract already encodes reset priority via priority 1 on R1_sync_reset versus priority 2 on R2_d_capture, and R1's example already shows reset=1 yielding q=0 rather than capturing d.",
+      "spec_quote": "active high synchronous reset setting the output to zero",
+      "edits": []
+    },
+    {
+      "issue_id": "I3",
+      "decision": "accept",
+      "reason": "Ground the assumed initial q=0 in the state meaning rather than fabricating a reset kind.",
+      "spec_quote": "Create 8 D flip-flops",
+      "edits": [
+        {
+          "path": [
+            "states",
+            "q_reg",
+            "meaning"
+          ],
+          "value": "8-bit flip-flop storage holding the current output value q; initial value is 0 before any posedge clk"
+        }
+      ],
+      "already_applied_by_earlier_issue": true
+    }
+  ]
+}

@@ -1,0 +1,31 @@
+```python
+def reference(vectors):
+    # Power-up state unspecified; use concrete 0 as required.
+    # Global candidate: negative-edge-triggered DFF, so q updates on negedge clk.
+    q = 0
+    out = []
+    for row in vectors:
+        # Testbench samples after posedge. Since DFF is negedge-triggered,
+        # posedge does not change q; current q is the output for this row.
+        out.append({'q': q})
+
+        # Inputs driven before posedge are row['d'], row['r'].
+        # After sampling, apply optional mid changes before the following negedge.
+        d = row['d']
+        r = row['r']
+        mid = row.get('mid')
+        if mid is not None:
+            if 'd' in mid:
+                d = mid['d']
+            if 'r' in mid:
+                r = mid['r']
+
+        # Rule sync_active_high_reset: active high synchronous reset sets q to 0.
+        if r == 1:
+            q = 0
+        else:
+            # Rule d_update_when_not_reset: when not reset, q becomes d.
+            q = d
+
+    return out
+```

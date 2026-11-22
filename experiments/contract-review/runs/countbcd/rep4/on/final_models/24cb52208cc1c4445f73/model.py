@@ -1,0 +1,54 @@
+def reference(vectors):
+    # sync_active_high_reset: synchronous active-high reset clears q and ena after edge.
+    # bcd_counter_increment: packed BCD digits increment by one modulo 10000.
+    # upper_digit_enables: combinational enables from current post-edge q.
+    q = 0
+    ena = 0
+    out = []
+    for row in vectors:
+        reset = row.get("reset", 0)
+        if reset:
+            # Rule sync_active_high_reset: reset has priority at this rising edge.
+            q = 0
+            ena = 0
+        else:
+            # Rule bcd_counter_increment: increment four packed BCD digits by one.
+            ones = q & 0xF
+            tens = (q >> 4) & 0xF
+            hundreds = (q >> 8) & 0xF
+            thousands = (q >> 12) & 0xF
+
+            ones = ones + 1
+            if ones == 10:
+                ones = 0
+                tens = tens + 1
+                if tens == 10:
+                    tens = 0
+                    hundreds = hundreds + 1
+                    if hundreds == 10:
+                        hundreds = 0
+                        thousands = thousands + 1
+                        if thousands == 10:
+                            thousands = 0
+
+            q = (thousands << 12) | (hundreds << 8) | (tens << 4) | ones
+
+            # Rule upper_digit_enables: ena[0]=tens carry, ena[1]=hundreds carry, ena[2]=thousands carry.
+            ones = q & 0xF
+            tens = (q >> 4) & 0xF
+            hundreds = (q >> 8) & 0xF
+
+            e0 = 0
+            e1 = 0
+            e2 = 0
+            if ones == 9:
+                e0 = 1
+                if tens == 9:
+                    e1 = 1
+                    if hundreds == 9:
+                        e2 = 1
+            ena = e0 | (e1 << 1) | (e2 << 2)
+
+        out.append({"q": q, "ena": ena})
+
+    return out

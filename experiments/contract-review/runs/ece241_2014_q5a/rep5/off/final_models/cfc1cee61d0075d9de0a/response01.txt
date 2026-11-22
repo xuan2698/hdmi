@@ -1,0 +1,45 @@
+```python
+def reference(vectors):
+    # Contract implementation.
+    # State: S0 = no 1-bit seen yet (pass through), S1 = 1-bit seen (complement).
+    # Reset: async, active high, forces state S0 and z=0 immediately.
+    # Outputs are combinational based on current state and current x (R1, R2),
+    # except reset forces z=0 (R5).
+    # State updates on posedge (R3, R4).
+
+    state = "S0"  # power-up unspecified; assume S0 (reset semantics)
+    out = []
+
+    for row in vectors:
+        areset = row.get("areset", 0)
+        x = row.get("x", 0)
+
+        # R5: asynchronous reset asserted -> state S0, z=0 immediately
+        if areset == 1:
+            state = "S0"
+            z = 0
+            out.append({"z": z})
+            continue
+
+        # Combinational output based on current state (R1, R2)
+        if state == "S0":
+            # R1: z = x
+            z = x & 1
+        else:
+            # R2: z = NOT x
+            z = (~x) & 1
+
+        out.append({"z": z})
+
+        # Posedge state update (R3, R4)
+        if state == "S0":
+            if x == 1:
+                # R3: first 1 seen -> S1
+                state = "S1"
+            # else stays S0
+        else:
+            # R4: once in S1, stays S1
+            state = "S1"
+
+    return out
+```

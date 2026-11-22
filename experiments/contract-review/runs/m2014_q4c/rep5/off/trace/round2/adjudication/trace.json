@@ -1,0 +1,86 @@
+[
+  {
+    "issue": {
+      "issue_id": "I5",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "high",
+      "detail": "Spec says synchronous reset but does not specify whether reset has priority over load when r==1 and d changes; contract gives R1 priority 1, but alternative could be load priority.",
+      "spec_evidence": "active high synchronous reset (reset output to 0)",
+      "alternative": "Reset and load both active on same posedge; load d takes priority over reset, so q follows d when r==1.",
+      "sequence": [
+        {
+          "d": 1,
+          "r": 1
+        },
+        {
+          "d": 0,
+          "r": 1
+        }
+      ]
+    },
+    "status": "effect",
+    "issue_id": "I5",
+    "outputs": {
+      "original": [
+        {
+          "q": 0
+        },
+        {
+          "q": 0
+        }
+      ],
+      "alternative": [
+        {
+          "q": 1
+        },
+        {
+          "q": 0
+        }
+      ]
+    },
+    "differences": [
+      {
+        "cycle": 1,
+        "original": {
+          "q": 0
+        },
+        "alternative": {
+          "q": 1
+        }
+      }
+    ]
+  },
+  {
+    "issue": {
+      "issue_id": "I6",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec does not define initial q before first posedge; contract says unspecified, but alternative could be q=0 initially.",
+      "spec_evidence": "Implement a simple D flip flop",
+      "alternative": "Initial q is 0 before any clock edge.",
+      "sequence": [
+        {
+          "d": 1,
+          "r": 0
+        }
+      ]
+    },
+    "status": "no_effect",
+    "issue_id": "I6",
+    "outputs": {
+      "original": [
+        {
+          "q": 1
+        }
+      ],
+      "alternative": [
+        {
+          "q": 1
+        }
+      ]
+    },
+    "differences": []
+  }
+]

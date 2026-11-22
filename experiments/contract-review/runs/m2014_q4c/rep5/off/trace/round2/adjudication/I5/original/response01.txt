@@ -1,0 +1,22 @@
+```python
+def reference(vectors):
+    # Contract implementation.
+    # State: Q = stored flip-flop value (unspecified before first posedge).
+    # R1: posedge clk, r == 1 -> q = 0 (active high synchronous reset), priority 1.
+    # R2: posedge clk, r == 0 -> q = d, priority 2.
+    # Mid changes occur AFTER sampling, before the other edge, carried to next row.
+    Q = 0  # power-up unspecified; use 0 as concrete placeholder
+    out = []
+    for row in vectors:
+        d = row.get('d', 0) & 1
+        r = row.get('r', 0) & 1
+        # Sample at posedge clk (values driven before edge).
+        if r == 1:  # R1
+            Q = 0
+        else:       # R2
+            Q = d
+        out.append({'q': Q & 1})
+        # Mid changes: applied after sampling, carried to next row.
+        # (No mid changes provided in vectors; nothing to do.)
+    return out
+```

@@ -1,0 +1,35 @@
+def reference(vectors):
+    # Contract implementation.
+    # R_Y0: combinational next-state bit 0 from state-assigned table.
+    # R_z:  combinational Moore output, z=1 for y=011 or y=100.
+    # state_register: y updated on posedge clk from Y[2:0]; no reset.
+    # mid: input changes after sampling are carried to next row (handled by
+    #      using each row's provided x,y directly as the sampled values).
+
+    def next_state(y, x):
+        # Explicit state-assigned table (R_Y0 source).
+        table = {
+            0b000: (0b000, 0b001),
+            0b001: (0b001, 0b100),
+            0b010: (0b010, 0b001),
+            0b011: (0b001, 0b010),
+            0b100: (0b011, 0b100),
+        }
+        if y in table:
+            return table[y][x]
+        # Unspecified states 101,110,111: choose Y=0 (candidate 1).
+        return 0b000
+
+    def out_z(y):
+        # R_z: Moore output.
+        return 1 if (y == 0b011 or y == 0b100) else 0
+
+    results = []
+    for row in vectors:
+        y = row["y"] & 0b111
+        x = row["x"] & 0b1
+        Y = next_state(y, x)
+        Y0 = Y & 0b1  # R_Y0
+        z = out_z(y)  # R_z
+        results.append({"Y0": Y0, "z": z})
+    return results

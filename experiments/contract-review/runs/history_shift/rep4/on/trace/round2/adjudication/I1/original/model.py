@@ -1,0 +1,61 @@
+def reference(vectors):
+    history = 0
+    areset = 0
+    predict_valid = 0
+    predict_taken = 0
+    train_mispredicted = 0
+    train_taken = 0
+    train_history = 0
+    result = []
+
+    for row in vectors:
+        if "areset" in row:
+            areset = row["areset"]
+        if "predict_valid" in row:
+            predict_valid = row["predict_valid"]
+        if "predict_taken" in row:
+            predict_taken = row["predict_taken"]
+        if "train_mispredicted" in row:
+            train_mispredicted = row["train_mispredicted"]
+        if "train_taken" in row:
+            train_taken = row["train_taken"]
+        if "train_history" in row:
+            train_history = row["train_history"]
+
+        # Rule async_reset: areset == 1 asynchronously clears history to zero.
+        if areset == 1:
+            history = 0
+        else:
+            # Rule mispredict_load: misprediction has priority over prediction.
+            if train_mispredicted == 1:
+                history = ((train_history << 1) & 0xFFFFFFFF) | (train_taken & 1)
+            # Rule predict_shift: shift predicted direction into LSB when predicting.
+            elif predict_valid == 1:
+                history = ((history << 1) & 0xFFFFFFFF) | (predict_taken & 1)
+            else:
+                # Rule hold: retain history when neither prediction nor misprediction occurs.
+                history = history & 0xFFFFFFFF
+
+        result.append({"predict_history": history & 0xFFFFFFFF})
+
+        # Process optional mid-cycle changes after sampling, for the next sampled edge.
+        if "mid" in row:
+            mid = row["mid"]
+            if "areset" in mid:
+                areset = mid["areset"]
+            if "predict_valid" in mid:
+                predict_valid = mid["predict_valid"]
+            if "predict_taken" in mid:
+                predict_taken = mid["predict_taken"]
+            if "train_mispredicted" in mid:
+                train_mispredicted = mid["train_mispredicted"]
+            if "train_taken" in mid:
+                train_taken = mid["train_taken"]
+            if "train_history" in mid:
+                train_history = mid["train_history"]
+
+            # Rule async_reset: reset assertion after sampling clears state immediately.
+            if areset == 1:
+                history = 0
+
+    return result

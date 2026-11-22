@@ -1,0 +1,68 @@
+```python
+def reference(vectors):
+    # State: ss_lo, ss_hi, mm_lo, mm_hi, hh_lo, hh_hi, pm_reg
+    # Reset values: hh=12 (hh_hi=1, hh_lo=2), mm=00, ss=00, pm=0
+    ss_lo, ss_hi = 0, 0
+    mm_lo, mm_hi = 0, 0
+    hh_lo, hh_hi = 2, 1
+    pm_reg = 0
+
+    out = []
+    for row in vectors:
+        reset = row.get('reset', 0)
+        ena = row.get('ena', 0)
+
+        # Sample current outputs before edge
+        hh = (hh_hi << 4) | hh_lo
+        mm = (mm_hi << 4) | mm_lo
+        ss = (ss_hi << 4) | ss_lo
+        out.append({'pm': pm_reg, 'hh': hh, 'mm': mm, 'ss': ss})
+
+        # Compute next state at posedge
+        if reset:
+            # R1_reset: reset to 12:00 AM
+            ss_lo, ss_hi = 0, 0
+            mm_lo, mm_hi = 0, 0
+            hh_lo, hh_hi = 2, 1
+            pm_reg = 0
+        elif ena:
+            # R2_hold: if not ena, hold (handled by elif)
+            # Increment seconds
+            if ss_lo == 9:
+                ss_lo = 0
+                if ss_hi == 5:
+                    ss_hi = 0
+                    # seconds rolled over -> increment minutes
+                    if mm_lo == 9:
+                        mm_lo = 0
+                        if mm_hi == 5:
+                            mm_hi = 0
+                            # minutes rolled over -> increment hours
+                            # R5_minutes_roll / R6 / R7
+                            # Current hour value
+                            cur_hh = (hh_hi << 4) | hh_lo
+                            if cur_hh == 12:
+                                # R6_hour_roll_am_pm: 12:59:59 -> 1:00:00, toggle pm
+                                hh_hi, hh_lo = 0, 1
+                                pm_reg = 1 - pm_reg
+                            elif cur_hh == 11:
+                                # R7_hour_roll_12: 11:59:59 -> 12:00:00, toggle pm
+                                hh_hi, hh_lo = 1, 2
+                                pm_reg = 1 - pm_reg
+                            else:
+                                # R5_minutes_roll: increment hour normally
+                                nh = cur_hh + 1
+                                hh_hi = nh >> 4
+                                hh_lo = nh & 0xF
+                        else:
+                            mm_hi += 1
+                    else:
+                        mm_lo += 1
+                else:
+                    ss_hi += 1
+            else:
+                ss_lo += 1
+        # else: R2_hold, no change
+
+    return out
+```

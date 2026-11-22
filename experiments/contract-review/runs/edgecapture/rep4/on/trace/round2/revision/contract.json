@@ -1,0 +1,124 @@
+{
+  "ports": {
+    "inputs": {
+      "reset": 1,
+      "in": 32
+    },
+    "outputs": {
+      "out": 32
+    },
+    "clock": "clk"
+  },
+  "states": [
+    {
+      "name": "out_reg",
+      "meaning": "32-bit sticky capture register reflected by output out. Bit i is 0 after reset and becomes 1 after in[i] has a sampled 1-to-0 transition; once 1 it stays 1 until reset.",
+      "update_time": "posedge",
+      "update_during_reset": true
+    },
+    {
+      "name": "prev_in",
+      "meaning": "32-bit register holding the sampled in value from the immediately preceding posedge. It is used to detect per-bit 1-to-0 transitions and updates to current in on every posedge, including reset cycles.",
+      "update_time": "posedge",
+      "update_during_reset": true
+    }
+  ],
+  "rules": [
+    {
+      "id": "sync_active_high_reset",
+      "outputs": [
+        "out"
+      ],
+      "condition": "At a sampled posedge, if reset == 1 then out is cleared to 0 for all bits; this overrides any capture or retained sticky bit.",
+      "edge": "posedge",
+      "visible": "same_cycle",
+      "priority": 1,
+      "spec_quote": "active high synchronous reset",
+      "uncertain": false,
+      "example": {
+        "vectors": [
+          {
+            "reset": 1,
+            "in": 3
+          },
+          {
+            "reset": 0,
+            "in": 2
+          },
+          {
+            "reset": 0,
+            "in": 0
+          },
+          {
+            "reset": 1,
+            "in": 0
+          }
+        ],
+        "expected": [
+          {
+            "out": 0
+          },
+          {
+            "out": 1
+          },
+          {
+            "out": 3
+          },
+          {
+            "out": 0
+          }
+        ]
+      }
+    },
+    {
+      "id": "capture_sticky_one_to_zero",
+      "outputs": [
+        "out"
+      ],
+      "condition": "At a sampled posedge with reset == 0, for each bit i: if out[i] was already 1, it remains 1; otherwise it becomes 1 exactly when prev_in[i] == 1 and in[i] == 0. If neither condition holds, bit i remains 0.",
+      "edge": "posedge",
+      "visible": "same_cycle",
+      "priority": 2,
+      "spec_quote": "For each bit in a 32-bit vector, capture when the input signal changes from 1 in one clock cycle to 0 the next. \"Capture\" means that the output will remain 1 until the register is reset (active high synchronous reset).",
+      "uncertain": false,
+      "example": {
+        "vectors": [
+          {
+            "reset": 1,
+            "in": 3
+          },
+          {
+            "reset": 0,
+            "in": 2
+          },
+          {
+            "reset": 0,
+            "in": 0
+          }
+        ],
+        "expected": [
+          {
+            "out": 0
+          },
+          {
+            "out": 1
+          },
+          {
+            "out": 3
+          }
+        ]
+      }
+    }
+  ],
+  "reset": {
+    "kind": "sync",
+    "name": "reset",
+    "active": "high",
+    "values": {
+      "out": 0
+    },
+    "first_released_cycle": "The first sampled posedge after a reset==1 posedge for which reset==0; transition detection uses the in value sampled at the immediately preceding posedge, including a reset posedge."
+  },
+  "mid": "Optional mid-row changes, if present, occur after the sampled posedge and before the next posedge; they update the carried input values for the start of the next row but do not alter out until the next sampled posedge.",
+  "uncertain": []
+}

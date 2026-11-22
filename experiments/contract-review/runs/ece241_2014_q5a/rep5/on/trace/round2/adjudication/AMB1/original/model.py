@@ -1,0 +1,69 @@
+def reference(vectors):
+    # State encoding for the 2's complement Moore machine.
+    A, B, C = 0, 1, 2
+    state = A  # Concrete power-up choice: reset/no-first-1 state.
+    z_map = {A: 0, B: 1, C: 0}
+
+    carried = {"areset": 0, "x": 0}
+    results = []
+
+    for row in vectors:
+        # Each row's values are driven before the sampled posedge.
+        areset = row.get("areset", carried.get("areset", 0))
+        x = row.get("x", carried.get("x", 0))
+
+        # async_reset_assert: active-high areset asynchronously forces state A, z=0.
+        if areset == 1:
+            state = A
+
+        # Posedge state update when reset is not asserted.
+        if areset == 1:
+            # async_reset_assert: reset active, state remains A.
+            pass
+        else:
+            if state == A:
+                if x == 0:
+                    # A_on_x0
+                    state = A
+                else:
+                    # A_on_x1
+                    state = B
+            elif state == B:
+                if x == 0:
+                    # B_on_x0
+                    state = B
+                else:
+                    # B_on_x1
+                    state = C
+            else:
+                if x == 0:
+                    # C_on_x0
+                    state = B
+                else:
+                    # C_on_x1
+                    state = C
+
+        # Moore output after the sampled posedge has settled.
+        z = z_map[state]
+        results.append({"z": z})
+
+        # Optional mid changes occur after sampling, before the next row's edge.
+        mid = row.get("mid")
+        if mid is not None:
+            if "areset" in mid:
+                carried["areset"] = mid["areset"]
+                # async_reset_assert: asynchronous reset assertion also applies via mid changes.
+                if mid["areset"] == 1:
+                    state = A
+            else:
+                carried["areset"] = areset
+
+            if "x" in mid:
+                carried["x"] = mid["x"]
+            else:
+                carried["x"] = x
+        else:
+            carried["areset"] = areset
+            carried["x"] = x
+
+    return results

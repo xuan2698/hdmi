@@ -1,0 +1,51 @@
+```python
+def reference(vectors):
+    # Contract implementation for a synchronous active-high-reset decade counter.
+    # State: count (0..9). Output q reflects the state after the sampled posedge.
+    #
+    # R1: reset == 1 on posedge -> q = 0 (priority 1, same_cycle)
+    # R2: reset == 0 && q == 9 on posedge -> q = 0 (priority 2, same_cycle)
+    # R3: reset == 0 && q != 9 on posedge -> q = q + 1 (priority 3, same_cycle)
+    #
+    # Timing: each row's inputs are driven before the sampled posedge.
+    # Mid changes occur AFTER sampling and are carried to the start of the next row.
+    # We model this by applying the row's input at the posedge, then (if a mid
+    # change is present) updating the input for the next row.
+
+    count = 0  # power-up state; unspecified but we choose 0
+    results = []
+
+    for row in vectors:
+        # Determine the input value effective at this row's posedge.
+        # If the row provides 'reset', use it; otherwise carry from previous mid.
+        if 'reset' in row:
+            reset_val = row['reset']
+        else:
+            reset_val = carried_reset if 'carried_reset' in dir() else 0
+
+        # Apply synchronous reset / count logic at posedge (R1, R2, R3)
+        if reset_val == 1:
+            # R1: synchronous active-high reset
+            count = 0
+        elif count == 9:
+            # R2: wrap from 9 to 0
+            count = 0
+        else:
+            # R3: increment
+            count = count + 1
+
+        # Output q is the state after the sampled edge (same_cycle visibility)
+        results.append({'q': count & 0xF})
+
+        # Process mid changes AFTER sampling, carried to next row.
+        # Mid changes may be provided as 'mid' dict in the row.
+        if 'mid' in row and isinstance(row['mid'], dict):
+            if 'reset' in row['mid']:
+                carried_reset = row['mid']['reset']
+            else:
+                carried_reset = reset_val
+        else:
+            carried_reset = reset_val
+
+    return results
+```

@@ -1,0 +1,88 @@
+{
+  "ports": {
+    "inputs": {"r_in": 1, "L": 1},
+    "outputs": {"Q": 1},
+    "clock": "clk"
+  },
+  "states": [
+    {
+      "name": "Q_state",
+      "meaning": "1-bit flip-flop Q holding the registered output value",
+      "update_time": "posedge clk",
+      "update_during_reset": false
+    }
+  ],
+  "rules": [
+    {
+      "id": "R1_load",
+      "outputs": ["Q"],
+      "condition": "L == 1",
+      "edge": "posedge",
+      "visible": "next_cycle",
+      "priority": 1,
+      "spec_quote": "if (L) begin q <= r; end",
+      "uncertain": true,
+      "example": {
+        "vectors": [
+          {"r_in": 1, "L": 1},
+          {"r_in": 0, "L": 1},
+          {"r_in": 1, "L": 1}
+        ],
+        "expected": [
+          {"Q": 0},
+          {"Q": 1},
+          {"Q": 0}
+        ]
+      }
+    },
+    {
+      "id": "R2_shift_xor",
+      "outputs": ["Q"],
+      "condition": "L == 0",
+      "edge": "posedge",
+      "visible": "next_cycle",
+      "priority": 2,
+      "spec_quote": "q <= {q[1] ^ q[2], q[0], q[2]};",
+      "uncertain": true,
+      "example": {
+        "vectors": [
+          {"r_in": 0, "L": 0},
+          {"r_in": 0, "L": 0},
+          {"r_in": 0, "L": 0}
+        ],
+        "expected": [
+          {"Q": 0},
+          {"Q": 0},
+          {"Q": 0}
+        ]
+      }
+    }
+  ],
+  "reset": {
+    "kind": "none",
+    "name": null,
+    "active": "none",
+    "values": {"Q": null},
+    "first_released_cycle": "0"
+  },
+  "mid": "Optional mid input changes occur after sampling, before the other edge, and are carried to the start of the next row.",
+  "uncertain": [
+    {
+      "rule_id": "R1_load",
+      "note": "Public ports/widths changed to 1-bit r_in and Q; original 3-bit r/q no longer match the declared interface, so load behavior is inferred.",
+      "candidates": [
+        "Q <= r_in when L==1",
+        "Q <= r_in[0] when L==1"
+      ]
+    },
+    {
+      "rule_id": "R2_shift_xor",
+      "note": "Original expression uses q[1]^q[2], q[0], q[2] on a 3-bit q; with 1-bit Q the bit-selects are out of range, so feedback behavior is inferred.",
+      "candidates": [
+        "Q <= Q ^ Q (i.e., 0) when L==0",
+        "Q <= Q when L==0",
+        "Q <= 0 when L==0"
+      ]
+    }
+  ]
+}

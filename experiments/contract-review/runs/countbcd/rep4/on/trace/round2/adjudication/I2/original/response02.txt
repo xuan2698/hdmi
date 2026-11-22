@@ -1,0 +1,46 @@
+def reference(vectors):
+    q = 0
+    result = []
+    for row in vectors:
+        # sync_active_high_reset: synchronous active-high reset forces q and ena to 0 after the rising edge.
+        reset = row.get('reset', 0)
+        if reset == 1:
+            q = 0
+            ena = 0
+        else:
+            # bcd_counter_increment: non-reset rising edge increments packed BCD modulo 10000.
+            d0 = q & 15
+            d1 = (q >> 4) & 15
+            d2 = (q >> 8) & 15
+            d3 = (q >> 12) & 15
+
+            d0 = d0 + 1
+            if d0 > 9:
+                d0 = 0
+                d1 = d1 + 1
+                if d1 > 9:
+                    d1 = 0
+                    d2 = d2 + 1
+                    if d2 > 9:
+                        d2 = 0
+                        d3 = d3 + 1
+                        if d3 > 9:
+                            d3 = 0
+
+            q = (d3 << 12) | (d2 << 8) | (d1 << 4) | d0
+
+            # upper_digit_enables: combinational same-cycle enables based on current q.
+            e0 = 0
+            e1 = 0
+            e2 = 0
+            if (q & 15) == 9:
+                e0 = 1
+            if ((q & 15) == 9) and (((q >> 4) & 15) == 9):
+                e1 = 1
+            if ((q & 15) == 9) and (((q >> 4) & 15) == 9) and (((q >> 8) & 15) == 9):
+                e2 = 1
+            ena = e0 | (e1 << 1) | (e2 << 2)
+
+        result.append({'q': q, 'ena': ena})
+
+    return result

@@ -1,0 +1,79 @@
+def reference(vectors):
+    # Rule reset_all: deterministic initial state set to reset values
+    pm = 0
+    hh = 0x12
+    mm = 0x00
+    ss = 0x00
+    carried = {"reset": 0, "ena": 0}
+    results = []
+
+    def bcd_inc(x):
+        lo = x & 0x0F
+        hi = (x >> 4) & 0x0F
+        if lo == 9:
+            lo = 0
+            if hi == 5:
+                hi = 0
+            else:
+                hi += 1
+        else:
+            lo += 1
+        return (hi << 4) | lo
+
+    for row in vectors:
+        inputs = dict(carried)
+        for k, v in row.items():
+            if k != 'mid':
+                inputs[k] = v
+
+        reset = inputs.get('reset', 0)
+        ena = inputs.get('ena', 0)
+
+        if reset == 1:
+            # reset_all
+            next_pm = 0
+            next_hh = 0x12
+            next_mm = 0x00
+            next_ss = 0x00
+        elif ena == 1:
+            next_pm = pm
+            next_hh = hh
+            next_mm = mm
+            next_ss = ss
+
+            if ss != 0x59:
+                # second_increment
+                next_ss = bcd_inc(ss)
+            else:
+                next_ss = 0x00
+                if mm != 0x59:
+                    # second_rollover_to_minute
+                    next_mm = bcd_inc(mm)
+                else:
+                    next_mm = 0x00
+                    if hh == 0x11:
+                        # hour_11_to_12_toggle_pm
+                        next_hh = 0x12
+                        next_pm = pm ^ 1
+                    elif hh == 0x12:
+                        # minute_rollover_to_hour_no_pm_toggle
+                        next_hh = 0x01
+                    else:
+                        # minute_rollover_to_hour_no_pm_toggle
+                        next_hh = bcd_inc(hh)
+        else:
+            # hold_when_not_enabled
+            next_pm = pm
+            next_hh = hh
+            next_mm = mm
+            next_ss = ss
+
+        pm, hh, mm, ss = next_pm, next_hh, next_mm, next_ss
+        results.append({"pm": pm, "hh": hh, "mm": mm, "ss": ss})
+
+        carried = dict(inputs)
+        if 'mid' in row and isinstance(row['mid'], dict):
+            for k, v in row['mid'].items():
+                carried[k] = v
+
+    return results

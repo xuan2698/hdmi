@@ -1,0 +1,118 @@
+{
+  "coverage": {
+    "S01": ["R1"],
+    "S02": ["R1"],
+    "S03": ["R2"],
+    "S04": ["unrelated"],
+    "S05": ["unrelated"],
+    "S06": ["unrelated"],
+    "S07": ["unrelated"],
+    "S08": ["unrelated"],
+    "S09": ["R1", "R2"],
+    "S10": ["R1", "R2"],
+    "S11": ["R1", "R2"],
+    "S12": ["R1", "R2"],
+    "S13": ["R1", "R2"],
+    "S14": ["R1", "R2"],
+    "S15": ["R1", "R2"],
+    "S16": ["R1", "R2"],
+    "S17": ["R1", "R2"],
+    "S18": ["R1", "R2"],
+    "S19": ["R1", "R2"],
+    "S20": ["R1", "R2"],
+    "S21": ["R1", "R2"],
+    "S22": ["R1", "R2"],
+    "S23": ["R1", "R2"],
+    "S24": ["R1", "R2"],
+    "S25": ["R1", "R2"],
+    "S26": ["R1", "R2"],
+    "S27": ["R1", "R2"],
+    "S28": ["R1", "R2"],
+    "S29": ["R1", "R2"],
+    "S30": ["R1", "R2"],
+    "S31": ["R1", "R2"],
+    "S32": ["R1", "R2"],
+    "S33": ["R1", "R2"],
+    "S34": ["R1", "R2"],
+    "S35": ["R1", "R2"],
+    "S36": ["R1", "R2"],
+    "S37": ["R1", "R2"],
+    "S38": ["R1", "R2"],
+    "S39": ["R1", "R2"],
+    "S40": ["R1", "R2"],
+    "S41": ["R1", "R2"],
+    "S42": ["R1", "R2"],
+    "S43": ["R1", "R2"],
+    "S44": ["R1", "R2"]
+  },
+  "issues": [
+    {
+      "issue_id": "I1",
+      "rule_id": "R2",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "R2 says q=state same_cycle, but spec waveform shows q equals state only after the posedge; at 10ns state=x,q=x then at 15ns state=0,q=0, and at 75ns state=1,q=1 while prior q=0. R2 example also contradicts: expected q=1 for a=0,b=1 with no state given.",
+      "spec_evidence": "// 75ns            1               0               0               1               1",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I2",
+      "rule_id": "R1",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "R1 example expected state for vectors (0,1),(1,0),(1,1) is [1,1,0], but XOR gives [1,1,0] only if state updates each posedge; however R1 example omits initial state and q, and spec waveform at 15ns shows state=0 for a=0,b=0, consistent with XOR but not with example's first vector.",
+      "spec_evidence": "// 15ns            1               0               0               0               0",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I3",
+      "rule_id": "R1",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec waveform shows state updates on posedge clk, but R1 condition 'state <= a XOR b' does not specify whether a,b are sampled at posedge or are mid-cycle values. Alternative: state updates using a,b values present at the posedge (sampled). Distinguishing sequence: row1 clk=0 a=0 b=0 state=0 q=0; row2 clk=1 a=1 b=0 state=0 q=0; mid row2 a=0 b=1; row3 clk=0 a=0 b=1 state=1 q=1. Under sampled-at-posedge, state after row2 posedge = 1 XOR 0 = 1; under mid-cycle, state = 0 XOR 1 = 1 (same). Need different: row1 clk=0 a=0 b=0 state=0 q=0; row2 clk=1 a=1 b=0 state=0 q=0; mid row2 a=0 b=0; row3 clk=0 a=0 b=0 state=1 q=1. Sampled: state=1; mid: state=0.",
+      "spec_evidence": "// 15ns            1               0               0               0               0",
+      "alternative": "state updates using a,b values present at the posedge (sampled), not mid-cycle changes",
+      "sequence": [
+        {"clk": 0, "a": 0, "b": 0, "state": 0, "q": 0},
+        {"clk": 1, "a": 1, "b": 0, "state": 0, "q": 0, "mid": {"a": 0, "b": 0}},
+        {"clk": 0, "a": 0, "b": 0, "state": 1, "q": 1}
+      ]
+    },
+    {
+      "issue_id": "I4",
+      "rule_id": "R2",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "R2 says q=state combinational same_cycle, but spec waveform shows q changes only after posedge (e.g., at 15ns q becomes 0, at 75ns q becomes 1). Alternative: q is registered and updates on posedge with state. Distinguishing sequence: row1 clk=0 a=0 b=0 state=0 q=0; row2 clk=1 a=1 b=0 state=0 q=0; row3 clk=0 a=1 b=0 state=1 q=1. Under combinational q=state, q at row2 should be 0 (state=0) but after posedge state becomes 1, so q should be 1 same cycle; under registered, q remains 0 until next posedge.",
+      "spec_evidence": "// 75ns            1               0               0               1               1",
+      "alternative": "q is registered and updates on posedge with state",
+      "sequence": [
+        {"clk": 0, "a": 0, "b": 0, "state": 0, "q": 0},
+        {"clk": 1, "a": 1, "b": 0, "state": 0, "q": 0},
+        {"clk": 0, "a": 1, "b": 0, "state": 1, "q": 1}
+      ]
+    },
+    {
+      "issue_id": "I5",
+      "rule_id": "global",
+      "type": "grounding",
+      "severity": "medium",
+      "detail": "R1 spec_quote 'one bit of memory (i.e., one flip-flop)' does not verbatim support XOR condition; XOR is inferred from waveform, not quoted. R2 spec_quote supports state observable but not q=state combinational.",
+      "spec_evidence": "one bit of memory (i.e., one flip-flop)",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I6",
+      "rule_id": "R1",
+      "type": "spec_example",
+      "severity": "high",
+      "detail": "Derived outputs from spec waveform using XOR on posedge: at 15ns state=0 (0 XOR 0), 45ns state=1 (0 XOR 1), 55ns state=1 (1 XOR 0), 65ns state=0 (1 XOR 1), 75ns state=1 (0 XOR 0? wait a=0,b=0 gives 0, but spec shows state=1 at 75ns). Check: at 75ns a=0,b=0, prior state=0, XOR=0, but spec state=1. Contradiction: spec waveform at 75ns state=1 with a=0,b=0, which is not XOR of a,b. Also at 85ns a=1,b=1 state=0 (XOR=0 ok), 95ns a=1,b=1 state=1 (XOR=0, but spec state=1). So XOR rule fails at 75ns and 95ns.",
+      "spec_evidence": "// 75ns            1               0               0               1               1",
+      "alternative": "",
+      "sequence": []
+    }
+  ]
+}

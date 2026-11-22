@@ -1,0 +1,68 @@
+def reference(vectors):
+    # Rule async_reset: active-high asynchronous reset forces state A and z=0.
+    # Rule serial_twos_complement: LSB-first two's complement Moore FSM.
+    state = 'A'
+    z = 0
+    cur_areset = 0
+    cur_x = 0
+    result = []
+
+    for row in vectors:
+        if 'areset' in row:
+            cur_areset = int(row['areset']) & 1
+        if 'x' in row:
+            cur_x = int(row['x']) & 1
+
+        # Rule async_reset: priority 0, visible same cycle, independent of clk.
+        if cur_areset == 1:
+            state = 'A'
+            z = 0
+        else:
+            # Rule serial_twos_complement: posedge transition and same-cycle z.
+            if state == 'A':
+                if cur_x == 0:
+                    state = 'A'
+                else:
+                    state = 'B'
+            elif state == 'B':
+                if cur_x == 0:
+                    state = 'B'
+                else:
+                    state = 'C'
+            else:  # state == 'C'
+                if cur_x == 0:
+                    state = 'B'
+                else:
+                    state = 'C'
+
+            if state == 'A':
+                z = 0
+            elif state == 'B':
+                z = 1
+            else:
+                z = 0
+
+        result.append({'z': z})
+
+        # Mid changes occur after sampling and do not affect the current row.
+        if 'areset_mid' in row:
+            cur_areset = int(row['areset_mid']) & 1
+            if cur_areset == 1:
+                # Rule async_reset: asynchronous reset during the mid interval.
+                state = 'A'
+                z = 0
+        if 'x_mid' in row:
+            cur_x = int(row['x_mid']) & 1
+
+        if 'mid' in row and type(row['mid']) == dict:
+            mid = row['mid']
+            if 'areset' in mid:
+                cur_areset = int(mid['areset']) & 1
+                if cur_areset == 1:
+                    # Rule async_reset: asynchronous reset during the mid interval.
+                    state = 'A'
+                    z = 0
+            if 'x' in mid:
+                cur_x = int(mid['x']) & 1
+
+    return result

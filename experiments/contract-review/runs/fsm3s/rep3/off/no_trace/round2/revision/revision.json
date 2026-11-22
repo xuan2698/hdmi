@@ -1,0 +1,131 @@
+{
+  "responses": [
+    {
+      "issue_id": "I1",
+      "decision": "accept",
+      "reason": "R3's visible timing is inconsistent with its example; a Moore output during reset is same_cycle, not next_cycle.",
+      "spec_quote": "Include a synchronous active high reset that resets the FSM to state A.",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R3",
+            "visible"
+          ],
+          "value": "same_cycle"
+        }
+      ]
+    },
+    {
+      "issue_id": "I2",
+      "decision": "rebut",
+      "reason": "The quoted row already expresses the output rule for state A; the combined condition is a derived grouping, and the spec row is the exact source.",
+      "spec_quote": "// A | A, B | 0",
+      "edits": []
+    },
+    {
+      "issue_id": "I3",
+      "decision": "rebut",
+      "reason": "The quoted row already expresses the output value for state D; the transition columns are part of the same row and do not invalidate the output grounding.",
+      "spec_quote": "// D | C, B | 1",
+      "edits": []
+    },
+    {
+      "issue_id": "I4",
+      "decision": "rebut",
+      "reason": "The quoted row is the exact spec line for state A's transition and output; it is the appropriate verbatim grounding.",
+      "spec_quote": "// A | A, B | 0",
+      "edits": []
+    },
+    {
+      "issue_id": "I5",
+      "decision": "rebut",
+      "reason": "The quoted row is the exact spec line for state B's transition and output; it is the appropriate verbatim grounding.",
+      "spec_quote": "// B | C, B | 0",
+      "edits": []
+    },
+    {
+      "issue_id": "I6",
+      "decision": "rebut",
+      "reason": "The quoted row is the exact spec line for state C's transition and output; it is the appropriate verbatim grounding.",
+      "spec_quote": "// C | A, D | 0",
+      "edits": []
+    },
+    {
+      "issue_id": "I7",
+      "decision": "rebut",
+      "reason": "The quoted row is the exact spec line for state D's transition and output; it is the appropriate verbatim grounding.",
+      "spec_quote": "// D | C, B | 1",
+      "edits": []
+    },
+    {
+      "issue_id": "I8",
+      "decision": "accept",
+      "reason": "The spec does not define the pre-reset initial state; the contract's assertion of A before reset release is an extra assumption and should be recorded as uncertain.",
+      "spec_quote": "Include a synchronous active high reset that resets the FSM to state A.",
+      "edits": [
+        {
+          "path": [
+            "states",
+            "A",
+            "meaning"
+          ],
+          "value": "reset state, output 0; initial state before first reset release is not specified by the public spec"
+        },
+        {
+          "path": [
+            "uncertain"
+          ],
+          "value": [
+            {
+              "rule_id": "global",
+              "note": "Spec does not state initial state before first reset; contract previously assumed A.",
+              "candidates": [
+                "Initial state is A even before first reset release",
+                "Initial state is undefined until first synchronous reset; outputs before first reset may be unknown or arbitrary"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "issue_id": "I9",
+      "decision": "accept",
+      "reason": "The spec does not define output during reset; the contract's forced out=0 during reset is an extra assumption and should be recorded as uncertain.",
+      "spec_quote": "Include a synchronous active high reset that resets the FSM to state A.",
+      "edits": [
+        {
+          "path": [
+            "uncertain"
+          ],
+          "value": [
+            {
+              "rule_id": "global",
+              "note": "Spec does not state initial state before first reset; contract previously assumed A.",
+              "candidates": [
+                "Initial state is A even before first reset release",
+                "Initial state is undefined until first synchronous reset; outputs before first reset may be unknown or arbitrary"
+              ]
+            },
+            {
+              "rule_id": "R3",
+              "note": "Spec does not define output during reset; contract forces out=0 during reset.",
+              "candidates": [
+                "Output during reset follows state A (out=0)",
+                "Output during reset is don't-care"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "issue_id": "I10",
+      "decision": "rebut",
+      "reason": "The example is consistent with the Moore output rule and no contradiction is present; no edit is warranted.",
+      "spec_quote": "// C | A, D | 0",
+      "edits": []
+    }
+  ]
+}

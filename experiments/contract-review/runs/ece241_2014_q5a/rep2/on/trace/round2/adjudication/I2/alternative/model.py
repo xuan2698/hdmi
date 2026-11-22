@@ -1,0 +1,58 @@
+def reference(vectors):
+    # State encoding: 0=S0 (z=0), 1=S1 (z=1), 2=S2 (z=0)
+    state = 0
+    cur = {}
+    result = []
+
+    for row in vectors:
+        # Contract: each row's values are driven before the sampled edge.
+        for k in row:
+            if k != "mid":
+                cur[k] = row[k]
+
+        # async_reset_z0 (active-low candidate): areset=0 asynchronously forces S0 and z=0.
+        areset = cur.get("areset", 1)
+        if areset == 0:
+            state = 0
+            z = 0
+        else:
+            x = cur.get("x", 0)
+
+            # s0_x0 / s0_x1
+            if state == 0:
+                if x == 0:
+                    state = 0
+                else:
+                    state = 1
+            # s1_x0 / s1_x1
+            elif state == 1:
+                if x == 0:
+                    state = 1
+                else:
+                    state = 2
+            # s2_x0 / s2_x1
+            else:
+                if x == 0:
+                    state = 1
+                else:
+                    state = 2
+
+            # Same-cycle Moore output after the sampled posedge.
+            if state == 1:
+                z = 1
+            else:
+                z = 0
+
+        result.append({"z": z & 1})
+
+        # Contract mid changes: occur AFTER sampling, before next edge, carried to next row.
+        mid = row.get("mid", None)
+        if mid:
+            for k in mid:
+                cur[k] = mid[k]
+
+            # If reset is asserted mid-cycle, asynchronously force state for following sample.
+            if cur.get("areset", 1) == 0:
+                state = 0
+
+    return result

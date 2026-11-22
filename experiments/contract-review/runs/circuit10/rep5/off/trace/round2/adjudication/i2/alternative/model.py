@@ -1,0 +1,19 @@
+def reference(vectors):
+    # Contract implementation.
+    # r1: q is the registered value of state (q equals state after each posedge).
+    # r2: next state = (a AND b) XOR state, sampled at posedge.
+    # reset: none; power-up state unspecified -> use 0 as concrete value.
+    # mid: inputs may change after sampling; we process each row's inputs at its posedge.
+
+    state = 0  # power-up unspecified; concrete default
+    out = []
+    for row in vectors:
+        a = int(row.get('a', 0)) & 1
+        b = int(row.get('b', 0)) & 1
+        # r2: compute next state from current state and inputs at posedge
+        nxt = ((a & b) ^ state) & 1
+        # r1: q reflects registered state after posedge
+        state = nxt
+        q = state
+        out.append({'q': q & 1, 'state': state & 1})
+    return out

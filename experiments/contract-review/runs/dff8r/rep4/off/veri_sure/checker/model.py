@@ -1,0 +1,66 @@
+def reference(vectors):
+    # Contract:
+    # - 8 D flip-flops, positive-edge triggered.
+    # - Active-high synchronous reset: on posedge clk, if reset==1 -> q=0.
+    # - Otherwise on posedge clk, q captures d.
+    # - Output latency: q reflects value captured at previous posedge.
+    # - Each row: inputs driven before sampled edge; mid changes occur AFTER
+    #   sampling, before the other edge, carried to start of next row.
+    # - Sample after posedge has settled.
+    #
+    # Model: maintain state q (current output). For each row, we process the
+    # posedge using the inputs at that edge (start-of-row values, since mid
+    # changes happen after sampling). Then apply mid changes to inputs for
+    # the next row's start.
+    #
+    # The vectors format: list of rows. Each row is a dict with keys
+    # 'clk', 'reset', 'd', and possibly 'mid' describing changes after sampling.
+    # We assume each row represents one clock cycle with a posedge.
+    #
+    # We need to determine the posedge. Typically each row has clk toggling.
+    # We'll treat each row as containing a posedge event (clk goes 0->1 or
+    # is 1 at sample). The spec says "sample after the posedge edge has settled".
+    # So we sample at the posedge of each row.
+    #
+    # We'll track current input values (reset, d) that are present at the
+    # posedge. Initially, inputs come from the first row's pre-edge values.
+    # Mid changes in a row apply after sampling, affecting next row's start.
+
+    q = 0  # power-up unspecified, but we must return concrete value; use 0
+    results = []
+
+    # Current input state (values at start of row, before mid changes)
+    cur_reset = 0
+    cur_d = 0
+
+    for i, row in enumerate(vectors):
+        # Determine inputs at the posedge for this row.
+        # The row's 'reset' and 'd' are the values driven before the sampled edge.
+        # If this is the first row, use row values. Otherwise, they should match
+        # the carried-over values from previous mid changes, but we'll trust row.
+        r = row.get('reset', cur_reset)
+        d = row.get('d', cur_d)
+
+        # Sample at posedge: synchronous reset
+        if r:
+            q = 0
+        else:
+            q = d & 0xFF  # 8-bit
+
+        # Output after this edge (latency 1 cycle means q updates at this edge,
+        # and is visible after the edge settles). The row's output is q.
+        results.append({'q': q})
+
+        # Apply mid changes AFTER sampling, before next edge.
+        # Mid changes are carried to start of next row.
+        mid = row.get('mid', {})
+        if 'reset' in mid:
+            cur_reset = mid['reset']
+        else:
+            cur_reset = r
+        if 'd' in mid:
+            cur_d = mid['d']
+        else:
+            cur_d = d
+
+    return results

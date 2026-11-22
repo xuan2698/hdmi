@@ -1,0 +1,70 @@
+def reference(vectors):
+    # Support either a raw vector list or a wrapper dict with a "vectors" key.
+    if isinstance(vectors, dict) and "vectors" in vectors:
+        rows = vectors["vectors"]
+    else:
+        rows = vectors
+
+    # Moore state. START has z=0, INV0 has z=0, INV1 has z=1.
+    state = "START"
+
+    # Carried input values. A row's driven values override these before the sampled edge.
+    cur_areset = 0
+    cur_x = 0
+
+    result = []
+
+    for row in rows:
+        mid = None
+
+        if isinstance(row, dict):
+            if "mid" in row:
+                mid = row["mid"]
+
+            # Values driven before the sampled posedge.
+            if "areset" in row:
+                cur_areset = int(row["areset"]) & 1
+            if "x" in row:
+                cur_x = int(row["x"]) & 1
+
+        # R_RESET: asynchronous active-high reset forces START and z=0.
+        if cur_areset == 1:
+            state = "START"
+            z = 0
+        else:
+            # R_CONVERT: posedge serial 2's-complement conversion, LSB first.
+            if state == "START":
+                if cur_x == 0:
+                    state = "START"   # first 0 copied as 0
+                else:
+                    state = "INV1"    # first 1 copied as 1
+            elif state == "INV0":
+                if cur_x == 0:
+                    state = "INV1"    # invert 0 -> 1
+                else:
+                    state = "INV0"    # invert 1 -> 0
+            elif state == "INV1":
+                if cur_x == 0:
+                    state = "INV1"    # invert 0 -> 1
+                else:
+                    state = "INV0"    # invert 1 -> 0
+
+            # Moore output is the state value after the sampled edge settles.
+            if state == "INV1":
+                z = 1
+            else:
+                z = 0
+
+        result.append({"z": z})
+
+        # "mid" changes are applied after sampling and carried to the next row.
+        if isinstance(mid, dict):
+            if "areset" in mid:
+                cur_areset = int(mid["areset"]) & 1
+                if cur_areset == 1:
+                    # R_RESET: asynchronous assertion after sampling resets the machine.
+                    state = "START"
+            if "x" in mid:
+                cur_x = int(mid["x"]) & 1
+
+    return result

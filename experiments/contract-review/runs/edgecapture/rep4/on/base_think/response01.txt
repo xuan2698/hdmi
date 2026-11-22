@@ -1,0 +1,24 @@
+def reference(vectors):
+    M=(1<<32)-1
+    cur={'reset':0,'in':0}
+    prev=0
+    out=0
+    res=[]
+    for row in vectors:
+        for k,v in row.items():
+            if k!='mid' and k in cur:
+                cur[k]=int(v)
+        r=1 if cur['reset'] else 0
+        i=cur['in']&M
+        if r:
+            out=0
+        else:
+            out=(out|(prev&(i^M)))&M
+        prev=i
+        res.append({'out':out&M})
+        mid=row.get('mid')
+        if isinstance(mid,dict):
+            for k,v in mid.items():
+                if k in cur:
+                    cur[k]=int(v)
+    return res

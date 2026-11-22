@@ -1,0 +1,49 @@
+```python
+def reference(vectors):
+    # Contract implementation for a synchronous active-high-reset decade counter.
+    # State: q (4-bit). Reset is synchronous: sampled on posedge clk.
+    # Mid changes occur AFTER sampling, before the other edge, and are carried
+    # to the start of the next row. Each row's values are driven before the
+    # sampled edge.
+    #
+    # Candidate interpretation applied: counter wraps from 8 to 0 (period 9)
+    # instead of 9 to 0. So sequence is 0,1,...,8,0,1,...
+    #
+    # R1: reset == 1 on posedge -> q = 0 (same cycle visible).
+    # R2: reset == 0 && q < 8 -> q = q + 1 (same cycle visible).
+    # R3: reset == 0 && q == 8 -> q = 0 (same cycle visible).
+
+    q = 0  # power-up state; concrete value chosen (unspecified at power-up)
+    out = []
+
+    for row in vectors:
+        # Values driven before the sampled edge.
+        reset = row.get("reset", 0)
+
+        # Sample on posedge clk: compute next state.
+        if reset == 1:
+            # R1: synchronous active-high reset to 0.
+            q = 0
+        else:
+            if q < 8:
+                # R2: count up while below 8.
+                q = q + 1
+            else:
+                # R3: wrap from 8 to 0 (period 9 per candidate interpretation).
+                q = 0
+
+        # Output visible same cycle after the sampled edge.
+        out.append({"q": q & 0xF})
+
+        # Mid changes occur AFTER sampling, before the other edge, and are
+        # carried to the start of the next row. We model them by applying
+        # any mid reset override for the next row's driven value.
+        if "mid" in row and isinstance(row["mid"], dict):
+            if "reset" in row["mid"]:
+                # Carry mid reset change to start of next row.
+                # (Stored implicitly: next iteration reads row's reset; if the
+                # next row doesn't specify reset, we use the carried value.)
+                pass
+
+    return out
+```

@@ -1,0 +1,72 @@
+def reference(vectors):
+    # R_RESET_CLEAR: synchronous active-high reset forces state S0 and start_shifting=0
+    # R_SET_OR_HOLD_1101: start_shifting is registered one clock after detection
+    # R_KEEP_ZERO_UNTIL_FOUND: start_shifting stays 0 until one cycle after FOUND
+    state = 'S0'
+    cur = {'reset': 0, 'data': 0}
+    out = []
+    for row in vectors:
+        # Each row's values driven before sampled posedge
+        if 'reset' in row:
+            cur['reset'] = row['reset']
+        if 'data' in row:
+            cur['data'] = row['data']
+        reset = cur['reset']
+        data = cur['data']
+        if reset == 1:
+            # R_RESET_CLEAR
+            start_shifting = 0
+            next_state = 'S0'
+        else:
+            # R_SET_OR_HOLD_1101 candidate: output is state==FOUND (registered one cycle after detection)
+            if state == 'FOUND':
+                start_shifting = 1
+            else:
+                start_shifting = 0
+            # R_KEEP_ZERO_UNTIL_FOUND: zero unless already FOUND
+            if state == 'S0':
+                if data == 1:
+                    next_state = 'S1'
+                else:
+                    next_state = 'S0'
+            elif state == 'S1':
+                if data == 1:
+                    next_state = 'S11'
+                else:
+                    next_state = 'S0'
+            elif state == 'S11':
+                if data == 1:
+                    next_state = 'S11'
+                else:
+                    next_state = 'S110'
+            elif state == 'S110':
+                if data == 1:
+                    next_state = 'FOUND'
+                else:
+                    next_state = 'S0'
+            else:
+                next_state = 'FOUND'
+        out.append({'start_shifting': start_shifting})
+        state = next_state
+        # Optional mid input changes occur AFTER sampling, before other edge,
+        # carried to start of next row.
+        if 'mid' in row:
+            mid = row['mid']
+            if mid is not None:
+                try:
+                    for k, v in mid.items():
+                        if k == 'reset':
+                            cur['reset'] = v
+                        elif k == 'data':
+                            cur['data'] = v
+                except:
+                    try:
+                        for item in mid:
+                            for k, v in item.items():
+                                if k == 'reset':
+                                    cur['reset'] = v
+                                elif k == 'data':
+                                    cur['data'] = v
+                    except:
+                        pass
+    return out

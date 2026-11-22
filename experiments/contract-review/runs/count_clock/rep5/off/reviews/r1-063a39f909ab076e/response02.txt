@@ -1,0 +1,219 @@
+{
+  "coverage": {
+    "S01": ["R1_reset", "R2_seconds", "R3_seconds_rollover", "R4_minutes_rollover", "R5_hour_rollover_am_pm", "R6_hold"],
+    "S02": ["R2_seconds", "R3_seconds_rollover", "R4_minutes_rollover", "R5_hour_rollover_am_pm", "R6_hold"],
+    "S03": ["R1_reset", "R2_seconds", "R3_seconds_rollover", "R4_minutes_rollover", "R5_hour_rollover_am_pm"],
+    "S04": ["R1_reset"]
+  },
+  "issues": [
+    {
+      "issue_id": "I1",
+      "rule_id": "R1_reset",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "Reset example expected hh=18 (0x12) but spec says 12:00 AM; 0x12 is BCD for 12, but hh=18 decimal is not BCD 12. The example uses decimal 18 instead of BCD 0x12.",
+      "spec_evidence": "Reset is the active high synchronous signal that resets the clock to \"12:00 AM.\"",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I2",
+      "rule_id": "R2_seconds",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "R2 example expected hh=18 (decimal) but BCD 12 should be 0x12=18 decimal? Actually 0x12=18 decimal, so hh=18 is correct BCD encoding. No issue.",
+      "spec_evidence": "",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I3",
+      "rule_id": "R3_seconds_rollover",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "R3 example starts with mm=0, ss=59? The vectors show ena=1 twice; expected mm=1, ss=0 then ss=1. But initial state not given; if initial ss=59, mm=0, first ena gives mm=1, ss=0; second ena gives ss=1. That is consistent. No issue.",
+      "spec_evidence": "",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I4",
+      "rule_id": "R4_minutes_rollover",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "R4 example expected hh=1 after rollover from 12:59:59? But condition hh != 8'h12; if hh=11, mm=59, ss=59, next should be hh=12, mm=0, ss=0. Example shows hh=1, which would be from 12:59:59? Contradiction: R4 condition excludes hh=12, so hh=1 is wrong; should be hh=12 (0x12).",
+      "spec_evidence": "hours (01-12), minutes (00-59)",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I5",
+      "rule_id": "R5_hour_rollover_am_pm",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "R5 example expected pm=1, hh=1 after 12:59:59? But from 12:59:59 PM, next should be 1:00:00 PM? Actually 12:59:59 PM -> 1:00:00 PM, pm stays 1. That is correct. But if starting AM, pm should toggle. Example doesn't specify initial pm; expected pm=1 suggests starting PM. No issue.",
+      "spec_evidence": "",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I6",
+      "rule_id": "R6_hold",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "R6 example expected hh=18 (0x12) but spec says 12:00 AM; 0x12 is BCD for 12, so hh=18 decimal is correct BCD encoding. No issue.",
+      "spec_evidence": "",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I7",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "high",
+      "detail": "Spec says hh is two BCD digits for hours 01-12, but contract states hh_ones meaning '1-2 or 0-9' and hh_tens '0 or 1'. This allows invalid BCD hours like 00, 13-19. Ambiguous whether hh should be 01-12 only.",
+      "spec_evidence": "hh, mm, and ss are two BCD (Binary-Coded Decimal) digits each for hours (01-12), minutes (00-59), and seconds (00-59).",
+      "alternative": "hh should only represent 01-12 in BCD, so hh_ones should be 0-2 with constraints, and hh_tens 0 or 1, but invalid combinations like 00, 13-19 should not occur.",
+      "sequence": [
+        {"reset": 0, "ena": 1},
+        {"reset": 0, "ena": 1}
+      ]
+    },
+    {
+      "issue_id": "I8",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec says pm is asserted if PM, otherwise AM. But initial state after reset is 12:00 AM, so pm=0. However, when hour rolls from 11:59:59 AM to 12:00:00 PM, pm should become 1. Contract R5 only handles hh==12 rollover, but not hh==11 rollover to 12. Missing rule for 11:59:59 -> 12:00:00 with pm toggle.",
+      "spec_evidence": "The signal \"pm\" is asserted if the clock is PM, or is otherwise AM.",
+      "alternative": "There should be a rule for hh==11 && mm==59 && ss==59 to set hh=12, mm=0, ss=0, and toggle pm.",
+      "sequence": [
+        {"reset": 0, "ena": 1},
+        {"reset": 0, "ena": 1}
+      ]
+    },
+    {
+      "issue_id": "I9",
+      "rule_id": "global",
+      "type": "coverage",
+      "severity": "high",
+      "detail": "No rule covers the transition from 11:59:59 to 12:00:00 (AM to PM or PM to AM). R4 covers hh != 12, which includes hh=11, but R4 sets hh=1? Actually R4 condition hh != 8'h12, so if hh=11, it would increment hh to 12? But R4 outputs hh and example shows hh=1, which is inconsistent. R4 seems to handle rollover from 12:59:59? But condition excludes hh=12. So R4 is mislabeled.",
+      "spec_evidence": "hours (01-12), minutes (00-59)",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I10",
+      "rule_id": "R4_minutes_rollover",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "R4 condition: ss==59 && mm==59 && hh != 12. If hh=11, next should be hh=12, mm=0, ss=0. But example expected hh=1, which would be from hh=12? Contradiction: R4 example shows hh=1, which is not consistent with condition hh != 12. Likely R4 should have condition hh == 12? Or example wrong.",
+      "spec_evidence": "hours (01-12), minutes (00-59)",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I11",
+      "rule_id": "R5_hour_rollover_am_pm",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "R5 condition: ss==59 && mm==59 && hh==12. Next should be hh=1, mm=0, ss=0, and pm toggles. Example expected pm=1, hh=1. If starting from 12:59:59 AM (pm=0), next should be 1:00:00 AM (pm=0), not pm=1. Example assumes starting PM. But no initial pm given. Inconsistent.",
+      "spec_evidence": "The signal \"pm\" is asserted if the clock is PM, or is otherwise AM.",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I12",
+      "rule_id": "global",
+      "type": "grounding",
+      "severity": "medium",
+      "detail": "Spec says reset has higher priority than enable and can occur even when not enabled. Contract R1_reset condition reset==1, priority 1, but example vectors show reset=1, ena=0 then reset=0, ena=0. That is consistent. No issue.",
+      "spec_evidence": "",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I13",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec says counters are clocked by fast clk with pulse on ena whenever clock should increment. Contract states update_time 'posedge clk when ena and not reset'. But reset is synchronous and active high; should reset also be sampled on posedge clk? Contract says reset kind sync, so yes. No issue.",
+      "spec_evidence": "",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I14",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec says hh, mm, ss are two BCD digits each. Contract states hh_ones meaning '1-2 or 0-9' which is odd; BCD ones digit for hours 01-12 should be 0-9 but with constraints. Ambiguous whether hh_ones can be 0 when hh_tens=0 (i.e., 00) which is invalid.",
+      "spec_evidence": "hh, mm, and ss are two BCD (Binary-Coded Decimal) digits each for hours (01-12), minutes (00-59), and seconds (00-59).",
+      "alternative": "hh should never be 00; after reset it's 12, and rollover from 12:59:59 goes to 1:00:00, so hh_ones can be 1-9 and hh_tens 0 or 1, but 00 is invalid.",
+      "sequence": [
+        {"reset": 0, "ena": 1},
+        {"reset": 0, "ena": 1}
+      ]
+    },
+    {
+      "issue_id": "I15",
+      "rule_id": "global",
+      "type": "spec_example",
+      "severity": "high",
+      "detail": "Derived outputs for explicit spec waveform/table/examples: Spec gives no explicit waveform/table, but examples in rules are inconsistent. For R1 reset example: reset=1, ena=0 -> next cycle pm=0, hh=18 (0x12), mm=0, ss=0. That matches BCD 12:00 AM. Then reset=0, ena=0 -> hold, same. Then reset=0, ena=0 -> hold, same. So R1 example is consistent if hh=18 is BCD 0x12. But spec says 12:00 AM, so hh should be 0x12=18 decimal. So no issue.",
+      "spec_evidence": "",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I16",
+      "rule_id": "global",
+      "type": "spec_example",
+      "severity": "high",
+      "detail": "R2 example: vectors reset=0,ena=1; reset=0,ena=1; reset=0,ena=0. Expected ss=1,2,2. But initial state not given; if initial ss=0, first ena gives ss=1, second gives ss=2, third hold ss=2. That is consistent. No issue.",
+      "spec_evidence": "",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I17",
+      "rule_id": "global",
+      "type": "spec_example",
+      "severity": "high",
+      "detail": "R3 example: vectors reset=0,ena=1; reset=0,ena=1; reset=0,ena=0. Expected mm=1,ss=0 then mm=1,ss=1 then hold. If initial ss=59, mm=0, first ena gives mm=1,ss=0; second gives ss=1; third hold. Consistent. No issue.",
+      "spec_evidence": "",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I18",
+      "rule_id": "global",
+      "type": "spec_example",
+      "severity": "high",
+      "detail": "R4 example: vectors reset=0,ena=1; reset=0,ena=1; reset=0,ena=0. Expected hh=1,mm=0,ss=0 then hh=1,mm=0,ss=1 then hold. If initial hh=12,mm=59,ss=59, first ena should give hh=1,mm=0,ss=0 (since 12:59:59 -> 1:00:00). But R4 condition is hh != 12, so this example actually matches R5 condition (hh==12). So R4 example is inconsistent with R4 condition. R4 should have condition hh != 12, but example uses hh=12. Contradiction.",
+      "spec_evidence": "hours (01-12), minutes (00-59)",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I19",
+      "rule_id": "global",
+      "type": "spec_example",
+      "severity": "high",
+      "detail": "R5 example: vectors reset=0,ena=1; reset=0,ena=1; reset=0,ena=0. Expected pm=1,hh=1,mm=0,ss=0 then pm=1,hh=1,mm=0,ss=1 then hold. If initial hh=12,mm=59,ss=59,pm=0 (AM), first ena should give hh=1,mm=0,ss=0,pm=0 (still AM). But expected pm=1. So example assumes initial pm=1 (PM). But no initial pm given. Inconsistent.",
+      "spec_evidence": "The signal \"pm\" is asserted if the clock is PM, or is otherwise AM.",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I20",
+      "rule_id": "global",
+      "type": "spec_example",
+      "severity": "high",
+      "detail": "R6 example: vectors reset=0,ena=0; reset=0,ena=0; reset=0,ena=1. Expected pm=0,hh=18,mm=0,ss=0 then same then ss=1. If initial state is 12:00:00 AM (pm=0,hh=0x12,mm=0,ss=0), first two hold, third ena gives ss=1. Consistent. No issue.",
+      "spec_evidence": "",
+      "alternative": "",
+      "sequence": []
+    }
+  ]
+}

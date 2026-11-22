@@ -1,0 +1,46 @@
+{
+  "module_name": "top_module",
+  "io": [
+    {
+      "name": "clk",
+      "dir": "input",
+      "width": 1,
+      "description": "Clock input; positive edge triggers state update."
+    },
+    {
+      "name": "a",
+      "dir": "input",
+      "width": 1,
+      "description": "Single-bit control input sampled at the rising clock edge."
+    },
+    {
+      "name": "q",
+      "dir": "output",
+      "width": 3,
+      "description": "3-bit registered output updated on the rising clock edge."
+    }
+  ],
+  "clocking": {
+    "clock": {
+      "name": "clk",
+      "edge": "posedge"
+    },
+    "reset": null
+  },
+  "timing": {
+    "outputs": {
+      "q": {
+        "latency_cycles": 1
+      }
+    }
+  },
+  "functional_summary": {
+    "overview": "Sequential 3-bit counter with a single-bit control input. On each rising clock edge, q updates based on the sampled value of a. When a=1, q holds its current value. When a=0, q increments by 1 modulo 8.",
+    "rules": [
+      "On each rising edge of clk, sample input a.",
+      "If a == 1, q retains its previous value (hold).",
+      "If a == 0, q increments by 1 modulo 8 (wraps from 7 to 0).",
+      "q is a 3-bit registered output updated one cycle after the sampled edge."
+    ]
+  }
+}

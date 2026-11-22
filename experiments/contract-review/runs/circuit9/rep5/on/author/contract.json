@@ -1,0 +1,104 @@
+{
+  "ports": {
+    "inputs": {
+      "a": 1
+    },
+    "outputs": {
+      "q": 3
+    },
+    "clock": "clk"
+  },
+  "states": [
+    {
+      "name": "q",
+      "meaning": "3-bit counter/register output; reachable values are 0 through 6, with wrap from 6 to 0",
+      "update_time": "posedge clk",
+      "update_during_reset": false
+    }
+  ],
+  "rules": [
+    {
+      "id": "q_load_4_when_a_high",
+      "outputs": [
+        "q"
+      ],
+      "condition": "a == 1: q_next = 4",
+      "edge": "posedge",
+      "visible": "same_cycle",
+      "priority": 1,
+      "spec_quote": "5ns             1               1               4",
+      "uncertain": false,
+      "example": {
+        "vectors": [
+          {
+            "a": 1
+          },
+          {
+            "a": 1
+          }
+        ],
+        "expected": [
+          {
+            "q": 4
+          },
+          {
+            "q": 4
+          }
+        ]
+      }
+    },
+    {
+      "id": "q_advance_mod7_when_a_low",
+      "outputs": [
+        "q"
+      ],
+      "condition": "a == 0: q_next = (q + 1) mod 7, so q=6 advances to q=0",
+      "edge": "posedge",
+      "visible": "same_cycle",
+      "priority": 2,
+      "spec_quote": "75ns             1               0               0",
+      "uncertain": false,
+      "example": {
+        "vectors": [
+          {
+            "a": 0
+          },
+          {
+            "a": 0
+          },
+          {
+            "a": 0
+          },
+          {
+            "a": 0
+          }
+        ],
+        "expected": [
+          {
+            "q": 5
+          },
+          {
+            "q": 6
+          },
+          {
+            "q": 0
+          },
+          {
+            "q": 1
+          }
+        ]
+      }
+    }
+  ],
+  "reset": {
+    "kind": "none",
+    "name": null,
+    "active": "none",
+    "values": {
+      "q": null
+    },
+    "first_released_cycle": "none"
+  },
+  "mid": "Input changes may occur after sampling and before the next edge; the value sampled at a posedge is the value just before that edge.",
+  "uncertain": []
+}

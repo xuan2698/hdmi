@@ -1,0 +1,90 @@
+```python
+def reference(vectors):
+    # Rule bcd_increment: increment a 4-digit BCD value modulo 10000.
+    def bcd_inc(q):
+        ones = q & 0xF
+        tens = (q >> 4) & 0xF
+        hundreds = (q >> 8) & 0xF
+        thousands = (q >> 12) & 0xF
+
+        ones += 1
+        if ones == 10:
+            ones = 0
+            tens += 1
+            if tens == 10:
+                tens = 0
+                hundreds += 1
+                if hundreds == 10:
+                    hundreds = 0
+                    thousands += 1
+                    if thousands == 10:
+                        thousands = 0
+
+        return (thousands << 12) | (hundreds << 8) | (tens << 4) | ones
+
+    # Rule upper_digit_enables: combinational enable bits from current q.
+    def calc_ena(q):
+        ones = q & 0xF
+        tens = (q >> 4) & 0xF
+        hundreds = (q >> 8) & 0xF
+
+        bit0 = 1 if ones == 9 else 0
+        bit1 = 1 if (ones == 9 and tens == 9) else 0
+        bit2 = 1 if (ones == 9 and tens == 9 and hundreds == 9) else 0
+
+        return bit0 + 2 * bit1 + 4 * bit2
+
+    q = 0
+    reset_reg = 0
+    result = []
+
+    for row in vectors:
+        # Each row's input values are driven before the sampled posedge.
+        if isinstance(row, dict):
+            if "reset" in row:
+                reset_reg = row["reset"]
+            if "in" in row and isinstance(row["in"], dict):
+                if "reset" in row["in"]:
+                    reset_reg = row["in"]["reset"]
+        else:
+            reset_reg = int(row)
+
+        # Rule sync_reset: synchronous active-high reset.
+        # Per unresolved override, reset loads a non-zero BCD value 9999.
+        if reset_reg:
+            q = 9999
+        else:
+            # Rule bcd_increment: increment BCD value on posedge when reset is low.
+            q = bcd_inc(q)
+
+        # Rule upper_digit_enables: visible same cycle after q updates.
+        ena = calc_ena(q)
+        result.append({"q": q, "ena": ena})
+
+        # Optional mid input changes occur AFTER sampling and carry to next row.
+        if isinstance(row, dict):
+            mid = None
+            for key in ("mid", "mid_changes", "_mid", "midcycle", "mid_cycle"):
+                if key in row:
+                    mid = row[key]
+                    break
+
+            if mid is not None:
+                if isinstance(mid, dict):
+                    if "reset" in mid:
+                        reset_reg = mid["reset"]
+                elif isinstance(mid, list):
+                    for item in mid:
+                        if isinstance(item, dict):
+                            if "reset" in item:
+                                reset_reg = item["reset"]
+                        elif isinstance(item, int) or isinstance(item, bool):
+                            reset_reg = int(item)
+                elif isinstance(mid, int) or isinstance(mid, bool):
+                    reset_reg = int(mid)
+
+            if "reset_mid" in row:
+                reset_reg = row["reset_mid"]
+
+    return result
+```

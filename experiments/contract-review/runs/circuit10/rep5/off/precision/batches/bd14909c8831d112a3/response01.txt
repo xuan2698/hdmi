@@ -1,0 +1,32 @@
+Looking at the waveform, I need to determine the next-state function. Let me trace through the posedge samples:
+
+At each posedge, we sample (a, b, state) → next state:
+
+- 15ns: (0,0,0) → 0
+- 25ns: (0,0,0) → 0
+- 35ns: (0,0,0) → 0
+- 45ns: (0,1,0) → 1
+- 55ns: (1,0,0) → 1
+- 65ns: (1,1,0) → 0
+- 75ns: (0,0,1) → 1
+- 85ns: (1,1,0) → 0
+- 95ns: (1,1,1) → 1
+- 105ns: (1,1,1) → 1
+- 115ns: (1,0,1) → 0
+- 125ns: (0,1,1) → 0
+- 135ns: (0,0,1) → 1
+- 145ns: (0,0,0) → 0
+- 155ns: (0,0,0) → 0
+- 165ns: (0,0,0) → 0
+- 175ns: (0,0,0) → 0
+- 185ns: (0,0,0) → 0
+
+Check `state_next = a XOR b XOR state`:
+- (0,0,0)→0 ✓, (0,1,0)→1 ✓, (1,0,0)→1 ✓, (1,1,0)→0 ✓
+- (0,0,1)→1 ✓, (1,1,1)→1 ✓, (1,0,1)→0 ✓, (0,1,1)→0 ✓
+
+All consistent. So `state_next = a XOR b XOR state`, and `q = state` (registered).
+
+```json
+{"models":{"fc73dc3ad7f24b965e":"def reference(vectors):\n    state = 0\n    out = []\n    for v in vectors:\n        a = v['a'] & 1\n        b = v['b'] & 1\n        q = state\n        out.append({'q': q, 'state': state})\n        state = (a ^ b ^ state) & 1\n    return out","aaa576e6e4c6283de9":"def reference(vectors):\n    state = 0\n    out = []\n    for v in vectors:\n        a = v['a'] & 1\n        b = v['b'] & 1\n        q = state\n        out.append({'q': q, 'state': state})\n        state = (a ^ b ^ state) & 1\n    return out","6fb945ad96e9baed4d":"def reference(vectors):\n    state = 0\n    out = []\n    for v in vectors:\n        a = v['a'] & 1\n        b = v['b'] & 1\n        q = state\n        out.append({'q': q, 'state': state})\n        state = (a ^ b ^ state) & 1\n    return out","a08b55f8e2e85bf79c":"def reference(vectors):\n    state = 0\n    out = []\n    for v in vectors:\n        a = v['a'] & 1\n        b = v['b'] & 1\n        q = state\n        out.append({'q': q, 'state': state})\n        state = (a ^ b ^ state) & 1\n    return out"}}
+```

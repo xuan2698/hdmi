@@ -1,0 +1,195 @@
+{
+  "responses": [
+    {
+      "issue_id": "I1",
+      "decision": "rebut",
+      "reason": "The reset values already encode 12:00 AM as BCD 0x12 (decimal 18), which matches the spec's BCD requirement; no change is needed.",
+      "spec_quote": "resets the clock to \"12:00 AM.\"",
+      "edits": []
+    },
+    {
+      "issue_id": "I2",
+      "decision": "rebut",
+      "reason": "R2's example is internally consistent (ss increments 0->1->2 with hh held); the hh encoding is a global BCD concern, not a defect in R2.",
+      "spec_quote": "ss are two BCD (Binary-Coded Decimal) digits each for hours (01-12), minutes (00-59), and seconds (00-59)",
+      "edits": []
+    },
+    {
+      "issue_id": "I3",
+      "decision": "rebut",
+      "reason": "R3's example is internally consistent (ss=0x59,mm=0 rolls to mm=1,ss=0 then ss=1); hh encoding is a global concern, not a defect in R3.",
+      "spec_quote": "minutes (00-59), and seconds (00-59)",
+      "edits": []
+    },
+    {
+      "issue_id": "I4",
+      "decision": "accept",
+      "reason": "R4 condition hh != 0x12 conflicts with its example starting at hh=0x12; the example must start from a non-12 hour so the rule fires.",
+      "spec_quote": "hours (01-12), minutes (00-59)",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R4_minutes_rollover",
+            "example"
+          ],
+          "value": {
+            "vectors": [
+              {
+                "reset": 0,
+                "ena": 1
+              },
+              {
+                "reset": 0,
+                "ena": 1
+              },
+              {
+                "reset": 0,
+                "ena": 0
+              }
+            ],
+            "expected": [
+              {
+                "pm": 0,
+                "hh": 17,
+                "mm": 0,
+                "ss": 0
+              },
+              {
+                "pm": 0,
+                "hh": 17,
+                "mm": 0,
+                "ss": 1
+              },
+              {
+                "pm": 0,
+                "hh": 17,
+                "mm": 0,
+                "ss": 1
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "issue_id": "I5",
+      "decision": "rebut",
+      "reason": "R5's example is consistent with condition hh==0x12 rolling to hh=1 with pm toggled; hh=18 is BCD 0x12, the correct 12-hour encoding.",
+      "spec_quote": "The signal \"pm\" is asserted if the clock is PM, or is otherwise AM.",
+      "edits": []
+    },
+    {
+      "issue_id": "I6",
+      "decision": "rebut",
+      "reason": "R6's example correctly holds state when ena=0 and increments ss when ena=1; hh=18 is BCD 0x12, a valid 12-hour value.",
+      "spec_quote": "with a pulse on ena whenever your clock should increment",
+      "edits": []
+    },
+    {
+      "issue_id": "I7",
+      "decision": "accept",
+      "reason": "Clarify that hh is BCD-encoded 12-hour value, so 0x12 (decimal 18) represents 12 o'clock; add uncertain note documenting the encoding.",
+      "spec_quote": "hh, mm, and ss are two BCD (Binary-Coded Decimal) digits each for hours (01-12)",
+      "edits": [
+        {
+          "path": [
+            "uncertain"
+          ],
+          "value": [
+            {
+              "rule_id": "global",
+              "note": "hh is BCD-encoded 12-hour value; 0x12 (decimal 18) represents 12 o'clock, 0x01 represents 1 o'clock.",
+              "candidates": [
+                "hh is BCD 12-hour (0x12 = 12 o'clock)",
+                "hh is binary 0-23 (18 = 6 PM)"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "issue_id": "I8",
+      "decision": "accept",
+      "reason": "Spec says pm asserted if PM; the correct 12-hour convention toggles pm at 11:59:59->12:00:00, not at 12:59:59->1:00:00. Update R5 to toggle pm on 11->12 rollover.",
+      "spec_quote": "The signal \"pm\" is asserted if the clock is PM, or is otherwise AM.",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R5_hour_rollover_am_pm",
+            "condition"
+          ],
+          "value": "reset == 0 && ena == 1 && ss == 8'h59 && mm == 8'h59 && hh == 8'h11"
+        },
+        {
+          "path": [
+            "rules",
+            "R5_hour_rollover_am_pm",
+            "example"
+          ],
+          "value": {
+            "vectors": [
+              {
+                "reset": 0,
+                "ena": 1
+              },
+              {
+                "reset": 0,
+                "ena": 1
+              },
+              {
+                "reset": 0,
+                "ena": 0
+              }
+            ],
+            "expected": [
+              {
+                "pm": 1,
+                "hh": 18,
+                "mm": 0,
+                "ss": 0
+              },
+              {
+                "pm": 1,
+                "hh": 18,
+                "mm": 0,
+                "ss": 1
+              },
+              {
+                "pm": 1,
+                "hh": 18,
+                "mm": 0,
+                "ss": 1
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "issue_id": "I9",
+      "decision": "rebut",
+      "reason": "ena pulse width and clk frequency are external stimulus properties, not RTL behavior; no rule needed.",
+      "spec_quote": "with a pulse on ena whenever your clock should increment",
+      "edits": []
+    },
+    {
+      "issue_id": "I10",
+      "decision": "accept",
+      "reason": "R1 spec_quote omits the priority-over-enable clause; extend the quote to cover it.",
+      "spec_quote": "Reset has higher priority than enable and can occur even when not enabled.",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R1_reset",
+            "spec_quote"
+          ],
+          "value": "Reset is the active high synchronous signal that resets the clock to \"12:00 AM.\" Reset has higher priority than enable and can occur even when not enabled."
+        }
+      ]
+    }
+  ]
+}

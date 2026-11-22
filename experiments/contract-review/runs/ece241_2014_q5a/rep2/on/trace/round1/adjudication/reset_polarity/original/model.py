@@ -1,0 +1,91 @@
+def reference(vectors):
+    # State encoding: S0=0 (z=0), S1=1 (z=1), S2=2 (z=0)
+    S0 = 0
+    S1 = 1
+    S2 = 2
+    state = S0
+    z = 0
+    cur_areset = 0
+    cur_x = 0
+    result = []
+
+    for row in vectors:
+        # Each row's values are driven before the sampled edge.
+        if "areset" in row:
+            cur_areset = row["areset"]
+        if "x" in row:
+            cur_x = row["x"]
+
+        # async_reset_z0: areset=1 asynchronously forces S0 and z=0.
+        if cur_areset == 1:
+            state = S0
+            z = 0
+
+        # Sample after the posedge has settled.
+        if cur_areset == 1:
+            # async_reset_z0: hold S0 and z=0 during reset.
+            state = S0
+            z = 0
+        else:
+            if state == S0:
+                if cur_x == 0:
+                    # s0_x0: S0 + x=0 -> S0, z=0.
+                    state = S0
+                else:
+                    # s0_x1: S0 + x=1 -> S1, z=1.
+                    state = S1
+            elif state == S1:
+                if cur_x == 0:
+                    # s1_x0: S1 + x=0 -> S1, z=1.
+                    state = S1
+                else:
+                    # s1_x1: S1 + x=1 -> S2, z=0.
+                    state = S2
+            else:  # S2
+                if cur_x == 0:
+                    # s2_x0: S2 + x=0 -> S1, z=1.
+                    state = S1
+                else:
+                    # s2_x1: S2 + x=1 -> S2, z=0.
+                    state = S2
+            # Moore output for the new state after the posedge.
+            if state == S1:
+                z = 1
+            else:
+                z = 0
+
+        # Sample the output for this row after the posedge settled.
+        result.append({"z": z})
+
+        # Optional mid changes occur after sampling, before the next edge.
+        mid = None
+        if "mid" in row:
+            mid = row["mid"]
+        if mid is not None:
+            try:
+                # Treat mid as a single dict of changes.
+                for key in mid:
+                    val = mid[key]
+                    if key == "areset":
+                        cur_areset = val
+                        if val == 1:
+                            # async_reset_z0: mid reset pulse.
+                            state = S0
+                            z = 0
+                    elif key == "x":
+                        cur_x = val
+            except:
+                # Treat mid as a list of dicts of changes.
+                for change in mid:
+                    for key in change:
+                        val = change[key]
+                        if key == "areset":
+                            cur_areset = val
+                            if val == 1:
+                                # async_reset_z0: mid reset pulse.
+                                state = S0
+                                z = 0
+                        elif key == "x":
+                            cur_x = val
+
+    return result

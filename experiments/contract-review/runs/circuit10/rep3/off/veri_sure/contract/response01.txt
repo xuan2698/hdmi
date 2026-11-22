@@ -1,0 +1,30 @@
+```json
+{
+  "module_name": "top_module",
+  "io": [
+    {"name": "clk", "dir": "input", "width": 1, "description": "Clock, rising-edge triggered"},
+    {"name": "a", "dir": "input", "width": 1, "description": "Input a"},
+    {"name": "b", "dir": "input", "width": 1, "description": "Input b"},
+    {"name": "state", "dir": "output", "width": 1, "description": "Observable flip-flop state"},
+    {"name": "q", "dir": "output", "width": 1, "description": "Combinational output derived from state and inputs"}
+  ],
+  "clocking": {
+    "clock": {"name": "clk", "edge": "posedge"},
+    "reset": null
+  },
+  "timing": {
+    "outputs": {
+      "state": {"latency_cycles": 1},
+      "q": {"latency_cycles": 0}
+    }
+  },
+  "functional_summary": {
+    "overview": "Single flip-flop sequential circuit. On each rising edge of clk, state updates to the value of a. Output q is combinational and equals state XOR b.",
+    "rules": [
+      "state_next = a (sampled at posedge clk)",
+      "q = state XOR b (combinational, no clock latency)",
+      "No reset; state is undefined until first posedge after power-up"
+    ]
+  }
+}
+```

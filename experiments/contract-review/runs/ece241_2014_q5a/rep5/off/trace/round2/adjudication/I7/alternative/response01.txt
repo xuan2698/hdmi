@@ -1,0 +1,44 @@
+```python
+def reference(vectors):
+    # Contract implementation.
+    # State: S0 = no 1-bit seen yet (pass x), S1 = 1-bit seen (complement x).
+    # R5: async reset forces state to S0 immediately.
+    # Candidate interpretation for global: during areset=1, z is forced to 0.
+    # Mid changes occur after sampling, carried to start of next row.
+
+    state = "S0"  # power-up unspecified; assume S0
+    out = []
+
+    for row in vectors:
+        areset = row.get("areset", 0)
+        x = row.get("x", 0)
+
+        # R5: asynchronous reset forces state to S0 immediately
+        if areset == 1:
+            state = "S0"
+
+        # Compute z combinationally from current state and x
+        if areset == 1:
+            # Candidate interpretation: during reset, z forced to 0
+            z = 0
+        elif state == "S0":
+            # R1: in S0, z = x
+            z = x & 1
+        else:
+            # R2: in S1, z = NOT x
+            z = (~x) & 1
+
+        out.append({"z": z})
+
+        # Posedge state update (only if not in reset)
+        if areset == 0:
+            if state == "S0":
+                # R3: if x=1 -> S1, else stay S0
+                if x == 1:
+                    state = "S1"
+            else:
+                # R4: once in S1, stay S1
+                state = "S1"
+
+    return out
+```

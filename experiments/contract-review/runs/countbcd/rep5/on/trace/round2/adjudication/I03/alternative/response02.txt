@@ -1,0 +1,91 @@
+def reference(vectors):
+    q = 0
+    ena = 0
+    cur_reset = 0
+    out = []
+
+    def inc_bcd(x):
+        ones = x & 15
+        tens = (x >> 4) & 15
+        hundreds = (x >> 8) & 15
+        thousands = (x >> 12) & 15
+
+        ones += 1
+        if ones == 10:
+            ones = 0
+            tens += 1
+            if tens == 10:
+                tens = 0
+                hundreds += 1
+                if hundreds == 10:
+                    hundreds = 0
+                    thousands += 1
+                    if thousands == 10:
+                        thousands = 0
+
+        return ones | (tens << 4) | (hundreds << 8) | (thousands << 12)
+
+    def calc_ena(x):
+        ones = x & 15
+        tens = (x >> 4) & 15
+        hundreds = (x >> 8) & 15
+
+        if ones != 9:
+            return 0
+        if tens != 9:
+            return 1
+        if hundreds != 9:
+            return 3
+        return 7
+
+    for row in vectors:
+        mid_reset = None
+
+        if type(row) is dict:
+            if 'reset' in row:
+                cur_reset = int(row['reset']) & 1
+
+            if 'mid' in row:
+                m = row['mid']
+                if type(m) is dict:
+                    if 'reset' in m:
+                        mid_reset = int(m['reset']) & 1
+                    elif 'reset_mid' in m:
+                        mid_reset = int(m['reset_mid']) & 1
+                    elif 'mid_reset' in m:
+                        mid_reset = int(m['mid_reset']) & 1
+                else:
+                    mid_reset = int(m) & 1
+
+            if 'reset_mid' in row:
+                mid_reset = int(row['reset_mid']) & 1
+            if 'reset__mid' in row:
+                mid_reset = int(row['reset__mid']) & 1
+            if 'mid_reset' in row:
+                mid_reset = int(row['mid_reset']) & 1
+
+        elif type(row) is list or type(row) is tuple:
+            if len(row) > 0:
+                cur_reset = int(row[0]) & 1
+        else:
+            cur_reset = int(row) & 1
+
+        # Rule sync_reset: synchronous active-high reset has priority over counting.
+        if cur_reset:
+            q_next = 0
+            ena_next = 0
+        else:
+            # Rule upper_digit_enables: registered from pre-edge q per provided interpretation.
+            ena_next = calc_ena(q)
+            # Rule bcd_increment: increment as 4-digit BCD modulo 10000.
+            q_next = inc_bcd(q)
+
+        q = q_next
+        ena = ena_next
+        out.append({'q': q, 'ena': ena})
+
+        # Optional mid input changes occur after sampling and carry to next row start.
+        if mid_reset is not None:
+            cur_reset = mid_reset
+
+    return out

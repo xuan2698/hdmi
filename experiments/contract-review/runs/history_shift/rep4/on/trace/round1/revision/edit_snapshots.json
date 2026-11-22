@@ -1,0 +1,506 @@
+[
+  {
+    "issue_id": "I2",
+    "before": {
+      "ports": {
+        "inputs": {
+          "areset": 1,
+          "predict_valid": 1,
+          "predict_taken": 1,
+          "train_mispredicted": 1,
+          "train_taken": 1,
+          "train_history": 32
+        },
+        "outputs": {
+          "predict_history": 32
+        },
+        "clock": "clk"
+      },
+      "states": [
+        {
+          "name": "history",
+          "meaning": "32-bit global branch history shift register. Bit 0 is the direction of the youngest branch; predict_history is this state.",
+          "update_time": "Asynchronously cleared to zero while areset is high; otherwise updated at posedge clk according to the highest-priority applicable rule.",
+          "update_during_reset": true
+        }
+      ],
+      "rules": [
+        {
+          "id": "async_reset",
+          "outputs": [
+            "predict_history"
+          ],
+          "condition": "areset == 1; history_next = 0",
+          "edge": "asynchronous",
+          "visible": "same_cycle",
+          "priority": 0,
+          "spec_quote": "areset is a positive edge triggered asynchronous reset that resets the history counter to zero",
+          "uncertain": false,
+          "example": {
+            "vectors": [
+              {
+                "areset": 1,
+                "predict_valid": 0,
+                "predict_taken": 0,
+                "train_mispredicted": 0,
+                "train_taken": 0,
+                "train_history": 0
+              },
+              {
+                "areset": 0,
+                "predict_valid": 1,
+                "predict_taken": 1,
+                "train_mispredicted": 0,
+                "train_taken": 0,
+                "train_history": 0
+              },
+              {
+                "areset": 1,
+                "predict_valid": 1,
+                "predict_taken": 0,
+                "train_mispredicted": 1,
+                "train_taken": 1,
+                "train_history": 123
+              }
+            ],
+            "expected": [
+              {
+                "predict_history": 0
+              },
+              {
+                "predict_history": 1
+              },
+              {
+                "predict_history": 0
+              }
+            ]
+          }
+        },
+        {
+          "id": "mispredict_load",
+          "outputs": [
+            "predict_history"
+          ],
+          "condition": "areset == 0 && train_mispredicted == 1; history_next = ((train_history << 1) & 0xFFFFFFFF) | train_taken",
+          "edge": "posedge",
+          "visible": "same_cycle",
+          "priority": 1,
+          "spec_quote": "the history before the mispredicted branch (train_history) concatenated with the actual result of the branch (train_taken)",
+          "uncertain": false,
+          "example": {
+            "vectors": [
+              {
+                "areset": 1,
+                "predict_valid": 0,
+                "predict_taken": 0,
+                "train_mispredicted": 0,
+                "train_taken": 0,
+                "train_history": 0
+              },
+              {
+                "areset": 0,
+                "predict_valid": 1,
+                "predict_taken": 0,
+                "train_mispredicted": 1,
+                "train_taken": 1,
+                "train_history": 2147483649
+              },
+              {
+                "areset": 0,
+                "predict_valid": 0,
+                "predict_taken": 0,
+                "train_mispredicted": 0,
+                "train_taken": 0,
+                "train_history": 0
+              }
+            ],
+            "expected": [
+              {
+                "predict_history": 0
+              },
+              {
+                "predict_history": 3
+              },
+              {
+                "predict_history": 3
+              }
+            ]
+          }
+        },
+        {
+          "id": "predict_shift",
+          "outputs": [
+            "predict_history"
+          ],
+          "condition": "areset == 0 && train_mispredicted == 0 && predict_valid == 1; history_next = ((history << 1) & 0xFFFFFFFF) | predict_taken",
+          "edge": "posedge",
+          "visible": "same_cycle",
+          "priority": 2,
+          "spec_quote": "shift in predict_taken from the LSB side",
+          "uncertain": false,
+          "example": {
+            "vectors": [
+              {
+                "areset": 1,
+                "predict_valid": 0,
+                "predict_taken": 0,
+                "train_mispredicted": 0,
+                "train_taken": 0,
+                "train_history": 0
+              },
+              {
+                "areset": 0,
+                "predict_valid": 1,
+                "predict_taken": 1,
+                "train_mispredicted": 0,
+                "train_taken": 0,
+                "train_history": 0
+              },
+              {
+                "areset": 0,
+                "predict_valid": 1,
+                "predict_taken": 0,
+                "train_mispredicted": 0,
+                "train_taken": 0,
+                "train_history": 0
+              }
+            ],
+            "expected": [
+              {
+                "predict_history": 0
+              },
+              {
+                "predict_history": 1
+              },
+              {
+                "predict_history": 2
+              }
+            ]
+          }
+        },
+        {
+          "id": "hold",
+          "outputs": [
+            "predict_history"
+          ],
+          "condition": "areset == 0 && train_mispredicted == 0 && predict_valid == 0; history_next = history",
+          "edge": "posedge",
+          "visible": "same_cycle",
+          "priority": 3,
+          "spec_quote": "predict_history is the value of the branch history register",
+          "uncertain": true,
+          "example": {
+            "vectors": [
+              {
+                "areset": 1,
+                "predict_valid": 0,
+                "predict_taken": 0,
+                "train_mispredicted": 0,
+                "train_taken": 0,
+                "train_history": 0
+              },
+              {
+                "areset": 0,
+                "predict_valid": 1,
+                "predict_taken": 1,
+                "train_mispredicted": 0,
+                "train_taken": 0,
+                "train_history": 0
+              },
+              {
+                "areset": 0,
+                "predict_valid": 0,
+                "predict_taken": 0,
+                "train_mispredicted": 0,
+                "train_taken": 0,
+                "train_history": 0
+              }
+            ],
+            "expected": [
+              {
+                "predict_history": 0
+              },
+              {
+                "predict_history": 1
+              },
+              {
+                "predict_history": 1
+              }
+            ]
+          }
+        }
+      ],
+      "reset": {
+        "kind": "async",
+        "name": "areset",
+        "active": "high",
+        "values": {
+          "predict_history": 0
+        },
+        "first_released_cycle": "first sampled cycle with areset == 0; normal posedge update rules apply from then on"
+      },
+      "mid": "No mid-cycle changes are used in these examples; each vector row gives all nonclock inputs before the sampled posedge.",
+      "uncertain": [
+        {
+          "rule_id": "hold",
+          "note": "The supplied specification does not explicitly state no-update behavior; the contract infers that the 32-bit history register retains its value when neither prediction nor misprediction update occurs.",
+          "candidates": [
+            "predict_history retains its previous value when no update event occurs.",
+            "predict_history is unspecified when no update event occurs."
+          ]
+        }
+      ]
+    },
+    "after": {
+      "ports": {
+        "inputs": {
+          "areset": 1,
+          "predict_valid": 1,
+          "predict_taken": 1,
+          "train_mispredicted": 1,
+          "train_taken": 1,
+          "train_history": 32
+        },
+        "outputs": {
+          "predict_history": 32
+        },
+        "clock": "clk"
+      },
+      "states": [
+        {
+          "name": "history",
+          "meaning": "32-bit global branch history shift register. Bit 0 is the direction of the youngest branch; predict_history is this state.",
+          "update_time": "Asynchronously cleared to zero while areset is high; otherwise updated at posedge clk according to the highest-priority applicable rule.",
+          "update_during_reset": true
+        }
+      ],
+      "rules": [
+        {
+          "id": "async_reset",
+          "outputs": [
+            "predict_history"
+          ],
+          "condition": "areset == 1; history_next = 0",
+          "edge": "asynchronous",
+          "visible": "same_cycle",
+          "priority": 0,
+          "spec_quote": "areset is a positive edge triggered asynchronous reset that resets the history counter to zero",
+          "uncertain": false,
+          "example": {
+            "vectors": [
+              {
+                "areset": 1,
+                "predict_valid": 0,
+                "predict_taken": 0,
+                "train_mispredicted": 0,
+                "train_taken": 0,
+                "train_history": 0
+              },
+              {
+                "areset": 0,
+                "predict_valid": 1,
+                "predict_taken": 1,
+                "train_mispredicted": 0,
+                "train_taken": 0,
+                "train_history": 0
+              },
+              {
+                "areset": 1,
+                "predict_valid": 1,
+                "predict_taken": 0,
+                "train_mispredicted": 1,
+                "train_taken": 1,
+                "train_history": 123
+              }
+            ],
+            "expected": [
+              {
+                "predict_history": 0
+              },
+              {
+                "predict_history": 1
+              },
+              {
+                "predict_history": 0
+              }
+            ]
+          }
+        },
+        {
+          "id": "mispredict_load",
+          "outputs": [
+            "predict_history"
+          ],
+          "condition": "areset == 0 && train_mispredicted == 1; history_next = ((train_history << 1) & 0xFFFFFFFF) | train_taken",
+          "edge": "posedge",
+          "visible": "same_cycle",
+          "priority": 1,
+          "spec_quote": "the history before the mispredicted branch (train_history) concatenated with the actual result of the branch (train_taken)",
+          "uncertain": false,
+          "example": {
+            "vectors": [
+              {
+                "areset": 1,
+                "predict_valid": 0,
+                "predict_taken": 0,
+                "train_mispredicted": 0,
+                "train_taken": 0,
+                "train_history": 0
+              },
+              {
+                "areset": 0,
+                "predict_valid": 1,
+                "predict_taken": 0,
+                "train_mispredicted": 1,
+                "train_taken": 1,
+                "train_history": 2147483649
+              },
+              {
+                "areset": 0,
+                "predict_valid": 0,
+                "predict_taken": 0,
+                "train_mispredicted": 0,
+                "train_taken": 0,
+                "train_history": 0
+              }
+            ],
+            "expected": [
+              {
+                "predict_history": 0
+              },
+              {
+                "predict_history": 3
+              },
+              {
+                "predict_history": 3
+              }
+            ]
+          }
+        },
+        {
+          "id": "predict_shift",
+          "outputs": [
+            "predict_history"
+          ],
+          "condition": "areset == 0 && train_mispredicted == 0 && predict_valid == 1; history_next = ((history << 1) & 0xFFFFFFFF) | predict_taken",
+          "edge": "posedge",
+          "visible": "same_cycle",
+          "priority": 2,
+          "spec_quote": "shift in predict_taken from the LSB side",
+          "uncertain": false,
+          "example": {
+            "vectors": [
+              {
+                "areset": 1,
+                "predict_valid": 0,
+                "predict_taken": 0,
+                "train_mispredicted": 0,
+                "train_taken": 0,
+                "train_history": 0
+              },
+              {
+                "areset": 0,
+                "predict_valid": 1,
+                "predict_taken": 1,
+                "train_mispredicted": 0,
+                "train_taken": 0,
+                "train_history": 0
+              },
+              {
+                "areset": 0,
+                "predict_valid": 1,
+                "predict_taken": 0,
+                "train_mispredicted": 0,
+                "train_taken": 0,
+                "train_history": 0
+              }
+            ],
+            "expected": [
+              {
+                "predict_history": 0
+              },
+              {
+                "predict_history": 1
+              },
+              {
+                "predict_history": 2
+              }
+            ]
+          }
+        },
+        {
+          "id": "hold",
+          "outputs": [
+            "predict_history"
+          ],
+          "condition": "areset == 0 && train_mispredicted == 0 && predict_valid == 0; history_next = history",
+          "edge": "posedge",
+          "visible": "same_cycle",
+          "priority": 3,
+          "spec_quote": "predict_history is the value of the branch history register",
+          "uncertain": true,
+          "example": {
+            "vectors": [
+              {
+                "areset": 1,
+                "predict_valid": 0,
+                "predict_taken": 0,
+                "train_mispredicted": 0,
+                "train_taken": 0,
+                "train_history": 0
+              },
+              {
+                "areset": 0,
+                "predict_valid": 1,
+                "predict_taken": 1,
+                "train_mispredicted": 0,
+                "train_taken": 0,
+                "train_history": 0
+              },
+              {
+                "areset": 0,
+                "predict_valid": 0,
+                "predict_taken": 0,
+                "train_mispredicted": 0,
+                "train_taken": 0,
+                "train_history": 0
+              }
+            ],
+            "expected": [
+              {
+                "predict_history": 0
+              },
+              {
+                "predict_history": 1
+              },
+              {
+                "predict_history": 1
+              }
+            ]
+          }
+        }
+      ],
+      "reset": {
+        "kind": "async",
+        "name": "areset",
+        "active": "high",
+        "values": {
+          "predict_history": 0
+        },
+        "first_released_cycle": "first sampled cycle with areset == 0; normal posedge update rules apply from then on"
+      },
+      "mid": "No mid-cycle changes are used in these examples; each vector row gives all nonclock inputs before the sampled posedge.",
+      "uncertain": [
+        {
+          "rule_id": "hold",
+          "note": "The supplied specification does not explicitly state no-update behavior; the contract infers that the 32-bit history register retains its value when neither prediction nor misprediction update occurs, but a shift-register alternative could shift in 0 on idle cycles.",
+          "candidates": [
+            "predict_history retains its previous value when no update event occurs.",
+            "predict_history is unspecified when no update event occurs.",
+            "On idle cycles history_next = (history << 1) & 0xFFFFFFFF (shift in 0)."
+          ]
+        }
+      ]
+    }
+  }
+]

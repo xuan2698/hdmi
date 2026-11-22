@@ -1,0 +1,32 @@
+```python
+def reference(vectors):
+    # Contract implementation.
+    # R_Y0: Y0 = next-state bit 0 as function of y and x per state-assigned table.
+    # R_z: z = 1 for present states 011 and 100, else 0.
+    # present_state updates on posedge clk to next state Y[2:0].
+    # Mid input changes occur AFTER sampling, before the other edge, carried to next row.
+
+    # State-assigned table: for each present state y, next state for x=0 and x=1.
+    # y=000 -> x=0:000, x=1:001
+    # y=001 -> x=0:001, x=1:100
+    # y=010 -> x=0:010, x=1:001
+    # y=011 -> x=0:001, x=1:010
+    # y=100 -> x=0:011, x=1:100
+    next_state = {
+        0: {0: 0, 1: 1},
+        1: {0: 1, 1: 4},
+        2: {0: 2, 1: 1},
+        3: {0: 1, 1: 2},
+        4: {0: 3, 1: 4},
+    }
+
+    results = []
+    for vec in vectors:
+        x = vec["x"] & 1
+        y = vec["y"] & 7
+        ns = next_state[y][x]
+        Y0 = ns & 1  # R_Y0
+        z = 1 if (y == 3 or y == 4) else 0  # R_z
+        results.append({"Y0": Y0, "z": z})
+    return results
+```

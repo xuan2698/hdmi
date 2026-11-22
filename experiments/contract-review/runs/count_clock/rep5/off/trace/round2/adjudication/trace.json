@@ -1,0 +1,274 @@
+[
+  {
+    "issue": {
+      "issue_id": "I7",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "high",
+      "detail": "Contract marks hh encoding uncertain: BCD 12-hour (0x12=12) vs binary 0-23 (18=6PM). Spec explicitly says BCD and hours 01-12, so binary 0-23 alternative contradicts spec; uncertainty is not grounded.",
+      "spec_evidence": "hh, mm, and ss are two BCD (Binary-Coded Decimal) digits each for hours (01-12)",
+      "alternative": "hh is binary 0-23 where 18 means 6 PM",
+      "sequence": [
+        {
+          "reset": 0,
+          "ena": 1
+        },
+        {
+          "reset": 0,
+          "ena": 1
+        },
+        {
+          "reset": 0,
+          "ena": 0
+        }
+      ]
+    },
+    "status": "no_effect",
+    "issue_id": "I7",
+    "outputs": {
+      "original": [
+        {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 0
+        },
+        {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 1
+        },
+        {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 2
+        }
+      ],
+      "alternative": [
+        {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 0
+        },
+        {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 1
+        },
+        {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 2
+        }
+      ]
+    },
+    "differences": []
+  },
+  {
+    "issue": {
+      "issue_id": "I8",
+      "rule_id": "R5_hour_rollover_am_pm",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "R5 condition hh==8'h11 (BCD 11) rolls to hh=18 (0x12) and toggles pm; but spec says 12-hour clock with AM/PM. Transition from 11:59:59 to 12:00:00 should toggle pm, yet example output hh=18 is invalid BCD and pm toggling from AM to PM at 11->12 is plausible but not explicitly stated for both directions.",
+      "spec_evidence": "The signal \"pm\" is asserted if the clock is PM, or is otherwise AM.",
+      "alternative": "At 11:59:59 AM, next is 12:00:00 PM (pm=1); at 11:59:59 PM, next is 12:00:00 AM (pm=0).",
+      "sequence": [
+        {
+          "reset": 0,
+          "ena": 1
+        },
+        {
+          "reset": 0,
+          "ena": 1
+        },
+        {
+          "reset": 0,
+          "ena": 0
+        }
+      ]
+    },
+    "status": "effect",
+    "issue_id": "I8",
+    "outputs": {
+      "original": [
+        {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 1
+        },
+        {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 2
+        },
+        {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 2
+        }
+      ],
+      "alternative": [
+        {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 0
+        },
+        {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 1
+        },
+        {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 2
+        }
+      ]
+    },
+    "differences": [
+      {
+        "cycle": 1,
+        "original": {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 1
+        },
+        "alternative": {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 0
+        }
+      },
+      {
+        "cycle": 2,
+        "original": {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 2
+        },
+        "alternative": {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 1
+        }
+      }
+    ]
+  },
+  {
+    "issue": {
+      "issue_id": "I9",
+      "rule_id": "R4_minutes_rollover",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "R4 condition hh != 8'h12 but example uses hh=17; no rule covers hh==8'h12 (12) minute rollover to 01:00. Spec requires 12-hour wrap from 12:59:59 to 01:00:00, but no rule explicitly handles hh==0x12 with minute rollover.",
+      "spec_evidence": "hours (01-12)",
+      "alternative": "When hh==0x12, mm==0x59, ss==0x59, ena=1, next state should be hh=0x01, mm=0x00, ss=0x00, pm unchanged.",
+      "sequence": [
+        {
+          "reset": 0,
+          "ena": 1
+        },
+        {
+          "reset": 0,
+          "ena": 1
+        },
+        {
+          "reset": 0,
+          "ena": 0
+        }
+      ]
+    },
+    "status": "effect",
+    "issue_id": "I9",
+    "outputs": {
+      "original": [
+        {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 0
+        },
+        {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 1
+        },
+        {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 2
+        }
+      ],
+      "alternative": [
+        {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 1
+        },
+        {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 2
+        },
+        {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 2
+        }
+      ]
+    },
+    "differences": [
+      {
+        "cycle": 1,
+        "original": {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 0
+        },
+        "alternative": {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 1
+        }
+      },
+      {
+        "cycle": 2,
+        "original": {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 1
+        },
+        "alternative": {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 2
+        }
+      }
+    ]
+  }
+]

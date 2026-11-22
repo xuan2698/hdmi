@@ -1,0 +1,148 @@
+{
+  "responses": [
+    {
+      "issue_id": "I1",
+      "decision": "accept",
+      "reason": "Spec shows q=x at 0ns with no reset; contract lacks initial-value clarification. Add uncertain note about initial q being x/unspecified.",
+      "spec_quote": "// 0ns             0               1               x",
+      "edits": [
+        {
+          "path": [
+            "uncertain"
+          ],
+          "value": [
+            {
+              "rule_id": "global",
+              "note": "Initial q is x at 0ns with no reset; first posedge establishes value.",
+              "candidates": [
+                "q is x until first posedge",
+                "q is unspecified until first posedge"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "issue_id": "I2",
+      "decision": "accept",
+      "reason": "Spec shows a=0 at 45ns posedge does not increment q (stays 4); increment is not unconditional on a=0. Rule must reflect falling-edge/conditional behavior.",
+      "spec_quote": "// 45ns            1               0               4",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "hold_when_a_high",
+            "condition"
+          ],
+          "value": "a == 1 || (a == 0 && prev_a == 0)"
+        }
+      ]
+    },
+    {
+      "issue_id": "I3",
+      "decision": "accept",
+      "reason": "Example must match spec: increment occurs only on falling transition of a (prev a=1, now a=0), not every a=0 posedge.",
+      "spec_quote": "// 55ns            1               0               5",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "increment_when_a_low",
+            "example"
+          ],
+          "value": {
+            "vectors": [
+              {
+                "a": 1
+              },
+              {
+                "a": 0
+              },
+              {
+                "a": 0
+              }
+            ],
+            "expected": [
+              {
+                "q": 4
+              },
+              {
+                "q": 5
+              },
+              {
+                "q": 5
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "issue_id": "I4",
+      "decision": "accept",
+      "reason": "Ambiguity resolved: increment only on posedge where a=0 and previous sampled a=1; hold otherwise.",
+      "spec_quote": "// 45ns            1               0               4",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "increment_when_a_low",
+            "condition"
+          ],
+          "value": "a == 0 && prev_a == 1"
+        }
+      ]
+    },
+    {
+      "issue_id": "I5",
+      "decision": "accept",
+      "reason": "Rules must reproduce spec waveform: hold at 45ns, increment at 55/65/75/85ns. Update hold rule to cover non-falling posedges.",
+      "spec_quote": "// 45ns            1               0               4",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "hold_when_a_high"
+          ],
+          "value": {
+            "id": "hold_when_a_high",
+            "outputs": [
+              "q"
+            ],
+            "condition": "a == 1 || (a == 0 && prev_a == 0)",
+            "edge": "posedge",
+            "visible": "same_cycle",
+            "priority": 1,
+            "spec_quote": "// 45ns            1               0               4",
+            "uncertain": false,
+            "example": {
+              "vectors": [
+                {
+                  "a": 1
+                },
+                {
+                  "a": 0
+                },
+                {
+                  "a": 0
+                }
+              ],
+              "expected": [
+                {
+                  "q": 4
+                },
+                {
+                  "q": 4
+                },
+                {
+                  "q": 4
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

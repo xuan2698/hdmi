@@ -1,0 +1,90 @@
+{
+  "coverage": {
+    "S01": ["R1", "R2", "R3", "R4", "R6", "R7", "R8", "R9"],
+    "S02": ["R1", "R2", "R3", "R4", "R5", "R6", "R7", "R8", "R9"],
+    "S03": ["R5"],
+    "S04": ["R1", "R2", "R3", "R4", "R6", "R7", "R8", "R9"],
+    "S05": ["R1", "R6"],
+    "S06": ["R2", "R7"],
+    "S07": ["R3", "R8"],
+    "S08": ["R4", "R9"]
+  },
+  "issues": [
+    {
+      "issue_id": "I1",
+      "rule_id": "R5",
+      "type": "consistency",
+      "severity": "medium",
+      "detail": "R5 example expected outputs are all 0, but after reset release the FSM may leave A depending on in; example does not exercise state change and cannot validate reset semantics.",
+      "spec_evidence": "Include a synchronous active high reset that resets the FSM to state A.",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I2",
+      "rule_id": "R6",
+      "type": "consistency",
+      "severity": "medium",
+      "detail": "R6 example starts in A with in=0, then in=1 moves to B, then in=0 moves to C; expected out stays 0, which is consistent but does not distinguish A/B/C outputs. No contradiction, but weak grounding.",
+      "spec_evidence": "A | A, B | 0",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I3",
+      "rule_id": "R7",
+      "type": "consistency",
+      "severity": "medium",
+      "detail": "R7 example assumes starting state B, but first vector in=0 moves B->C, then in=1 C->D, then in=0 D->C; expected out all 0 contradicts D output 1 at cycle 2 if state D reached. Example is inconsistent with transition rules.",
+      "spec_evidence": "B | C, B | 0",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I4",
+      "rule_id": "R8",
+      "type": "consistency",
+      "severity": "medium",
+      "detail": "R8 example assumes starting state C, in=0 -> A, in=1 -> B, in=0 -> C; expected out all 0 is consistent but does not exercise D. Weak grounding.",
+      "spec_evidence": "C | A, D | 0",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I5",
+      "rule_id": "R9",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "R9 example assumes starting state D, in=0 -> C, in=1 -> B, in=0 -> C; expected out all 1 contradicts C output 0 at cycles 1 and 2. Example inconsistent with output rules.",
+      "spec_evidence": "D | C, B | 1",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I6",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Initial state before first posedge is unspecified; contract marks uncertain but provides no resolution. Output before first posedge undefined unless reset applied.",
+      "spec_evidence": "",
+      "alternative": "Assume initial state A and output 0 before first posedge.",
+      "sequence": [
+        {"in": 0, "reset": 0},
+        {"in": 1, "reset": 0}
+      ]
+    },
+    {
+      "issue_id": "I7",
+      "rule_id": "R5",
+      "type": "ambiguity",
+      "severity": "low",
+      "detail": "Reset is synchronous active high; contract says update_during_reset true for all states and reset values out=0, but does not specify whether output during reset cycle is 0 immediately or next cycle. R5 edge posedge visible next_cycle suggests next cycle.",
+      "spec_evidence": "synchronous active high reset that resets the FSM to state A",
+      "alternative": "Output during reset cycle is 0 combinationally same cycle.",
+      "sequence": [
+        {"in": 1, "reset": 1},
+        {"in": 0, "reset": 0}
+      ]
+    }
+  ]
+}

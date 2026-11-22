@@ -1,0 +1,25 @@
+```python
+def reference(vectors):
+    # State: 3-bit accumulator q, previous sampled a (prev_a), and whether q has been initialized.
+    # Rule global: initial q is unspecified; we choose 0 as the concrete power-up value.
+    # Rule global (candidate interpretation): increment when a==0 and previous a==0 (second consecutive low), hold otherwise.
+    # Rule hold_when_a_high: hold when a==1 or previous a==0 (priority 1).
+    # Rule increment_when_a_low: increment when a==0 and previous a==1 (priority 1).
+    # The candidate interpretation overrides: increment when a==0 and prev_a==0; hold otherwise.
+
+    q = 0
+    prev_a = None  # no previous sample yet
+    out = []
+
+    for row in vectors:
+        a = row['a']
+        # At posedge: decide update based on current a and previous sampled a.
+        # Candidate interpretation: increment when a==0 and prev_a==0 (second consecutive low).
+        if prev_a is not None and a == 0 and prev_a == 0:
+            q = (q + 1) & 0x7  # 3-bit wrap
+        # else hold
+        out.append({'q': q})
+        prev_a = a
+
+    return out
+```

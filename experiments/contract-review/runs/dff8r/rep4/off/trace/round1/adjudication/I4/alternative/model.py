@@ -1,0 +1,23 @@
+def reference(vectors):
+    # State: q_reg holds the 8-bit flip-flop output register.
+    # R1_sync_reset / R2_dff_capture: q updates on posedge clk.
+    # global: q initializes to 0 at time 0 before any clock edge.
+    q_reg = 0  # global: initial value 0
+
+    results = []
+    for row in vectors:
+        d = row["d"]
+        reset = row["reset"]
+
+        # Sample at posedge clk (after edge settled).
+        # R1_sync_reset: reset == 1 -> q becomes 0 (priority 1).
+        # R2_dff_capture: reset == 0 -> q becomes d (priority 2).
+        if reset == 1:
+            q_reg = 0  # R1_sync_reset
+        else:
+            q_reg = d & 0xFF  # R2_dff_capture
+
+        # Output visible next_cycle: report the updated register value.
+        results.append({"q": q_reg & 0xFF})
+
+    return results

@@ -1,0 +1,36 @@
+def reference(vectors):
+    # State encoding
+    A, B, C, D = 0, 1, 2, 3
+    state = A  # power-up unspecified; use reset state A
+    out = 0
+    results = []
+
+    for vec in vectors:
+        # R1/R2: combinational output based on current state (visible same cycle)
+        if state == D:
+            out = 1  # R2
+        else:
+            out = 0  # R1
+
+        # Sample inputs at posedge
+        in_val = vec.get('in', 0)
+        reset_val = vec.get('reset', 0)
+
+        # R3: synchronous active high reset forces state A (priority 0)
+        if reset_val == 1:
+            state = A
+        else:
+            # R4-R7: state transitions (priority 2)
+            if state == A:
+                state = B if in_val == 1 else A  # R4
+            elif state == B:
+                state = B if in_val == 1 else C  # R5
+            elif state == C:
+                state = D if in_val == 1 else A  # R6
+            elif state == D:
+                state = B if in_val == 1 else C  # R7
+
+        # Output reflects state before this edge's transition (Moore, same_cycle)
+        results.append({'out': out})
+
+    return results

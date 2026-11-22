@@ -1,0 +1,23 @@
+def reference(vectors):
+    # Contract implementation.
+    # R1: state <= a AND b on posedge (next_cycle visible).
+    # R2: q = state after posedge (registered output of flip-flop).
+    # Reset: none. Power-up state unspecified -> treat as 0 (concrete unsigned).
+    # Mid input changes occur AFTER sampling, before other edge, carried to next row.
+    # Each row: values driven before sampled posedge; sample after posedge settles.
+    # We model: at each row, compute next_state = a & b, then state = next_state, q = state.
+    # (state and q both update on posedge; q reflects the new state.)
+
+    state = 0  # power-up unspecified; concrete default 0
+    q = 0
+    out = []
+    for row in vectors:
+        a = int(row.get('a', 0)) & 1
+        b = int(row.get('b', 0)) & 1
+        # R1: state <= a AND b on posedge
+        next_state = a & b
+        state = next_state
+        # R2: q = state after posedge (registered output)
+        q = state
+        out.append({'q': q & 1, 'state': state & 1})
+    return out

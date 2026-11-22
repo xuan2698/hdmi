@@ -1,0 +1,86 @@
+def reference(vectors):
+    # State encoding: 0=S0, 1=S1, 2=S2
+    state = 0  # S0: no 1 received since reset release
+    cur_areset = 0
+    cur_x = 0
+    out = []
+
+    for row in vectors:
+        # Contract: Each row's values are driven before the sampled edge.
+        if 'areset' in row:
+            cur_areset = row['areset']
+        if 'x' in row:
+            cur_x = row['x']
+
+        # async_reset_z0: areset=1 asynchronously forces S0 and z=0.
+        if cur_areset == 1:
+            state = 0  # S0
+            z = 0
+        else:
+            # Sampled posedge when areset=0.
+            if state == 0:  # S0
+                # s0_x0: x=0 keeps S0, z=0
+                # s0_x1: x=1 advances to S1, z=1
+                if cur_x == 0:
+                    state = 0
+                    z = 0
+                else:
+                    state = 1
+                    z = 1
+            elif state == 1:  # S1
+                # s1_x0: x=0 keeps S1, z=1
+                # s1_x1: x=1 advances to S2, z=0
+                if cur_x == 0:
+                    state = 1
+                    z = 1
+                else:
+                    state = 2
+                    z = 0
+            else:  # S2
+                # s2_x0: x=0 returns to S1, z=1
+                # s2_x1: x=1 keeps S2, z=0
+                if cur_x == 0:
+                    state = 1
+                    z = 1
+                else:
+                    state = 2
+                    z = 0
+
+        out.append({'z': z})
+
+        # Mid changes occur after sampling and carry to the next row.
+        if 'mid' in row:
+            mid = row['mid']
+            if mid is not None:
+                if mid.__class__.__name__ == 'dict':
+                    if 'areset' in mid:
+                        cur_areset = mid['areset']
+                        if cur_areset == 1:
+                            state = 0  # asynchronous reset between edges
+                    if 'x' in mid:
+                        cur_x = mid['x']
+                else:
+                    # Support a list of mid change objects.
+                    for m in mid:
+                        if m.__class__.__name__ == 'dict':
+                            if 'areset' in m:
+                                cur_areset = m['areset']
+                                if cur_areset == 1:
+                                    state = 0
+                            if 'x' in m:
+                                cur_x = m['x']
+                        else:
+                            # Support (name, value) pairs.
+                            try:
+                                name = m[0]
+                                val = m[1]
+                                if name == 'areset':
+                                    cur_areset = val
+                                    if cur_areset == 1:
+                                        state = 0
+                                elif name == 'x':
+                                    cur_x = val
+                            except:
+                                pass
+
+    return out

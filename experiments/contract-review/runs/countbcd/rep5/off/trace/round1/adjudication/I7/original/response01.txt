@@ -1,0 +1,50 @@
+```python
+def reference(vectors):
+    # State: 16-bit BCD counter value
+    q = 0
+    ena = 0
+    out = []
+
+    for vec in vectors:
+        reset = vec.get('reset', 0)
+
+        # R1_reset: synchronous active-high reset -> outputs 0 same cycle
+        if reset == 1:
+            q = 0
+            ena = 0
+            out.append({'q': q, 'ena': ena})
+            continue
+
+        # Compute enables based on current q (before increment)
+        ones = q & 0xF
+        tens = (q >> 4) & 0xF
+        hundreds = (q >> 8) & 0xF
+        thousands = (q >> 12) & 0xF
+
+        # R3_ena_tens: bit0 of ena when ones == 9
+        e_tens = 1 if ones == 9 else 0
+        # R4_ena_hundreds: bit1 of ena when ones==9 and tens==9
+        e_hundreds = 1 if (ones == 9 and tens == 9) else 0
+        # R5_ena_thousands: bit2 of ena when ones==9, tens==9, hundreds==9
+        e_thousands = 1 if (ones == 9 and tens == 9 and hundreds == 9) else 0
+
+        ena = (e_thousands << 2) | (e_hundreds << 1) | e_tens
+
+        # R2_ones_increment / R6_bcd_rollover: increment BCD
+        ones += 1
+        if ones == 10:
+            ones = 0
+            tens += 1
+            if tens == 10:
+                tens = 0
+                hundreds += 1
+                if hundreds == 10:
+                    hundreds = 0
+                    thousands = (thousands + 1) % 10
+
+        q = (thousands << 12) | (hundreds << 8) | (tens << 4) | ones
+
+        out.append({'q': q, 'ena': ena})
+
+    return out
+```

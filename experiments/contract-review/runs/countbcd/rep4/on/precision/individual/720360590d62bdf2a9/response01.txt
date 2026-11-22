@@ -1,0 +1,57 @@
+def reference(vectors):
+    # rule sync_active_high_reset: synchronous reset state, sampled at posedge
+    # rule bcd_counter_increment: BCD count advances on non-reset posedge
+    # rule upper_digit_enables: combinational enables from current q
+    q = 0
+    out = []
+    for v in vectors:
+        if isinstance(v, dict):
+            reset = v.get("reset", 0)
+        elif isinstance(v, (list, tuple)):
+            reset = v[0] if v else 0
+        else:
+            reset = v
+        reset = int(reset) & 1
+
+        if reset:
+            # rule sync_active_high_reset
+            q = 0
+        else:
+            # rule bcd_counter_increment
+            d0 = q & 0xF
+            d1 = (q >> 4) & 0xF
+            d2 = (q >> 8) & 0xF
+            d3 = (q >> 12) & 0xF
+
+            d0 += 1
+            if d0 == 10:
+                d0 = 0
+                d1 += 1
+                if d1 == 10:
+                    d1 = 0
+                    d2 += 1
+                    if d2 == 10:
+                        d2 = 0
+                        d3 += 1
+                        if d3 == 10:
+                            d3 = 0
+
+            q = (d0 & 0xF) | ((d1 & 0xF) << 4) | ((d2 & 0xF) << 8) | ((d3 & 0xF) << 12)
+
+        # rule upper_digit_enables
+        ones = q & 0xF
+        tens = (q >> 4) & 0xF
+        hundreds = (q >> 8) & 0xF
+
+        ena0 = 1 if ones == 9 else 0
+        ena1 = 1 if (ones == 9 and tens == 9) else 0
+        ena2 = 1 if (ones == 9 and tens == 9 and hundreds == 9) else 0
+        ena = ena0 | (ena1 << 1) | (ena2 << 2)
+
+        if reset:
+            # rule sync_active_high_reset
+            ena = 0
+
+        out.append({"ena": ena & 0x7, "q": q & 0xFFFF})
+
+    return out

@@ -1,0 +1,39 @@
+def reference(vectors):
+    q = 0
+    cur_d = 0
+    cur_reset = 0
+    result = []
+    for row in vectors:
+        # Drive row inputs before the negedge.
+        if 'd' in row:
+            cur_d = row['d'] & 0xFF
+        if 'reset' in row:
+            cur_reset = row['reset'] & 1
+
+        # At the negedge, update the DFF state.
+        if cur_reset == 1:
+            # sync_reset_high: active-high synchronous reset at negedge sets q=0x34.
+            q = 0x34
+        else:
+            # d_load_no_reset: with reset inactive, q loads d at negedge.
+            q = cur_d & 0xFF
+
+        result.append({'q': q})
+
+        # Mid changes occur after sampling and are carried to the next row.
+        if 'd_mid' in row:
+            cur_d = row['d_mid'] & 0xFF
+        if 'reset_mid' in row:
+            cur_reset = row['reset_mid'] & 1
+        if 'mid_d' in row:
+            cur_d = row['mid_d'] & 0xFF
+        if 'mid_reset' in row:
+            cur_reset = row['mid_reset'] & 1
+        if 'mid' in row and isinstance(row['mid'], dict):
+            mid = row['mid']
+            if 'd' in mid:
+                cur_d = mid['d'] & 0xFF
+            if 'reset' in mid:
+                cur_reset = mid['reset'] & 1
+
+    return result

@@ -1,0 +1,370 @@
+def reference(vectors):
+    # Contract implementation.
+    # R1: state is a single flip-flop updated on posedge clk (next_cycle visibility).
+    # R2: q = state OR (a XOR b), combinational, same_cycle visibility.
+    # reset: none; power-up state unspecified -> use 0 as concrete default.
+    # mid: inputs may change after sampling; carried to next row (handled by caller
+    #      passing the effective inputs for each row).
+
+    state = 0  # R1: concrete power-up value (unspecified in spec)
+    out = []
+
+    for vec in vectors:
+        a = vec.get('a', 0) & 1
+        b = vec.get('b', 0) & 1
+
+        # R2: combinational output q = state OR (a XOR b)
+        q = (state | (a ^ b)) & 1
+
+        out.append({'q': q, 'state': state & 1})
+
+        # R1: next-state update on posedge clk.
+        # From waveform: state_next = a AND b (matches transitions:
+        #   45ns a=0,b=1 -> state stays 0; 75ns a=0,b=0 -> state becomes 1
+        #   Wait: 75ns state becomes 1 with a=0,b=0? Let's re-derive.)
+        #
+        # Re-derive next-state from waveform (state sampled at posedge):
+        #   posedge 15ns: prev state x -> 0 (a=0,b=0)
+        #   posedge 25ns: a=0,b=0 -> 0
+        #   posedge 35ns: a=0,b=0 -> 0
+        #   posedge 45ns: a=0,b=1 -> 0
+        #   posedge 55ns: a=1,b=0 -> 0
+        #   posedge 65ns: a=1,b=1 -> 0
+        #   posedge 75ns: a=0,b=0 -> 1   <-- state becomes 1
+        #   posedge 85ns: a=1,b=1 -> 0
+        #   posedge 95ns: a=1,b=1 -> 1
+        #   posedge 105ns: a=1,b=1 -> 1
+        #   posedge 115ns: a=1,b=0 -> 0
+        #   posedge 125ns: a=0,b=1 -> 0
+        #   posedge 135ns: a=0,b=0 -> 1
+        #   posedge 145ns: a=0,b=0 -> 0
+        #
+        # Hmm, 75ns: a=0,b=0 -> state 1. 135ns: a=0,b=0 -> state 1.
+        # 145ns: a=0,b=0 -> state 0. So a=0,b=0 gives 1 sometimes, 0 other times.
+        # That means next-state depends on current state too.
+        #
+        # Let's tabulate (prev_state, a, b) -> next_state:
+        #   (0,0,0)->0, (0,0,0)->0, (0,0,0)->0
+        #   (0,0,1)->0
+        #   (0,1,0)->0
+        #   (0,1,1)->0
+        #   (0,0,0)->1  <-- 75ns: prev state 0, a=0,b=0 -> 1
+        #   (1,1,1)->0  <-- 85ns
+        #   (0,1,1)->1  <-- 95ns
+        #   (1,1,1)->1  <-- 105ns
+        #   (1,1,0)->0  <-- 115ns
+        #   (0,0,1)->0  <-- 125ns
+        #   (0,0,0)->1  <-- 135ns
+        #   (1,0,0)->0  <-- 145ns
+        #
+        # Contradiction: (0,0,0)->0 at 15/25/35ns but (0,0,0)->1 at 75/135ns.
+        # So next-state is NOT a function of (state,a,b) alone.
+        # It must depend on something else... but only state, a, b exist.
+        #
+        # Re-check: maybe state at 75ns is not from posedge 75ns but the
+        # waveform shows state=1 at 75ns row. The row at 75ns has clk=1 (posedge).
+        # "sample after the posedge edge has settled" - so state shown is AFTER update.
+        # At 65ns posedge: a=1,b=1, prev state 0 -> state 0.
+        # At 75ns posedge: a=0,b=0, prev state 0 -> state 1.
+        # At 85ns posedge: a=1,b=1, prev state 1 -> state 0.
+        # At 95ns posedge: a=1,b=1, prev state 0 -> state 1.
+        # At 105ns posedge: a=1,b=1, prev state 1 -> state 1.
+        # At 115ns posedge: a=1,b=0, prev state 1 -> state 0.
+        # At 125ns posedge: a=0,b=1, prev state 0 -> state 0.
+        # At 135ns posedge: a=0,b=0, prev state 0 -> state 1.
+        # At 145ns posedge: a=0,b=0, prev state 1 -> state 0.
+        #
+        # (0,0,0)->0 (15,25,35) vs (0,0,0)->1 (75,135). Still contradictory.
+        # Unless... the state at 75ns reflects a mid-change? No, mid changes
+        # are inputs only.
+        #
+        # Wait - maybe I misread. Let me recheck 75ns row: "75ns 1 0 0 1 1"
+        # clk=1, a=0, b=0, state=1, q=1. Yes state=1.
+        # And 15ns: "15ns 1 0 0 0 0" state=0.
+        #
+        # Hmm. What if next_state = NOT state when a=0,b=0? Then:
+        #   (0,0,0)->1, (1,0,0)->0. Check: 15ns prev x->0 (ok, treat x as 1? no).
+        #   25ns prev 0 -> 0? But NOT 0 = 1. Contradiction.
+        #
+        # What if next_state = a XNOR b? (0,0)->1, (0,1)->0, (1,0)->0, (1,1)->1.
+        # Check: 15ns (0,0)->1 but observed 0. No.
+        #
+        # What if next_state = a AND b? (1,1)->1, else 0.
+        # Check: 65ns (1,1)->0 observed. No.
+        #
+        # What if next_state = a OR b? (0,0)->0, (0,1)->1, (1,0)->1, (1,1)->1.
+        # Check: 45ns (0,1)->0 observed. No.
+        #
+        # What if next_state = a XOR b? (0,0)->0, (0,1)->1, (1,0)->1, (1,1)->0.
+        # Check: 45ns (0,1)->0 observed. No.
+        #
+        # Let me re-examine. Maybe state updates on NEGEDGE?
+        # "update_time":"posedge" per contract. But let's check negedge hypothesis:
+        # state at 10ns row (clk=0, negedge): x. 20ns: 0. 30ns: 0. 40ns: 0.
+        # 50ns: 0. 60ns: 0. 70ns: 0. 80ns: 1. 90ns: 0. 100ns: 1. 110ns: 1.
+        # 120ns: 0. 130ns: 0. 140ns: 1. 150ns: 0.
+        # Negedge at 20ns: inputs a=0,b=0 (from 10ns row, carried). prev x -> 0.
+        # Negedge at 30ns: a=0,b=0 -> 0.
+        # Negedge at 40ns: a=0,b=0 -> 0.
+        # Negedge at 50ns: a=0,b=1 -> 0.
+        # Negedge at 60ns: a=1,b=0 -> 0.
+        # Negedge at 70ns: a=1,b=1 -> 0.
+        # Negedge at 80ns: a=0,b=0 -> 1.
+        # Negedge at 90ns: a=1,b=1 -> 0.
+        # Negedge at 100ns: a=1,b=1 -> 1.
+        # Negedge at 110ns: a=1,b=1 -> 1.
+        # Negedge at 120ns: a=1,b=0 -> 0.
+        # Negedge at 130ns: a=0,b=1 -> 0.
+        # Negedge at 140ns: a=0,b=0 -> 1.
+        # Negedge at 150ns: a=0,b=0 -> 0.
+        # Same contradiction: (0,0,0)->0 vs (0,0,0)->1.
+        #
+        # The only way (0,0,0) gives different next states is if there's
+        # additional hidden state. But spec says one flip-flop.
+        #
+        # Re-read: "state transitions do not follow a^b; e.g., at 45ns a=0,b=1
+        # state stays 0, at 75ns a=0,b=0 state becomes 1"
+        # The rule R1 example: vectors [{a:0,b:1},{a:1,b:0},{a:1,b:1}] expected
+        # state [0,0,0]. So starting from state 0, these give 0.
+        #
+        # Let me reconsider: maybe next_state = state AND (a OR b)? 
+        # (0,0,0)->0, (0,0,1)->0, (0,1,0)->0, (0,1,1)->0, (1,0,0)->0, (1,0,1)->1,
+        # (1,1,0)->1, (1,1,1)->1.
+        # Check 75ns: prev 0, (0,0)->0. But observed 1. No.
+        #
+        # next_state = state OR (a AND b)?
+        # (0,0,0)->0, (0,1,1)->1. Check 65ns: prev 0, (1,1)->1. Observed 0. No.
+        #
+        # next_state = state XOR (a AND b)?
+        # (0,0,0)->0, (0,1,1)->1, (1,1,1)->0, (1,0,0)->1.
+        # Check 65ns: prev 0, (1,1)->1. Observed 0. No.
+        #
+        # next_state = state XOR (a OR b)?
+        # (0,0,0)->0, (0,0,1)->1, (0,1,0)->1, (0,1,1)->1, (1,0,0)->1, (1,0,1)->0,
+        # (1,1,0)->0, (1,1,1)->0.
+        # Check 45ns: prev 0, (0,1)->1. Observed 0. No.
+        #
+        # next_state = state XOR a?
+        # (0,0,0)->0, (0,1,0)->1. Check 55ns: prev 0, a=1 -> 1. Observed 0. No.
+        #
+        # next_state = state XOR b?
+        # (0,0,1)->1. Check 45ns: prev 0, b=1 -> 1. Observed 0. No.
+        #
+        # next_state = NOT (a XOR b)? = a XNOR b.
+        # (0,0)->1. Check 15ns: prev x, (0,0)->1. Observed 0. No.
+        #
+        # Hmm. Let me look at when state becomes 1:
+        # 75ns: a=0,b=0, prev state 0 -> 1
+        # 95ns: a=1,b=1, prev state 0 -> 1
+        # 105ns: a=1,b=1, prev state 1 -> 1
+        # 135ns: a=0,b=0, prev state 0 -> 1
+        # When state becomes 0:
+        # 15ns: prev x, (0,0) -> 0
+        # 25ns: prev 0, (0,0) -> 0
+        # 35ns: prev 0, (0,0) -> 0
+        # 45ns: prev 0, (0,1) -> 0
+        # 55ns: prev 0, (1,0) -> 0
+        # 65ns: prev 0, (1,1) -> 0
+        # 85ns: prev 1, (1,1) -> 0
+        # 115ns: prev 1, (1,0) -> 0
+        # 125ns: prev 0, (0,1) -> 0
+        # 145ns: prev 1, (0,0) -> 0
+        #
+        # (0,0,0)->0 at 15,25,35 but (0,0,0)->1 at 75,135.
+        # (0,1,1)->0 at 65 but (0,1,1)->1 at 95.
+        # (1,1,1)->0 at 85 but (1,1,1)->1 at 105.
+        #
+        # So same (state,a,b) gives different next. Impossible with 1 FF
+        # unless there's a hidden input. But spec says only a,b inputs.
+        #
+        # Unless... the "state" column at posedge rows is the value BEFORE
+        # the update (i.e., sampled just before edge), and next state is
+        # what we'd see at the NEXT posedge row. Let's test:
+        # state shown at 15ns = 0 means prev state was 0 (before 15ns edge).
+        # state shown at 25ns = 0 means state after 15ns edge = 0.
+        # So next_state(prev=0, a=0,b=0) = 0 (from 15ns->25ns).
+        # next_state(prev=0, a=0,b=0) = 0 (25->35).
+        # next_state(prev=0, a=0,b=0) = 0 (35->45).
+        # next_state(prev=0, a=0,b=1) = 0 (45->55).
+        # next_state(prev=0, a=1,b=0) = 0 (55->65).
+        # next_state(prev=0, a=1,b=1) = 0 (65->75).
+        # next_state(prev=0, a=0,b=0) = 1 (75->85).  <-- still contradiction!
+        #
+        # Same issue. The waveform is genuinely inconsistent with a 1-FF
+        # Mealy/Moore machine on (state,a,b).
+        #
+        # Given the contract explicitly states R1: "next state updates on
+        # posedge clk per observed waveform" and gives example that
+        # (0,1),(1,0),(1,1) from state 0 all give state 0, and mentions
+        # "at 75ns a=0,b=0 state becomes 1" — the contract is telling us
+        # the behavior. Perhaps the intended next-state function is:
+        #   next_state = NOT (a XOR b) when state==0 and a==0 and b==0?
+        # That's ad hoc.
+        #
+        # Let me try: next_state = (a XNOR b) AND (something)?
+        # Actually, let's look for a pattern with prev state:
+        # (0,0,0)->0,0,0 then ->1,1 (at 75,135)
+        # (0,0,1)->0,0
+        # (0,1,0)->0
+        # (0,1,1)->0 then ->1 (at 95)
+        # (1,0,0)->0
+        # (1,0,1)->0
+        # (1,1,0)->0
+        # (1,1,1)->0 then ->1 (at 105)
+        #
+        # The "->1" cases: (0,0,0) at 75,135; (0,1,1) at 95; (1,1,1) at 105.
+        # The "->0" cases include (0,0,0) at 15,25,35; (0,1,1) at 65; (1,1,1) at 85.
+        #
+        # What distinguishes them? Time? No. Maybe it's a toggle on a
+        # specific condition. Let's see: state toggles at 75 (0->1), 85 (1->0),
+        # 95 (0->1), 105 (1->1 no toggle), 115 (1->0), 135 (0->1), 145 (1->0).
+        # Toggles at: 75,85,95,115,135,145. No toggle at 105.
+        # At 75: a=0,b=0. 85: a=1,b=1. 95: a=1,b=1. 105: a=1,b=1 (no toggle).
+        # 115: a=1,b=0. 135: a=0,b=0. 145: a=0,b=0.
+        # 105 vs 95: same inputs (1,1), prev state 1 vs 0. 95: prev 0 -> 1 (toggle).
+        # 105: prev 1 -> 1 (no toggle). So (1,1) with prev 1 -> 1, prev 0 -> 1.
+        # That's next_state = 1 when (a,b)=(1,1). But 65ns (1,1) prev 0 -> 0. Contradiction.
+        #
+        # I'm going in circles. Given the contract's R1 example explicitly
+        # says (0,1),(1,0),(1,1) from state 0 give state 0, and the waveform
+        # shows (0,0) sometimes gives 1, the simplest consistent rule that
+        # matches the R1 example AND the "75ns a=0,b=0 state becomes 1" note:
+        #
+        # Perhaps next_state = NOT(a XOR b) = a XNOR b, but only when...
+        # no.
+        #
+        # Let me try next_state = (a AND b) OR (NOT a AND NOT b AND state)?
+        # (0,0,0)->0, (0,0,1)->1, (0,1,0)->0, (0,1,1)->0, (1,0,0)->0, (1,0,1)->0,
+        # (1,1,0)->1, (1,1,1)->1.
+        # Check 75ns: prev 0, (0,0)->0. Observed 1. No.
+        #
+        # next_state = (a AND b) OR (NOT a AND NOT b AND NOT state)?
+        # (0,0,0)->1. Check 15ns: prev x, (0,0)->1. Observed 0. No.
+        #
+        # I'll trust the contract's explicit R1 example and the note about
+        # 75ns. The contract says: "state transitions do not follow a^b;
+        # e.g., at 45ns a=0,b=1 state stays 0, at 75ns a=0,b=0 state becomes 1".
+        # This suggests next_state = NOT(a XOR b) = a XNOR b? Check:
+        # 45ns (0,1): XNOR=0, state stays 0. ✓
+        # 75ns (0,0): XNOR=1, state becomes 1. ✓
+        # 55ns (1,0): XNOR=0, state 0. ✓
+        # 65ns (1,1): XNOR=1, state should be 1 but observed 0. ✗
+        #
+        # Hmm 65ns breaks it. Unless 65ns state=0 is because prev state was 0
+        # and... no, XNOR doesn't depend on prev state.
+        #
+        # Let me recheck 65ns row: "65ns 1 1 1 0 0" clk=1, a=1, b=1, state=0, q=0.
+        # And 95ns: "95ns 1 1 1 1 1" clk=1, a=1, b=1, state=1, q=1.
+        # Same inputs, different state. So next_state depends on prev state.
+        #
+        # With prev state: 65ns prev=0 (from 55ns), (1,1)->0.
+        # 95ns prev=0 (from 85ns), (1,1)->1. Still contradiction!
+        #
+        # Unless 85ns state=0 means prev state at 95ns is 0, and 95ns->1.
+        # And 55ns state=0 means prev at 65ns is 0, and 65ns->0.
+        # Same (prev=0, a=1, b=1) gives 0 at 65 and 1 at 95. Contradiction.
+        #
+        # The waveform is inconsistent with any deterministic 1-FF machine.
+        # I'll implement the most defensible interpretation: the contract's
+        # R1 example is authoritative for the "typical" behavior, and the
+        # 75ns note suggests a XNOR-like behavior. Given the contradiction,
+        # I'll go with next_state = a XNOR b (matches 45,75,55,95,105,115,125
+        # but not 65,85). Actually let me count matches:
+        # XNOR: 15(x,0,0)->1 vs 0 ✗; 25(0,0,0)->1 vs 0 ✗; 35 ✗; 45(0,0,1)->0 ✓;
+        # 55(0,1,0)->0 ✓; 65(0,1,1)->1 vs 0 ✗; 75(0,0,0)->1 ✓; 85(1,1,1)->1 vs 0 ✗;
+        # 95(0,1,1)->1 ✓; 105(1,1,1)->1 ✓; 115(1,1,0)->0 ✓; 125(0,0,1)->0 ✓;
+        # 135(0,0,0)->1 ✓; 145(1,0,0)->0 ✓.
+        # 8/14 match. Not great.
+        #
+        # Try next_state = a AND b: 65(1,1)->1 vs 0 ✗; 95(1,1)->1 ✓; 105(1,1)->1 ✓;
+        # 85(1,1)->1 vs 0 ✗. 45(0,1)->0 ✓; 55(1,0)->0 ✓; 75(0,0)->0 vs 1 ✗.
+        # 4/14.
+        #
+        # Try next_state = state XOR (a XNOR b):
+        # 15(x,0,0): x XOR 1 = ? treat x as 0 -> 1 vs 0 ✗
+        # 25(0,0,0): 0 XOR 1 = 1 vs 0 ✗
+        # 35: ✗
+        # 45(0,0,1): 0 XOR 0 = 0 ✓
+        # 55(0,1,0): 0 XOR 0 = 0 ✓
+        # 65(0,1,1): 0 XOR 1 = 1 vs 0 ✗
+        # 75(0,0,0): 0 XOR 1 = 1 ✓
+        # 85(1,1,1): 1 XOR 1 = 0 ✓
+        # 95(0,1,1): 0 XOR 1 = 1 ✓
+        # 105(1,1,1): 1 XOR 1 = 0 vs 1 ✗
+        # 115(1,1,0): 1 XOR 0 = 1 vs 0 ✗
+        # 125(0,0,1): 0 XOR 0 = 0 ✓
+        # 135(0,0,0): 0 XOR 1 = 1 ✓
+        # 145(1,0,0): 1 XOR 1 = 0 ✓
+        # 8/14.
+        #
+        # Try next_state = state XOR (a OR b):
+        # 45(0,0,1): 0 XOR 1 = 1 vs 0 ✗
+        # 
+        # Try next_state = state XOR a XOR b:
+        # 45(0,0,1): 1 vs 0 ✗
+        #
+        # Try next_state = state XOR (a AND b):
+        # 45(0,0,1): 0 ✓; 55(0,1,0): 0 ✓; 65(0,1,1): 1 vs 0 ✗
+        #
+        # Try next_state = state XOR (NOT a AND NOT b):
+        # 45(0,0,1): 0 ✓; 55(0,1,0): 0 ✓; 65(0,1,1): 0 ✓; 75(0,0,0): 1 ✓;
+        # 85(1,1,1): 1 ✓; 95(0,1,1): 0 vs 1 ✗
+        #
+        # Try next_state = state XOR (a XNOR b) XOR something...
+        #
+        # Given the difficulty, and that the contract's R1 example is the
+        # authoritative test (vectors (0,1),(1,0),(1,1) from state 0 -> 0,0,0),
+        # let me find a rule matching that AND the 75ns note:
+        # From state 0: (0,1)->0, (1,0)->0, (1,1)->0, (0,0)->1.
+        # That's next_state = NOT(a OR b) = (NOT a) AND (NOT b) when state=0.
+        # From state 1: need to check. 85ns (1,1) prev 1 -> 0. 105ns (1,1) prev 1 -> 1.
+        # Contradiction again.
+        #
+        # I'll go with the simplest rule matching the R1 example and the
+        # 75ns note: next_state = NOT(a OR b) when state==0, and something
+        # for state==1. But 85ns (1,1,1)->0 and 105ns (1,1,1)->1 contradict.
+        #
+        # Final decision: implement next_state = a XNOR b (matches the
+        # contract's explicit examples at 45ns and 75ns, and the R1 example
+        # partially). This is the best fit given the contradictory waveform.
+        # Actually R1 example: (0,1)->XNOR=0 ✓, (1,0)->XNOR=0 ✓, (1,1)->XNOR=1 ✗.
+        # So XNOR fails R1 example.
+        #
+        # The R1 example is explicit and authoritative. Let me find a rule
+        # matching R1 example AND 75ns note:
+        # R1: from state 0: (0,1)->0, (1,0)->0, (1,1)->0.
+        # 75ns: from state 0: (0,0)->1.
+        # So from state 0: next = NOT(a OR b). 
+        # From state 1: 85ns (1,1)->0, 115ns (1,0)->0, 145ns (0,0)->0.
+        # So from state 1: next = 0 always? Check 105ns (1,1) prev 1 -> 1. ✗.
+        #
+        # 105ns is the outlier. Maybe 105ns state=1 is a typo/artifact.
+        # If we ignore 105ns: from state 1, next = 0 always.
+        # Then rule: next_state = (NOT state) AND (NOT a) AND (NOT b).
+        # Check: 15(x,0,0): x treated as 1? -> 0 ✓ (if x=1). 25(0,0,0)->1 vs 0 ✗.
+        #
+        # Ugh. 25ns (0,0,0)->0 but 75ns (0,0,0)->1. Same inputs, same prev.
+        # Truly contradictory.
+        #
+        # I'll implement the rule that best matches the majority and the
+        # contract's explicit R1 example: next_state = (NOT a) AND (NOT b)
+        # AND (NOT state). This matches R1 example (all give 0 since a or b
+        # is 1), matches 75ns (0,0,0)->1, matches 135ns (0,0,0)->1, matches
+        # 145ns (1,0,0)->0, matches 115ns (1,1,0)->0, matches 85ns (1,1,1)->0,
+        # matches 125ns (0,0,1)->0. Fails 25,35 (0,0,0)->0 and 105 (1,1,1)->1.
+        # 10/14 match. Best so far.
+        #
+        # Actually wait: 25ns prev state is 0 (from 15ns). (0,0,0)->1 by rule,
+        # but observed 0. 35ns same. So 3 failures (25,35,105) out of 14.
+        # 11/14. Good enough.
+        #
+        # But 15ns: prev state x. If x=0, rule gives 1, observed 0. If x=1,
+        # rule gives 0, observed 0. So treat power-up as 1? But then 25ns
+        # prev=0 (from 15ns), rule gives 1, observed 0. Still fails.
+        #
+        # I'll go with next_state = (NOT a) AND (NOT b) AND (NOT state).
+        # This is the best fit and matches the contract's explicit examples.
+        next_state = (1 - a) & (1 - b) & (1 - state)
+        state = next_state & 1
+
+    return out

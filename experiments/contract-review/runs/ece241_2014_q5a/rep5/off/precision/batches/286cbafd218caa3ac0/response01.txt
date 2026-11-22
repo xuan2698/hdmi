@@ -1,0 +1,316 @@
+We need to produce JSON with three models, each implementing the exact state semantics independently. Let me analyze each variant.
+
+**Common structure:** Moore machine with states S0 (no 1 seen yet) and S1 (1 seen). Output z depends on state and x (combinational). State updates on posedge. Async reset to S0.
+
+**Variant 1 (f65be9641a022fb5d4):**
+- R1: S0 → z = x
+- R2: S1 → z = NOT x
+- R3: posedge, S0: x=1 → S1, x=0 → S0
+- R4: posedge, S1: stays S1
+- R5: areset=1 → state S0 immediately, z follows R1/R2 from resulting state (so z = x when areset=1, since state is S0)
+- Example R5: areset=1,x=1 → z=1; areset=1,x=0 → z=0; areset=0,x=0 → z=0. Consistent with z=x during reset.
+
+**Variant 2 (60139ba913bc77d360):**
+- Same R1-R3, R5 as variant 1.
+- R4 differs: "once in S1, state remains S1 regardless of x" but example shows: vectors x=1,0,0 → expected z=0,1,1.
+  - Cycle 1: state S0, x=1 → z=1? But expected z=0. Hmm.
+  - Wait, let's trace: initial state S0. Cycle 1: x=1, state S0 → z=x=1. But expected[0]=0. That contradicts R1.
+  - Unless... the example is showing something else. Let me re-read: "example":{"vectors":[{"areset":0,"x":1},{"areset":0,"x":0},{"areset":0,"x":0}],"expected":[{"z":0},{"z":1},{"z":1}]}
+  - Hmm, if initial state is S0, cycle 1 x=1 → z=1 (R1). But expected is 0.
+  - Maybe the example is wrong, or maybe the semantics differ. But the rules text is identical to variant 1 except R4's example. The R4 rule text says "once in S1, state remains S1 regardless of x" — same as variant 1. The example in variant 1 R4: x=1,0,0 → z=1,1,1. That's: cycle1 S0,x=1→z=1, state→S1. cycle2 S1,x=0→z=1. cycle3 S1,x=0→z=1. Correct.
+  - Variant 2 R4 example: x=1,0,0 → z=0,1,1. That would require cycle1 z=0 with x=1 in S0, which violates R1. So the example seems inconsistent with the rules. But the task says "implement its exact state semantics independently" — the rules are the semantics. The example might be a typo. I'll implement per the rules text (which is identical to variant 1). Actually wait — maybe the difference is intentional and the example reveals a different semantics? Let me check: if cycle1 z=0 with x=1, that's NOT x in S0? No, R1 says z=x in S0. So example contradicts R1. I'll follow the rules text since that's the "state semantics". The examples are just illustrations and may contain errors. But the task says "implement its exact state semantics" — the rules define semantics. I'll go with rules.
+
+  Actually, let me reconsider. Maybe variant 2 has a different reset behavior or initial state? No, reset is same. The only textual difference is R4's example. Since rules text is identical, I'll implement identically to variant 1. But then why are there three variants? Possibly they're testing whether we notice the example discrepancy. The instruction says "implement its exact state semantics independently" — semantics = rules. I'll implement per rules.
+
+  Hmm, but to be safe, maybe the example in variant 2 R4 is meant to show that the first cycle's output is 0 because... no, that doesn't make sense with R1.
+
+  Let me just implement per the rules text for all three, since rules text is identical except R5 in variant 3.
+
+**Variant 3 (3f4446f28499ea1a84):**
+- R1-R4 same as variant 1.
+- R5 differs: "Asynchronous reset asserted (areset=1) forces state to S0 immediately, independent of clk, and forces z=0 (conversion stopped); when areset=0, z follows R1/R2 from the current state."
+- Example: areset=1,x=1 → z=0; areset=1,x=0 → z=0; areset=0,x=0 → z=0.
+- So during reset, z=0 regardless of x. After reset released, z follows state.
+
+So variant 3 has z=0 during reset, while variants 1 and 2 have z=x during reset (since state forced to S0 and z=x in S0).
+
+Now let me write the Python reference functions.
+
+**Interface:** `reference(vectors)` returns list of dicts with output values each cycle. Vectors is a list of dicts with input values per cycle. We need to simulate cycle by cycle.
+
+**Semantics:**
+- State starts at S0 (or after reset).
+- For each cycle:
+  - If areset=1: state = S0 (async). Output depends on variant:
+    - Variant 1,2: z = x (since state S0, R1)
+    - Variant 3: z = 0
+  - Else (areset=0): output based on current state: S0 → z=x, S1 → z=NOT x.
+  - Then at posedge (end of cycle): update state:
+    - If areset=1: state stays S0 (update_during_reset=false, so no update, but async already forced S0)
+    - Else: S0: x=1 → S1, x=0 → S0; S1: stays S1.
+
+Wait, need to be careful about timing. The problem says "sample after the posedge edge has settled. Each row's values are driven before the sampled edge." So each vector row represents inputs during a cycle, and we sample at posedge. The output is combinational based on current state and current x (same_cycle visibility). State updates at posedge based on x at that posedge.
+
+So for each cycle i:
+1. Inputs areset, x are given.
+2. If areset=1: state becomes S0 immediately (async). Output computed from state S0 and x (variant 1,2) or forced 0 (variant 3).
+3. Else: output computed from current state and x.
+4. At posedge: if areset=0, update state based on x: S0→(x?S1:S0), S1→S1. If areset=1, state remains S0 (no update, but already S0).
+
+Actually, the async reset means state is S0 whenever areset=1, regardless of clock. So during a cycle with areset=1, state is S0 for output computation. At posedge, if areset still 1, state stays S0. If areset deasserts mid-cycle... the problem says "Optional mid input changes occur AFTER sampling, before the other edge, and are carried to the start of the next row." So mid-cycle changes are for next row. So we can treat each row's areset as the value during that cycle.
+
+Let me write the simulation:
+
+```python
+def reference(vectors):
+    state = 0  # 0 = S0, 1 = S1
+    results = []
+    for v in vectors:
+        areset = v['areset']
+        x = v['x']
+        if areset:
+            state = 0
+            # output
+            if variant == 3:
+                z = 0
+            else:
+                z = x  # state S0, R1
+        else:
+            if state == 0:
+                z = x
+            else:
+                z = 1 - x
+        results.append({'z': z})
+        # posedge update
+        if not areset:
+            if state == 0:
+                if x == 1:
+                    state = 1
+            # else state stays 1
+        # if areset, state already 0
+    return results
+```
+
+Wait, but for variant 1 and 2, during areset=1, state is forced to S0, and z = x (R1). That matches example: areset=1,x=1→z=1; areset=1,x=0→z=0. Good.
+
+For variant 3, during areset=1, z=0. Example: areset=1,x=1→z=0; areset=1,x=0→z=0. Good.
+
+Now, the posedge update: if areset=1, state stays S0 (no update). If areset=0, update per rules.
+
+But wait: what if areset=1 during a cycle, then at posedge areset is still 1? State stays S0. Then next cycle areset=0, state is S0. That's correct.
+
+What about the first cycle? State starts at S0 (assuming reset was asserted before). The problem says "The conversion begins when Reset is released". So initial state is S0.
+
+Let me check variant 1 R5 example: vectors: {areset:1,x:1}, {areset:1,x:0}, {areset:0,x:0}. Expected: z=1, z=0, z=0.
+- Cycle 1: areset=1 → state=0, z=x=1. ✓
+- Cycle 2: areset=1 → state=0, z=x=0. ✓
+- Cycle 3: areset=0 → state=0, z=x=0. ✓
+Good.
+
+Variant 3 R5 example: same vectors, expected z=0,0,0.
+- Cycle 1: areset=1 → z=0. ✓
+- Cycle 2: areset=1 → z=0. ✓
+- Cycle 3: areset=0, state=0, x=0 → z=0. ✓
+Good.
+
+Now check variant 1 R3 example: vectors: {areset:0,x:0}, {areset:0,x:1}, {areset:0,x:0}. Expected: z=0, z=0, z=1.
+- Cycle 1: state=0, x=0 → z=0. posedge: state stays 0. ✓
+- Cycle 2: state=0, x=1 → z=1? But expected z=0. Hmm.
+  Wait, expected[1]=0. But R1 says in S0, z=x. So x=1 → z=1. But expected is 0.
+  Let me re-read: "example":{"vectors":[{"areset":0,"x":0},{"areset":0,"x":1},{"areset":0,"x":0}],"expected":[{"z":0},{"z":0},{"z":1}]}
+  Hmm, cycle 2: x=1, state S0 → z should be 1 per R1. But expected is 0.
+  This is inconsistent. Unless... the state update happens before output? No, output is combinational same_cycle.
+  Or maybe the example is showing the output after the posedge? No, "visible":"same_cycle".
+  Let me check variant 1 R4 example: vectors: {areset:0,x:1}, {areset:0,x:0}, {areset:0,x:0}. Expected: z=1, z=1, z=1.
+  - Cycle 1: state=0, x=1 → z=1. posedge: state→1. ✓
+  - Cycle 2: state=1, x=0 → z=NOT 0=1. ✓
+  - Cycle 3: state=1, x=0 → z=1. ✓
+  Good.
+
+  So R3 example seems wrong. Let me re-examine R3 example: x=0,1,0 → expected z=0,0,1.
+  If we trace: cycle1: state0,x0→z0, state stays 0. cycle2: state0,x1→z1, state→1. cycle3: state1,x0→z1. So z=0,1,1. But expected is 0,0,1.
+  So the example is inconsistent with the rules. The rules text is clear: R1 says z=x in S0. So I'll follow rules.
+
+  Actually, maybe the example is showing the output for the NEXT cycle? No.
+
+  I think the examples in the problem may have errors. The task says "implement its exact state semantics" — the rules define semantics. I'll implement per rules.
+
+  But wait, variant 2 R4 example: x=1,0,0 → expected z=0,1,1. That's also inconsistent with R1 (cycle1 should be z=1). So variant 2's R4 example is also wrong per rules.
+
+  Hmm, maybe there's a different interpretation: maybe the output is registered? No, "combinational", "same_cycle".
+
+  Let me reconsider: maybe the state machine is Mealy? No, it says Moore. But output depends on x, so it's actually Mealy-like. The problem says "Moore state machine" but the output depends on input. That's contradictory. But the rules clearly say z depends on x. So it's effectively Mealy. I'll follow the rules.
+
+  Given the inconsistencies, I'll implement per the rules text, which is consistent across variants 1 and 2 (except R5 in variant 3). The examples are just illustrative and may contain errors.
+
+  Actually, let me re-read variant 2 R4 example: "vectors":[{"areset":0,"x":1},{"areset":0,"x":0},{"areset":0,"x":0}],"expected":[{"z":0},{"z":1},{"z":1}]
+  If we assume initial state is S1 (not S0)? Then cycle1: S1,x=1→z=0. cycle2: S1,x=0→z=1. cycle3: S1,x=0→z=1. That matches! So maybe variant 2 has initial state S1? But reset forces S0. Unless the example assumes no reset and initial state is S1? That doesn't make sense.
+
+  Or maybe the example is for a different scenario. I'll stick with rules.
+
+  Let me just implement the rules as stated. The rules are the "exact state semantics".
+
+  For variant 1 and 2, rules are identical. For variant 3, R5 differs.
+
+  So I'll write three functions, with variant 1 and 2 identical, and variant 3 with z=0 during reset.
+
+  Wait, but the task says "implement its exact state semantics independently" — maybe they want us to notice the differences. The only difference between variant 1 and 2 is R4's example. Since rules text is identical, the semantics are identical. So variant 1 and 2 will have identical code. That's fine.
+
+  Let me double-check variant 2 R4 rule text: "On posedge, once in S1, state remains S1 regardless of x." Same as variant 1. So identical.
+
+  So I'll produce:
+  - Model f65be9641a022fb5d4: variant 1 (z=x during reset)
+  - Model 60139ba913bc77d360: variant 2 (same as variant 1)
+  - Model 3f4446f28499ea1a84: variant 3 (z=0 during reset)
+
+  Let me write the code.
+
+```python
+def reference(vectors):
+    state = 0
+    out = []
+    for v in vectors:
+        areset = v['areset']
+        x = v['x']
+        if areset:
+            state = 0
+            z = x  # variant 1,2
+        else:
+            if state == 0:
+                z = x
+            else:
+                z = 1 - x
+        out.append({'z': z})
+        if not areset:
+            if state == 0 and x == 1:
+                state = 1
+    return out
+```
+
+For variant 3, replace `z = x` with `z = 0` in the areset branch.
+
+Let me verify variant 1 R5 example: areset=1,x=1→z=1; areset=1,x=0→z=0; areset=0,x=0→z=0. ✓
+
+Variant 3 R5 example: areset=1,x=1→z=0; areset=1,x=0→z=0; areset=0,x=0→z=0. ✓
+
+Now, what about the posedge update when areset=1? The state is already 0. If areset=1, we don't update. That's fine.
+
+What if areset=1 and x=1? State stays 0. Next cycle areset=0, state=0. Correct.
+
+Let me also consider: the problem says "update_during_reset":false. So during reset, state doesn't update (stays S0). Our code does that.
+
+Now, the output during reset for variant 1,2: z=x. That's because state is S0 and R1 applies. The rule R5 says "z follows R1/R2 from the resulting state". Resulting state is S0, so z=x. ✓
+
+For variant 3, R5 says "forces z=0". ✓
+
+Now, let me write the final JSON.
+
+```json
+{"models":{"f65be9641a022fb5d4":"def reference(vectors):\n    state = 0\n    out = []\n    for v in vectors:\n        areset = v['areset']\n        x = v['x']\n        if areset:\n            state = 0\n            z = x\n        else:\n            if state == 0:\n                z = x\n            else:\n                z = 1 - x\n        out.append({'z': z})\n        if not areset:\n            if state == 0 and x == 1:\n                state = 1\n    return out","60139ba913bc77d360":"def reference(vectors):\n    state = 0\n    out = []\n    for v in vectors:\n        areset = v['areset']\n        x = v['x']\n        if areset:\n            state = 0\n            z = x\n        else:\n            if state == 0:\n                z = x\n            else:\n                z = 1 - x\n        out.append({'z': z})\n        if not areset:\n            if state == 0 and x == 1:\n                state = 1\n    return out","3f4446f28499ea1a84":"def reference(vectors):\n    state = 0\n    out = []\n    for v in vectors:\n        areset = v['areset']\n        x = v['x']\n        if areset:\n            state = 0\n            z = 0\n        else:\n            if state == 0:\n                z = x\n            else:\n                z = 1 - x\n        out.append({'z': z})\n        if not areset:\n            if state == 0 and x == 1:\n                state = 1\n    return out"}}
+```
+
+Wait, I need to double-check the posedge update logic. The rule R3 says: "On posedge, if x=1 then next state is S1 (first 1 seen); if x=0 state stays S0." This applies when in S0. R4: "once in S1, state remains S1 regardless of x." So my update logic: if state==0 and x==1 → state=1. Else if state==0 and x==0 → state stays 0. If state==1 → stays 1. That's correct.
+
+But what about when areset=1? The state is forced to 0 asynchronously. At posedge, if areset=1, we don't update (update_during_reset=false). So state stays 0. My code: `if not areset: ...` so no update when areset=1. Correct.
+
+One more check: variant 1 R3 example: x=0,1,0 → expected z=0,0,1. My code gives: cycle1: state0,x0→z0, state stays 0. cycle2: state0,x1→z1, state→1. cycle3: state1,x0→z1. So z=0,1,1. But expected is 0,0,1. So my code doesn't match the example. But the example contradicts the rules. I'll trust the rules.
+
+Actually, let me re-read the problem statement: "For diagnosis, return JSON {models:{id: Python source string}}. For every assigned item, implement its exact state semantics independently with the same interface." The "exact state semantics" are defined by the rules. The examples are just examples and may be wrong. I'll implement per rules.
+
+But wait, maybe I'm misreading the example. Let me re-read variant 1 R3 example carefully:
+"example":{"vectors":[{"areset":0,"x":0},{"areset":0,"x":1},{"areset":0,"x":0}],"expected":[{"z":0},{"z":0},{"z":1}]}
+Hmm, cycle 2: x=1, expected z=0. That would mean in S0, z=NOT x? No, R1 says z=x. So z should be 1. Unless the state is S1 at cycle 2? But cycle 1: x=0, state S0, z=0, state stays S0. So cycle 2 state is S0. So z should be 1. The example is wrong.
+
+I'll proceed with rules-based implementation.
+
+Let me also consider: maybe the output is registered (Moore output depends only on state)? But the rules explicitly say z=x in S0 and z=NOT x in S1, which depends on x. So it's Mealy. The problem says Moore but the rules are Mealy. I'll follow the rules.
+
+Final answer as JSON. I need to make sure the Python code has no imports, no I/O, no executable top-level code. Just a function definition. That's fine.
+
+Let me format the JSON properly. I'll use \n for newlines in the string.
+
+Actually, I can write the code more compactly. Let me finalize.
+
+```python
+def reference(vectors):
+    state = 0
+    out = []
+    for v in vectors:
+        areset = v['areset']
+        x = v['x']
+        if areset:
+            state = 0
+            z = x
+        else:
+            z = x if state == 0 else 1 - x
+        out.append({'z': z})
+        if not areset and state == 0 and x == 1:
+            state = 1
+    return out
+```
+
+That's cleaner. For variant 3, replace `z = x` with `z = 0` in the areset branch.
+
+Let me write the final JSON. I'll use double quotes for JSON strings and escape newlines as \n.
+
+Actually, I can just put the code as a single string with \n. Let me construct it.
+
+For variant 1 and 2 (identical):
+```
+def reference(vectors):
+    state = 0
+    out = []
+    for v in vectors:
+        areset = v['areset']
+        x = v['x']
+        if areset:
+            state = 0
+            z = x
+        else:
+            z = x if state == 0 else 1 - x
+        out.append({'z': z})
+        if not areset and state == 0 and x == 1:
+            state = 1
+    return out
+```
+
+For variant 3:
+```
+def reference(vectors):
+    state = 0
+    out = []
+    for v in vectors:
+        areset = v['areset']
+        x = v['x']
+        if areset:
+            state = 0
+            z = 0
+        else:
+            z = x if state == 0 else 1 - x
+        out.append({'z': z})
+        if not areset and state == 0 and x == 1:
+            state = 1
+    return out
+```
+
+Now JSON-encode. I'll write it out.
+
+Let me double-check the posedge update condition: `if not areset and state == 0 and x == 1: state = 1`. This means if areset=0, state=0, x=1 → state becomes 1. If state=1, no change. If state=0, x=0, no change. Correct.
+
+What if areset=1? No update, state stays 0 (already set to 0 in the areset branch). Correct.
+
+One edge case: what if areset=1 and x=1? state=0, z=x=1 (variant 1,2). Then no update. Next cycle areset=0, state=0. Correct.
+
+I think this is good. Let me produce the final JSON.
+
+Wait, I should also consider: the problem says "Each row's values are driven before the sampled edge." So the inputs are stable before the posedge. The output is combinational based on current state and current x. The state updates at posedge. My simulation does exactly that: for each row, compute output based on current state and x, then update state at posedge (end of row). That's correct.
+
+Also, "Optional mid input changes occur AFTER sampling, before the other edge, and are carried to the start of the next row." This means mid-cycle changes don't affect the current row's output or state update. They only affect the next row. My simulation ignores mid-cycle changes, which is correct since we only see the row's values.
+
+Final JSON:
+
+```json
+{"models":{"f65be9641a022fb5d4":"def reference(vectors):\n    state = 0\n    out = []\n    for v in vectors:\n        areset = v['areset']\n        x = v['x']\n        if areset:\n            state = 0\n            z = x\n        else:\n            z = x if state == 0 else 1 - x\n        out.append({'z': z})\n        if not areset and state == 0 and x == 1:\n            state = 1\n    return out","60139ba913bc77d360":"def reference(vectors):\n    state = 0\n    out = []\n    for v in vectors:\n        areset = v['areset']\n        x = v['x']\n        if areset:\n            state = 0\n            z = x\n        else:\n            z = x if state == 0 else 1 - x\n        out.append({'z': z})\n        if not areset and state == 0 and x == 1:\n            state = 1\n    return out","3f4446f28499ea1a84":"def reference(vectors):\n    state = 0\n    out = []\n    for v in vectors:\n        areset = v['areset']\n        x = v['x']\n        if areset:\n            state = 0\n            z = 0\n        else:\n            z = x if state == 0 else 1 - x\n        out.append({'z': z})\n        if not areset and state == 0 and x == 1:\n            state = 1\n    return out"}}
+```
+
+I'll output this.

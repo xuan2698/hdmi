@@ -1,0 +1,93 @@
+def reference(vectors):
+    # Contract implementation.
+    # State encoding: S0=0, S1=1, S2=2, S3=3, S4=4
+    # R1: reset==1 -> start_shifting=0, state=S0 (sync, posedge, same_cycle)
+    # R2: reset==0 and state==S4 -> start_shifting=1 (same_cycle)
+    # R3: reset==0 and state==S3 and data==1 -> next_state=S4, start_shifting visible next_cycle
+    # R4: otherwise start_shifting=0 (same_cycle)
+    # Mid changes: applied after sampling, carried to next row.
+
+    state = 0  # power-up unspecified; use S0
+    start_shifting = 0
+    out = []
+
+    # pending mid changes to apply after sampling this row
+    pending = None
+
+    for vec in vectors:
+        # Apply any mid changes from previous row before this row's sampling
+        if pending is not None:
+            for k, v in pending.items():
+                if k == 'reset':
+                    # mid reset change: affects next sampling only
+                    pass
+            # mid changes are carried to start of next row; they modify inputs
+            # for this row's sampling. We'll merge below.
+            pass
+
+        reset = vec['reset']
+        data = vec['data']
+
+        # Merge pending mid changes (they occur AFTER previous sampling, before this edge)
+        if pending is not None:
+            if 'reset' in pending:
+                reset = pending['reset']
+            if 'data' in pending:
+                data = pending['data']
+
+        # Compute next state and outputs based on current state and inputs
+        if reset == 1:
+            # R1
+            next_state = 0
+            next_start = 0
+        else:
+            if state == 4:
+                # R2
+                next_state = 4
+                next_start = 1
+            else:
+                # Determine next state
+                if state == 0:
+                    ns = 1 if data == 1 else 0
+                elif state == 1:
+                    ns = 2 if data == 1 else 0
+                elif state == 2:
+                    ns = 3 if data == 0 else 2
+                elif state == 3:
+                    ns = 4 if data == 1 else 0
+                else:
+                    ns = 4
+                next_state = ns
+                if ns == 4:
+                    # R3: visible next_cycle -> output this cycle is 0
+                    next_start = 0
+                else:
+                    # R4
+                    next_start = 0
+
+        # Output for this row is based on current state (same_cycle rules)
+        # R1: reset==1 -> 0
+        # R2: state==S4 -> 1
+        # R3: state==S3 and data==1 -> next_cycle, so this cycle 0
+        # R4: otherwise 0
+        if reset == 1:
+            cur_out = 0
+        elif state == 4:
+            cur_out = 1
+        else:
+            cur_out = 0
+
+        out.append({'start_shifting': cur_out})
+
+        # Advance state
+        state = next_state
+        start_shifting = next_start
+
+        # Handle mid changes: any keys in vec beyond reset/data are mid changes
+        mid = {}
+        for k, v in vec.items():
+            if k not in ('reset', 'data'):
+                mid[k] = v
+        pending = mid if mid else None
+
+    return out

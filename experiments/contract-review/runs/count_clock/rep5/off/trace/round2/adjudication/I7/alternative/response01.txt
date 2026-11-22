@@ -1,0 +1,68 @@
+```python
+def reference(vectors):
+    # State: ss_ones, ss_tens, mm_ones, mm_tens, hh_ones, hh_tens, pm_state
+    # hh is binary 0-23 (per resolved interpretation: 18 means 6 PM)
+    # Reset value: pm=0, hh=18, mm=0, ss=0
+    # R1_reset: reset==1 -> next cycle pm=0,hh=18,mm=0,ss=0 (priority 1)
+    # R2_seconds: ena && !reset && ss!=59 -> ss+1
+    # R3_seconds_rollover: ena && !reset && ss==59 && mm!=59 -> ss=0, mm+1
+    # R4_minutes_rollover: ena && !reset && ss==59 && mm==59 && hh!=18 -> ss=0,mm=0,hh+1
+    # R5_hour_rollover_am_pm: ena && !reset && ss==59 && mm==59 && hh==18 -> ss=0,mm=0,hh=0,pm^=1
+    # R6_hold: !ena && !reset -> hold
+
+    # Internal state as integers
+    ss = 0
+    mm = 0
+    hh = 18
+    pm = 0
+
+    results = []
+    for row in vectors:
+        reset = row.get('reset', 0)
+        ena = row.get('ena', 0)
+
+        # Compute next state (posedge clk sampling)
+        if reset == 1:
+            # R1_reset
+            n_ss, n_mm, n_hh, n_pm = 0, 0, 18, 0
+        elif ena == 1:
+            n_ss, n_mm, n_hh, n_pm = ss, mm, hh, pm
+            if ss != 59:
+                # R2_seconds
+                n_ss = ss + 1
+            else:
+                # ss == 59
+                if mm != 59:
+                    # R3_seconds_rollover
+                    n_ss = 0
+                    n_mm = mm + 1
+                else:
+                    # mm == 59
+                    if hh != 18:
+                        # R4_minutes_rollover
+                        n_ss = 0
+                        n_mm = 0
+                        n_hh = hh + 1
+                    else:
+                        # R5_hour_rollover_am_pm
+                        n_ss = 0
+                        n_mm = 0
+                        n_hh = 0
+                        n_pm = pm ^ 1
+        else:
+            # R6_hold
+            n_ss, n_mm, n_hh, n_pm = ss, mm, hh, pm
+
+        # Outputs are the current (pre-edge) state values
+        results.append({
+            'pm': pm & 1,
+            'hh': hh & 0xFF,
+            'mm': mm & 0xFF,
+            'ss': ss & 0xFF,
+        })
+
+        # Advance state
+        ss, mm, hh, pm = n_ss, n_mm, n_hh, n_pm
+
+    return results
+```

@@ -1,0 +1,49 @@
+def reference(vectors):
+    # Initial state Q is unspecified; use concrete unsigned integer 0 per contract requirement.
+    Q = 0
+    # Maintain current input values for L and r_in to support carried mid changes and omitted fields.
+    L = 0
+    r_in = 0
+    # q_in is ignored per chosen interpretation: q_in is current Q feedback (hold when L=0).
+    result = []
+    for row in vectors:
+        # Apply row's input values driven before the sampled posedge.
+        if 'L' in row:
+            L = row['L']
+        if 'r_in' in row:
+            r_in = row['r_in']
+        # q_in input is ignored (it represents current Q feedback).
+
+        # R_Q_POSEDGE: On posedge clk, Q <= L ? r_in : Q (hold when L=0).
+        if L:
+            Q = r_in & 1
+        else:
+            Q = Q & 1  # hold current Q
+
+        # Sample after posedge has settled.
+        result.append({'Q': Q & 1})
+
+        # Process optional mid input changes that occur AFTER sampling.
+        # These changes are carried to the start of the next row.
+        mid = row.get('mid')
+        if isinstance(mid, dict):
+            if 'L' in mid:
+                L = mid['L']
+            if 'r_in' in mid:
+                r_in = mid['r_in']
+            # q_in ignored
+        # Also support common mid-change key formats.
+        for key, val in row.items():
+            if key.endswith('_mid'):
+                base = key[:-4]
+                if base == 'L':
+                    L = val
+                elif base == 'r_in':
+                    r_in = val
+            elif key.startswith('mid_'):
+                base = key[4:]
+                if base == 'L':
+                    L = val
+                elif base == 'r_in':
+                    r_in = val
+    return result

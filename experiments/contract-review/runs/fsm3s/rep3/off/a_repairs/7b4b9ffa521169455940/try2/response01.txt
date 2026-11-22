@@ -1,0 +1,38 @@
+```python
+def reference(vectors):
+    # State encoding: A=0, B=1, C=2, D=3
+    # R1: out=0 when state in {A,B,C} (combinational, same cycle)
+    # R2: out=1 when state == D (combinational, same cycle)
+    # R3: sync active-high reset -> state A (posedge, next cycle)
+    # R4-R7: state transitions on posedge when reset==0
+    state = 0  # power-up unspecified; start at A
+    out = 0
+    results = []
+    for row in vectors:
+        # Sample inputs (driven before the sampled edge)
+        inp = row.get('in', 0)
+        rst = row.get('reset', 0)
+        # R1 / R2: combinational output based on current state (same cycle)
+        if state == 3:  # R2
+            out = 1
+        else:  # R1 (A, B, C)
+            out = 0
+        results.append({'out': out})
+        # Posedge update: compute next state
+        if rst == 1:
+            # R3: synchronous reset to A
+            state = 0
+        else:
+            # R4-R7: explicit transitions
+            if state == 0:  # R4: A -> A if in==0, B if in==1
+                state = 0 if inp == 0 else 1
+            elif state == 1:  # R5: B -> C if in==0, B if in==1
+                state = 2 if inp == 0 else 1
+            elif state == 2:  # R6: C -> A if in==0, D if in==1
+                state = 0 if inp == 0 else 3
+            elif state == 3:  # R7: D -> C if in==0, B if in==1
+                state = 2 if inp == 0 else 1
+        # Mid input changes occur AFTER sampling, before other edge,
+        # carried to start of next row (handled by reading next row's inputs)
+    return results
+```

@@ -1,0 +1,77 @@
+def reference(vectors):
+    # State encoding: A=0, B=1, C=2, D=3
+    # A deterministic initial state is used even though power-up is unspecified.
+    state = 0  # A
+    cur_in = 0
+    cur_reset = 0
+    outs = []
+
+    for row in vectors:
+        # Apply main (pre-edge) input values.
+        if isinstance(row, dict):
+            if 'in' in row:
+                cur_in = int(row['in']) & 1
+            if 'reset' in row:
+                cur_reset = int(row['reset']) & 1
+        elif isinstance(row, (list, tuple)):
+            if len(row) >= 1:
+                cur_in = int(row[0]) & 1
+            if len(row) >= 2:
+                cur_reset = int(row[1]) & 1
+
+        # reset_to_A: synchronous active-high reset sets state to A at the active edge.
+        # global: active edge is negedge per candidate interpretation.
+        if cur_reset:
+            state = 0  # A
+        else:
+            # Explicit state transitions from the public specification.
+            if state == 0:      # A: in=0 -> A, in=1 -> B
+                state = 1 if cur_in else 0
+            elif state == 1:    # B: in=0 -> C, in=1 -> B
+                state = 1 if cur_in else 2
+            elif state == 2:    # C: in=0 -> A, in=1 -> D
+                state = 3 if cur_in else 0
+            else:               # D: in=0 -> C, in=1 -> B
+                state = 1 if cur_in else 2
+
+        # Moore output after the active edge.
+        # out_A, out_B, out_C: state A/B/C -> out 0
+        # out_D: state D -> out 1
+        out_val = 1 if state == 3 else 0
+        outs.append({'out': out_val})
+
+        # Optional mid input changes occur AFTER sampling, before the other edge,
+        # and are carried to the start of the next row.
+        if isinstance(row, dict):
+            if 'mid' in row:
+                mid = row['mid']
+                if isinstance(mid, dict):
+                    if 'in' in mid:
+                        cur_in = int(mid['in']) & 1
+                    if 'reset' in mid:
+                        cur_reset = int(mid['reset']) & 1
+                elif isinstance(mid, (list, tuple)):
+                    for m in mid:
+                        if isinstance(m, dict):
+                            if 'in' in m:
+                                cur_in = int(m['in']) & 1
+                            if 'reset' in m:
+                                cur_reset = int(m['reset']) & 1
+
+            # Also support mid_* / *_mid naming variants for completeness.
+            for k, v in row.items():
+                if isinstance(k, str):
+                    if k.startswith('mid_'):
+                        name = k[4:]
+                        if name == 'in':
+                            cur_in = int(v) & 1
+                        elif name == 'reset':
+                            cur_reset = int(v) & 1
+                    elif k.endswith('_mid'):
+                        name = k[:-4]
+                        if name == 'in':
+                            cur_in = int(v) & 1
+                        elif name == 'reset':
+                            cur_reset = int(v) & 1
+
+    return outs

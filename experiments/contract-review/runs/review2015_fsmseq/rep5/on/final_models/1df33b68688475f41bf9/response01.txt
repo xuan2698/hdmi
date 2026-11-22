@@ -1,0 +1,69 @@
+def reference(vectors):
+    # State names: S0, S1, S11, S110, FOUND
+    state = "S0"
+    cur = {"reset": 0, "data": 0}
+    outs = []
+
+    for row in vectors:
+        # Drive row's values before the sampled posedge. Missing inputs retain
+        # any mid-cycle value carried from the previous row.
+        for name in ("reset", "data"):
+            if name in row:
+                cur[name] = row[name]
+
+        reset = cur["reset"]
+        data = cur["data"]
+
+        # R_RESET_CLEAR: synchronous active-high reset at the sampled posedge
+        # forces FSM state S0 and start_shifting=0 on the settled edge.
+        if reset == 1:
+            next_state = "S0"
+            start_shifting = 0
+        else:
+            # R_SET_OR_HOLD_1101: detection completes 1101 here; FOUND is sticky
+            # and start_shifting becomes/remains 1 after the settled posedge.
+            if state == "FOUND":
+                next_state = "FOUND"
+                start_shifting = 1
+            elif state == "S110" and data == 1:
+                next_state = "FOUND"
+                start_shifting = 1
+            else:
+                # R_KEEP_ZERO_UNTIL_FOUND: before detection and after non-matching
+                # transitions, start_shifting remains 0 after the settled posedge.
+                start_shifting = 0
+                if state == "S0":
+                    next_state = "S1" if data == 1 else "S0"
+                elif state == "S1":
+                    next_state = "S11" if data == 1 else "S0"
+                elif state == "S11":
+                    next_state = "S11" if data == 1 else "S110"
+                elif state == "S110":
+                    next_state = "FOUND" if data == 1 else "S0"
+                else:
+                    next_state = "S0"
+
+        # Output visible after the posedge edge settles; it reflects the new state.
+        outs.append({"start_shifting": int(start_shifting)})
+        state = next_state
+
+        # Optional mid input changes occur AFTER sampling and are carried to the
+        # start of the next row. They do not change this row's settled output.
+        mid = row.get("mid") if isinstance(row, dict) else None
+        if mid:
+            if isinstance(mid, dict):
+                for name in ("reset", "data"):
+                    if name in mid:
+                        cur[name] = mid[name]
+            elif isinstance(mid, list):
+                for change in mid:
+                    if isinstance(change, dict):
+                        for name in ("reset", "data"):
+                            if name in change:
+                                cur[name] = change[name]
+                    elif isinstance(change, (tuple, list)) and len(change) >= 2:
+                        name = change[0]
+                        if name in ("reset", "data"):
+                            cur[name] = change[1]
+
+    return outs

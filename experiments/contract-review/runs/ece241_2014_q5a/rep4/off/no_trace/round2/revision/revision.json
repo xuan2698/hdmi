@@ -1,0 +1,126 @@
+{
+  "responses": [
+    {
+      "issue_id": "I1",
+      "decision": "accept",
+      "reason": "R1's condition says pass through including the first 1, but its example shows z=1 for x=0 in the third row, which is complement behavior, not pass-through. The condition must be corrected to pass through only trailing zeros.",
+      "spec_quote": "the output (Z) is the 2's complement of the input",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R1",
+            "condition"
+          ],
+          "value": "In state S0: z = x for trailing zeros only (x=0); the first 1 is output as z=1 and the machine transitions to S1 at the next posedge."
+        }
+      ]
+    },
+    {
+      "issue_id": "I2",
+      "decision": "accept",
+      "reason": "R1's condition is ambiguous about the first 1; the correct Moore 2's-complementer outputs x in S0 only for trailing zeros, outputs 1 for the first 1, then transitions to S1. Clarify the condition.",
+      "spec_quote": "the output (Z) is the 2's complement of the input",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R1",
+            "condition"
+          ],
+          "value": "In state S0: z = x for trailing zeros only (x=0); the first 1 is output as z=1 and the machine transitions to S1 at the next posedge."
+        }
+      ],
+      "already_applied_by_earlier_issue": true
+    },
+    {
+      "issue_id": "I3",
+      "decision": "accept",
+      "reason": "R3's example reports combinational z values rather than demonstrating state-transition semantics. Replace the example with one that exercises the S0->S1 transition and hold behavior.",
+      "spec_quote": "the output (Z) is the 2's complement of the input",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R3",
+            "example"
+          ],
+          "value": {
+            "vectors": [
+              {
+                "areset": 0,
+                "x": 0
+              },
+              {
+                "areset": 0,
+                "x": 1
+              },
+              {
+                "areset": 0,
+                "x": 0
+              }
+            ],
+            "expected": [
+              {
+                "z": 0
+              },
+              {
+                "z": 1
+              },
+              {
+                "z": 1
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "issue_id": "I4",
+      "decision": "accept",
+      "reason": "R4 conflates asserted-reset output with post-release output. Narrow R4's condition to asserted reset only, leaving release behavior to the reset block.",
+      "spec_quote": "positive edge triggered asynchronous reset",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R4",
+            "condition"
+          ],
+          "value": "Asynchronous reset asserted (areset=1): state forced to S0 and z=0 regardless of clock; conversion is halted until areset is deasserted."
+        }
+      ]
+    },
+    {
+      "issue_id": "I5",
+      "decision": "accept",
+      "reason": "Spec states conversion stops when Reset is asserted; the contract should explicitly state conversion halts while areset is asserted.",
+      "spec_quote": "The conversion begins when Reset is released and stops when Reset is asserted.",
+      "edits": [
+        {
+          "path": [
+            "reset",
+            "first_released_cycle"
+          ],
+          "value": "While areset is asserted, conversion is halted (state held at S0, z=0). The first posedge after areset is deasserted: state is S0 and z=x combinationally that cycle; S0->S1 if x=1 at that edge."
+        }
+      ]
+    },
+    {
+      "issue_id": "I6",
+      "decision": "accept",
+      "reason": "R3 should specify that x is sampled at the posedge using the value present at that edge, with mid-cycle changes affecting only the next row.",
+      "spec_quote": "the output (Z) is the 2's complement of the input",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R3",
+            "condition"
+          ],
+          "value": "State transition on posedge: samples x at the posedge using the value present at that edge; S0 -> S1 when x=1; S1 stays S1; S0 stays S0 when x=0. Mid-cycle changes after the edge affect only the next row."
+        }
+      ]
+    }
+  ]
+}

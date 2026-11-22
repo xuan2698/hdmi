@@ -1,0 +1,49 @@
+def reference(vectors):
+    # Power-up unspecified; use concrete initial values
+    x = 0
+    y = 0
+    results = []
+    for row in vectors:
+        # Apply driven inputs for this row (if present)
+        if "x" in row:
+            x = row["x"] & 1
+        if "y" in row:
+            y = row["y"] & 7
+
+        # Rule Y0_next_state_lsb
+        if y in (0, 1, 2, 3, 4):
+            if (x == 0 and (y == 1 or y == 3 or y == 4)) or (x == 1 and (y == 0 or y == 2)):
+                Y0 = 1
+            else:
+                Y0 = 0
+        else:
+            Y0 = 0  # unspecified for y in {5,6,7}; choose 0
+
+        # Rule z_moore_output
+        if y in (0, 1, 2):
+            z = 0
+        elif y in (3, 4):
+            z = 1
+        else:
+            z = 0  # unspecified for y in {5,6,7}; choose 0
+
+        results.append({"Y0": Y0, "z": z})
+
+        # Mid changes occur after sampling and are carried to the next row
+        if "mid" in row:
+            mid = row["mid"]
+            if isinstance(mid, dict):
+                if "x" in mid:
+                    x = mid["x"] & 1
+                if "y" in mid:
+                    y = mid["y"] & 7
+        if "mid_x" in row:
+            x = row["mid_x"] & 1
+        if "mid_y" in row:
+            y = row["mid_y"] & 7
+        if "x_mid" in row:
+            x = row["x_mid"] & 1
+        if "y_mid" in row:
+            y = row["y_mid"] & 7
+
+    return results

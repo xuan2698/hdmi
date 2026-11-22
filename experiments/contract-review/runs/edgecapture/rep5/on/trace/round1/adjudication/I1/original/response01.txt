@@ -1,0 +1,75 @@
+```python
+def reference(vectors):
+    MASK32 = (1 << 32) - 1
+
+    # Named state: 32-bit sticky capture register and previous sampled input.
+    out = 0
+    prev_in = 0
+
+    # Current input values, carried between rows for optional mid-cycle changes.
+    cur_reset = 0
+    cur_in = 0
+
+    def apply_input_changes(change):
+        nonlocal cur_reset, cur_in
+        if change is None:
+            return
+        if isinstance(change, dict):
+            if "reset" in change:
+                cur_reset = change["reset"]
+            if "in" in change:
+                cur_in = change["in"]
+            return
+        if isinstance(change, (list, tuple)):
+            for item in change:
+                if isinstance(item, dict):
+                    if "reset" in item:
+                        cur_reset = item["reset"]
+                    if "in" in item:
+                        cur_in = item["in"]
+                elif isinstance(item, (list, tuple)) and len(item) >= 2:
+                    key, value = item[0], item[1]
+                    if key == "reset":
+                        cur_reset = value
+                    elif key == "in":
+                        cur_in = value
+
+    result = []
+
+    for row in vectors:
+        # Row values are driven before the sampled posedge edge.
+        if isinstance(row, dict):
+            if "reset" in row:
+                cur_reset = row["reset"]
+            if "in" in row:
+                cur_in = row["in"]
+        elif isinstance(row, (list, tuple)) and len(row) >= 2:
+            cur_reset = row[0]
+            cur_in = row[1]
+
+        r = int(cur_reset) & 1
+        i = int(cur_in) & MASK32
+
+        # Rule synchronous_active_high_reset:
+        # active-high synchronous reset has priority and clears all out bits.
+        if r == 1:
+            next_out = 0
+        else:
+            # Rule falling_edge_capture_and_hold:
+            # Capture sampled 1-to-0 transitions and hold existing 1s.
+            next_out = out | (prev_in & (~i & MASK32))
+            next_out &= MASK32
+
+        # prev_in updates to in after every posedge, including reset cycles.
+        prev_in = i
+        out = next_out
+
+        result.append({"out": out})
+
+        # Optional mid input changes occur AFTER sampling and before the next edge.
+        # They do not retroactively affect the already-sampled output.
+        if isinstance(row, dict) and "mid" in row:
+            apply_input_changes(row["mid"])
+
+    return result
+```

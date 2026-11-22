@@ -1,0 +1,166 @@
+[
+  {
+    "issue_id": "A1",
+    "before": {
+      "ports": {
+        "inputs": {
+          "L": 1,
+          "q_in": 1,
+          "r_in": 1
+        },
+        "outputs": {
+          "Q": 1
+        },
+        "clock": "clk"
+      },
+      "states": [
+        {
+          "name": "Q",
+          "meaning": "One-bit registered output of the flip-flop/multiplexer submodule.",
+          "update_time": "posedge clk",
+          "update_during_reset": false
+        }
+      ],
+      "rules": [
+        {
+          "id": "R_Q_POSEDGE",
+          "outputs": [
+            "Q"
+          ],
+          "condition": "On posedge clk, Q is updated to L ? r_in : q_in; load r_in when L=1, otherwise pass q_in.",
+          "edge": "posedge",
+          "visible": "same_cycle",
+          "priority": 1,
+          "spec_quote": "if (L) begin",
+          "uncertain": true,
+          "example": {
+            "vectors": [
+              {
+                "L": 0,
+                "q_in": 1,
+                "r_in": 0
+              },
+              {
+                "L": 1,
+                "q_in": 0,
+                "r_in": 1
+              },
+              {
+                "L": 0,
+                "q_in": 0,
+                "r_in": 1
+              }
+            ],
+            "expected": [
+              {
+                "Q": 1
+              },
+              {
+                "Q": 1
+              },
+              {
+                "Q": 0
+              }
+            ]
+          }
+        }
+      ],
+      "reset": {
+        "kind": "none",
+        "name": null,
+        "active": "none",
+        "values": {
+          "Q": null
+        },
+        "first_released_cycle": "N/A"
+      },
+      "mid": "No mid-cycle changes in the examples; any mid changes after sampling affect only the next posedge.",
+      "uncertain": [
+        {
+          "rule_id": "R_Q_POSEDGE",
+          "note": "q_in is not defined in the public full_module; it may be an external mux input or the current Q feedback for the 2-1 mux.",
+          "candidates": [
+            "q_in is an external input; Q <= L ? r_in : q_in",
+            "q_in is current Q feedback; when L=0 Q holds (Q <= Q)"
+          ]
+        }
+      ]
+    },
+    "after": {
+      "ports": {
+        "inputs": {
+          "L": 1,
+          "q_in": 1,
+          "r_in": 1
+        },
+        "outputs": {
+          "Q": 1
+        },
+        "clock": "clk"
+      },
+      "states": [
+        {
+          "name": "Q",
+          "meaning": "One-bit registered output of the flip-flop/multiplexer submodule.",
+          "update_time": "posedge clk",
+          "update_during_reset": false
+        }
+      ],
+      "rules": [
+        {
+          "id": "R_Q_POSEDGE",
+          "outputs": [
+            "Q"
+          ],
+          "condition": "On posedge clk, Q is updated to L ? r_in : q_in; q_in is the external else-data (next-state bit) provided to the mux, not Q feedback.",
+          "edge": "posedge",
+          "visible": "same_cycle",
+          "priority": 1,
+          "spec_quote": "if (L) begin",
+          "uncertain": false,
+          "example": {
+            "vectors": [
+              {
+                "L": 0,
+                "q_in": 1,
+                "r_in": 0
+              },
+              {
+                "L": 1,
+                "q_in": 0,
+                "r_in": 1
+              },
+              {
+                "L": 0,
+                "q_in": 0,
+                "r_in": 1
+              }
+            ],
+            "expected": [
+              {
+                "Q": 1
+              },
+              {
+                "Q": 1
+              },
+              {
+                "Q": 0
+              }
+            ]
+          }
+        }
+      ],
+      "reset": {
+        "kind": "none",
+        "name": null,
+        "active": "none",
+        "values": {
+          "Q": null
+        },
+        "first_released_cycle": "N/A"
+      },
+      "mid": "No mid-cycle changes in the examples; any mid changes after sampling affect only the next posedge.",
+      "uncertain": []
+    }
+  }
+]

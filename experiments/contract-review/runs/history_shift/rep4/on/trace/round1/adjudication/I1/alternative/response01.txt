@@ -1,0 +1,70 @@
+```python
+def reference(vectors):
+    MASK = 0xFFFFFFFF
+    history = 0
+    inputs = {
+        'areset': 0,
+        'predict_valid': 0,
+        'predict_taken': 0,
+        'train_mispredicted': 0,
+        'train_taken': 0,
+        'train_history': 0
+    }
+    results = []
+
+    def apply_changes(changes):
+        nonlocal history
+        # async_reset: reset clears only on the rising edge of areset.
+        if 'areset' in changes:
+            old_reset = inputs['areset']
+            new_reset = changes['areset'] & 1
+            inputs['areset'] = new_reset
+            if old_reset == 0 and new_reset == 1:
+                history = 0
+        for k, v in changes.items():
+            if k == 'areset':
+                continue
+            if k in inputs:
+                if k == 'train_history':
+                    inputs[k] = v & MASK
+                else:
+                    inputs[k] = v & 1
+
+    for row in vectors:
+        explicit = {}
+        mid_changes = {}
+        if 'mid' in row and isinstance(row['mid'], dict):
+            mid_changes = row['mid']
+        for k, v in row.items():
+            if k == 'mid':
+                continue
+            if k.startswith('mid_') and k[4:] in inputs:
+                mid_changes[k[4:]] = v
+            elif k in inputs:
+                explicit[k] = v
+
+        # Drive row inputs before the sampled posedge.
+        apply_changes(explicit)
+
+        # posedge clk update, after any asynchronous reset edge already handled.
+        if inputs['train_mispredicted'] == 1:
+            # mispredict_load: ((train_history << 1) & 0xFFFFFFFF) | train_taken
+            th = inputs['train_history'] & MASK
+            tt = inputs['train_taken'] & 1
+            history = ((th << 1) & MASK) | tt
+        elif inputs['predict_valid'] == 1:
+            # predict_shift: ((history << 1) & 0xFFFFFFFF) | predict_taken
+            pt = inputs['predict_taken'] & 1
+            history = ((history << 1) & MASK) | pt
+        else:
+            # hold: retain current history
+            history = history & MASK
+
+        results.append({'predict_history': history & MASK})
+
+        # Apply mid-cycle changes after sampling and carry them to next row.
+        if mid_changes:
+            apply_changes(mid_changes)
+
+    return results
+```

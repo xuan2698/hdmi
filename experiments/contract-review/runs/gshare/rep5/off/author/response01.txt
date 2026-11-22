@@ -1,0 +1,203 @@
+```json
+{
+  "ports": {
+    "inputs": {
+      "areset": 1,
+      "predict_valid": 1,
+      "predict_pc": 7,
+      "train_valid": 1,
+      "train_taken": 1,
+      "train_mispredicted": 1,
+      "train_history": 7,
+      "train_pc": 7
+    },
+    "outputs": {
+      "predict_taken": 1,
+      "predict_history": 7
+    },
+    "clock": "clk"
+  },
+  "states": [
+    {
+      "name": "pht",
+      "meaning": "128-entry pattern history table of 2-bit saturating counters, indexed by xor of 7-bit pc and 7-bit global history",
+      "update_time": "posedge",
+      "update_during_reset": false
+    },
+    {
+      "name": "ghr",
+      "meaning": "7-bit global branch history register",
+      "update_time": "posedge",
+      "update_during_reset": false
+    }
+  ],
+  "rules": [
+    {
+      "id": "R1_predict_outputs",
+      "outputs": ["predict_taken", "predict_history"],
+      "condition": "predict_valid == 1",
+      "edge": "posedge",
+      "visible": "same_cycle",
+      "priority": 1,
+      "spec_quote": "When a branch prediction is requested (predict_valid = 1) for a given pc, the branch predictor produces the predicted branch direction and state of the branch history register used to make the prediction.",
+      "uncertain": false,
+      "example": {
+        "vectors": [
+          {"areset": 0, "predict_valid": 1, "predict_pc": 5, "train_valid": 0, "train_taken": 0, "train_mispredicted": 0, "train_history": 0, "train_pc": 0},
+          {"areset": 0, "predict_valid": 1, "predict_pc": 9, "train_valid": 0, "train_taken": 0, "train_mispredicted": 0, "train_history": 0, "train_pc": 0},
+          {"areset": 0, "predict_valid": 0, "predict_pc": 0, "train_valid": 0, "train_taken": 0, "train_mispredicted": 0, "train_history": 0, "train_pc": 0}
+        ],
+        "expected": [
+          {"predict_taken": 0, "predict_history": 0},
+          {"predict_taken": 0, "predict_history": 0},
+          {"predict_taken": 0, "predict_history": 0}
+        ]
+      }
+    },
+    {
+      "id": "R2_predict_ghr_update",
+      "outputs": ["predict_taken", "predict_history"],
+      "condition": "predict_valid == 1 && train_valid == 0",
+      "edge": "posedge",
+      "visible": "next_cycle",
+      "priority": 2,
+      "spec_quote": "The branch history register is then updated (at the next positive clock edge) for the predicted branch.",
+      "uncertain": false,
+      "example": {
+        "vectors": [
+          {"areset": 0, "predict_valid": 1, "predict_pc": 3, "train_valid": 0, "train_taken": 0, "train_mispredicted": 0, "train_history": 0, "train_pc": 0},
+          {"areset": 0, "predict_valid": 1, "predict_pc": 4, "train_valid": 0, "train_taken": 0, "train_mispredicted": 0, "train_history": 0, "train_pc": 0},
+          {"areset": 0, "predict_valid": 0, "predict_pc": 0, "train_valid": 0, "train_taken": 0, "train_mispredicted": 0, "train_history": 0, "train_pc": 0}
+        ],
+        "expected": [
+          {"predict_taken": 0, "predict_history": 0},
+          {"predict_taken": 0, "predict_history": 0},
+          {"predict_taken": 0, "predict_history": 0}
+        ]
+      }
+    },
+    {
+      "id": "R3_train_pht_update",
+      "outputs": ["predict_taken", "predict_history"],
+      "condition": "train_valid == 1",
+      "edge": "posedge",
+      "visible": "next_cycle",
+      "priority": 3,
+      "spec_quote": "Update the pattern history table (PHT) to train the branch predictor to predict this branch more accurately next time.",
+      "uncertain": false,
+      "example": {
+        "vectors": [
+          {"areset": 0, "predict_valid": 0, "predict_pc": 0, "train_valid": 1, "train_taken": 1, "train_mispredicted": 0, "train_history": 0, "train_pc": 2},
+          {"areset": 0, "predict_valid": 0, "predict_pc": 0, "train_valid": 1, "train_taken": 0, "train_mispredicted": 0, "train_history": 0, "train_pc": 2},
+          {"areset": 0, "predict_valid": 0, "predict_pc": 0, "train_valid": 0, "train_taken": 0, "train_mispredicted": 0, "train_history": 0, "train_pc": 0}
+        ],
+        "expected": [
+          {"predict_taken": 0, "predict_history": 0},
+          {"predict_taken": 0, "predict_history": 0},
+          {"predict_taken": 0, "predict_history": 0}
+        ]
+      }
+    },
+    {
+      "id": "R4_train_mispredict_ghr_recover",
+      "outputs": ["predict_taken", "predict_history"],
+      "condition": "train_valid == 1 && train_mispredicted == 1",
+      "edge": "posedge",
+      "visible": "next_cycle",
+      "priority": 4,
+      "spec_quote": "if the branch being trained is mispredicted, also recover the branch history register to the state immediately after the mispredicting branch completes execution.",
+      "uncertain": false,
+      "example": {
+        "vectors": [
+          {"areset": 0, "predict_valid": 0, "predict_pc": 0, "train_valid": 1, "train_taken": 1, "train_mispredicted": 1, "train_history": 5, "train_pc": 7},
+          {"areset": 0, "predict_valid": 0, "predict_pc": 0, "train_valid": 0, "train_taken": 0, "train_mispredicted": 0, "train_history": 0, "train_pc": 0},
+          {"areset": 0, "predict_valid": 0, "predict_pc": 0, "train_valid": 0, "train_taken": 0, "train_mispredicted": 0, "train_history": 0, "train_pc": 0}
+        ],
+        "expected": [
+          {"predict_taken": 0, "predict_history": 0},
+          {"predict_taken": 0, "predict_history": 0},
+          {"predict_taken": 0, "predict_history": 0}
+        ]
+      }
+    },
+    {
+      "id": "R5_train_priority_over_predict_ghr",
+      "outputs": ["predict_taken", "predict_history"],
+      "condition": "train_valid == 1 && predict_valid == 1",
+      "edge": "posedge",
+      "visible": "next_cycle",
+      "priority": 5,
+      "spec_quote": "When this happens, training takes precedence, because the branch being predicted will be discarded anyway.",
+      "uncertain": false,
+      "example": {
+        "vectors": [
+          {"areset": 0, "predict_valid": 1, "predict_pc": 1, "train_valid": 1, "train_taken": 1, "train_mispredicted": 1, "train_history": 3, "train_pc": 6},
+          {"areset": 0, "predict_valid": 0, "predict_pc": 0, "train_valid": 0, "train_taken": 0, "train_mispredicted": 0, "train_history": 0, "train_pc": 0},
+          {"areset": 0, "predict_valid": 0, "predict_pc": 0, "train_valid": 0, "train_taken": 0, "train_mispredicted": 0, "train_history": 0, "train_pc": 0}
+        ],
+        "expected": [
+          {"predict_taken": 0, "predict_history": 0},
+          {"predict_taken": 0, "predict_history": 0},
+          {"predict_taken": 0, "predict_history": 0}
+        ]
+      }
+    },
+    {
+      "id": "R6_predict_sees_pre_train_pht",
+      "outputs": ["predict_taken", "predict_history"],
+      "condition": "predict_valid == 1 && train_valid == 1 && same PHT index",
+      "edge": "posedge",
+      "visible": "same_cycle",
+      "priority": 6,
+      "spec_quote": "the prediction sees the PHT state before training because training only modifies the PHT at the next positive clock edge.",
+      "uncertain": false,
+      "example": {
+        "vectors": [
+          {"areset": 0, "predict_valid": 1, "predict_pc": 0, "train_valid": 1, "train_taken": 1, "train_mispredicted": 0, "train_history": 0, "train_pc": 0},
+          {"areset": 0, "predict_valid": 0, "predict_pc": 0, "train_valid": 0, "train_taken": 0, "train_mispredicted": 0, "train_history": 0, "train_pc": 0},
+          {"areset": 0, "predict_valid": 0, "predict_pc": 0, "train_valid": 0, "train_taken": 0, "train_mispredicted": 0, "train_history": 0, "train_pc": 0}
+        ],
+        "expected": [
+          {"predict_taken": 0, "predict_history": 0},
+          {"predict_taken": 0, "predict_history": 0},
+          {"predict_taken": 0, "predict_history": 0}
+        ]
+      }
+    },
+    {
+      "id": "R7_async_reset",
+      "outputs": ["predict_taken", "predict_history"],
+      "condition": "areset == 1",
+      "edge": "asynchronous",
+      "visible": "same_cycle",
+      "priority": 0,
+      "spec_quote": "Reset is asynchronous active-high.",
+      "uncertain": false,
+      "example": {
+        "vectors": [
+          {"areset": 1, "predict_valid": 1, "predict_pc": 5, "train_valid": 1, "train_taken": 1, "train_mispredicted": 1, "train_history": 7, "train_pc": 3},
+          {"areset": 1, "predict_valid": 0, "predict_pc": 0, "train_valid": 0, "train_taken": 0, "train_mispredicted": 0, "train_history": 0, "train_pc": 0},
+          {"areset": 0, "predict_valid": 0, "predict_pc": 0, "train_valid": 0, "train_taken": 0, "train_mispredicted": 0, "train_history": 0, "train_pc": 0}
+        ],
+        "expected": [
+          {"predict_taken": 0, "predict_history": 0},
+          {"predict_taken": 0, "predict_history": 0},
+          {"predict_taken": 0, "predict_history": 0}
+        ]
+      }
+    }
+  ],
+  "reset": {
+    "kind": "async",
+    "name": "areset",
+    "active": "high",
+    "values": {
+      "predict_taken": 0,
+      "predict_history": 0
+    },
+    "first_released_cycle": "cycle after areset deasserts"
+  },
+  "mid": "Optional mid input changes occur AFTER sampling, before the other edge, and are carried to the start of the next row.",
+  "uncertain": []
+}
+```

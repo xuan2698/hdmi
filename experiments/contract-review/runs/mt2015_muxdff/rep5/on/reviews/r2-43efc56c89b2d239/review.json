@@ -1,0 +1,108 @@
+{
+  "coverage": {
+    "S01": [
+      "unrelated"
+    ],
+    "S02": [
+      "unrelated"
+    ],
+    "S03": [
+      "R_Q_POSEDGE"
+    ],
+    "S04": [
+      "R_Q_POSEDGE"
+    ],
+    "S05": [
+      "R_Q_POSEDGE"
+    ],
+    "S06": [
+      "R_Q_POSEDGE"
+    ],
+    "S07": [
+      "unrelated"
+    ],
+    "S08": [
+      "R_Q_POSEDGE"
+    ],
+    "S09": [
+      "R_Q_POSEDGE"
+    ],
+    "S10": [
+      "R_Q_POSEDGE"
+    ],
+    "S11": [
+      "R_Q_POSEDGE"
+    ],
+    "S12": [
+      "R_Q_POSEDGE"
+    ],
+    "S13": [
+      "unrelated"
+    ],
+    "S14": [
+      "unrelated"
+    ],
+    "S15": [
+      "unrelated"
+    ],
+    "S16": [
+      "missing"
+    ],
+    "S17": [
+      "missing"
+    ]
+  },
+  "issues": [
+    {
+      "issue_id": "C1",
+      "rule_id": "global",
+      "type": "coverage",
+      "severity": "medium",
+      "detail": "S16 three-instance hierarchy/instantiation is absent; contract only models one submodule.",
+      "spec_evidence": "// You want to create a hierarchical Verilog design where a flipflop and 2-1 multiplexer are in a submodule, and that submodule is instantiated three times in this code.",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "C2",
+      "rule_id": "global",
+      "type": "coverage",
+      "severity": "low",
+      "detail": "S17 module name top_module is not represented in the contract.",
+      "spec_evidence": "Create the submodule called \"top_module\".",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "A1",
+      "rule_id": "R_Q_POSEDGE",
+      "type": "ambiguity",
+      "severity": "high",
+      "detail": "q_in meaning is left open; spec feedback expression implies external mux data, not current-Q hold. External-q_in sequence gives Q=1,0; hold gives Q=1,1.",
+      "spec_evidence": "//         q <= {q[1] ^ q[2], q[0], q[2]};",
+      "alternative": "q_in is current Q feedback; when L=0 Q holds and ignores q_in.",
+      "sequence": [
+        {
+          "L": 1,
+          "q_in": 0,
+          "r_in": 1
+        },
+        {
+          "L": 0,
+          "q_in": 0,
+          "r_in": 1
+        }
+      ]
+    },
+    {
+      "issue_id": "I1",
+      "rule_id": "R_Q_POSEDGE",
+      "type": "consistency",
+      "severity": "medium",
+      "detail": "Example assumes q_in is external else-data. Under the stated hold candidate, after Q=1 with L=0 the third vector should hold Q=1, not expected 0.",
+      "spec_evidence": "",
+      "alternative": "",
+      "sequence": []
+    }
+  ]
+}

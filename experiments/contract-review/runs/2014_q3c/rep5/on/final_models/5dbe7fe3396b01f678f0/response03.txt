@@ -1,0 +1,49 @@
+```python
+def reference(vectors):
+    results = []
+    cur_x = 0
+    cur_y = 0
+    for v in vectors:
+        # Apply inputs driven before the sampled edge; carry prior mid changes.
+        cur_x = v.get('x', cur_x)
+        cur_y = v.get('y', cur_y)
+        if cur_x is None:
+            cur_x = 0
+        if cur_y is None:
+            cur_y = 0
+
+        x = cur_x & 1
+        y = cur_y & 7
+
+        # Rule Y0_next_state_lsb: next-state LSB for given present state and x.
+        if y in (0, 1, 2, 3, 4):
+            if (x == 0 and (y == 1 or y == 3 or y == 4)) or (x == 1 and (y == 0 or y == 2)):
+                Y0 = 1
+            else:
+                Y0 = 0
+        else:
+            # Unspecified for y in {5,6,7}; use a concrete 0.
+            Y0 = 0
+
+        # Rule z_moore_output: Moore output depends only on y.
+        if y in (0, 1, 2):
+            z = 0
+        elif y in (3, 4):
+            z = 1
+        else:
+            # Unspecified for y in {5,6,7}; use a concrete 0.
+            z = 0
+
+        results.append({'Y0': Y0, 'z': z})
+
+        # Mid-cycle changes occur after the sampled edge and carry to next row.
+        mid = v.get('mid')
+        if type(mid) is dict:
+            mx = mid.get('x')
+            my = mid.get('y')
+            if mx is not None:
+                cur_x = mx
+            if my is not None:
+                cur_y = my
+    return results
+```

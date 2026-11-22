@@ -1,0 +1,53 @@
+def reference(vectors):
+    # Initial concrete state (power-up value chosen as 0 per reset semantics)
+    q = 0
+    result = []
+
+    for row in vectors:
+        # Input is driven before the sampled posedge.
+        reset = int(row.get("reset", 0)) & 1
+
+        # Rule sync_reset: synchronous active-high reset, priority over increment.
+        if reset == 1:
+            q = 0
+        else:
+            # Rule bcd_increment: increment a 4-digit packed BCD value modulo 10000.
+            if q == 0x9999:
+                q = 0
+            else:
+                ones = q & 0xF
+                tens = (q >> 4) & 0xF
+                hundreds = (q >> 8) & 0xF
+                thousands = (q >> 12) & 0xF
+
+                ones += 1
+                if ones == 10:
+                    ones = 0
+                    tens += 1
+                    if tens == 10:
+                        tens = 0
+                        hundreds += 1
+                        if hundreds == 10:
+                            hundreds = 0
+                            thousands += 1
+                            if thousands == 10:
+                                thousands = 0
+
+                q = (thousands << 12) | (hundreds << 8) | (tens << 4) | ones
+
+        # Rule upper_digit_enables: combinational from current packed q.
+        # Use supplied reversed interpretation:
+        # bit0 = thousands enable, bit1 = hundreds enable, bit2 = tens enable.
+        ones_d = q & 0xF
+        tens_d = (q >> 4) & 0xF
+        hundreds_d = (q >> 8) & 0xF
+
+        tens_enable = 4 if ones_d == 9 else 0
+        hundreds_enable = 2 if (ones_d == 9 and tens_d == 9) else 0
+        thousands_enable = 1 if (ones_d == 9 and tens_d == 9 and hundreds_d == 9) else 0
+
+        ena = tens_enable + hundreds_enable + thousands_enable
+
+        result.append({"q": q, "ena": ena})
+
+    return result

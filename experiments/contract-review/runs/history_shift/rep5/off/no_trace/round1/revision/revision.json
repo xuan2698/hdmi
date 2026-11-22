@@ -1,0 +1,83 @@
+{
+  "responses": [
+    {
+      "issue_id": "I1",
+      "decision": "accept",
+      "reason": "R2 example is off by one cycle: with next_cycle visibility, the first row's posedge should produce (5<<1)|0=10, and the second row should hold 10. Current expected [0,10] contradicts the rule's own next_cycle semantics.",
+      "spec_quote": "When a branch misprediction occurs (train_mispredicted = 1), load the branch history register with the history after the completion of the mispredicted branch. This is the history before the mispredicted branch (train_history) concatenated with the actual result of the branch (train_taken).",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R2_mispredict_priority",
+            "example",
+            "expected"
+          ],
+          "value": [
+            {
+              "predict_history": 10
+            },
+            {
+              "predict_history": 10
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "issue_id": "I2",
+      "decision": "accept",
+      "reason": "R3 example is off by one cycle: first row predict_taken=1 should yield 1, second row shift in 0 yields 2, third row holds 2. Current [0,1,2] contradicts next_cycle visibility.",
+      "spec_quote": "When a branch prediction is made (predict_valid = 1), shift in predict_taken from the LSB side to update the branch history for the predicted branch.",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R3_predict_shift",
+            "example",
+            "expected"
+          ],
+          "value": [
+            {
+              "predict_history": 1
+            },
+            {
+              "predict_history": 2
+            },
+            {
+              "predict_history": 2
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "issue_id": "I3",
+      "decision": "rebut",
+      "reason": "The spec explicitly states the reset is asynchronous, and the current rule already models it as async active-high level with same_cycle visibility, which is the standard interpretation of an asynchronous reset. The 'positive edge triggered' phrasing is contradictory but the async interpretation is the grounded reading; no edit needed.",
+      "spec_quote": "areset is a positive edge triggered asynchronous reset that resets the history counter to zero",
+      "edits": []
+    },
+    {
+      "issue_id": "I4",
+      "decision": "rebut",
+      "reason": "The spec states predict_history[0] is the direction of the youngest branch, which fixes train_taken as the new LSB; the current rule already uses (train_history<<1)|train_taken. No ambiguity remains.",
+      "spec_quote": "(predict_history[0] is the direction of the youngest branch.)",
+      "edits": []
+    },
+    {
+      "issue_id": "I5",
+      "decision": "rebut",
+      "reason": "The spec states predict_taken is shifted in from the LSB side and predict_history[0] is the youngest branch, which fixes left-shift with predict_taken as new bit 0. The current rule already implements this.",
+      "spec_quote": "shift in predict_taken from the LSB side to update the branch history for the predicted branch. (predict_history[0] is the direction of the youngest branch.)",
+      "edits": []
+    },
+    {
+      "issue_id": "I6",
+      "decision": "rebut",
+      "reason": "The spec clarifies that rollback is implemented by loading train_history concatenated with train_taken, which R2 already models; no separate rollback rule is needed.",
+      "spec_quote": "When a branch misprediction occurs (train_mispredicted = 1), load the branch history register with the history after the completion of the mispredicted branch. This is the history before the mispredicted branch (train_history) concatenated with the actual result of the branch (train_taken).",
+      "edits": []
+    }
+  ]
+}

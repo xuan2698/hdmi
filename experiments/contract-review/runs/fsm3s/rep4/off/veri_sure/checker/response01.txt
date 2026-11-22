@@ -1,0 +1,34 @@
+```python
+def reference(vectors):
+    # Moore FSM: states A=0, B=1, C=2, D=3
+    # Synchronous active-high reset to A.
+    # Output: 1 only in state D.
+    # Each vector row: dict with 'clk','reset','in' (and possibly mid changes).
+    # We sample on posedge of clk. Mid changes occur after sampling.
+    # We process rows in order; state persists across rows.
+    state = 0  # power-up unspecified; start at A
+    out = 1 if state == 3 else 0
+    results = []
+    for row in vectors:
+        clk = row.get('clk', 0)
+        reset = row.get('reset', 0)
+        inp = row.get('in', 0)
+        # Determine if this row represents a posedge sample.
+        # The contract: "Each row's values are driven before the sampled edge."
+        # We treat each row as a clock edge sample (posedge).
+        # Apply synchronous reset / next-state logic.
+        if reset:
+            state = 0
+        else:
+            if state == 0:  # A
+                state = 0 if inp == 0 else 1
+            elif state == 1:  # B
+                state = 2 if inp == 0 else 1
+            elif state == 2:  # C
+                state = 0 if inp == 0 else 3
+            elif state == 3:  # D
+                state = 2 if inp == 0 else 1
+        out = 1 if state == 3 else 0
+        results.append({'out': out})
+    return results
+```

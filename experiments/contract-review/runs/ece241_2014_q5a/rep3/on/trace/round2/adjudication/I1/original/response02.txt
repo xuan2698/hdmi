@@ -1,0 +1,89 @@
+```python
+def reference(vectors):
+    state = 'A'
+    current = {}
+    result = []
+
+    for row in vectors:
+        mid_changes = None
+
+        # async_reset and serial_twos_complement: apply primary inputs before sampled edge.
+        try:
+            for k, v in row.items():
+                if k == 'mid':
+                    mid_changes = v
+                    continue
+                current[k] = v
+                # async_reset: active-high areset forces state A / z=0.
+                if k == 'areset' and v == 1:
+                    state = 'A'
+        except:
+            try:
+                for k, v in row:
+                    if k == 'mid':
+                        mid_changes = v
+                        continue
+                    current[k] = v
+                    if k == 'areset' and v == 1:
+                        state = 'A'
+            except:
+                pass
+
+        # async_reset has priority over the clocked transition.
+        if current.get('areset', 0) == 1:
+            state = 'A'
+        else:
+            # serial_twos_complement: LSB-first two's complement Moore transition.
+            x = current.get('x', 0)
+            if state == 'A':
+                if x == 0:
+                    state = 'A'
+                else:
+                    state = 'B'
+            elif state == 'B':
+                if x == 0:
+                    state = 'B'
+                else:
+                    state = 'C'
+            else:
+                if x == 0:
+                    state = 'B'
+                else:
+                    state = 'C'
+
+        # serial_twos_complement: Moore output after the settled posedge.
+        if state == 'A':
+            z = 0
+        elif state == 'B':
+            z = 1
+        else:
+            z = 0
+        result.append({'z': z})
+
+        # async_reset: mid changes happen after sampling; areset can asynchronously reset for later rows.
+        if mid_changes is not None:
+            try:
+                for k, v in mid_changes.items():
+                    current[k] = v
+                    if k == 'areset' and v == 1:
+                        state = 'A'
+            except:
+                try:
+                    for item in mid_changes:
+                        k = item[0]
+                        v = item[1]
+                        current[k] = v
+                        if k == 'areset' and v == 1:
+                            state = 'A'
+                except:
+                    try:
+                        for item in mid_changes:
+                            for k, v in item.items():
+                                current[k] = v
+                                if k == 'areset' and v == 1:
+                                    state = 'A'
+                    except:
+                        pass
+
+    return result
+```

@@ -1,0 +1,19 @@
+```python
+def reference(vectors):
+    # State: count (0..9). Power-up initial count is 9 per candidate interpretation.
+    count = 9
+    out = []
+    for row in vectors:
+        reset = row.get('reset', 0)
+        # R1: reset == 1 -> q = 0 (synchronous, same cycle visible)
+        if reset == 1:
+            count = 0
+        # R2: reset == 0 && q == 9 -> wrap to 0
+        elif count == 9:
+            count = 0
+        # R3: reset == 0 && q != 9 -> increment
+        else:
+            count = count + 1
+        out.append({'q': count & 0xF})
+    return out
+```

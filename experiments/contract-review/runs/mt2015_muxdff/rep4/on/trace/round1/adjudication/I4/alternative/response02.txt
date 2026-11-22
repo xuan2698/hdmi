@@ -1,0 +1,39 @@
+def reference(vectors):
+    # Initial state Q0: concrete Q=0 for unspecified power-up.
+    Q = 0
+    L = 0
+    r_in = 0
+    q_in = 0
+    result = []
+
+    for row in vectors:
+        # Apply row-driven inputs before the sampled posedge.
+        if type(row) is dict:
+            if "L" in row:
+                L = int(row["L"]) & 1
+            if "r_in" in row:
+                r_in = int(row["r_in"]) & 1
+            if "q_in" in row:
+                q_in = int(row["q_in"]) & 1
+
+        # Q_posedge_update: at posedge, if L=1 Q becomes r_in;
+        # if L=0 hold previous Q per candidate interpretation.
+        if L:
+            Q = r_in & 1
+        else:
+            Q = Q & 1
+
+        result.append({"Q": Q})
+
+        # mid: optional changes occur after sampling and carry to next row.
+        if type(row) is dict and "mid" in row:
+            mid = row["mid"]
+            if type(mid) is dict:
+                if "L" in mid:
+                    L = int(mid["L"]) & 1
+                if "r_in" in mid:
+                    r_in = int(mid["r_in"]) & 1
+                if "q_in" in mid:
+                    q_in = int(mid["q_in"]) & 1
+
+    return result

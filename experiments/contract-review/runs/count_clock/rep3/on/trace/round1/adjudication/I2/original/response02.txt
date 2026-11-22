@@ -1,0 +1,93 @@
+```python
+def reference(vectors):
+    # Rule reset_priority: initial state is reset value (12:00 AM)
+    pm = 0
+    hh = 0x12
+    mm = 0x00
+    ss = 0x00
+
+    cur_reset = 0
+    cur_ena = 0
+
+    results = []
+    for row in vectors:
+        # Apply inputs driven before the sampled edge
+        if "reset" in row:
+            cur_reset = row["reset"]
+        if "ena" in row:
+            cur_ena = row["ena"]
+
+        r = cur_reset
+        e = cur_ena
+
+        if r == 1:
+            # Rule reset_priority
+            pm = 0
+            hh = 0x12
+            mm = 0x00
+            ss = 0x00
+        elif e == 1:
+            # Rule increment_clock
+            # increment seconds
+            carry_ss = 0
+            if ss == 0x59:
+                ss = 0x00
+                carry_ss = 1
+            else:
+                low = ss & 0x0F
+                high = (ss >> 4) & 0x0F
+                low += 1
+                if low == 10:
+                    low = 0
+                    high += 1
+                ss = (high << 4) | low
+
+            # increment minutes if seconds carried
+            carry_mm = 0
+            if carry_ss:
+                if mm == 0x59:
+                    mm = 0x00
+                    carry_mm = 1
+                else:
+                    low = mm & 0x0F
+                    high = (mm >> 4) & 0x0F
+                    low += 1
+                    if low == 10:
+                        low = 0
+                        high += 1
+                    mm = (high << 4) | low
+
+            # increment hours if minutes carried
+            if carry_mm:
+                if hh == 0x12:
+                    hh = 0x01
+                    # pm unchanged
+                elif hh == 0x11:
+                    hh = 0x12
+                    pm = 1 - pm
+                else:
+                    low = hh & 0x0F
+                    high = (hh >> 4) & 0x0F
+                    low += 1
+                    if low == 10:
+                        low = 0
+                        high += 1
+                    hh = (high << 4) | low
+        else:
+            # Rule hold_clock
+            pass
+
+        # Output after posedge clk has settled
+        results.append({"pm": pm, "hh": hh, "mm": mm, "ss": ss})
+
+        # Process mid input changes after sampling
+        if "mid" in row:
+            mid = row["mid"]
+            for k in mid:
+                if k == "reset":
+                    cur_reset = mid[k]
+                elif k == "ena":
+                    cur_ena = mid[k]
+
+    return results
+```

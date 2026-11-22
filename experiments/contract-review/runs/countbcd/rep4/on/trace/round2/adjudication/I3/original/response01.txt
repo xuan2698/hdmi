@@ -1,0 +1,52 @@
+def reference(vectors):
+    # Rule sync_active_high_reset: at each rising edge, reset=1 forces q=0 and ena=0 after the edge.
+    # Rule bcd_counter_increment: non-reset edges increment the packed BCD count modulo 10000.
+    # Rule upper_digit_enables: ena is combinational from the current q after the edge.
+
+    def bcd_to_int(qv):
+        d0 = qv & 0xF
+        d1 = (qv >> 4) & 0xF
+        d2 = (qv >> 8) & 0xF
+        d3 = (qv >> 12) & 0xF
+        return d3 * 1000 + d2 * 100 + d1 * 10 + d0
+
+    def int_to_bcd(n):
+        n = n % 10000
+        d0 = n % 10
+        d1 = (n // 10) % 10
+        d2 = (n // 100) % 10
+        d3 = (n // 1000) % 10
+        return d0 | (d1 << 4) | (d2 << 8) | (d3 << 12)
+
+    # Concrete power-up choice for the otherwise unspecified initial state.
+    q = 0
+    result = []
+
+    for row in vectors:
+        reset = row.get('reset', 0) if isinstance(row, dict) else row
+
+        if reset:
+            # Rule sync_active_high_reset
+            q = 0
+        else:
+            # Rule bcd_counter_increment
+            count = bcd_to_int(q)
+            count = (count + 1) % 10000
+            q = int_to_bcd(count)
+
+        d0 = q & 0xF
+        d1 = (q >> 4) & 0xF
+        d2 = (q >> 8) & 0xF
+
+        ena = 0
+        if d0 == 9:
+            ena |= 1
+            if d1 == 9:
+                ena |= 2
+                if d2 == 9:
+                    ena |= 4
+
+        # Rule upper_digit_enables
+        result.append({'q': q, 'ena': ena})
+
+    return result

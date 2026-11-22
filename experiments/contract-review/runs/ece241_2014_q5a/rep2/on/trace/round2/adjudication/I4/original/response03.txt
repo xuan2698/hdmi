@@ -1,0 +1,76 @@
+def reference(vectors):
+    # State encoding: 0=S0 (z=0), 1=S1 (z=1), 2=S2 (z=0)
+    state = 0
+    inputs = {"areset": 0, "x": 0}
+    result = []
+
+    for row in vectors:
+        # Drive this row's explicit input values before the sampled posedge.
+        if "areset" in row:
+            inputs["areset"] = int(row["areset"]) & 1
+        if "x" in row:
+            inputs["x"] = int(row["x"]) & 1
+
+        # async_reset_z0: active-high asynchronous reset forces S0/z=0 while asserted.
+        if inputs["areset"] == 1:
+            state = 0
+            z = 0
+        else:
+            x = inputs["x"] & 1
+
+            # global: use same-cycle post-edge Moore output after the settled posedge.
+            if state == 0:
+                if x == 0:
+                    # s0_x0: S0 x=0 -> S0, z=0
+                    state = 0
+                    z = 0
+                else:
+                    # s0_x1: S0 x=1 -> S1, z=1
+                    state = 1
+                    z = 1
+            elif state == 1:
+                if x == 0:
+                    # s1_x0: S1 x=0 -> S1, z=1
+                    state = 1
+                    z = 1
+                else:
+                    # s1_x1: S1 x=1 -> S2, z=0
+                    state = 2
+                    z = 0
+            else:
+                if x == 0:
+                    # s2_x0: S2 x=0 -> S1, z=1
+                    state = 1
+                    z = 1
+                else:
+                    # s2_x1: S2 x=1 -> S2, z=0
+                    state = 2
+                    z = 0
+
+        result.append({"z": z})
+
+        # Process optional mid changes after sampling and before the next edge.
+        mid = row.get("mid", None) if isinstance(row, dict) else None
+        if isinstance(mid, dict):
+            changes = [mid]
+        elif isinstance(mid, (list, tuple)):
+            changes = mid
+        else:
+            changes = []
+
+        for change in changes:
+            if isinstance(change, dict):
+                for key, value in change.items():
+                    if key == "areset":
+                        inputs["areset"] = int(value) & 1
+                        # async_reset_z0: asserted mid-reset asynchronously forces S0.
+                        if inputs["areset"] == 1:
+                            state = 0
+                    elif key == "x":
+                        inputs["x"] = int(value) & 1
+
+        # async_reset_z0: carry active reset level into the next sampled edge.
+        if inputs.get("areset", 0) == 1:
+            state = 0
+
+    return result

@@ -1,0 +1,186 @@
+[
+  {
+    "issue": {
+      "issue_id": "I4",
+      "rule_id": "R2",
+      "type": "ambiguity",
+      "severity": "high",
+      "detail": "R2 and R5 have identical condition (reset==0 and state==S4) and priority 2, creating duplicate/ambiguous rules for the same output.",
+      "spec_evidence": "forever, until reset",
+      "alternative": "Merge R2 and R5 into one rule; or R5 should be the only S4-hold rule.",
+      "sequence": [
+        {
+          "reset": 0,
+          "data": 1
+        },
+        {
+          "reset": 0,
+          "data": 1
+        },
+        {
+          "reset": 0,
+          "data": 0
+        },
+        {
+          "reset": 0,
+          "data": 1
+        },
+        {
+          "reset": 0,
+          "data": 0
+        }
+      ]
+    },
+    "status": "no_effect",
+    "issue_id": "I4",
+    "outputs": {
+      "original": [
+        {
+          "start_shifting": 0
+        },
+        {
+          "start_shifting": 0
+        },
+        {
+          "start_shifting": 0
+        },
+        {
+          "start_shifting": 1
+        },
+        {
+          "start_shifting": 1
+        }
+      ],
+      "alternative": [
+        {
+          "start_shifting": 0
+        },
+        {
+          "start_shifting": 0
+        },
+        {
+          "start_shifting": 0
+        },
+        {
+          "start_shifting": 1
+        },
+        {
+          "start_shifting": 1
+        }
+      ]
+    },
+    "differences": []
+  },
+  {
+    "issue": {
+      "issue_id": "I5",
+      "rule_id": "R3",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "R3 condition says next_state==S4 (state==S3 and data==1) but does not specify overlapping-prefix handling (e.g., 11011 should re-enter S2 after match). Spec only says search for 1101; alternative semantics: after match, stay in S4 forever (no further matching) vs continue matching.",
+      "spec_evidence": "searches for the sequence 1101 in an input bit stream",
+      "alternative": "After reaching S4, remain in S4 regardless of data (latch forever) rather than continuing to track prefixes.",
+      "sequence": [
+        {
+          "reset": 0,
+          "data": 1
+        },
+        {
+          "reset": 0,
+          "data": 1
+        },
+        {
+          "reset": 0,
+          "data": 0
+        },
+        {
+          "reset": 0,
+          "data": 1
+        },
+        {
+          "reset": 1,
+          "data": 0
+        },
+        {
+          "reset": 0,
+          "data": 1
+        },
+        {
+          "reset": 0,
+          "data": 1
+        },
+        {
+          "reset": 0,
+          "data": 0
+        },
+        {
+          "reset": 0,
+          "data": 1
+        }
+      ]
+    },
+    "status": "no_effect",
+    "issue_id": "I5",
+    "outputs": {
+      "original": [
+        {
+          "start_shifting": 0
+        },
+        {
+          "start_shifting": 0
+        },
+        {
+          "start_shifting": 0
+        },
+        {
+          "start_shifting": 1
+        },
+        {
+          "start_shifting": 0
+        },
+        {
+          "start_shifting": 0
+        },
+        {
+          "start_shifting": 0
+        },
+        {
+          "start_shifting": 0
+        },
+        {
+          "start_shifting": 1
+        }
+      ],
+      "alternative": [
+        {
+          "start_shifting": 0
+        },
+        {
+          "start_shifting": 0
+        },
+        {
+          "start_shifting": 0
+        },
+        {
+          "start_shifting": 1
+        },
+        {
+          "start_shifting": 0
+        },
+        {
+          "start_shifting": 0
+        },
+        {
+          "start_shifting": 0
+        },
+        {
+          "start_shifting": 0
+        },
+        {
+          "start_shifting": 1
+        }
+      ]
+    },
+    "differences": []
+  }
+]

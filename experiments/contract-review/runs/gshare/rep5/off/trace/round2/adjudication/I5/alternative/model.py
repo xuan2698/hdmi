@@ -1,0 +1,66 @@
+def reference(vectors):
+    # State
+    pht = [2] * 128  # R1: PHT counters reset to 2 (weakly not-taken)
+    ghr = 0
+
+    outputs = []
+
+    for v in vectors:
+        areset = v.get('areset', 0)
+        predict_valid = v.get('predict_valid', 0)
+        predict_pc = v.get('predict_pc', 0)
+        train_valid = v.get('train_valid', 0)
+        train_taken = v.get('train_taken', 0)
+        train_mispredicted = v.get('train_mispredicted', 0)
+        train_history = v.get('train_history', 0)
+        train_pc = v.get('train_pc', 0)
+
+        # R7_async_reset: asynchronous active-high reset
+        if areset:
+            pht = [2] * 128
+            ghr = 0
+            outputs.append({'predict_taken': 0, 'predict_history': 0})
+            continue
+
+        # Compute prediction outputs (same cycle, before any state update)
+        predict_taken = 0
+        predict_history = 0
+        if predict_valid:
+            # R1_predict_outputs: produce predicted direction and history used
+            idx = (predict_pc ^ ghr) & 0x7F
+            counter = pht[idx]
+            predict_taken = (counter >> 1) & 1  # MSB of 2-bit counter
+            predict_history = ghr
+
+        outputs.append({'predict_taken': predict_taken, 'predict_history': predict_history})
+
+        # Compute next state (posedge updates)
+        new_pht = list(pht)
+        new_ghr = ghr
+
+        # R3_train_pht_update: train PHT
+        if train_valid:
+            tidx = (train_pc ^ train_history) & 0x7F
+            c = new_pht[tidx]
+            if train_taken:
+                if c < 3:
+                    c += 1
+            else:
+                if c > 0:
+                    c -= 1
+            new_pht[tidx] = c
+
+        # R4_train_mispredict_ghr_recover and R5_train_priority_over_predict_ghr
+        if train_valid:
+            if train_mispredicted:
+                # Recover GHR to state immediately after mispredicting branch
+                new_ghr = ((train_history << 1) | train_taken) & 0x7F
+            # If train_valid and not mispredicted, GHR unchanged by training
+        elif predict_valid:
+            # R2_predict_ghr_update: update GHR for predicted branch
+            new_ghr = ((ghr << 1) | predict_taken) & 0x7F
+
+        pht = new_pht
+        ghr = new_ghr
+
+    return outputs

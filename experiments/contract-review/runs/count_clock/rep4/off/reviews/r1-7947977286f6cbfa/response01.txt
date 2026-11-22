@@ -1,0 +1,159 @@
+{
+  "coverage": {
+    "S01": ["R1_reset", "R2_hold", "R3_seconds", "R4_seconds_roll", "R5_minutes_roll", "R6_hour_roll_am_pm", "R7_hour_roll_12"],
+    "S02": ["R2_hold", "R3_seconds", "R4_seconds_roll", "R5_minutes_roll", "R6_hour_roll_am_pm", "R7_hour_roll_12"],
+    "S03": ["R3_seconds", "R4_seconds_roll", "R5_minutes_roll", "R6_hour_roll_am_pm", "R7_hour_roll_12"],
+    "S04": ["R1_reset"]
+  },
+  "issues": [
+    {
+      "issue_id": "I1",
+      "rule_id": "R1_reset",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "Reset example expects hh=18 (0x12) but spec says 12:00 AM; 0x12 is BCD 12, but example uses decimal 18 which is not BCD 12. Also all examples use hh=18 as initial value, contradicting BCD encoding.",
+      "spec_evidence": "resets the clock to \"12:00 AM.\"",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I2",
+      "rule_id": "R5_minutes_roll",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "R5 example increments hh from 18 to 19, but 19 is not a valid BCD hour (hh_hi=1, hh_lo=9 is valid BCD 19? Actually BCD 19 is invalid for 12-hour clock; hours are 01-12). Also hh=18 is not valid BCD for 12-hour clock.",
+      "spec_evidence": "hours (01-12)",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I3",
+      "rule_id": "R6_hour_roll_am_pm",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "R6 condition hh==8'h12 (BCD 12) but example starts with hh=18 (0x12) and expects hh=1 after roll; however 0x12 is BCD 12, but example uses decimal 18 which is 0x12? Actually 8'h12 is 18 decimal. So hh=18 is 0x12, which is BCD 12. But spec says hours 01-12, so 0x12 is valid BCD 12. However example expected hh=1 after roll from 12:59:59 to 1:00:00, which is correct. But initial hh=18 is 0x12, which is BCD 12, so okay. But R5 example increments 0x12 to 0x13 (19 decimal), which is invalid BCD for hours. So R5 is wrong.",
+      "spec_evidence": "hours (01-12)",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I4",
+      "rule_id": "R7_hour_roll_12",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "R7 condition hh==8'h11 (BCD 11) but example starts with hh=18 (0x12) and expects hh=18 after roll, which is inconsistent with condition. The example does not match the rule condition.",
+      "spec_evidence": "hours (01-12)",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I5",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec says pm asserted if PM, otherwise AM. But no rule defines pm behavior on hour roll from 11:59:59 to 12:00:00 (AM/PM toggle) or from 12:59:59 to 1:00:00 (PM to AM). R6 toggles pm on 12->1, but R7 does not toggle on 11->12. Spec implies pm should toggle at 12:00:00 (AM) and 12:00:00 (PM)? Actually 12-hour clock: 11:59:59 AM -> 12:00:00 PM (pm=1), 11:59:59 PM -> 12:00:00 AM (pm=0). So pm should toggle on both 11->12 and 12->1. R7 does not toggle pm, which is wrong.",
+      "spec_evidence": "The signal \"pm\" is asserted if the clock is PM, or is otherwise AM.",
+      "alternative": "pm should toggle on both 11:59:59->12:00:00 and 12:59:59->1:00:00.",
+      "sequence": [
+        {"reset":0,"ena":1},
+        {"reset":0,"ena":1}
+      ]
+    },
+    {
+      "issue_id": "I6",
+      "rule_id": "R7_hour_roll_12",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "R7 example expects hh=18 (0x12) after roll from 11:59:59, but condition is hh==8'h11 (BCD 11). Example starts with hh=18 (0x12) not 0x11, so example does not match condition. Also expected hh=18 is 0x12, which is correct for 12:00:00, but pm should toggle to 1 (PM) if coming from AM, but example keeps pm=0.",
+      "spec_evidence": "hours (01-12)",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I7",
+      "rule_id": "global",
+      "type": "grounding",
+      "severity": "medium",
+      "detail": "Spec says reset has higher priority than enable and can occur even when not enabled. R1_reset condition reset==1, priority 1, but example vectors show reset=1,ena=0 then reset=0,ena=0 then reset=0,ena=1, expected all hh=18,mm=0,ss=0,pm=0. This does not demonstrate reset priority over enable because ena=0 during reset. No example shows reset=1,ena=1.",
+      "spec_evidence": "Reset has higher priority than enable and can occur even when not enabled.",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I8",
+      "rule_id": "R3_seconds",
+      "type": "consistency",
+      "severity": "medium",
+      "detail": "R3_seconds condition ss != 8'h59, but example starts with ss=0 and increments to 1,2,3. However initial state from reset is ss=0, so okay. But R3 example expected ss=1,2,3 from initial ss=0, which is fine. No issue? Actually R3 example vectors are three cycles of ena=1, expected ss=1,2,3. That is correct if initial ss=0. But R2_hold example ends with ss=1 after ena=1, so R3 example starting from ss=0 is inconsistent with R2 example ending at ss=1. Not a direct contradiction but examples are not chained.",
+      "spec_evidence": "seconds (00-59)",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I9",
+      "rule_id": "R4_seconds_roll",
+      "type": "consistency",
+      "severity": "medium",
+      "detail": "R4_seconds_roll condition ss==8'h59 && mm != 8'h59, but example starts with mm=0, ss=0 and expects mm=1, ss=0 after first cycle. This does not match condition because ss is not 0x59 initially. Example is inconsistent with rule condition.",
+      "spec_evidence": "minutes (00-59), and seconds (00-59)",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I10",
+      "rule_id": "R5_minutes_roll",
+      "type": "consistency",
+      "severity": "medium",
+      "detail": "R5_minutes_roll condition ss==8'h59 && mm==8'h59 && hh != 8'h12, but example starts with mm=0, ss=0 and expects mm=0, ss=0 after first cycle? Actually expected first cycle: hh=19, mm=0, ss=0. This does not match condition because ss and mm are not 0x59 initially. Example is inconsistent with rule condition.",
+      "spec_evidence": "hours (01-12)",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I11",
+      "rule_id": "R6_hour_roll_am_pm",
+      "type": "consistency",
+      "severity": "medium",
+      "detail": "R6_hour_roll_am_pm condition ss==8'h59 && mm==8'h59 && hh==8'h12, but example starts with mm=0, ss=0 and expects pm=1, hh=1, mm=0, ss=0 after first cycle. This does not match condition because ss and mm are not 0x59 initially. Example is inconsistent with rule condition.",
+      "spec_evidence": "The signal \"pm\" is asserted if the clock is PM, or is otherwise AM",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I12",
+      "rule_id": "R7_hour_roll_12",
+      "type": "consistency",
+      "severity": "medium",
+      "detail": "R7_hour_roll_12 condition ss==8'h59 && mm==8'h59 && hh==8'h11, but example starts with mm=0, ss=0 and expects hh=18, mm=0, ss=0 after first cycle. This does not match condition because ss and mm are not 0x59 initially. Example is inconsistent with rule condition.",
+      "spec_evidence": "hours (01-12)",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I13",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "high",
+      "detail": "Spec does not specify whether pm toggles on 11:59:59->12:00:00. R7 does not toggle pm, but 12-hour clock semantics require pm to toggle at 12:00:00 (AM to PM or PM to AM). Alternative: pm should toggle on 11->12 and 12->1.",
+      "spec_evidence": "The signal \"pm\" is asserted if the clock is PM, or is otherwise AM.",
+      "alternative": "pm should toggle on both 11:59:59->12:00:00 and 12:59:59->1:00:00.",
+      "sequence": [
+        {"reset":0,"ena":1},
+        {"reset":0,"ena":1}
+      ]
+    },
+    {
+      "issue_id": "I14",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec says hh, mm, ss are two BCD digits each for hours (01-12), minutes (00-59), seconds (00-59). But contract uses hh=18 (0x12) as reset value, which is BCD 12, but examples use decimal 18 which is 0x12. This is confusing but 0x12 is BCD 12. However R5 example increments 0x12 to 0x13 (19 decimal), which is invalid BCD for hours. So ambiguity in how hh is represented.",
+      "spec_evidence": "hh, mm, and ss are two BCD (Binary-Coded Decimal) digits each for hours (01-12)",
+      "alternative": "hh should be BCD encoded, so 12 is 0x12, 1 is 0x01, etc. R5 should not increment 0x12 to 0x13.",
+      "sequence": [
+        {"reset":0,"ena":1},
+        {"reset":0,"ena":1}
+      ]
+    }
+  ]
+}

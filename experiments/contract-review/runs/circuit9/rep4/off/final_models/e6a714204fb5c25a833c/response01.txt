@@ -1,0 +1,25 @@
+```python
+def reference(vectors):
+    # State: q (3-bit), prev_a (sampled at previous posedge), started (first posedge done)
+    q = 0
+    prev_a = None
+    started = False
+    out = []
+    for v in vectors:
+        a = v.get('a', 0)
+        # Rule load_on_first_posedge: first posedge loads 4 regardless of a
+        if not started:
+            q = 4
+            started = True
+        else:
+            # Rule hold_when_a_high: prev_a == 1 -> hold
+            # Rule increment_when_a_low: prev_a == 0 -> increment mod 8
+            if prev_a == 1:
+                q = q  # hold
+            else:
+                q = (q + 1) & 0x7
+        # sample a at this posedge for next cycle
+        prev_a = a
+        out.append({'q': q & 0x7})
+    return out
+```

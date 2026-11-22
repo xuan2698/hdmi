@@ -1,0 +1,24 @@
+```python
+def reference(vectors):
+    # State: q_reg holds the 8 D flip-flop outputs.
+    # Contract rules:
+    #   R1_sync_reset: reset==1 at negedge -> q = 0x34 (priority 1)
+    #   R2_dff_capture: reset==0 at negedge -> q = d (priority 2)
+    #   R3_reset_value: reset value is 0x34
+    # Candidate interpretation for unresolved global: reset is asynchronous
+    # active-high, so q becomes 0x34 immediately when reset rises.
+    q_reg = 0x34  # power-up value (unspecified but concrete)
+    out = []
+    for row in vectors:
+        d = row.get('d', 0) & 0xFF
+        reset = row.get('reset', 0) & 0x1
+        # Asynchronous active-high reset: q becomes 0x34 immediately when
+        # reset is high, independent of clk edge.
+        if reset == 1:
+            q_reg = 0x34  # R1_sync_reset / R3_reset_value (async interpretation)
+        else:
+            # R2_dff_capture: negedge clk captures d when reset==0
+            q_reg = d
+        out.append({'q': q_reg & 0xFF})
+    return out
+```

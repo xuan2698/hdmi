@@ -1,0 +1,16 @@
+def reference(vectors):
+    # Contract implementation.
+    # R1: state <= a XOR b on posedge clk (visible next cycle).
+    # R2: q = state (combinational passthrough, same cycle).
+    # Reset: none. Power-up state unspecified -> start at 0.
+    state = 0
+    out = []
+    for v in vectors:
+        a = v.get('a', 0)
+        b = v.get('b', 0)
+        # R2: q reflects current state (combinational passthrough)
+        q = state & 1
+        out.append({'q': q, 'state': state & 1})
+        # R1: posedge update: state <= a XOR b
+        state = (a ^ b) & 1
+    return out

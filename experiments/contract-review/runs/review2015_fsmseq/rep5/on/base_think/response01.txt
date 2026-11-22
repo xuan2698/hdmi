@@ -1,0 +1,40 @@
+def reference(vectors):
+    p = 0
+    s = 0
+    cr = 0
+    cd = 0
+    out = []
+    for v in vectors:
+        if 'reset' in v:
+            cr = int(v['reset'])
+        if 'data' in v:
+            cd = int(v['data'])
+        if cr:
+            p = 0
+            s = 0
+        elif not s:
+            if p == 0:
+                p = 1 if cd else 0
+            elif p == 1:
+                p = 2 if cd else 0
+            elif p == 2:
+                if cd:
+                    p = 2
+                else:
+                    p = 3
+            else:
+                if cd:
+                    p = 4
+                    s = 1
+                else:
+                    p = 0
+        else:
+            p = 4
+        out.append({'start_shifting': s})
+        m = v.get('mid')
+        if m:
+            if 'reset' in m:
+                cr = int(m['reset'])
+            if 'data' in m:
+                cd = int(m['data'])
+    return out

@@ -1,0 +1,43 @@
+def reference(vectors):
+    # Contract implementation.
+    # State: S0 = no 1 seen yet (pass x), S1 = 1 seen (complement x).
+    # R5: async reset forces state S0 and z=0 immediately (same cycle).
+    # R1: in S0, z = x (combinational, same cycle).
+    # R2: in S1, z = NOT x (combinational, same cycle).
+    # R3: posedge, S0 + x=1 -> S1; S0 + x=0 -> S0.
+    # R4: posedge, S1 -> S1 regardless of x.
+    # Mid changes occur after sampling, carried to start of next row.
+
+    state = "S0"
+    out = []
+
+    for row in vectors:
+        areset = row.get("areset", 0)
+        x = row.get("x", 0)
+
+        # R5: asynchronous reset asserted -> state S0, z=0 immediately.
+        if areset == 1:
+            state = "S0"
+            z = 0
+            out.append({"z": z & 1})
+            # mid changes carried to next row (none affect state here)
+            continue
+
+        # Combinational output based on current state (R1 / R2).
+        if state == "S0":
+            z = x & 1          # R1
+        else:
+            z = (~x) & 1       # R2
+
+        out.append({"z": z & 1})
+
+        # Posedge state update (R3 / R4).
+        if state == "S0":
+            if x == 1:
+                state = "S1"   # R3
+            else:
+                state = "S0"   # R3
+        else:
+            state = "S1"       # R4
+
+    return out

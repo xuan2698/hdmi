@@ -1,0 +1,32 @@
+```python
+def reference(vectors):
+    # State: q (3-bit counter), initialized flag, prev_a
+    # Rule global: q initializes to 4 on first posedge regardless of a
+    # Rule hold_when_a_high: when a==1 && initialized, hold q (priority 1)
+    # Rule increment_when_a_low: when prev_a==0, increment q by 1 (mod 8)
+    # Mid changes occur AFTER sampling, carried to next row.
+    q = None
+    initialized = False
+    prev_a = None
+    out = []
+    for row in vectors:
+        a = row.get('a', 0)
+        # posedge sampling
+        if not initialized:
+            # global: first posedge loads 4 regardless of a
+            q = 4
+            initialized = True
+        else:
+            # hold_when_a_high: priority 1, if a==1 hold
+            if a == 1:
+                pass  # hold
+            else:
+                # increment_when_a_low: prev_a == 0 -> increment
+                if prev_a == 0:
+                    q = (q + 1) & 0x7
+        # record output (concrete unsigned int within 3 bits)
+        out.append({'q': q & 0x7})
+        # mid changes: after sampling, update prev_a for next row
+        prev_a = a
+    return out
+```

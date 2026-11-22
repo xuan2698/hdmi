@@ -1,0 +1,31 @@
+```python
+def reference(vectors):
+    # Contract implementation.
+    # State: COUNT (current decade count 0..9), updated at posedge clk.
+    # R1: reset == 1 at posedge -> q = 0 (sync, active high, priority 1).
+    # R2: reset == 0 && q < 9 at posedge -> q = q + 1.
+    # R3: reset == 0 && q == 9 at posedge -> q = 0.
+    # Mid changes occur AFTER sampling, before next edge, carried to next row.
+    # Power-up unspecified: start at 0 (concrete value required).
+    count = 0
+    out = []
+    for row in vectors:
+        # Sample current state before edge (values driven before sampled edge).
+        # Apply synchronous update at posedge based on current inputs and state.
+        reset = row.get('reset', 0)
+        if reset == 1:
+            # R1
+            count = 0
+        else:
+            if count < 9:
+                # R2
+                count = count + 1
+            else:
+                # R3
+                count = 0
+        # Output visible same cycle after edge settles.
+        out.append({'q': count & 0xF})
+        # Mid changes (if any) occur after sampling; they are already reflected
+        # in the next row's inputs, so nothing to do here.
+    return out
+```

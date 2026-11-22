@@ -1,0 +1,39 @@
+{
+  "coverage": {
+    "S01": [
+      "capture_sticky_one_to_zero",
+      "sync_active_high_reset"
+    ]
+  },
+  "issues": [
+    {
+      "issue_id": "I1",
+      "rule_id": "capture_sticky_one_to_zero",
+      "type": "ambiguity",
+      "severity": "high",
+      "detail": "Reset-boundary prev_in history is inconsistent: state/reset fields use reset-cycle input for first reset=0 posedge capture, but uncertain note says this is unspecified; examples assume the chosen semantics.",
+      "spec_evidence": "\"Capture\" means that the output will remain 1 until the register is reset (active high synchronous reset).",
+      "alternative": "prev_in is cleared or ignored during reset, so the first reset==0 posedge cannot capture a 1-to-0 transition from the input sampled on the reset==1 posedge; out remains 0 for that sequence.",
+      "sequence": [
+        {
+          "reset": 1,
+          "in": 3
+        },
+        {
+          "reset": 0,
+          "in": 2
+        }
+      ]
+    },
+    {
+      "issue_id": "I2",
+      "rule_id": "capture_sticky_one_to_zero",
+      "type": "grounding",
+      "severity": "medium",
+      "detail": "Rule condition includes sticky hold (already-1 remains 1) but its spec_quote only covers the 1-to-0 transition sentence; the sticky clause is not quoted and the rule is not marked uncertain.",
+      "spec_evidence": "\"Capture\" means that the output will remain 1 until the register is reset (active high synchronous reset).",
+      "alternative": "",
+      "sequence": []
+    }
+  ]
+}

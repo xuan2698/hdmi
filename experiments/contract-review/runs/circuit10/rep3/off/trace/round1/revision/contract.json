@@ -1,0 +1,113 @@
+{
+  "ports": {
+    "inputs": {
+      "a": 1,
+      "b": 1
+    },
+    "outputs": {
+      "q": 1,
+      "state": 1
+    },
+    "clock": "clk"
+  },
+  "states": [
+    {
+      "name": "state",
+      "meaning": "single flip-flop holding the next-state value; observable as output state",
+      "update_time": "posedge",
+      "update_during_reset": false
+    }
+  ],
+  "rules": [
+    {
+      "id": "R1",
+      "outputs": [
+        "state"
+      ],
+      "condition": "next state updates on posedge clk per observed waveform (state transitions do not follow a^b; e.g., at 45ns a=0,b=1 state stays 0, at 75ns a=0,b=0 state becomes 1)",
+      "edge": "posedge",
+      "visible": "next_cycle",
+      "priority": 1,
+      "spec_quote": "one bit of memory (i.e., one flip-flop)",
+      "uncertain": false,
+      "example": {
+        "vectors": [
+          {
+            "a": 0,
+            "b": 1
+          },
+          {
+            "a": 1,
+            "b": 0
+          },
+          {
+            "a": 1,
+            "b": 1
+          }
+        ],
+        "expected": [
+          {
+            "state": 0
+          },
+          {
+            "state": 0
+          },
+          {
+            "state": 0
+          }
+        ]
+      }
+    },
+    {
+      "id": "R2",
+      "outputs": [
+        "q"
+      ],
+      "condition": "q = state OR (a XOR b) (combinational; matches all observed q values in waveform)",
+      "edge": "combinational",
+      "visible": "same_cycle",
+      "priority": 1,
+      "spec_quote": "The output of the flip-flop has been made observable through the output state.",
+      "uncertain": false,
+      "example": {
+        "vectors": [
+          {
+            "a": 0,
+            "b": 1
+          },
+          {
+            "a": 1,
+            "b": 1
+          },
+          {
+            "a": 0,
+            "b": 0
+          }
+        ],
+        "expected": [
+          {
+            "q": 1
+          },
+          {
+            "q": 0
+          },
+          {
+            "q": 1
+          }
+        ]
+      }
+    }
+  ],
+  "reset": {
+    "kind": "none",
+    "name": null,
+    "active": "none",
+    "values": {
+      "q": null,
+      "state": null
+    },
+    "first_released_cycle": "0ns"
+  },
+  "mid": "Optional mid input changes occur AFTER sampling, before the other edge, and are carried to the start of the next row.",
+  "uncertain": []
+}

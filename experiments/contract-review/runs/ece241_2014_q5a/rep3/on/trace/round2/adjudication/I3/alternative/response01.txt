@@ -1,0 +1,77 @@
+```python
+def reference(vectors):
+    # State A: z=0, B: z=1, C: z=0.
+    state = 'A'
+    current = {'areset': 0, 'x': 0}
+    result = []
+
+    for row in vectors:
+        # Drive row inputs before the sampled posedge.
+        if 'areset' in row:
+            current['areset'] = int(row['areset']) & 1
+        if 'x' in row:
+            current['x'] = int(row['x']) & 1
+
+        # async_reset: active-high asynchronous reset forces state A and z=0.
+        if current['areset']:
+            state = 'A'
+            z = 0
+        else:
+            # serial_twos_complement: apply lagged/pre-edge z interpretation.
+            if state == 'B':
+                z = 1
+            else:
+                z = 0
+
+            # serial_twos_complement: posedge state transitions from explicit states.
+            x = current['x'] & 1
+            if state == 'A':
+                if x:
+                    state = 'B'
+                else:
+                    state = 'A'
+            elif state == 'B':
+                if x:
+                    state = 'C'
+                else:
+                    state = 'B'
+            else:  # state == 'C'
+                if x:
+                    state = 'C'
+                else:
+                    state = 'B'
+
+        result.append({'z': z})
+
+        # Mid changes occur after sampling and are carried to the next row.
+        mid = None
+        if 'mid' in row and type(row['mid']) is dict:
+            mid = row['mid']
+        elif '_mid' in row and type(row['_mid']) is dict:
+            mid = row['_mid']
+        elif 'mid_changes' in row and type(row['mid_changes']) is dict:
+            mid = row['mid_changes']
+
+        if mid is not None:
+            if 'areset' in mid:
+                current['areset'] = int(mid['areset']) & 1
+            if 'x' in mid:
+                current['x'] = int(mid['x']) & 1
+
+        # Also support direct mid_<signal> encoding.
+        if 'mid_areset' in row:
+            current['areset'] = int(row['mid_areset']) & 1
+        if 'mid_x' in row:
+            current['x'] = int(row['mid_x']) & 1
+        if 'areset_mid' in row:
+            current['areset'] = int(row['areset_mid']) & 1
+        if 'x_mid' in row:
+            current['x'] = int(row['x_mid']) & 1
+
+        # async_reset: asynchronous assertion after the sampled edge resets state
+        # for the next row without changing the current row's captured output.
+        if current['areset']:
+            state = 'A'
+
+    return result
+```

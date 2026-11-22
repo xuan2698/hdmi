@@ -1,0 +1,69 @@
+def reference(vectors):
+    # S0=0, S1=1, S2=2
+    state = 0
+    current_areset = 0
+    current_x = 0
+    results = []
+
+    for row in vectors:
+        # Each row's values are driven before the sampled posedge.
+        if "areset" in row:
+            current_areset = row["areset"]
+        if "x" in row:
+            current_x = row["x"]
+
+        # Sample after posedge settled.
+        if current_areset == 1:
+            # async_reset_z0: active-high asynchronous reset forces S0 and z=0.
+            state = 0
+            z = 0
+        else:
+            if state == 0:
+                # s0_x0 / s0_x1
+                if current_x == 1:
+                    state = 1
+                else:
+                    state = 0
+            elif state == 1:
+                # s1_x0 / s1_x1
+                if current_x == 1:
+                    state = 2
+                else:
+                    state = 1
+            else:
+                # s2_x0 / s2_x1
+                if current_x == 0:
+                    state = 1
+                else:
+                    state = 2
+
+            # Moore output visible after sampled edge: z=1 only in S1.
+            if state == 1:
+                z = 1
+            else:
+                z = 0
+
+        results.append({"z": z})
+
+        # Optional mid changes occur after sampling and carry to next row.
+        if "mid" in row:
+            mid = row["mid"]
+            if mid.__class__.__name__ == "dict":
+                if "areset" in mid:
+                    current_areset = mid["areset"]
+                    if current_areset == 1:
+                        # async_reset_z0: asynchronous assertion after sample.
+                        state = 0
+                if "x" in mid:
+                    current_x = mid["x"]
+            else:
+                for m in mid:
+                    if "areset" in m:
+                        current_areset = m["areset"]
+                        if current_areset == 1:
+                            # async_reset_z0: asynchronous assertion after sample.
+                            state = 0
+                    if "x" in m:
+                        current_x = m["x"]
+
+    return results

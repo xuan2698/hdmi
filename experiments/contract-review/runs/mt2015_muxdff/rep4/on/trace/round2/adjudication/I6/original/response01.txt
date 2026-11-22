@@ -1,0 +1,37 @@
+def reference(vectors):
+    # Q_posedge_update: At each posedge clk after settlement, Q becomes r_in when L=1;
+    # otherwise Q becomes q_in. Between clock edges Q holds.
+    q = 0  # power-up unspecified; use concrete unsigned 0
+    cur = {"L": 0, "q_in": 0, "r_in": 0}
+    out = []
+
+    for row in vectors:
+        # Each row's values are driven before the sampled posedge.
+        for key in ("L", "q_in", "r_in"):
+            if key in row:
+                cur[key] = int(row[key]) & 1
+
+        # Q_posedge_update: sample after posedge has settled.
+        if cur["L"] == 1:
+            q = cur["r_in"] & 1
+        else:
+            q = cur["q_in"] & 1
+
+        out.append({"Q": q})
+
+        # Optional mid changes occur after sampling, before the next edge,
+        # and are carried to the start of the next row.
+        if "mid" in row:
+            mid = row["mid"]
+            if isinstance(mid, dict):
+                for key in ("L", "q_in", "r_in"):
+                    if key in mid:
+                        cur[key] = int(mid[key]) & 1
+            elif isinstance(mid, (list, tuple)):
+                for change in mid:
+                    if isinstance(change, dict):
+                        for key in ("L", "q_in", "r_in"):
+                            if key in change:
+                                cur[key] = int(change[key]) & 1
+
+    return out

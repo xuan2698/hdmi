@@ -1,0 +1,67 @@
+def reference(vectors):
+    # State
+    pht = [0] * 128  # 2-bit saturating counters
+    ghr = 0          # 7-bit global history register
+
+    outputs = []
+
+    for vec in vectors:
+        areset = vec.get('areset', 0)
+        predict_valid = vec.get('predict_valid', 0)
+        predict_pc = vec.get('predict_pc', 0) & 0x7F
+        train_valid = vec.get('train_valid', 0)
+        train_taken = vec.get('train_taken', 0) & 1
+        train_mispredicted = vec.get('train_mispredicted', 0) & 1
+        train_history = vec.get('train_history', 0) & 0x7F
+        train_pc = vec.get('train_pc', 0) & 0x7F
+
+        # R7_async_reset: asynchronous active-high reset
+        if areset:
+            pht = [0] * 128
+            ghr = 0
+            outputs.append({'predict_taken': 0, 'predict_history': 0})
+            continue
+
+        # Compute prediction outputs (combinational, based on current state)
+        # R1_predict_outputs: when predict_valid, output predicted direction and ghr
+        # R6_predict_sees_pre_train_pht: prediction uses pre-update PHT state
+        if predict_valid:
+            idx = (predict_pc ^ ghr) & 0x7F
+            counter = pht[idx]
+            predict_taken = 1 if counter >= 2 else 0
+            predict_history = ghr
+        else:
+            predict_taken = 0
+            predict_history = 0
+
+        outputs.append({'predict_taken': predict_taken, 'predict_history': predict_history})
+
+        # Sequential updates at posedge
+        # R3_train_pht_update: train PHT
+        if train_valid:
+            idx = (train_pc ^ train_history) & 0x7F
+            counter = pht[idx]
+            if train_taken:
+                if counter < 3:
+                    counter += 1
+            else:
+                if counter > 0:
+                    counter -= 1
+            pht[idx] = counter
+
+        # GHR update logic
+        # R5_train_priority_over_predict_ghr: training takes precedence over prediction
+        # R4_train_mispredict_ghr_recover: on mispredict, recover ghr to train_history shifted with train_taken
+        # R2_predict_ghr_update: on predict (without train), update ghr with predicted direction
+        if train_valid:
+            if train_mispredicted:
+                # R4: recover ghr to state immediately after mispredicting branch
+                ghr = ((train_history << 1) | train_taken) & 0x7F
+            else:
+                # R5 interpretation: GHR updated from train_history shifted with train_taken
+                ghr = ((train_history << 1) | train_taken) & 0x7F
+        elif predict_valid:
+            # R2: update ghr with predicted branch direction
+            ghr = ((ghr << 1) | predict_taken) & 0x7F
+
+    return outputs

@@ -1,0 +1,94 @@
+{
+  "responses": [
+    {
+      "issue_id": "I1",
+      "decision": "rebut",
+      "reason": "R5 already specifies synchronous reset with visible next_cycle and reset.values out=0; the example is consistent and the reset kind/name/active/values already express the rule.",
+      "spec_quote": "synchronous active high reset that resets the FSM to state A",
+      "edits": []
+    },
+    {
+      "issue_id": "I2",
+      "decision": "accept",
+      "reason": "Initial state before any posedge is unspecified; clarify via uncertain candidates rather than inventing a reset kind.",
+      "spec_quote": "The following is the state transition table for a Moore state machine with one input, one output, and four states.",
+      "edits": [
+        {
+          "path": [
+            "uncertain"
+          ],
+          "value": [
+            {
+              "rule_id": "global",
+              "note": "Initial state before first posedge is unspecified; output before first posedge is undefined unless a reset is applied.",
+              "candidates": [
+                "Output is undefined (X) until first posedge establishes state",
+                "Assume initial state A"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "issue_id": "I3",
+      "decision": "accept",
+      "reason": "Examples for transition rules presume the source state; clarify in state meanings that examples assume the rule's source state as starting state.",
+      "spec_quote": "A | A, B | 0",
+      "edits": [
+        {
+          "path": [
+            "states"
+          ],
+          "value": [
+            {
+              "name": "A",
+              "meaning": "state A, output 0; transition-rule examples assume starting state A",
+              "update_time": "posedge",
+              "update_during_reset": true
+            },
+            {
+              "name": "B",
+              "meaning": "state B, output 0; transition-rule examples assume starting state B",
+              "update_time": "posedge",
+              "update_during_reset": true
+            },
+            {
+              "name": "C",
+              "meaning": "state C, output 0; transition-rule examples assume starting state C",
+              "update_time": "posedge",
+              "update_during_reset": true
+            },
+            {
+              "name": "D",
+              "meaning": "state D, output 1; transition-rule examples assume starting state D",
+              "update_time": "posedge",
+              "update_during_reset": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "issue_id": "I4",
+      "decision": "rebut",
+      "reason": "Reset is synchronous and R5 has priority 0 with next_cycle visibility; combinational output rules reflect current state, and reset takes effect at posedge per the sync reset contract already present.",
+      "spec_quote": "synchronous active high reset that resets the FSM to state A",
+      "edits": []
+    },
+    {
+      "issue_id": "I5",
+      "decision": "rebut",
+      "reason": "R4 example already presumes starting state D as expressed by the state meaning and rule condition; no change needed beyond I3 clarification.",
+      "spec_quote": "D | C, B | 1",
+      "edits": []
+    },
+    {
+      "issue_id": "I6",
+      "decision": "rebut",
+      "reason": "No missing segments; all rules have verbatim spec_quote present and no uncertain flags are required by the spec.",
+      "spec_quote": "A | A, B | 0",
+      "edits": []
+    }
+  ]
+}

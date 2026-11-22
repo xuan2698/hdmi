@@ -1,0 +1,94 @@
+[
+  {
+    "issue": {
+      "issue_id": "I5",
+      "rule_id": "R_SET_OR_HOLD_1101",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec does not specify same-edge versus one-cycle-later assertion of start_shifting; contract chooses same_cycle.",
+      "spec_evidence": "When the sequence is found, it should set start_shifting to 1, forever, until reset.",
+      "alternative": "start_shifting is registered one clock after detection: it remains 0 on the row completing 1101 and becomes 1 on the following row.",
+      "sequence": [
+        {
+          "reset": 1,
+          "data": 0
+        },
+        {
+          "reset": 0,
+          "data": 1
+        },
+        {
+          "reset": 0,
+          "data": 1
+        },
+        {
+          "reset": 0,
+          "data": 0
+        },
+        {
+          "reset": 0,
+          "data": 1
+        },
+        {
+          "reset": 0,
+          "data": 0
+        }
+      ]
+    },
+    "status": "effect",
+    "issue_id": "I5",
+    "outputs": {
+      "original": [
+        {
+          "start_shifting": 0
+        },
+        {
+          "start_shifting": 0
+        },
+        {
+          "start_shifting": 0
+        },
+        {
+          "start_shifting": 0
+        },
+        {
+          "start_shifting": 1
+        },
+        {
+          "start_shifting": 1
+        }
+      ],
+      "alternative": [
+        {
+          "start_shifting": 0
+        },
+        {
+          "start_shifting": 0
+        },
+        {
+          "start_shifting": 0
+        },
+        {
+          "start_shifting": 0
+        },
+        {
+          "start_shifting": 0
+        },
+        {
+          "start_shifting": 1
+        }
+      ]
+    },
+    "differences": [
+      {
+        "cycle": 5,
+        "original": {
+          "start_shifting": 1
+        },
+        "alternative": {
+          "start_shifting": 0
+        }
+      }
+    ]
+  }
+]

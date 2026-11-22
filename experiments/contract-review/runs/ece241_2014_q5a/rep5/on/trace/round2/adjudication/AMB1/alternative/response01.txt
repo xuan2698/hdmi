@@ -1,0 +1,65 @@
+def reference(vectors):
+    state = "A"
+    cur_areset = 0  # active-low reset initially asserted to establish deterministic A
+    cur_x = 0
+    result = []
+
+    for row in vectors:
+        # Apply values driven before the sampled posedge.
+        if "areset" in row:
+            cur_areset = row["areset"]
+        if "x" in row:
+            cur_x = row["x"]
+
+        # global: active-low reset override: areset==0 asserts reset, areset==1 releases.
+        # async_reset_assert: asserted reset asynchronously forces state A and inferred z=0.
+        if cur_areset == 0:
+            state = "A"
+            z = 0
+        else:
+            # Normal posedge transitions when reset is released (active-low: areset==1).
+            if state == "A":
+                if cur_x == 0:
+                    state = "A"  # A_on_x0
+                    z = 0
+                else:
+                    state = "B"  # A_on_x1
+                    z = 1
+            elif state == "B":
+                if cur_x == 0:
+                    state = "B"  # B_on_x0
+                    z = 1
+                else:
+                    state = "C"  # B_on_x1
+                    z = 0
+            else:  # state == "C"
+                if cur_x == 0:
+                    state = "B"  # C_on_x0
+                    z = 1
+                else:
+                    state = "C"  # C_on_x1
+                    z = 0
+
+        result.append({"z": int(z) & 1})
+
+        # Mid changes occur after sampling and are carried to the next row.
+        if "mid" in row:
+            mid = row["mid"]
+            if isinstance(mid, dict):
+                mids = [mid]
+            elif isinstance(mid, list):
+                mids = mid
+            else:
+                mids = []
+
+            for m in mids:
+                if isinstance(m, dict):
+                    if "areset" in m:
+                        cur_areset = m["areset"]
+                    if "x" in m:
+                        cur_x = m["x"]
+                    # async_reset_assert: mid-asserted reset immediately returns state to A.
+                    if cur_areset == 0:
+                        state = "A"
+
+    return result

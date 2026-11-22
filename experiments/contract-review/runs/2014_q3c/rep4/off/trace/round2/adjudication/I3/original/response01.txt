@@ -1,0 +1,51 @@
+```python
+def reference(vectors):
+    # Contract implementation.
+    # R_Y0: combinational next-state bit 0 from state-assigned table.
+    # R_z: Moore output z = 1 for y in {011, 100}, else 0.
+    # state_register: 3-bit present state y updated on posedge clk from Y[2:0].
+    # Timing: each row's values are driven before the sampled posedge edge.
+    # Mid input changes occur AFTER sampling, before the other edge, and are
+    # carried to the start of the next row.
+
+    # Next-state table: Y[2:0] for (y, x)
+    # y=000: x=0 -> 000, x=1 -> 001
+    # y=001: x=0 -> 001, x=1 -> 100
+    # y=010: x=0 -> 010, x=1 -> 001
+    # y=011: x=0 -> 001, x=1 -> 010
+    # y=100: x=0 -> 011, x=1 -> 100
+    next_state = {
+        (0b000, 0): 0b000, (0b000, 1): 0b001,
+        (0b001, 0): 0b001, (0b001, 1): 0b100,
+        (0b010, 0): 0b010, (0b010, 1): 0b001,
+        (0b011, 0): 0b001, (0b011, 1): 0b010,
+        (0b100, 0): 0b011, (0b100, 1): 0b100,
+    }
+
+    results = []
+    # Present state register; power-up unspecified but we must return concrete
+    # values. Start at 0 (state_register has no reset; concrete default).
+    y = 0
+
+    for vec in vectors:
+        x = vec.get('x', 0) & 1
+        # If a y is explicitly provided in the vector, use it as the present
+        # state for this row (driven before the sampled edge).
+        if 'y' in vec:
+            y = vec['y'] & 0b111
+
+        # R_Y0: combinational next-state bit 0, visible same cycle.
+        Y = next_state[(y, x)]
+        Y0 = Y & 1
+
+        # R_z: Moore output from present state, visible same cycle.
+        z = 1 if y in (0b011, 0b100) else 0
+
+        results.append({'Y0': Y0, 'z': z})
+
+        # state_register: update on posedge clk from next-state function.
+        # Mid changes occur after sampling and are carried to next row.
+        y = Y
+
+    return results
+```

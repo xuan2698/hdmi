@@ -1,0 +1,75 @@
+```python
+def reference(vectors):
+    # State
+    pht = [0] * 128  # 2-bit saturating counters
+    ghr = 0          # 7-bit global history register
+
+    def idx(pc, hist):
+        return (pc ^ hist) & 0x7F
+
+    def sat_inc(v):
+        return v + 1 if v < 3 else 3
+
+    def sat_dec(v):
+        return v - 1 if v > 0 else 0
+
+    results = []
+    for row in vectors:
+        areset = row['areset']
+        predict_valid = row['predict_valid']
+        predict_pc = row['predict_pc']
+        train_valid = row['train_valid']
+        train_taken = row['train_taken']
+        train_mispredicted = row['train_mispredicted']
+        train_history = row['train_history']
+        train_pc = row['train_pc']
+
+        # R7_async_reset: reset dominates, outputs zero
+        if areset:
+            pht = [0] * 128
+            ghr = 0
+            results.append({'predict_taken': 0, 'predict_history': 0})
+            continue
+
+        # Compute combinational outputs
+        if predict_valid:
+            # R1_predict_outputs: predict_taken from PHT, predict_history from GHR
+            # R6_predict_sees_pre_train_pht: prediction sees pre-train PHT state
+            # Candidate interpretation: predict_history reflects post-train GHR
+            #   (i.e., if same-cycle training recovery occurs, use recovered GHR)
+            pidx = idx(predict_pc, ghr)
+            counter = pht[pidx]
+            predict_taken = 1 if counter >= 2 else 0
+            # Determine predict_history per candidate interpretation
+            if train_valid and train_mispredicted:
+                # post-train GHR = train_history with train_taken shifted in
+                predict_history = ((train_history << 1) | train_taken) & 0x7F
+            else:
+                predict_history = ghr
+        else:
+            predict_taken = 0
+            predict_history = 0
+
+        results.append({'predict_taken': predict_taken, 'predict_history': predict_history})
+
+        # Sequential updates at posedge
+        # R3_train_updates_pht: train updates PHT
+        if train_valid:
+            tidx = idx(train_pc, train_history)
+            if train_taken:
+                pht[tidx] = sat_inc(pht[tidx])
+            else:
+                pht[tidx] = sat_dec(pht[tidx])
+
+        # GHR update: training takes precedence over prediction (R5)
+        # R4_train_mispredicted_recovers_ghr: recover GHR on misprediction
+        if train_valid:
+            if train_mispredicted:
+                ghr = ((train_history << 1) | train_taken) & 0x7F
+            # else: training without misprediction does not update GHR
+        elif predict_valid:
+            # R2_predict_updates_ghr: prediction updates GHR
+            ghr = ((ghr << 1) | predict_taken) & 0x7F
+
+    return results
+```

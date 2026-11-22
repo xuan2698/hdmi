@@ -1,0 +1,20 @@
+def reference(vectors):
+    def num(x):
+        if isinstance(x,int): return x
+        if isinstance(x,(list,tuple)):
+            return sum((int(v)&1)<<i for i,v in enumerate(x))
+        return int(x)
+    q=0
+    cd=0
+    cr=0
+    out=[]
+    for row in vectors:
+        if 'd' in row: cd=num(row['d'])&255
+        if 'reset' in row: cr=num(row['reset'])&1
+        q=0 if cr else cd&255
+        out.append({'q':q})
+        m=row.get('mid')
+        if m:
+            if 'd' in m: cd=num(m['d'])&255
+            if 'reset' in m: cr=num(m['reset'])&1
+    return out

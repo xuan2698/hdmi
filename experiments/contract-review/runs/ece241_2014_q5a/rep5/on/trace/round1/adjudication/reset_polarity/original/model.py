@@ -1,0 +1,57 @@
+def reference(vectors):
+    A, B, C = 0, 1, 2
+    state = A
+    cur_areset = 0
+    cur_x = 0
+    out = []
+
+    for row in vectors:
+        if "areset" in row:
+            cur_areset = row["areset"]
+        if "x" in row:
+            cur_x = row["x"]
+
+        # async_reset_assert: areset=1 asynchronously forces state A with z=0; highest priority.
+        if cur_areset == 1:
+            state = A
+            z = 0
+        else:
+            if state == A:
+                # A_on_x0
+                if cur_x == 0:
+                    state = A
+                # A_on_x1
+                else:
+                    state = B
+            elif state == B:
+                # B_on_x0
+                if cur_x == 0:
+                    state = B
+                # B_on_x1
+                else:
+                    state = C
+            else:
+                # C_on_x0
+                if cur_x == 0:
+                    state = B
+                # C_on_x1
+                else:
+                    state = C
+
+            # Moore output after posedge settled.
+            z = 1 if state == B else 0
+
+        out.append({"z": z & 1})
+
+        mid = row.get("mid")
+        if mid is not None:
+            if "areset" in mid:
+                cur_areset = mid["areset"]
+            if "x" in mid:
+                cur_x = mid["x"]
+
+            # async_reset_assert: mid assertion of reset is asynchronous before the next posedge.
+            if "areset" in mid and mid["areset"] == 1:
+                state = A
+
+    return out

@@ -1,0 +1,91 @@
+[
+  {
+    "issue": {
+      "issue_id": "I4",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "high",
+      "detail": "Spec does not define initial q at power-up before any reset; contract states COUNT advances 0..9 but no initial value. Alternative semantics: q starts at 0 vs q starts at unknown/9.",
+      "spec_evidence": "Build a decade counter that counts from 0 through 9, inclusive, with a period of 10.",
+      "alternative": "Initial q is 0 at time zero (before any posedge) rather than unknown; distinguishing sequence: first row reset=0, then reset=0. Under init-0 semantics outputs q=0 then q=1; under unknown-init semantics first output is undefined.",
+      "sequence": [
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        }
+      ]
+    },
+    "status": "no_effect",
+    "issue_id": "I4",
+    "outputs": {
+      "original": [
+        {
+          "q": 1
+        },
+        {
+          "q": 2
+        }
+      ],
+      "alternative": [
+        {
+          "q": 1
+        },
+        {
+          "q": 2
+        }
+      ]
+    },
+    "differences": []
+  },
+  {
+    "issue": {
+      "issue_id": "I5",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec says period 10 but does not state whether q=9 persists for one cycle then wraps (standard) or whether wrap occurs same cycle as reaching 9. Contract R3 wraps on posedge when q==9, giving 10 distinct values 0..9. Alternative: wrap when q==8 so period 9.",
+      "spec_evidence": "counts from 0 through 9, inclusive, with a period of 10",
+      "alternative": "Counter wraps from 8 to 0 (period 9) instead of 9 to 0; distinguishing sequence from q=8: reset=0, reset=0, reset=0 gives q=9,0,1 under contract vs q=0,1,2 under alternative.",
+      "sequence": [
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        }
+      ]
+    },
+    "status": "no_effect",
+    "issue_id": "I5",
+    "outputs": {
+      "original": [
+        {
+          "q": 1
+        },
+        {
+          "q": 2
+        },
+        {
+          "q": 3
+        }
+      ],
+      "alternative": [
+        {
+          "q": 1
+        },
+        {
+          "q": 2
+        },
+        {
+          "q": 3
+        }
+      ]
+    },
+    "differences": []
+  }
+]

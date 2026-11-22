@@ -1,0 +1,243 @@
+{
+  "coverage": {
+    "S01": [
+      "R1"
+    ],
+    "S02": [
+      "R1"
+    ],
+    "S03": [
+      "R2"
+    ],
+    "S04": [
+      "unrelated"
+    ],
+    "S05": [
+      "unrelated"
+    ],
+    "S06": [
+      "unrelated"
+    ],
+    "S07": [
+      "unrelated"
+    ],
+    "S08": [
+      "unrelated"
+    ],
+    "S09": [
+      "R1",
+      "R2"
+    ],
+    "S10": [
+      "R1",
+      "R2"
+    ],
+    "S11": [
+      "R1",
+      "R2"
+    ],
+    "S12": [
+      "R1",
+      "R2"
+    ],
+    "S13": [
+      "R1",
+      "R2"
+    ],
+    "S14": [
+      "R1",
+      "R2"
+    ],
+    "S15": [
+      "R1",
+      "R2"
+    ],
+    "S16": [
+      "R1",
+      "R2"
+    ],
+    "S17": [
+      "R1",
+      "R2"
+    ],
+    "S18": [
+      "R1",
+      "R2"
+    ],
+    "S19": [
+      "R1",
+      "R2"
+    ],
+    "S20": [
+      "R1",
+      "R2"
+    ],
+    "S21": [
+      "R1",
+      "R2"
+    ],
+    "S22": [
+      "R1",
+      "R2"
+    ],
+    "S23": [
+      "R1",
+      "R2"
+    ],
+    "S24": [
+      "R1",
+      "R2"
+    ],
+    "S25": [
+      "R1",
+      "R2"
+    ],
+    "S26": [
+      "R1",
+      "R2"
+    ],
+    "S27": [
+      "R1",
+      "R2"
+    ],
+    "S28": [
+      "R1",
+      "R2"
+    ],
+    "S29": [
+      "R1",
+      "R2"
+    ],
+    "S30": [
+      "R1",
+      "R2"
+    ],
+    "S31": [
+      "R1",
+      "R2"
+    ],
+    "S32": [
+      "R1",
+      "R2"
+    ],
+    "S33": [
+      "R1",
+      "R2"
+    ],
+    "S34": [
+      "R1",
+      "R2"
+    ],
+    "S35": [
+      "R1",
+      "R2"
+    ],
+    "S36": [
+      "R1",
+      "R2"
+    ],
+    "S37": [
+      "R1",
+      "R2"
+    ],
+    "S38": [
+      "R1",
+      "R2"
+    ],
+    "S39": [
+      "R1",
+      "R2"
+    ],
+    "S40": [
+      "R1",
+      "R2"
+    ],
+    "S41": [
+      "R1",
+      "R2"
+    ],
+    "S42": [
+      "R1",
+      "R2"
+    ],
+    "S43": [
+      "R1",
+      "R2"
+    ],
+    "S44": [
+      "R1",
+      "R2"
+    ]
+  },
+  "issues": [
+    {
+      "issue_id": "I1",
+      "rule_id": "R1",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "R1 condition 'state <= a AND b' contradicts its own example: vectors (0,1),(1,0),(1,1) with expected state 1,1,0 imply state <= a OR b, not AND.",
+      "spec_evidence": "one bit of memory (i.e., one flip-flop)",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I2",
+      "rule_id": "R1",
+      "type": "spec_example",
+      "severity": "high",
+      "detail": "Spec waveform shows state at 15ns=0 after a=0,b=0 at 10ns; at 75ns state=1 after a=0,b=0 at 70ns; at 95ns state=0 after a=1,b=1 at 90ns; at 125ns state=1 after a=0,b=1 at 120ns; at 135ns state=1 after a=0,b=0 at 130ns; at 145ns state=0 after a=0,b=0 at 140ns. No single AND/OR function of (a,b) matches all transitions.",
+      "spec_evidence": "// 75ns 1 0 0 1 1",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I3",
+      "rule_id": "R2",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "R2 says q = state registered, but spec waveform shows q differs from state at 45ns (state=0,q=1), 65ns (state=0,q=0 vs prior state=1), 75ns (state=1,q=1), 95ns (state=1,q=1), 115ns (state=1,q=0), 135ns (state=1,q=1), 145ns (state=0,q=0). q appears to be a separate register, not equal to state.",
+      "spec_evidence": "// 45ns 1 0 1 0 1",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I4",
+      "rule_id": "R1",
+      "type": "ambiguity",
+      "severity": "high",
+      "detail": "Spec waveform is inconsistent with any single combinational next-state function of (a,b); plausible alternative is state toggling or state <= a XOR b with additional behavior. Distinguishing sequence: apply a=0,b=0 then a=0,b=0; AND/OR predict state stays, XOR predicts state stays; but spec shows state changes 0->1 at 75ns after (0,0).",
+      "spec_evidence": "// 70ns 0 1 1 0 0",
+      "alternative": "state <= a XOR b",
+      "sequence": [
+        {
+          "a": 0,
+          "b": 0
+        },
+        {
+          "a": 0,
+          "b": 0
+        }
+      ]
+    },
+    {
+      "issue_id": "I5",
+      "rule_id": "global",
+      "type": "grounding",
+      "severity": "medium",
+      "detail": "R1 spec_quote 'one bit of memory' does not ground the AND condition; R2 spec_quote grounds observability but not q=state equality.",
+      "spec_evidence": "The output of the flip-flop has been made observable through the output state.",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I6",
+      "rule_id": "global",
+      "type": "coverage",
+      "severity": "low",
+      "detail": "S04-S08 are comments/header and initial x rows; marked unrelated, but S06-S08 contain x values not modeled by contract (no reset/initial state).",
+      "spec_evidence": "// 0ns 0 1 x x x",
+      "alternative": "",
+      "sequence": []
+    }
+  ]
+}

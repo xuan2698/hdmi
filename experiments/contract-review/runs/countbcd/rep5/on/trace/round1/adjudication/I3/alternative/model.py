@@ -1,0 +1,54 @@
+def reference(vectors):
+    # sync_reset: synchronous active-high reset clears q and ena after the sampled posedge.
+    # bcd_increment: non-reset posedge increments the 4-digit BCD counter modulo 10000.
+    # upper_digit_enables: ena is registered on posedge from the previous q value.
+    q = 0
+    ena = 0
+    result = []
+    for row in vectors:
+        reset = row['reset']
+        if reset == 1:
+            # sync_reset: reset has priority over increment and clears outputs.
+            q = 0
+            ena = 0
+        else:
+            # upper_digit_enables: compute registered enable from q before this edge.
+            ones = q & 15
+            tens = (q >> 4) & 15
+            hundreds = (q >> 8) & 15
+            en = 0
+            if ones == 9:
+                en = en + 1
+                if tens == 9:
+                    en = en + 2
+                    if hundreds == 9:
+                        en = en + 4
+
+            # bcd_increment: increment 4-digit BCD value by one modulo 10000.
+            d0 = q & 15
+            d1 = (q >> 4) & 15
+            d2 = (q >> 8) & 15
+            d3 = (q >> 12) & 15
+
+            if d0 < 9:
+                d0 = d0 + 1
+            else:
+                d0 = 0
+                if d1 < 9:
+                    d1 = d1 + 1
+                else:
+                    d1 = 0
+                    if d2 < 9:
+                        d2 = d2 + 1
+                    else:
+                        d2 = 0
+                        if d3 < 9:
+                            d3 = d3 + 1
+                        else:
+                            d3 = 0
+
+            q = (d3 << 12) | (d2 << 8) | (d1 << 4) | d0
+            ena = en
+
+        result = result + [{'q': q, 'ena': ena}]
+    return result

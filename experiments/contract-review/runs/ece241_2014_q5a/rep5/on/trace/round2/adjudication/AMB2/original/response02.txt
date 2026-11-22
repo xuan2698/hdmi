@@ -1,0 +1,80 @@
+def reference(vectors):
+    state = "A"
+    cur_areset = 0
+    cur_x = 0
+    res = []
+
+    def apply_change(k, v):
+        nonlocal state, cur_areset, cur_x
+        if k == "areset":
+            cur_areset = v
+            if v == 1:
+                state = "A"  # async_reset_assert + global active-high reset
+        elif k == "x":
+            cur_x = v
+
+    for row in vectors:
+        if "areset" in row:
+            cur_areset = row["areset"]
+        if "x" in row:
+            cur_x = row["x"]
+
+        if cur_areset == 1:
+            state = "A"  # async_reset_assert
+        else:
+            if state == "A":
+                if cur_x == 1:
+                    state = "B"  # A_on_x1
+                else:
+                    state = "A"  # A_on_x0
+            elif state == "B":
+                if cur_x == 1:
+                    state = "C"  # B_on_x1
+                else:
+                    state = "B"  # B_on_x0
+            else:
+                if cur_x == 1:
+                    state = "C"  # C_on_x1
+                else:
+                    state = "B"  # C_on_x0
+
+        if state == "B":
+            zval = 1
+        else:
+            zval = 0
+        res.append({"z": zval})
+
+        mid = None
+        if "mid" in row:
+            mid = row["mid"]
+
+        if mid:
+            try:
+                mid_items = mid.items()
+            except:
+                mid_items = None
+
+            if mid_items is not None:
+                for k, v in mid_items:
+                    apply_change(k, v)
+            else:
+                try:
+                    for m in mid:
+                        if m:
+                            try:
+                                sub_items = m.items()
+                            except:
+                                sub_items = None
+
+                            if sub_items is not None:
+                                for k, v in sub_items:
+                                    apply_change(k, v)
+                            else:
+                                try:
+                                    apply_change(m[0], m[1])
+                                except:
+                                    pass
+                except:
+                    pass
+
+    return res

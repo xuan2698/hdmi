@@ -1,0 +1,261 @@
+{
+  "responses": [
+    {
+      "issue_id": "I1",
+      "decision": "accept",
+      "reason": "Waveform shows state at 55ns posedge (sampled from row 45ns a=0,b=1) is 0, not XOR=1. R1 condition is wrong.",
+      "spec_quote": "// 45ns            1               0               1               0               1",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R1",
+            "condition"
+          ],
+          "value": "state <= a AND b"
+        }
+      ]
+    },
+    {
+      "issue_id": "I2",
+      "decision": "accept",
+      "reason": "At 55ns a=1,b=0, next state at 65ns is 0; AND(1,0)=0 matches, XOR fails.",
+      "spec_quote": "// 55ns            1               1               0               0               1",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R1",
+            "condition"
+          ],
+          "value": "state <= a AND b"
+        }
+      ],
+      "already_applied_by_earlier_issue": true
+    },
+    {
+      "issue_id": "I3",
+      "decision": "accept",
+      "reason": "At 65ns a=1,b=1, next state at 75ns is 1; AND(1,1)=1 matches, XOR fails.",
+      "spec_quote": "// 65ns            1               1               1               0               0",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R1",
+            "condition"
+          ],
+          "value": "state <= a AND b"
+        }
+      ],
+      "already_applied_by_earlier_issue": true
+    },
+    {
+      "issue_id": "I4",
+      "decision": "accept",
+      "reason": "At 75ns a=0,b=0, next state at 85ns is 0; AND(0,0)=0 matches, XOR fails.",
+      "spec_quote": "// 75ns            1               0               0               1               1",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R1",
+            "condition"
+          ],
+          "value": "state <= a AND b"
+        }
+      ],
+      "already_applied_by_earlier_issue": true
+    },
+    {
+      "issue_id": "I5",
+      "decision": "accept",
+      "reason": "At 85ns a=1,b=1, next state at 95ns is 1; AND(1,1)=1 matches, XOR fails.",
+      "spec_quote": "// 85ns            1               1               1               0               0",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R1",
+            "condition"
+          ],
+          "value": "state <= a AND b"
+        }
+      ],
+      "already_applied_by_earlier_issue": true
+    },
+    {
+      "issue_id": "I6",
+      "decision": "accept",
+      "reason": "At 95ns a=1,b=1, next state at 105ns is 1; AND(1,1)=1 matches, XOR fails.",
+      "spec_quote": "// 95ns            1               1               1               1               1",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R1",
+            "condition"
+          ],
+          "value": "state <= a AND b"
+        }
+      ],
+      "already_applied_by_earlier_issue": true
+    },
+    {
+      "issue_id": "I7",
+      "decision": "accept",
+      "reason": "Later rows also match AND: 115ns a=1,b=0 -> 125ns state=0 (AND=0); 125ns a=0,b=1 -> 135ns state=0 (AND=0); 135ns a=0,b=0 -> 145ns state=0 (AND=0). AND fits all rows.",
+      "spec_quote": "// 115ns           1               1               0               1               0",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R1",
+            "condition"
+          ],
+          "value": "state <= a AND b"
+        }
+      ],
+      "already_applied_by_earlier_issue": true
+    },
+    {
+      "issue_id": "I8",
+      "decision": "accept",
+      "reason": "At 45ns state=0 but q=1; q is not equal to state. q appears to be the flip-flop output (registered), while state is the next-state value.",
+      "spec_quote": "// 45ns            1               0               1               0               1",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R2",
+            "condition"
+          ],
+          "value": "q = state (registered flip-flop output)"
+        },
+        {
+          "path": [
+            "rules",
+            "R2",
+            "edge"
+          ],
+          "value": "posedge"
+        },
+        {
+          "path": [
+            "rules",
+            "R2",
+            "visible"
+          ],
+          "value": "next_cycle"
+        }
+      ]
+    },
+    {
+      "issue_id": "I9",
+      "decision": "accept",
+      "reason": "At 55ns state=0,q=1 and at 115ns state=1,q=0; q lags state by one cycle, consistent with q being the registered flip-flop output.",
+      "spec_quote": "// 115ns           1               1               0               1               0",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R2",
+            "condition"
+          ],
+          "value": "q = state (registered flip-flop output)"
+        },
+        {
+          "path": [
+            "rules",
+            "R2",
+            "edge"
+          ],
+          "value": "posedge"
+        },
+        {
+          "path": [
+            "rules",
+            "R2",
+            "visible"
+          ],
+          "value": "next_cycle"
+        }
+      ],
+      "already_applied_by_earlier_issue": true
+    },
+    {
+      "issue_id": "I10",
+      "decision": "accept",
+      "reason": "Distinguishing sequence a=0,b=1 then a=0,b=1: AND gives state 0,0; XOR gives 1,0. Waveform at 45ns->55ns shows state=0 for a=0,b=1, ruling out XOR and supporting AND.",
+      "spec_quote": "// 45ns            1               0               1               0               1",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R1",
+            "condition"
+          ],
+          "value": "state <= a AND b"
+        }
+      ],
+      "already_applied_by_earlier_issue": true
+    },
+    {
+      "issue_id": "I11",
+      "decision": "accept",
+      "reason": "Quote supports one-bit memory but not XOR; condition should be AND per waveform.",
+      "spec_quote": "one bit of memory (i.e., one flip-flop)",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R1",
+            "condition"
+          ],
+          "value": "state <= a AND b"
+        }
+      ],
+      "already_applied_by_earlier_issue": true
+    },
+    {
+      "issue_id": "I12",
+      "decision": "accept",
+      "reason": "Quote supports observability of flip-flop output but not combinational passthrough; q is the registered output.",
+      "spec_quote": "The output of the flip-flop has been made observable through the output state.",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R2",
+            "condition"
+          ],
+          "value": "q = state (registered flip-flop output)"
+        },
+        {
+          "path": [
+            "rules",
+            "R2",
+            "edge"
+          ],
+          "value": "posedge"
+        },
+        {
+          "path": [
+            "rules",
+            "R2",
+            "visible"
+          ],
+          "value": "next_cycle"
+        }
+      ],
+      "already_applied_by_earlier_issue": true
+    },
+    {
+      "issue_id": "I13",
+      "decision": "rebut",
+      "reason": "Comment/header lines are not behavioral rules; no contract change needed.",
+      "spec_quote": "// time            clk             a               b               state           q",
+      "edits": []
+    }
+  ]
+}

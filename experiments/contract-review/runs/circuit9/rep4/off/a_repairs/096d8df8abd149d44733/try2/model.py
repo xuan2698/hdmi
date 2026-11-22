@@ -1,0 +1,37 @@
+def reference(vectors):
+    # Contract implementation.
+    # State: q (3-bit counter), prev_a (a sampled at previous posedge), started flag.
+    # Rules:
+    #   load_on_first_posedge (priority 0): first posedge loads q=4 regardless of a.
+    #   hold_when_a_high (priority 1): if prev_a == 1, hold q.
+    #   increment_when_a_low (priority 1): if prev_a == 0, q = (q+1) mod 8.
+    # Mid changes occur after sampling, carried to next row.
+
+    q = None          # power-up unspecified
+    prev_a = None     # previous sampled a
+    started = False   # whether first posedge has occurred
+
+    results = []
+    for row in vectors:
+        a = row['a']
+
+        # posedge sampling: use prev_a (delayed a) for hold/increment decision
+        if not started:
+            # load_on_first_posedge
+            q = 4
+            started = True
+        else:
+            if prev_a == 1:
+                # hold_when_a_high
+                pass
+            else:
+                # increment_when_a_low
+                q = (q + 1) % 8
+
+        # record output for this row (concrete unsigned int within 3 bits)
+        results.append({'q': q if q is not None else 0})
+
+        # after sampling, mid changes: current a becomes prev_a for next row
+        prev_a = a
+
+    return results

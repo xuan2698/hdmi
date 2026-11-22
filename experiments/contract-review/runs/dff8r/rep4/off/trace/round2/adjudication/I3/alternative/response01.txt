@@ -1,0 +1,37 @@
+```python
+def reference(vectors):
+    # Contract implementation.
+    # R1_sync_reset: active-high synchronous reset -> q=0 on posedge clk when reset==1.
+    # R2_dff_capture: on posedge clk with reset==0, q <= d.
+    # Initial q is 0 until first posedge (global interpretation).
+    # Mid changes occur AFTER sampling, before other edge, carried to next row.
+    # Each row: values driven before sampled posedge; sample after posedge settles.
+
+    q_reg = 0  # named state: 8-bit flip-flop output register (R1/R2)
+    out = []
+
+    for row in vectors:
+        d = row.get('d', 0) & 0xFF
+        reset = row.get('reset', 0) & 0x1
+
+        # Sampled posedge: compute next state
+        if reset == 1:
+            # R1_sync_reset: priority 1, synchronous reset to zero
+            next_q = 0
+        else:
+            # R2_dff_capture: priority 2, capture d
+            next_q = d
+
+        # Update register at posedge (visible next cycle)
+        q_reg = next_q
+
+        # Output reflects register value after posedge settles
+        out.append({'q': q_reg & 0xFF})
+
+        # Mid changes (if any) occur AFTER sampling, before other edge,
+        # carried to start of next row. They do not affect this row's output.
+        # (No mid inputs specified in this contract beyond d/reset which are
+        #  driven before the sampled edge.)
+
+    return out
+```

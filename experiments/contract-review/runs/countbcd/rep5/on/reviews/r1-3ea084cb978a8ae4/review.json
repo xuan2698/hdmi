@@ -1,0 +1,134 @@
+{
+  "coverage": {
+    "S01": [
+      "bcd_increment"
+    ],
+    "S02": [
+      "bcd_increment"
+    ],
+    "S03": [
+      "upper_digit_enables"
+    ],
+    "S04": [
+      "sync_reset"
+    ]
+  },
+  "issues": [
+    {
+      "issue_id": "I1",
+      "rule_id": "bcd_increment",
+      "type": "grounding",
+      "severity": "medium",
+      "detail": "Rule marks uncertain:false but infers up-count, +1, modulo 10000, and posedge behavior; spec only names a 4-digit BCD counter.",
+      "spec_evidence": "Build a 4-digit BCD (binary-coded decimal) counter.",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I2",
+      "rule_id": "upper_digit_enables",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec does not define ena bit packing/order; contract chooses bit0=tens, bit1=hundreds, bit2=thousands.",
+      "spec_evidence": "For digits [3:1], also output an enable signal indicating when each of the upper three digits should be incremented.",
+      "alternative": "ena bits are reversed: bit0=thousands, bit1=hundreds, bit2=tens.",
+      "sequence": [
+        {
+          "reset": 1
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        }
+      ]
+    },
+    {
+      "issue_id": "I3",
+      "rule_id": "upper_digit_enables",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec does not define ena timing; contract makes ena combinational from current q.",
+      "spec_evidence": "For digits [3:1], also output an enable signal indicating when each of the upper three digits should be incremented.",
+      "alternative": "ena is registered on posedge from previous q.",
+      "sequence": [
+        {
+          "reset": 1
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        }
+      ]
+    },
+    {
+      "issue_id": "I4",
+      "rule_id": "sync_reset",
+      "type": "ambiguity",
+      "severity": "low",
+      "detail": "Spec does not state reset value or priority; contract asserts q clears to 0 and overrides counting.",
+      "spec_evidence": "Include a synchronous active-high reset.",
+      "alternative": "reset sets q to 9999 instead of 0.",
+      "sequence": [
+        {
+          "reset": 1
+        }
+      ]
+    },
+    {
+      "issue_id": "I5",
+      "rule_id": "bcd_increment",
+      "type": "consistency",
+      "severity": "low",
+      "detail": "bcd_increment example first row reset=0 expects q=9999; if started from reset-released q=0, same reset=0 row would yield q=1.",
+      "spec_evidence": "",
+      "alternative": "",
+      "sequence": []
+    }
+  ]
+}

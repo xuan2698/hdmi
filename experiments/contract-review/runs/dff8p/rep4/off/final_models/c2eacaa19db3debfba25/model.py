@@ -1,0 +1,21 @@
+def reference(vectors):
+    # State: q_reg holds the 8 D flip-flop outputs.
+    # Reset value is 0x34 (52). Updated on negedge clk.
+    # R1_sync_reset / R3_reset_value: reset==1 at negedge -> q = 0x34
+    # R2_dff_capture: reset==0 at negedge -> q = d
+    q_reg = 0x34  # power-up value (unspecified, but concrete)
+    out = []
+    for row in vectors:
+        d = row.get('d', 0) & 0xFF
+        reset = row.get('reset', 0) & 0x1
+        # negedge sampling: apply reset or capture d
+        if reset == 1:
+            # R1_sync_reset, R3_reset_value
+            q_reg = 0x34
+        else:
+            # R2_dff_capture
+            q_reg = d
+        out.append({'q': q_reg & 0xFF})
+        # mid changes occur AFTER sampling, before other edge,
+        # carried to start of next row (no state change here)
+    return out

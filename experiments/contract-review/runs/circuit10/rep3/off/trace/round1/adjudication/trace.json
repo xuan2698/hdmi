@@ -1,0 +1,235 @@
+[
+  {
+    "issue": {
+      "issue_id": "I6",
+      "rule_id": "R1",
+      "type": "ambiguity",
+      "severity": "high",
+      "detail": "Spec waveform shows state updates on posedge to a^b, but R1 example expected values do not match the waveform's state sequence; alternative semantics: state updates to a^b on posedge, but initial state at 0ns is x and first update at 5ns?",
+      "spec_evidence": "// 5ns             1               1               x               x               x",
+      "alternative": "state updates on posedge to a^b, but initial state is x and first update at 5ns is x (since a=1,b=x), then at 15ns state=0 (a=0,b=0), at 25ns state=0, at 35ns state=0, at 45ns state=0 (a=0,b=1 -> should be 1 but is 0), so state does not update to a^b at 45ns; instead state updates to a^b only when both a and b are known? At 45ns a=0,b=1 known, but state remains 0, so not a^b.",
+      "sequence": [
+        {
+          "a": 0,
+          "b": 1
+        },
+        {
+          "a": 1,
+          "b": 0
+        },
+        {
+          "a": 1,
+          "b": 1
+        }
+      ]
+    },
+    "status": "effect",
+    "issue_id": "I6",
+    "outputs": {
+      "original": [
+        {
+          "q": 1,
+          "state": 1
+        },
+        {
+          "q": 1,
+          "state": 1
+        },
+        {
+          "q": 0,
+          "state": 0
+        }
+      ],
+      "alternative": [
+        {
+          "q": 0,
+          "state": 0
+        },
+        {
+          "q": 1,
+          "state": 1
+        },
+        {
+          "q": 1,
+          "state": 1
+        }
+      ]
+    },
+    "differences": [
+      {
+        "cycle": 1,
+        "original": {
+          "q": 1,
+          "state": 1
+        },
+        "alternative": {
+          "q": 0,
+          "state": 0
+        }
+      },
+      {
+        "cycle": 3,
+        "original": {
+          "q": 0,
+          "state": 0
+        },
+        "alternative": {
+          "q": 1,
+          "state": 1
+        }
+      }
+    ]
+  },
+  {
+    "issue": {
+      "issue_id": "I7",
+      "rule_id": "R1",
+      "type": "ambiguity",
+      "severity": "high",
+      "detail": "Spec waveform state sequence: 0 at 15ns, 0 at 25ns, 0 at 35ns, 0 at 45ns, 0 at 55ns, 0 at 65ns, 1 at 75ns, 0 at 85ns, 0 at 95ns, 1 at 105ns, 1 at 115ns, 1 at 125ns, 1 at 135ns, 1 at 145ns, 0 at 155ns, 0 at 165ns, 0 at 175ns, 0 at 185ns. This does not match a^b at each posedge: at 45ns a=0,b=1 -> a^b=1 but state=0; at 55ns a=1,b=0 -> a^b=1 but state=0; at 65ns a=1,b=1 -> a^b=0 but state=0 (matches); at 75ns a=0,b=0 -> a^b=0 but state=1 (mismatch); at 85ns a=1,b=1 -> a^b=0 but state=0 (matches); at 95ns a=1,b=1 -> a^b=0 but state=0 (matches); at 105ns a=1,b=1 -> a^b=0 but state=1 (mismatch); at 115ns a=1,b=0 -> a^b=1 but state=1 (matches); at 125ns a=0,b=1 -> a^b=1 but state=1 (matches); at 135ns a=0,b=0 -> a^b=0 but state=1 (mismatch); at 145ns a=0,b=0 -> a^b=0 but state=0 (matches); at 155ns a=0,b=0 -> a^b=0 but state=0 (matches); at 165ns a=0,b=0 -> a^b=0 but state=0 (matches); at 175ns a=0,b=0 -> a^b=0 but state=0 (matches); at 185ns a=0,b=0 -> a^b=0 but state=0 (matches). So state does not equal a^b at posedge.",
+      "spec_evidence": "// 45ns            1               0               1               0               1",
+      "alternative": "state updates on posedge to a^b only when a and b are both 1? At 65ns a=1,b=1 -> state=0 (a^b=0), at 85ns a=1,b=1 -> state=0, at 95ns a=1,b=1 -> state=0, at 105ns a=1,b=1 -> state=1 (mismatch). Not consistent.",
+      "sequence": [
+        {
+          "a": 0,
+          "b": 1
+        },
+        {
+          "a": 1,
+          "b": 0
+        },
+        {
+          "a": 1,
+          "b": 1
+        },
+        {
+          "a": 0,
+          "b": 0
+        }
+      ]
+    },
+    "status": "no_effect",
+    "issue_id": "I7",
+    "outputs": {
+      "original": [
+        {
+          "q": 0,
+          "state": 0
+        },
+        {
+          "q": 1,
+          "state": 1
+        },
+        {
+          "q": 1,
+          "state": 1
+        },
+        {
+          "q": 0,
+          "state": 0
+        }
+      ],
+      "alternative": [
+        {
+          "q": 0,
+          "state": 0
+        },
+        {
+          "q": 1,
+          "state": 1
+        },
+        {
+          "q": 1,
+          "state": 1
+        },
+        {
+          "q": 0,
+          "state": 0
+        }
+      ]
+    },
+    "differences": []
+  },
+  {
+    "issue": {
+      "issue_id": "I8",
+      "rule_id": "R2",
+      "type": "ambiguity",
+      "severity": "high",
+      "detail": "Spec waveform q does not always equal state: at 45ns state=0 q=1; at 55ns state=0 q=1; at 75ns state=1 q=1; at 85ns state=0 q=0; at 95ns state=0 q=0; at 105ns state=1 q=1; at 115ns state=1 q=1; at 125ns state=1 q=1; at 135ns state=1 q=1; at 145ns state=1 q=1; at 155ns state=0 q=0; at 165ns state=0 q=0; at 175ns state=0 q=0; at 185ns state=0 q=0. So q=state except at 45ns and 55ns where state=0 q=1. This suggests q may be a^b combinational? At 45ns a=0,b=1 -> a^b=1 q=1; at 55ns a=1,b=0 -> a^b=1 q=1; at 65ns a=1,b=1 -> a^b=0 q=0; at 75ns a=0,b=0 -> a^b=0 q=1 (mismatch). So not a^b.",
+      "spec_evidence": "// 45ns            1               0               1               0               1",
+      "alternative": "q = state OR (a XOR b)? At 45ns state=0, a^b=1 -> q=1; at 55ns state=0, a^b=1 -> q=1; at 65ns state=0, a^b=0 -> q=0; at 75ns state=1, a^b=0 -> q=1; at 85ns state=0, a^b=0 -> q=0; at 95ns state=0, a^b=0 -> q=0; at 105ns state=1, a^b=0 -> q=1; at 115ns state=1, a^b=1 -> q=1; at 125ns state=1, a^b=1 -> q=1; at 135ns state=1, a^b=0 -> q=1; at 145ns state=1, a^b=0 -> q=1; at 155ns state=0, a^b=0 -> q=0; at 165ns state=0, a^b=0 -> q=0; at 175ns state=0, a^b=0 -> q=0; at 185ns state=0, a^b=0 -> q=0. This matches all q values! So q = state OR (a XOR b) is a plausible alternative.",
+      "sequence": [
+        {
+          "a": 0,
+          "b": 1
+        },
+        {
+          "a": 1,
+          "b": 0
+        },
+        {
+          "a": 1,
+          "b": 1
+        },
+        {
+          "a": 0,
+          "b": 0
+        }
+      ]
+    },
+    "status": "effect",
+    "issue_id": "I8",
+    "outputs": {
+      "original": [
+        {
+          "q": 0,
+          "state": 0
+        },
+        {
+          "q": 1,
+          "state": 1
+        },
+        {
+          "q": 1,
+          "state": 1
+        },
+        {
+          "q": 0,
+          "state": 0
+        }
+      ],
+      "alternative": [
+        {
+          "q": 1,
+          "state": 0
+        },
+        {
+          "q": 1,
+          "state": 1
+        },
+        {
+          "q": 1,
+          "state": 1
+        },
+        {
+          "q": 0,
+          "state": 0
+        }
+      ]
+    },
+    "differences": [
+      {
+        "cycle": 1,
+        "original": {
+          "q": 0,
+          "state": 0
+        },
+        "alternative": {
+          "q": 1,
+          "state": 0
+        }
+      }
+    ]
+  }
+]

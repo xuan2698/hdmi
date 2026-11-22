@@ -1,0 +1,60 @@
+```json
+{
+  "module_name": "top_module",
+  "io": [
+    {
+      "name": "clk",
+      "dir": "input",
+      "width": 1,
+      "description": "Clock signal; positive edge triggered."
+    },
+    {
+      "name": "areset",
+      "dir": "input",
+      "width": 1,
+      "description": "Asynchronous reset, active high. When asserted, machine resets; conversion begins when released."
+    },
+    {
+      "name": "x",
+      "dir": "input",
+      "width": 1,
+      "description": "Serial input bit, least-significant bit first."
+    },
+    {
+      "name": "z",
+      "dir": "output",
+      "width": 1,
+      "description": "Serial output bit, 2's complement of input stream."
+    }
+  ],
+  "clocking": {
+    "clock": {
+      "name": "clk",
+      "edge": "posedge"
+    },
+    "reset": {
+      "name": "areset",
+      "active": "high",
+      "kind": "asynchronous"
+    }
+  },
+  "timing": {
+    "outputs": {
+      "z": {
+        "latency_cycles": 1
+      }
+    }
+  },
+  "functional_summary": {
+    "overview": "One-input one-output serial 2's complementer Moore state machine. Input bits arrive LSB-first; output is the 2's complement of the input number, produced serially. Reset is asynchronous and active high; conversion starts when reset is released and stops when reset is asserted.",
+    "rules": [
+      "On asynchronous assertion of areset, the machine enters the initial state (output z = 0) and remains there while areset is high.",
+      "When areset is released, the machine begins converting the incoming serial bit stream.",
+      "The machine copies input bits to the output until the first '1' is observed; that first '1' is also copied to the output.",
+      "After the first '1' has been seen, every subsequent input bit is inverted at the output (Moore output depends only on state).",
+      "Output z is a Moore output determined solely by the current state, with one clock cycle of latency from the sampled input edge.",
+      "The machine supports input numbers of arbitrary length; no fixed width is assumed."
+    ]
+  }
+}
+```

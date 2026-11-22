@@ -1,0 +1,25 @@
+def reference(vectors):
+    # Contract rules:
+    # hold_when_a_high: on posedge, if a==1, q holds (priority 1)
+    # increment_when_a_low: on posedge, if a==0, q increments by 1 (priority 1)
+    # Power-up: q is x until first posedge, then takes 4 (initial accumulator value 4)
+    # No reset. State: count (3-bit accumulator), initial value 4 at first posedge.
+    # Each row's values are driven before the sampled posedge edge.
+    # Mid changes: none.
+    q = None  # unspecified until first posedge
+    out = []
+    for row in vectors:
+        a = row['a']
+        # posedge sampling: apply transition
+        if q is None:
+            # first posedge: q takes 4 (power-up value)
+            q = 4
+        else:
+            if a == 1:
+                # hold_when_a_high
+                q = q
+            else:
+                # increment_when_a_low
+                q = (q + 1) & 0x7
+        out.append({'q': q})
+    return out

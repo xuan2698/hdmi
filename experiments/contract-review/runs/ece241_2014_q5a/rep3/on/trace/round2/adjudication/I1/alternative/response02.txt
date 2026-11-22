@@ -1,0 +1,66 @@
+```python
+def reference(vectors):
+    # Rule async_reset: active-low areset=0 asynchronously forces state A and z=0.
+    # Rule serial_twos_complement: posedge transitions A/B/C implement LSB-first two's complement.
+    state = 'A'  # power-up choice: reset state A
+    z = 0
+    cur_areset = 1
+    cur_x = 0
+    results = []
+
+    for row in vectors:
+        # Drive row inputs before the sampled posedge.
+        if 'areset' in row:
+            cur_areset = row['areset']
+        if 'x' in row:
+            cur_x = row['x']
+
+        # Asynchronous reset takes effect immediately when asserted (active low).
+        if cur_areset == 0:
+            state = 'A'
+            z = 0
+
+        # Sample on posedge clk.
+        if cur_areset == 0:
+            state = 'A'
+            z = 0
+        else:
+            # serial_twos_complement transitions.
+            if state == 'A':
+                if cur_x == 0:
+                    state = 'A'
+                else:
+                    state = 'B'
+            elif state == 'B':
+                if cur_x == 0:
+                    state = 'B'
+                else:
+                    state = 'C'
+            elif state == 'C':
+                if cur_x == 0:
+                    state = 'B'
+                else:
+                    state = 'C'
+
+            # Moore output after the settled posedge.
+            if state == 'B':
+                z = 1
+            else:
+                z = 0
+
+        results.append({'z': z})
+
+        # Mid changes occur after sampling and are carried to the next row.
+        if 'mid' in row:
+            mid = row['mid']
+            if 'areset' in mid:
+                cur_areset = mid['areset']
+                if cur_areset == 0:
+                    # async_reset is visible immediately for subsequent time.
+                    state = 'A'
+                    z = 0
+            if 'x' in mid:
+                cur_x = mid['x']
+
+    return results
+```

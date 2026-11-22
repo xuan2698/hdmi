@@ -1,0 +1,73 @@
+```python
+def reference(vectors):
+    # States: A=0, B=1, C=2, D=3
+    state = 0  # power-up assumed A
+    cur_in = 0
+    cur_reset = 0
+    result = []
+
+    for row in vectors:
+        # Apply values driven before the sampled posedge
+        if isinstance(row, dict):
+            if 'in' in row:
+                cur_in = row['in']
+            if 'reset' in row:
+                cur_reset = row['reset']
+            # also support nested 'values' if present
+            if 'values' in row and isinstance(row['values'], dict):
+                vals = row['values']
+                if 'in' in vals:
+                    cur_in = vals['in']
+                if 'reset' in vals:
+                    cur_reset = vals['reset']
+        else:
+            # assume list/tuple (in, reset)
+            if isinstance(row, (list, tuple)):
+                if len(row) > 0:
+                    cur_in = row[0]
+                if len(row) > 1:
+                    cur_reset = row[1]
+
+        # global rule: reset is synchronous; update_during_reset=false for B-D means they hold
+        if cur_reset == 1:
+            if state == 0:  # A updates during reset (stays A)
+                next_state = 0
+            else:
+                next_state = state
+        else:
+            # normal transitions
+            if state == 0:  # A
+                next_state = 0 if cur_in == 0 else 1
+            elif state == 1:  # B
+                next_state = 2 if cur_in == 0 else 1
+            elif state == 2:  # C
+                next_state = 0 if cur_in == 0 else 3
+            elif state == 3:  # D
+                next_state = 2 if cur_in == 0 else 1
+            else:
+                next_state = 0
+        state = next_state
+
+        # Moore outputs based on new state
+        if state == 0:  # out_A
+            out = 0
+        elif state == 1:  # out_B
+            out = 0
+        elif state == 2:  # out_C
+            out = 0
+        elif state == 3:  # out_D
+            out = 1
+        else:
+            out = 0
+        result.append({'out': out})
+
+        # Apply mid changes AFTER sampling, carried to start of next row
+        if isinstance(row, dict) and 'mid' in row and isinstance(row['mid'], dict):
+            mid = row['mid']
+            if 'in' in mid:
+                cur_in = mid['in']
+            if 'reset' in mid:
+                cur_reset = mid['reset']
+
+    return result
+```

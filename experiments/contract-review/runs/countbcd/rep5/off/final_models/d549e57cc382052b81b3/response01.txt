@@ -1,0 +1,62 @@
+```python
+def reference(vectors):
+    # State: 16-bit BCD counter value
+    q = 0
+    # Outputs are combinational from state (visible same cycle as posedge)
+    # We model: at each posedge, if reset -> q=0; else q increments in BCD.
+    # ena is derived from current q (before increment) per rules R3-R5.
+    # The contract says outputs visible same_cycle at posedge.
+    # We'll compute outputs based on the state BEFORE the edge (i.e., current q),
+    # then update q for the next cycle.
+    results = []
+    for row in vectors:
+        reset = row.get('reset', 0)
+        # R1_reset: synchronous active-high reset -> q=0, ena=0
+        # ena derived from current q (pre-edge) per R3-R5
+        ones = q & 0xF
+        tens = (q >> 4) & 0xF
+        hundreds = (q >> 8) & 0xF
+        thousands = (q >> 12) & 0xF
+        # R3_ena_tens: ena[0] = (q[3:0]==9)
+        # R4_ena_hundreds: ena[1] = (q[3:0]==9 and q[7:4]==9)
+        # R5_ena_thousands: ena[2] = (q[3:0]==9 and q[7:4]==9 and q[11:8]==9)
+        ena = 0
+        if ones == 9:
+            ena |= 1
+        if ones == 9 and tens == 9:
+            ena |= 2
+        if ones == 9 and tens == 9 and hundreds == 9:
+            ena |= 4
+        # Outputs visible same cycle (pre-edge state)
+        out_q = q
+        out_ena = ena
+        if reset:
+            # R1_reset: reset forces q=0, ena=0 (visible same cycle)
+            out_q = 0
+            out_ena = 0
+            q = 0
+        else:
+            # R2_ones_increment, R6_bcd_rollover: increment BCD
+            # Compute next BCD value
+            n_ones = ones + 1
+            carry1 = 0
+            if n_ones == 10:
+                n_ones = 0
+                carry1 = 1
+            n_tens = tens + carry1
+            carry2 = 0
+            if n_tens == 10:
+                n_tens = 0
+                carry2 = 1
+            n_hundreds = hundreds + carry2
+            carry3 = 0
+            if n_hundreds == 10:
+                n_hundreds = 0
+                carry3 = 1
+            n_thousands = thousands + carry3
+            if n_thousands == 10:
+                n_thousands = 0
+            q = (n_thousands << 12) | (n_hundreds << 8) | (n_tens << 4) | n_ones
+        results.append({'q': out_q, 'ena': out_ena})
+    return results
+```

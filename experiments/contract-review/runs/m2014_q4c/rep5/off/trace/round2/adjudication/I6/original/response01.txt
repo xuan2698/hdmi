@@ -1,0 +1,22 @@
+```python
+def reference(vectors):
+    # Contract implementation for a 1-bit D flip-flop with active-high synchronous reset.
+    # State: Q (stored value). Before any posedge, Q is unspecified; we model it as 0
+    # but only expose it after the first posedge (per contract, first posedge with r==0 loads d).
+    Q = 0
+    initialized = False
+    out = []
+    for row in vectors:
+        d = row.get('d', 0) & 1
+        r = row.get('r', 0) & 1
+        # R1: posedge with r == 1 -> q = 0 (active high synchronous reset), priority 1
+        # R2: posedge with r == 0 -> q = d (D flip-flop load), priority 2
+        if r == 1:
+            Q = 0
+        else:
+            Q = d
+        initialized = True
+        # Output visible same cycle after posedge sampling
+        out.append({'q': Q & 1})
+    return out
+```

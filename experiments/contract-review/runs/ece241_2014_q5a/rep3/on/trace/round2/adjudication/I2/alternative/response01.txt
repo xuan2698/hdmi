@@ -1,0 +1,78 @@
+def reference(vectors):
+    state = 'A'
+    z = 0
+    cur_areset = 0
+    cur_x = 0
+
+    def apply_change(ch):
+        nonlocal state, z, cur_areset, cur_x
+        if not isinstance(ch, dict):
+            return
+        old_areset = cur_areset
+        if 'areset' in ch:
+            cur_areset = 1 if int(ch['areset']) else 0
+        if 'x' in ch:
+            cur_x = 1 if int(ch['x']) else 0
+        if 'areset' in ch:
+            if cur_areset == 1:
+                # async_reset override: reset assertion returns state to A; z retains prior value.
+                state = 'A'
+            else:
+                # async_reset override: on reset release, z becomes state A output (0).
+                if old_areset == 1:
+                    z = 0
+
+    out = []
+    for row in vectors:
+        if isinstance(row, dict):
+            pre_a = (1 if int(row['areset']) else 0) if 'areset' in row else cur_areset
+            pre_x = (1 if int(row['x']) else 0) if 'x' in row else cur_x
+        elif isinstance(row, (list, tuple)):
+            pre_a = (1 if int(row[0]) else 0) if len(row) > 0 else cur_areset
+            pre_x = (1 if int(row[1]) else 0) if len(row) > 1 else cur_x
+        else:
+            pre_a = cur_areset
+            pre_x = cur_x
+
+        cur_areset = pre_a
+        cur_x = pre_x
+
+        if pre_a == 1:
+            # async_reset: asynchronous assertion forces state A; override says z retains prior value.
+            state = 'A'
+        else:
+            # serial_twos_complement: posedge clk state transitions from A/B/C.
+            if state == 'A':
+                if pre_x == 0:
+                    state = 'A'
+                else:
+                    state = 'B'
+            elif state == 'B':
+                if pre_x == 0:
+                    state = 'B'
+                else:
+                    state = 'C'
+            else:
+                if pre_x == 0:
+                    state = 'B'
+                else:
+                    state = 'C'
+            # serial_twos_complement: Moore z is state output after settled posedge.
+            z = 1 if state == 'B' else 0
+
+        out.append({'z': z})
+
+        # Mid changes occur after sampling and are carried to the start of the next row.
+        if isinstance(row, dict):
+            for k, v in row.items():
+                if k == 'mid' or k == 'mid_changes' or k == 'after' or k == 'changes':
+                    if isinstance(v, dict):
+                        apply_change(v)
+                    elif isinstance(v, (list, tuple)):
+                        for ch in v:
+                            apply_change(ch)
+                elif isinstance(k, str) and k.startswith('mid_'):
+                    sig = k[4:]
+                    if sig == 'areset' or sig == 'x':
+                        apply_change({sig: v})
+    return out

@@ -1,0 +1,608 @@
+[
+  {
+    "issue_id": "I2",
+    "before": {
+      "ports": {
+        "inputs": {
+          "d": 8,
+          "reset": 1
+        },
+        "outputs": {
+          "q": 8
+        },
+        "clock": "clk"
+      },
+      "states": [
+        {
+          "name": "q_reg",
+          "meaning": "8 D flip-flop outputs, reset to 0x34 on active-high synchronous reset, updated on negedge clk",
+          "update_time": "negedge",
+          "update_during_reset": true
+        }
+      ],
+      "rules": [
+        {
+          "id": "R1_sync_reset",
+          "outputs": [
+            "q"
+          ],
+          "condition": "reset == 1",
+          "edge": "negedge",
+          "visible": "same_cycle",
+          "priority": 1,
+          "spec_quote": "active high synchronous reset",
+          "uncertain": false,
+          "example": {
+            "vectors": [
+              {
+                "d": 0,
+                "reset": 1
+              },
+              {
+                "d": 255,
+                "reset": 1
+              },
+              {
+                "d": 0,
+                "reset": 0
+              }
+            ],
+            "expected": [
+              {
+                "q": 52
+              },
+              {
+                "q": 52
+              },
+              {
+                "q": 52
+              }
+            ]
+          }
+        },
+        {
+          "id": "R2_dff_capture",
+          "outputs": [
+            "q"
+          ],
+          "condition": "reset == 0",
+          "edge": "negedge",
+          "visible": "same_cycle",
+          "priority": 2,
+          "spec_quote": "All DFFs should be triggered by the negative edge of clk",
+          "uncertain": false,
+          "example": {
+            "vectors": [
+              {
+                "d": 18,
+                "reset": 0
+              },
+              {
+                "d": 200,
+                "reset": 0
+              },
+              {
+                "d": 7,
+                "reset": 0
+              }
+            ],
+            "expected": [
+              {
+                "q": 18
+              },
+              {
+                "q": 200
+              },
+              {
+                "q": 7
+              }
+            ]
+          }
+        },
+        {
+          "id": "R3_reset_value",
+          "outputs": [
+            "q"
+          ],
+          "condition": "reset == 1 at negedge",
+          "edge": "negedge",
+          "visible": "same_cycle",
+          "priority": 1,
+          "spec_quote": "reset to 0x34 rather than zero",
+          "uncertain": false,
+          "example": {
+            "vectors": [
+              {
+                "d": 99,
+                "reset": 1
+              },
+              {
+                "d": 99,
+                "reset": 1
+              },
+              {
+                "d": 99,
+                "reset": 0
+              }
+            ],
+            "expected": [
+              {
+                "q": 52
+              },
+              {
+                "q": 52
+              },
+              {
+                "q": 52
+              }
+            ]
+          }
+        }
+      ],
+      "reset": {
+        "kind": "sync",
+        "name": "reset",
+        "active": "high",
+        "values": {
+          "q": 52
+        },
+        "first_released_cycle": "first negedge clk with reset==0"
+      },
+      "mid": "Optional mid input changes occur AFTER sampling, before the other edge, and are carried to the start of the next row.",
+      "uncertain": []
+    },
+    "after": {
+      "ports": {
+        "inputs": {
+          "d": 8,
+          "reset": 1
+        },
+        "outputs": {
+          "q": 8
+        },
+        "clock": "clk"
+      },
+      "states": [
+        {
+          "name": "q_reg",
+          "meaning": "8 D flip-flop outputs, reset to 0x34 on active-high synchronous reset, updated on negedge clk",
+          "update_time": "negedge",
+          "update_during_reset": true
+        }
+      ],
+      "rules": [
+        {
+          "id": "R1_sync_reset",
+          "outputs": [
+            "q"
+          ],
+          "condition": "reset == 1",
+          "edge": "negedge",
+          "visible": "same_cycle",
+          "priority": 1,
+          "spec_quote": "active high synchronous reset",
+          "uncertain": false,
+          "example": {
+            "vectors": [
+              {
+                "d": 0,
+                "reset": 1
+              },
+              {
+                "d": 255,
+                "reset": 1
+              },
+              {
+                "d": 0,
+                "reset": 0
+              }
+            ],
+            "expected": [
+              {
+                "q": 52
+              },
+              {
+                "q": 52
+              },
+              {
+                "q": 0
+              }
+            ]
+          }
+        },
+        {
+          "id": "R2_dff_capture",
+          "outputs": [
+            "q"
+          ],
+          "condition": "reset == 0",
+          "edge": "negedge",
+          "visible": "same_cycle",
+          "priority": 2,
+          "spec_quote": "All DFFs should be triggered by the negative edge of clk",
+          "uncertain": false,
+          "example": {
+            "vectors": [
+              {
+                "d": 18,
+                "reset": 0
+              },
+              {
+                "d": 200,
+                "reset": 0
+              },
+              {
+                "d": 7,
+                "reset": 0
+              }
+            ],
+            "expected": [
+              {
+                "q": 18
+              },
+              {
+                "q": 200
+              },
+              {
+                "q": 7
+              }
+            ]
+          }
+        },
+        {
+          "id": "R3_reset_value",
+          "outputs": [
+            "q"
+          ],
+          "condition": "reset == 1 at negedge",
+          "edge": "negedge",
+          "visible": "same_cycle",
+          "priority": 1,
+          "spec_quote": "reset to 0x34 rather than zero",
+          "uncertain": false,
+          "example": {
+            "vectors": [
+              {
+                "d": 99,
+                "reset": 1
+              },
+              {
+                "d": 99,
+                "reset": 1
+              },
+              {
+                "d": 99,
+                "reset": 0
+              }
+            ],
+            "expected": [
+              {
+                "q": 52
+              },
+              {
+                "q": 52
+              },
+              {
+                "q": 52
+              }
+            ]
+          }
+        }
+      ],
+      "reset": {
+        "kind": "sync",
+        "name": "reset",
+        "active": "high",
+        "values": {
+          "q": 52
+        },
+        "first_released_cycle": "first negedge clk with reset==0"
+      },
+      "mid": "Optional mid input changes occur AFTER sampling, before the other edge, and are carried to the start of the next row.",
+      "uncertain": []
+    }
+  },
+  {
+    "issue_id": "I3",
+    "before": {
+      "ports": {
+        "inputs": {
+          "d": 8,
+          "reset": 1
+        },
+        "outputs": {
+          "q": 8
+        },
+        "clock": "clk"
+      },
+      "states": [
+        {
+          "name": "q_reg",
+          "meaning": "8 D flip-flop outputs, reset to 0x34 on active-high synchronous reset, updated on negedge clk",
+          "update_time": "negedge",
+          "update_during_reset": true
+        }
+      ],
+      "rules": [
+        {
+          "id": "R1_sync_reset",
+          "outputs": [
+            "q"
+          ],
+          "condition": "reset == 1",
+          "edge": "negedge",
+          "visible": "same_cycle",
+          "priority": 1,
+          "spec_quote": "active high synchronous reset",
+          "uncertain": false,
+          "example": {
+            "vectors": [
+              {
+                "d": 0,
+                "reset": 1
+              },
+              {
+                "d": 255,
+                "reset": 1
+              },
+              {
+                "d": 0,
+                "reset": 0
+              }
+            ],
+            "expected": [
+              {
+                "q": 52
+              },
+              {
+                "q": 52
+              },
+              {
+                "q": 0
+              }
+            ]
+          }
+        },
+        {
+          "id": "R2_dff_capture",
+          "outputs": [
+            "q"
+          ],
+          "condition": "reset == 0",
+          "edge": "negedge",
+          "visible": "same_cycle",
+          "priority": 2,
+          "spec_quote": "All DFFs should be triggered by the negative edge of clk",
+          "uncertain": false,
+          "example": {
+            "vectors": [
+              {
+                "d": 18,
+                "reset": 0
+              },
+              {
+                "d": 200,
+                "reset": 0
+              },
+              {
+                "d": 7,
+                "reset": 0
+              }
+            ],
+            "expected": [
+              {
+                "q": 18
+              },
+              {
+                "q": 200
+              },
+              {
+                "q": 7
+              }
+            ]
+          }
+        },
+        {
+          "id": "R3_reset_value",
+          "outputs": [
+            "q"
+          ],
+          "condition": "reset == 1 at negedge",
+          "edge": "negedge",
+          "visible": "same_cycle",
+          "priority": 1,
+          "spec_quote": "reset to 0x34 rather than zero",
+          "uncertain": false,
+          "example": {
+            "vectors": [
+              {
+                "d": 99,
+                "reset": 1
+              },
+              {
+                "d": 99,
+                "reset": 1
+              },
+              {
+                "d": 99,
+                "reset": 0
+              }
+            ],
+            "expected": [
+              {
+                "q": 52
+              },
+              {
+                "q": 52
+              },
+              {
+                "q": 52
+              }
+            ]
+          }
+        }
+      ],
+      "reset": {
+        "kind": "sync",
+        "name": "reset",
+        "active": "high",
+        "values": {
+          "q": 52
+        },
+        "first_released_cycle": "first negedge clk with reset==0"
+      },
+      "mid": "Optional mid input changes occur AFTER sampling, before the other edge, and are carried to the start of the next row.",
+      "uncertain": []
+    },
+    "after": {
+      "ports": {
+        "inputs": {
+          "d": 8,
+          "reset": 1
+        },
+        "outputs": {
+          "q": 8
+        },
+        "clock": "clk"
+      },
+      "states": [
+        {
+          "name": "q_reg",
+          "meaning": "8 D flip-flop outputs, reset to 0x34 on active-high synchronous reset, updated on negedge clk",
+          "update_time": "negedge",
+          "update_during_reset": true
+        }
+      ],
+      "rules": [
+        {
+          "id": "R1_sync_reset",
+          "outputs": [
+            "q"
+          ],
+          "condition": "reset == 1",
+          "edge": "negedge",
+          "visible": "same_cycle",
+          "priority": 1,
+          "spec_quote": "active high synchronous reset",
+          "uncertain": false,
+          "example": {
+            "vectors": [
+              {
+                "d": 0,
+                "reset": 1
+              },
+              {
+                "d": 255,
+                "reset": 1
+              },
+              {
+                "d": 0,
+                "reset": 0
+              }
+            ],
+            "expected": [
+              {
+                "q": 52
+              },
+              {
+                "q": 52
+              },
+              {
+                "q": 0
+              }
+            ]
+          }
+        },
+        {
+          "id": "R2_dff_capture",
+          "outputs": [
+            "q"
+          ],
+          "condition": "reset == 0",
+          "edge": "negedge",
+          "visible": "same_cycle",
+          "priority": 2,
+          "spec_quote": "All DFFs should be triggered by the negative edge of clk",
+          "uncertain": false,
+          "example": {
+            "vectors": [
+              {
+                "d": 18,
+                "reset": 0
+              },
+              {
+                "d": 200,
+                "reset": 0
+              },
+              {
+                "d": 7,
+                "reset": 0
+              }
+            ],
+            "expected": [
+              {
+                "q": 18
+              },
+              {
+                "q": 200
+              },
+              {
+                "q": 7
+              }
+            ]
+          }
+        },
+        {
+          "id": "R3_reset_value",
+          "outputs": [
+            "q"
+          ],
+          "condition": "reset == 1 at negedge",
+          "edge": "negedge",
+          "visible": "same_cycle",
+          "priority": 1,
+          "spec_quote": "reset to 0x34 rather than zero",
+          "uncertain": false,
+          "example": {
+            "vectors": [
+              {
+                "d": 99,
+                "reset": 1
+              },
+              {
+                "d": 99,
+                "reset": 1
+              },
+              {
+                "d": 99,
+                "reset": 0
+              }
+            ],
+            "expected": [
+              {
+                "q": 52
+              },
+              {
+                "q": 52
+              },
+              {
+                "q": 99
+              }
+            ]
+          }
+        }
+      ],
+      "reset": {
+        "kind": "sync",
+        "name": "reset",
+        "active": "high",
+        "values": {
+          "q": 52
+        },
+        "first_released_cycle": "first negedge clk with reset==0"
+      },
+      "mid": "Optional mid input changes occur AFTER sampling, before the other edge, and are carried to the start of the next row.",
+      "uncertain": []
+    }
+  }
+]

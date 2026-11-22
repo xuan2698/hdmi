@@ -1,0 +1,16 @@
+def reference(vectors):
+    # State: q_state holds the 8-bit register value (R1_sync_reset, R2_dff_capture)
+    q_state = 0x34  # power-up value; reset value is 0x34 (52)
+    out = []
+    for row in vectors:
+        d = row.get('d', 0) & 0xFF
+        reset = row.get('reset', 0) & 0x1
+        # negedge sampling: apply synchronous reset or capture d
+        # R1_sync_reset: reset==1 -> q_state = 0x34 (priority 1)
+        # R2_dff_capture: reset==0 -> q_state = d (priority 2)
+        if reset == 1:
+            q_state = 0x34
+        else:
+            q_state = d
+        out.append({'q': q_state & 0xFF})
+    return out

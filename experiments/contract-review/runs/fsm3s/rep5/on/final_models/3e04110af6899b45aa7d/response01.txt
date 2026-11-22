@@ -1,0 +1,73 @@
+```python
+def reference(vectors):
+    # Power-up unspecified: concrete default state A (output 0).
+    state = 'A'
+    cur_in = 0
+    cur_reset = 0
+    result = []
+
+    for row in vectors:
+        # Drive row inputs before the sampled posedge edge.
+        if isinstance(row, dict):
+            if 'in' in row:
+                cur_in = row['in'] & 1
+            if 'reset' in row:
+                cur_reset = row['reset'] & 1
+
+        # rule global: posedge sampling.
+        # rule reset_to_A: synchronous active-high reset at posedge.
+        if cur_reset == 1:
+            state = 'A'
+        else:
+            # Explicit state transitions based on current input.
+            if state == 'A':
+                state = 'A' if cur_in == 0 else 'B'
+            elif state == 'B':
+                state = 'C' if cur_in == 0 else 'B'
+            elif state == 'C':
+                state = 'A' if cur_in == 0 else 'D'
+            elif state == 'D':
+                state = 'C' if cur_in == 0 else 'B'
+
+        # Moore outputs, visible same cycle after posedge settles.
+        # rule out_A: state == A -> out 0
+        # rule out_B: state == B -> out 0
+        # rule out_C: state == C -> out 0
+        # rule out_D: state == D -> out 1
+        if state == 'D':
+            out_val = 1
+        else:
+            out_val = 0
+
+        result.append({'out': out_val})
+
+        # Optional mid input changes occur AFTER sampling and carry forward.
+        if isinstance(row, dict):
+            if 'mid' in row and isinstance(row['mid'], dict):
+                for k, v in row['mid'].items():
+                    if k == 'in':
+                        cur_in = v & 1
+                    elif k == 'reset':
+                        cur_reset = v & 1
+
+            # Also support mid_<signal> and <signal>_mid encodings.
+            for k in list(row.keys()):
+                if not isinstance(k, str):
+                    continue
+                if k.startswith('mid_'):
+                    sig = k[4:]
+                    v = row[k]
+                    if sig == 'in':
+                        cur_in = v & 1
+                    elif sig == 'reset':
+                        cur_reset = v & 1
+                elif k.endswith('_mid'):
+                    sig = k[:-4]
+                    v = row[k]
+                    if sig == 'in':
+                        cur_in = v & 1
+                    elif sig == 'reset':
+                        cur_reset = v & 1
+
+    return result
+```

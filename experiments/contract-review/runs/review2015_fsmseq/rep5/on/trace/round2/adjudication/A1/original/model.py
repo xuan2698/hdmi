@@ -1,0 +1,83 @@
+def reference(vectors):
+    # Initial state: S0, start_shifting=0. Carried inputs default to 0.
+    state = 'S0'
+    start_shifting = 0
+    cur_reset = 0
+    cur_data = 0
+    result = []
+
+    for row in vectors:
+        # Determine sampled inputs: row values drive before the posedge,
+        # otherwise carried values from previous mid changes are used.
+        if 'reset' in row:
+            reset = row['reset']
+        else:
+            reset = cur_reset
+        if 'data' in row:
+            data = row['data']
+        else:
+            data = cur_data
+
+        # R_RESET_CLEAR: synchronous active-high reset forces S0 and start_shifting=0.
+        if reset == 1:
+            next_state = 'S0'
+            next_out = 0
+        else:
+            # R_SET_OR_HOLD_1101 and R_KEEP_ZERO_UNTIL_FOUND implemented via
+            # explicit state transitions and output assignment.
+            if state == 'S0':
+                if data == 1:
+                    next_state = 'S1'
+                else:
+                    next_state = 'S0'
+                next_out = 0
+            elif state == 'S1':
+                if data == 1:
+                    next_state = 'S11'
+                else:
+                    next_state = 'S0'
+                next_out = 0
+            elif state == 'S11':
+                if data == 1:
+                    next_state = 'S11'
+                else:
+                    next_state = 'S110'
+                next_out = 0
+            elif state == 'S110':
+                if data == 1:
+                    next_state = 'FOUND'
+                    next_out = 1
+                else:
+                    next_state = 'S0'
+                    next_out = 0
+            elif state == 'FOUND':
+                next_state = 'FOUND'
+                next_out = 1
+            else:
+                # Treat any unexpected initial state as S0.
+                if data == 1:
+                    next_state = 'S1'
+                else:
+                    next_state = 'S0'
+                next_out = 0
+
+        # Update state and sticky output after the posedge has settled.
+        state = next_state
+        start_shifting = next_out
+        result.append({'start_shifting': start_shifting})
+
+        # Row values are in effect during the edge and persist after it;
+        # then optional mid changes occur after sampling and are carried
+        # to the start of the next row.
+        if 'reset' in row:
+            cur_reset = row['reset']
+        if 'data' in row:
+            cur_data = row['data']
+        if 'mid' in row:
+            mid = row['mid']
+            if 'reset' in mid:
+                cur_reset = mid['reset']
+            if 'data' in mid:
+                cur_data = mid['data']
+
+    return result

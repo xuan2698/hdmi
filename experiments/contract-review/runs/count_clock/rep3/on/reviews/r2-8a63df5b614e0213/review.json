@@ -1,0 +1,301 @@
+{
+  "coverage": {
+    "S01": [
+      "increment_clock",
+      "hold_clock",
+      "reset_priority"
+    ],
+    "S02": [
+      "increment_clock",
+      "hold_clock"
+    ],
+    "S03": [
+      "increment_clock",
+      "reset_priority"
+    ],
+    "S04": [
+      "reset_priority"
+    ]
+  },
+  "issues": [
+    {
+      "issue_id": "I1",
+      "rule_id": "reset_priority",
+      "type": "grounding",
+      "severity": "medium",
+      "detail": "spec_quote covers reset value only; sync/active-high/priority fields have no verbatim quote but uncertain=false.",
+      "spec_evidence": "Reset is the active high synchronous signal that resets the clock to \"12:00 AM.\" Reset has higher priority than enable and can occur even when not enabled.",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I2",
+      "rule_id": "hold_clock",
+      "type": "grounding",
+      "severity": "low",
+      "detail": "quote supports ena increment but not explicit hold when ena=0; uncertain=false.",
+      "spec_evidence": "Your counters are clocked by a fast-running clk, with a pulse on ena whenever your clock should increment (i.e., once per second, while \"clk\" is much faster than once per second).",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I3",
+      "rule_id": "increment_clock",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "increment_clock uncertain=true; spec does not enumerate rollover; contract chooses conventional carry. Alternative: ss 0x59->0x00 without mm carry.",
+      "spec_evidence": "hh, mm, and ss are two BCD (Binary-Coded Decimal) digits each for hours (01-12), minutes (00-59), and seconds (00-59).",
+      "alternative": "When ss=0x59 and ena=1, ss wraps to 0x00 but mm is not incremented.",
+      "sequence": [
+        {
+          "reset": 1,
+          "ena": 0
+        },
+        {
+          "reset": 0,
+          "ena": 1
+        },
+        {
+          "reset": 0,
+          "ena": 1
+        },
+        {
+          "reset": 0,
+          "ena": 1
+        },
+        {
+          "reset": 0,
+          "ena": 1
+        },
+        {
+          "reset": 0,
+          "ena": 1
+        },
+        {
+          "reset": 0,
+          "ena": 1
+        },
+        {
+          "reset": 0,
+          "ena": 1
+        },
+        {
+          "reset": 0,
+          "ena": 1
+        },
+        {
+          "reset": 0,
+          "ena": 1
+        },
+        {
+          "reset": 0,
+          "ena": 1
+        },
+        {
+          "reset": 0,
+          "ena": 1
+        },
+        {
+          "reset": 0,
+          "ena": 1
+        },
+        {
+          "reset": 0,
+          "ena": 1
+        },
+        {
+          "reset": 0,
+          "ena": 1
+        },
+        {
+          "reset": 0,
+          "ena": 1
+        },
+        {
+          "reset": 0,
+          "ena": 1
+        },
+        {
+          "reset": 0,
+          "ena": 1
+        },
+        {
+          "reset": 0,
+          "ena": 1
+        },
+        {
+          "reset": 0,
+          "ena": 1
+        },
+        {
+          "reset": 0,
+          "ena": 1
+        },
+        {
+          "reset": 0,
+          "ena": 1
+        },
+        {
+          "reset": 0,
+          "ena": 1
+        },
+        {
+          "reset": 0,
+          "ena": 1
+        },
+        {
+          "reset": 0,
+          "ena": 1
+        },
+        {
+          "reset": 0,
+          "ena": 1
+        },
+        {
+          "reset": 0,
+          "ena": 1
+        },
+        {
+          "reset": 0,
+          "ena": 1
+        },
+        {
+          "reset": 0,
+          "ena": 1
+        },
+        {
+          "reset": 0,
+          "ena": 1
+        },
+        {
+          "reset": 0,
+          "ena": 1
+        },
+        {
+          "reset": 0,
+          "ena": 1
+        },
+        {
+          "reset": 0,
+          "ena": 1
+        },
+        {
+          "reset": 0,
+          "ena": 1
+        },
+        {
+          "reset": 0,
+          "ena": 1
+        },
+        {
+          "reset": 0,
+          "ena": 1
+        },
+        {
+          "reset": 0,
+          "ena": 1
+        },
+        {
+          "reset": 0,
+          "ena": 1
+        },
+        {
+          "reset": 0,
+          "ena": 1
+        },
+        {
+          "reset": 0,
+          "ena": 1
+        },
+        {
+          "reset": 0,
+          "ena": 1
+        },
+        {
+          "reset": 0,
+          "ena": 1
+        },
+        {
+          "reset": 0,
+          "ena": 1
+        },
+        {
+          "reset": 0,
+          "ena": 1
+        },
+        {
+          "reset": 0,
+          "ena": 1
+        },
+        {
+          "reset": 0,
+          "ena": 1
+        },
+        {
+          "reset": 0,
+          "ena": 1
+        },
+        {
+          "reset": 0,
+          "ena": 1
+        },
+        {
+          "reset": 0,
+          "ena": 1
+        },
+        {
+          "reset": 0,
+          "ena": 1
+        },
+        {
+          "reset": 0,
+          "ena": 1
+        },
+        {
+          "reset": 0,
+          "ena": 1
+        },
+        {
+          "reset": 0,
+          "ena": 1
+        },
+        {
+          "reset": 0,
+          "ena": 1
+        },
+        {
+          "reset": 0,
+          "ena": 1
+        },
+        {
+          "reset": 0,
+          "ena": 1
+        },
+        {
+          "reset": 0,
+          "ena": 1
+        },
+        {
+          "reset": 0,
+          "ena": 1
+        },
+        {
+          "reset": 0,
+          "ena": 1
+        },
+        {
+          "reset": 0,
+          "ena": 1
+        },
+        {
+          "reset": 0,
+          "ena": 1
+        },
+        {
+          "reset": 0,
+          "ena": 1
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,79 @@
+def reference(vectors):
+    # Rule async_reset: active-high async reset assert forces state A; per the supplied candidate, z retains its prior value until release.
+    # Rule serial_twos_complement: LSB-first two's complement Moore transitions and same-cycle settled-posedge z.
+    state = "A"
+    z = 0
+    cur = {"areset": 0, "x": 0}
+    result = []
+
+    for row in vectors:
+        # Row values are driven before the sampled posedge.
+        if isinstance(row, dict):
+            if "areset" in row:
+                cur["areset"] = int(row["areset"]) & 1
+            if "x" in row:
+                cur["x"] = int(row["x"]) & 1
+
+        # Rule async_reset: asynchronous reset has priority; state A, z holds.
+        if cur["areset"] == 1:
+            state = "A"
+        else:
+            # Rule serial_twos_complement: sample x on posedge and update Moore state.
+            if state == "A":
+                if cur["x"] == 0:
+                    state = "A"
+                else:
+                    state = "B"
+            elif state == "B":
+                if cur["x"] == 0:
+                    state = "B"
+                else:
+                    state = "C"
+            else:
+                if cur["x"] == 0:
+                    state = "B"
+                else:
+                    state = "C"
+
+            if state == "B":
+                z = 1
+            else:
+                z = 0
+
+        result.append({"z": z})
+
+        # Mid changes occur after sampling; carry them to the start of the next row.
+        mids = []
+        if isinstance(row, dict):
+            if "mid" in row:
+                m = row["mid"]
+                if isinstance(m, dict):
+                    mids.append(m)
+                elif isinstance(m, list):
+                    for item in m:
+                        if isinstance(item, dict):
+                            mids.append(item)
+
+            legacy = {}
+            if "mid_areset" in row:
+                legacy["areset"] = row["mid_areset"]
+            if "mid_x" in row:
+                legacy["x"] = row["mid_x"]
+            if legacy:
+                mids.append(legacy)
+
+        for mid in mids:
+            old_areset = cur["areset"]
+            if "areset" in mid:
+                cur["areset"] = int(mid["areset"]) & 1
+            if "x" in mid:
+                cur["x"] = int(mid["x"]) & 1
+
+            # Rule async_reset: mid assert forces A and holds z; mid release restores A's z=0.
+            if cur["areset"] == 1:
+                state = "A"
+            elif old_areset == 1 and cur["areset"] == 0:
+                state = "A"
+                z = 0
+
+    return result

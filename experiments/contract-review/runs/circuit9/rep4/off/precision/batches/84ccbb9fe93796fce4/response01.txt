@@ -1,0 +1,63 @@
+Looking at the waveform, the circuit is a 3-bit counter that:
+- On the first posedge, loads 4 (regardless of `a`)
+- Thereafter, increments by 1 on each posedge when the *previous* sampled `a` was 0, holds when previous `a` was 1
+
+Let me verify against the waveform:
+- 5ns: first posedge → q=4 (load)
+- 15ns: prev a=1 → hold 4
+- 25ns: prev a=1 → hold 4
+- 35ns: prev a=1 → hold 4
+- 45ns: prev a=1 → hold 4
+- 55ns: prev a=0 → 4+1=5 ✓
+- 65ns: prev a=0 → 5+1=6 ✓
+- 75ns: prev a=0 → 6+1=7? But waveform shows 0. Hmm.
+
+Wait, at 75ns q=0. 6+1=7, not 0. Let me re-check. Actually the waveform shows 6→0 at 75ns. That's 6+1=7... unless it's mod something. But 4→5→6→0 suggests mod 7? 6+1=7≡0 mod 7. And 4,5,6 are valid. So it's a mod-7 counter? Or maybe it's mod 8 but... 6+1=7 not 0.
+
+Hmm, 4→5→6→0. If mod 7: 4,5,6,0,1,2,3,4... That fits! 6+1=7≡0 mod 7, then 0+1=1 ✓ (at 85ns q=1).
+
+So it's a counter mod 7, starting at 4. Let me verify: 4,5,6,0,1,2,3,4,... Yes matches.
+
+Actually wait — could it be mod 8 with 3 bits but the value wraps differently? 6+1=7, not 0. So mod 7 it is. Values 0-6.
+
+Let me write the reference implementation. The state is `q` (3-bit). On first posedge: q=4. On subsequent posedges: if prev_a==0, q=(q+1)%7, else hold.
+
+```python
+def reference(vectors):
+    q = None
+    prev_a = None
+    first = True
+    out = []
+    for v in vectors:
+        a = v['a']
+        if first:
+            q = 4
+            first = False
+        else:
+            if prev_a == 0:
+                q = (q + 1) % 7
+        prev_a = a
+        out.append({'q': q})
+    return out
+```
+
+Wait, but I need to check the timing semantics. "Each row's values are driven before the sampled edge." So the input `a` in row i is what's present at the posedge of row i. The update uses `prev_a` = a from previous row (previous posedge sample).
+
+Let me re-verify with the waveform rows (each row is a posedge sample):
+- Row 0 (5ns): a=1, first → q=4. prev_a becomes 1.
+- Row 1 (15ns): a=1, prev_a=1 → hold 4. prev_a=1.
+- Row 2 (25ns): a=1, prev_a=1 → hold 4.
+- Row 3 (35ns): a=1, prev_a=1 → hold 4.
+- Row 4 (45ns): a=0, prev_a=1 → hold 4. prev_a=0.
+- Row 5 (55ns): a=0, prev_a=0 → 4+1=5. prev_a=0.
+- Row 6 (65ns): a=0, prev_a=0 → 5+1=6. prev_a=0.
+- Row 7 (75ns): a=0, prev_a=0 → 6+1=7%7=0. prev_a=0.
+- Row 8 (85ns): a=0, prev_a=0 → 0+1=1. ✓
+
+All match. 
+
+Now, the four model IDs all describe the same semantics (they're variants of the same spec). I'll implement the same reference for each.
+
+```json
+{"models":{"12421d9d81ecbd33bf":"def reference(vectors):\n    q = None\n    prev_a = None\n    first = True\n    out = []\n    for v in vectors:\n        a = v['a']\n        if first:\n            q = 4\n            first = False\n        else:\n            if prev_a == 0:\n                q = (q + 1) % 7\n        prev_a = a\n        out.append({'q': q})\n    return out","4a28d7bd97a4fd0c94":"def reference(vectors):\n    q = None\n    prev_a = None\n    first = True\n    out = []\n    for v in vectors:\n        a = v['a']\n        if first:\n            q = 4\n            first = False\n        else:\n            if prev_a == 0:\n                q = (q + 1) % 7\n        prev_a = a\n        out.append({'q': q})\n    return out","9583102d5c7fc132cc":"def reference(vectors):\n    q = None\n    prev_a = None\n    first = True\n    out = []\n    for v in vectors:\n        a = v['a']\n        if first:\n            q = 4\n            first = False\n        else:\n            if prev_a == 0:\n                q = (q + 1) % 7\n        prev_a = a\n        out.append({'q': q})\n    return out","cb4682f9ae7b8ef7e1":"def reference(vectors):\n    q = None\n    prev_a = None\n    first = True\n    out = []\n    for v in vectors:\n        a = v['a']\n        if first:\n            q = 4\n            first = False\n        else:\n            if prev_a == 0:\n                q = (q + 1) % 7\n        prev_a = a\n        out.append({'q': q})\n    return out"}}
+```

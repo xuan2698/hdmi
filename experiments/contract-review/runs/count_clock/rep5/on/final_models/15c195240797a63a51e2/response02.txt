@@ -1,0 +1,75 @@
+```python
+def reference(vectors):
+    # Initialize state to reset values (arbitrary for unspecified power-up)
+    pm = 0
+    hh = 0x12
+    mm = 0x00
+    ss = 0x00
+
+    # Current input values (persist across rows unless changed)
+    cur_reset = 0
+    cur_ena = 0
+
+    out = []
+
+    for row in vectors:
+        # Apply row's input values before the sampled edge (if provided)
+        if 'reset' in row:
+            cur_reset = row['reset']
+        if 'ena' in row:
+            cur_ena = row['ena']
+
+        # Synchronous update at posedge clk
+        # rule reset_all: reset==1 sets pm=0, hh=0x12, mm=0x00, ss=0x00 regardless of ena
+        if cur_reset == 1:
+            pm = 0
+            hh = 0x12
+            mm = 0x00
+            ss = 0x00
+        else:
+            # rule hold_when_not_enabled: ena==0 holds all outputs
+            if cur_ena == 1:
+                # Enabled: increment with BCD rollover
+                # rule second_increment / second_rollover_to_minute / minute_rollover_to_hour_no_pm_toggle / hour_11_to_12_toggle_pm
+                if ss == 0x59:
+                    ss = 0x00
+                    if mm == 0x59:
+                        mm = 0x00
+                        if hh == 0x11:
+                            # rule hour_11_to_12_toggle_pm: 11:59:59 -> 12:00:00, toggle pm
+                            hh = 0x12
+                            pm = pm ^ 1
+                        elif hh == 0x12:
+                            # rule minute_rollover_to_hour_no_pm_toggle: 12:59:59 -> 01:00:00, pm holds
+                            hh = 0x01
+                        else:
+                            # rule minute_rollover_to_hour_no_pm_toggle: other hour increments (01-10)
+                            hh = hh + 1
+                            if (hh & 0x0F) == 0x0A:
+                                hh = hh + 0x06
+                    else:
+                        # rule second_rollover_to_minute: ss rolls to 0, increment mm
+                        mm = mm + 1
+                        if (mm & 0x0F) == 0x0A:
+                            mm = mm + 0x06
+                else:
+                    # rule second_increment: increment ss
+                    ss = ss + 1
+                    if (ss & 0x0F) == 0x0A:
+                        ss = ss + 0x06
+            # else: hold (already done)
+
+        # Append output for this sampled edge
+        out.append({'pm': pm, 'hh': hh, 'mm': mm, 'ss': ss})
+
+        # Process optional mid input changes after sampling, carried to next row
+        if 'mid' in row:
+            mid = row['mid']
+            if mid:
+                if 'reset' in mid:
+                    cur_reset = mid['reset']
+                if 'ena' in mid:
+                    cur_ena = mid['ena']
+
+    return out
+```

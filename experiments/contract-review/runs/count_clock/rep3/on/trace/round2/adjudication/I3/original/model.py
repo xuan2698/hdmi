@@ -1,0 +1,83 @@
+def reference(vectors):
+    # Initial state: reset values for power-up (concrete per contract)
+    pm = 0
+    hh = 0x12  # 12 in BCD, decimal 18
+    mm = 0x00
+    ss = 0x00
+
+    # Current input values, carried across rows for mid changes
+    cur_reset = 0
+    cur_ena = 0
+
+    out = []
+    for row in vectors:
+        # Apply row inputs driven before the sampled posedge
+        if 'reset' in row:
+            cur_reset = row['reset']
+        if 'ena' in row:
+            cur_ena = row['ena']
+
+        # posedge clk: update state
+        # reset_priority: reset == 1 forces pm=0, hh=0x12, mm=0x00, ss=0x00
+        if cur_reset == 1:
+            pm = 0
+            hh = 0x12
+            mm = 0x00
+            ss = 0x00
+        # increment_clock: reset == 0 && ena == 1, advance one second in BCD
+        elif cur_ena == 1:
+            # Seconds BCD increment
+            if ss == 0x59:
+                ss = 0x00
+                carry_sec = 1
+            else:
+                low = ss & 0x0F
+                if low == 9:
+                    ss = ((ss >> 4) + 1) << 4
+                else:
+                    ss = ss + 1
+                carry_sec = 0
+
+            # Minutes BCD increment on seconds carry
+            if carry_sec == 1:
+                if mm == 0x59:
+                    mm = 0x00
+                    carry_min = 1
+                else:
+                    low = mm & 0x0F
+                    if low == 9:
+                        mm = ((mm >> 4) + 1) << 4
+                    else:
+                        mm = mm + 1
+                    carry_min = 0
+            else:
+                carry_min = 0
+
+            # Hours increment on minutes carry, with 12-hour rollover rules
+            if carry_min == 1:
+                if hh == 0x11:
+                    hh = 0x12
+                    pm = 1 - pm  # toggle AM/PM on 11 -> 12
+                elif hh == 0x12:
+                    hh = 0x01    # 12 -> 01 leaves pm unchanged
+                else:
+                    low = hh & 0x0F
+                    if low == 9:
+                        hh = ((hh >> 4) + 1) << 4
+                    else:
+                        hh = hh + 1
+        # hold_clock: reset == 0 && ena == 0, state holds
+
+        # Record output after posedge
+        out.append({'pm': pm, 'hh': hh, 'mm': mm, 'ss': ss})
+
+        # Optional mid input changes occur after sampling, carried to next row
+        if 'mid' in row:
+            mid = row['mid']
+            if mid:
+                if 'reset' in mid:
+                    cur_reset = mid['reset']
+                if 'ena' in mid:
+                    cur_ena = mid['ena']
+
+    return out

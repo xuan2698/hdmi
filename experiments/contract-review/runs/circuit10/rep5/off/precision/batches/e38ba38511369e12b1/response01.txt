@@ -1,0 +1,28 @@
+Looking at the waveform, I need to determine the next-state function for the flip-flop.
+
+Let me trace through the state transitions at each posedge (sampling the row's inputs, then observing the state at the next row):
+
+- 15ns: a=0,b=0, state=0 → next state (at 20ns) = 0
+- 25ns: a=0,b=0, state=0 → next state = 0
+- 35ns: a=0,b=0, state=0 → next state = 0
+- 45ns: a=0,b=1, state=0 → next state (at 50ns) = 1
+- 55ns: a=1,b=0, state=0 → next state (at 60ns) = 1
+- 65ns: a=1,b=1, state=0 → next state (at 70ns) = 0
+- 75ns: a=0,b=0, state=1 → next state (at 80ns) = 1
+- 85ns: a=1,b=1, state=0 → next state (at 90ns) = 0
+- 95ns: a=1,b=1, state=1 → next state (at 100ns) = 1
+- 105ns: a=1,b=1, state=1 → next state (at 110ns) = 1
+- 115ns: a=1,b=0, state=1 → next state (at 120ns) = 0
+- 125ns: a=0,b=1, state=1 → next state (at 130ns) = 0
+- 135ns: a=0,b=0, state=1 → next state (at 140ns) = 1
+- 145ns: a=0,b=0, state=0 → next state = 0
+
+Checking `state_next = a XOR b XOR state`:
+- (0,0,0)→0 ✓, (0,1,0)→1 ✓, (1,0,0)→1 ✓, (1,1,0)→0 ✓
+- (0,0,1)→1 ✓, (1,1,1)→1 ✓, (1,0,1)→0 ✓, (0,1,1)→0 ✓, (0,0,1)→1 ✓
+
+All match. So `state_next = a XOR b XOR state`, and `q = state` (registered).
+
+```json
+{"models":{"a55c8894354e11b679":"def reference(vectors):\n    state = 0\n    out = []\n    for v in vectors:\n        a = v['a'] & 1\n        b = v['b'] & 1\n        q = state\n        out.append({'q': q, 'state': state})\n        state = (a ^ b ^ state) & 1\n    return out\n","481db946e0d0274fbc":"def reference(vectors):\n    state = 0\n    out = []\n    for v in vectors:\n        a = v['a'] & 1\n        b = v['b'] & 1\n        q = state\n        out.append({'q': q, 'state': state})\n        state = (a ^ b ^ state) & 1\n    return out\n","6660b71070e8539285":"def reference(vectors):\n    state = 0\n    out = []\n    for v in vectors:\n        a = v['a'] & 1\n        b = v['b'] & 1\n        q = state\n        out.append({'q': q, 'state': state})\n        state = (a ^ b ^ state) & 1\n    return out\n","b4a2960e651df1f5af":"def reference(vectors):\n    state = 0\n    out = []\n    for v in vectors:\n        a = v['a'] & 1\n        b = v['b'] & 1\n        q = state\n        out.append({'q': q, 'state': state})\n        state = (a ^ b ^ state) & 1\n    return out\n"}}
+```

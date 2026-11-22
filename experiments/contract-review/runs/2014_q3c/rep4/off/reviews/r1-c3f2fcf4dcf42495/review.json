@@ -1,0 +1,116 @@
+{
+  "coverage": {
+    "S01": [
+      "R_Y0",
+      "R_z"
+    ],
+    "S02": [
+      "R_Y0"
+    ],
+    "S03": [
+      "R_Y0",
+      "R_z"
+    ],
+    "S04": [
+      "R_Y0",
+      "R_z"
+    ],
+    "S05": [
+      "R_Y0",
+      "R_z"
+    ],
+    "S06": [
+      "R_Y0",
+      "R_z"
+    ],
+    "S07": [
+      "R_Y0",
+      "R_z"
+    ]
+  },
+  "issues": [
+    {
+      "issue_id": "I1",
+      "rule_id": "R_Y0",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "R_Y0 example expected Y0 for y=3,x=0 is 1, but table row 011 x=0 gives next state 001 so Y0=1; for y=3,x=1 gives 010 so Y0=0. Example matches. However y=0,x=0 gives 000 Y0=0 ok; y=0,x=1 gives 001 Y0=1 ok. No contradiction.",
+      "spec_evidence": "",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I2",
+      "rule_id": "R_z",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "R_z example vector {x:0,y:2} expected z=0; table row 010 output z=0 ok. {x:0,y:3} z=1 ok. {x:1,y:4} z=1 ok. {x:0,y:0} z=0 ok. No contradiction.",
+      "spec_evidence": "",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I3",
+      "rule_id": "R_Y0",
+      "type": "grounding",
+      "severity": "medium",
+      "detail": "R_Y0 condition references next-state bit 0 but spec only gives table; rule does not enumerate Y0 per row, relying on interpretation. Verbatim quote is generic header, not row-level evidence.",
+      "spec_evidence": "Next state Y[2:0] x=0, Next state Y[2:0] x=1",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I4",
+      "rule_id": "R_z",
+      "type": "grounding",
+      "severity": "medium",
+      "detail": "R_z condition states z=1 for states 011 and 100; spec table rows S06 and S07 show z=1 for 011 and 100 respectively. Grounded but quote 'Output z' is weak.",
+      "spec_evidence": "Output z",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I5",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "low",
+      "detail": "Spec table does not define behavior for states 101,110,111; contract rules also silent. Alternative semantics: treat undefined states as don't-care producing Y0=0,z=0.",
+      "spec_evidence": "",
+      "alternative": "Undefined states 101,110,111 output Y0=0,z=0",
+      "sequence": [
+        {
+          "x": 0,
+          "y": 5
+        },
+        {
+          "x": 1,
+          "y": 6
+        },
+        {
+          "x": 0,
+          "y": 7
+        }
+      ]
+    },
+    {
+      "issue_id": "I6",
+      "rule_id": "R_Y0",
+      "type": "spec_example",
+      "severity": "low",
+      "detail": "Derived Y0 from table: y=0 x=0->0, x=1->1; y=1 x=0->1, x=1->0; y=2 x=0->0, x=1->1; y=3 x=0->1, x=1->0; y=4 x=0->1, x=1->0. R_Y0 example only covers y=0 and y=3; consistent.",
+      "spec_evidence": "",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I7",
+      "rule_id": "R_z",
+      "type": "spec_example",
+      "severity": "low",
+      "detail": "Derived z from table: z=1 only for y=3 and y=4; R_z example covers y=2,3,4,0; consistent.",
+      "spec_evidence": "",
+      "alternative": "",
+      "sequence": []
+    }
+  ]
+}

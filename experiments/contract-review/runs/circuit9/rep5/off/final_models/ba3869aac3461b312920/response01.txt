@@ -1,0 +1,28 @@
+```python
+def reference(vectors):
+    # Contract implementation.
+    # State: 3-bit accumulator q, plus previous sampled input a (prev_a).
+    # Initial q is unspecified; we choose 0 as a concrete value (uncertain global).
+    # Rule hold_when_a_high: on posedge, if a==1 or prev_a==0 -> q holds.
+    # Rule increment_when_a_low: on posedge, if a==0 and prev_a==1 -> q = (q+1) & 7.
+    # prev_a updates at each posedge to the current a (sampled value).
+    # Mid changes: none.
+
+    q = 0          # initial unspecified -> concrete 0
+    prev_a = 1     # seed: first row a=1, prev_a treated as 1 so no increment at first posedge
+    out = []
+
+    for row in vectors:
+        a = row['a']
+        # posedge sampling: apply transition based on current a and prev_a
+        if a == 0 and prev_a == 1:
+            # increment_when_a_low
+            q = (q + 1) & 0x7
+        else:
+            # hold_when_a_high
+            q = q & 0x7
+        prev_a = a
+        out.append({'q': q})
+
+    return out
+```

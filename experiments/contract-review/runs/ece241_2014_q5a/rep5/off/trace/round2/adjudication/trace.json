@@ -1,0 +1,106 @@
+[
+  {
+    "issue": {
+      "issue_id": "I6",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "high",
+      "detail": "Spec says output is 2's complement of the input number; contract implements LSB-first streaming complement (pass until first 1, then invert). Alternative semantics: complement all bits including leading zeros (pure NOT). Distinguishing sequence: x=0,0,1,0 LSB-first.",
+      "spec_evidence": "the output (Z) is the 2's complement of the input",
+      "alternative": "Pure bitwise NOT of every input bit (z=NOT x always), ignoring first-1 detection.",
+      "sequence": [
+        {
+          "areset": 0,
+          "x": 0
+        },
+        {
+          "areset": 0,
+          "x": 0
+        },
+        {
+          "areset": 0,
+          "x": 1
+        },
+        {
+          "areset": 0,
+          "x": 0
+        }
+      ]
+    },
+    "status": "no_effect",
+    "issue_id": "I6",
+    "outputs": {
+      "original": [
+        {
+          "z": 0
+        },
+        {
+          "z": 0
+        },
+        {
+          "z": 1
+        },
+        {
+          "z": 1
+        }
+      ],
+      "alternative": [
+        {
+          "z": 0
+        },
+        {
+          "z": 0
+        },
+        {
+          "z": 1
+        },
+        {
+          "z": 1
+        }
+      ]
+    },
+    "differences": []
+  },
+  {
+    "issue": {
+      "issue_id": "I7",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec says conversion stops when Reset asserted; contract only forces state S0, so z still follows x during reset. Alternative: z held/zero during reset. Distinguishing sequence: areset=1 with x=1.",
+      "spec_evidence": "The conversion begins when Reset is released and stops when Reset is asserted.",
+      "alternative": "During areset=1, z is forced to 0 (conversion stopped) rather than passing x.",
+      "sequence": [
+        {
+          "areset": 1,
+          "x": 1
+        }
+      ]
+    },
+    "status": "effect",
+    "issue_id": "I7",
+    "outputs": {
+      "original": [
+        {
+          "z": 1
+        }
+      ],
+      "alternative": [
+        {
+          "z": 0
+        }
+      ]
+    },
+    "differences": [
+      {
+        "cycle": 1,
+        "original": {
+          "z": 1
+        },
+        "alternative": {
+          "z": 0
+        }
+      }
+    ]
+  }
+]

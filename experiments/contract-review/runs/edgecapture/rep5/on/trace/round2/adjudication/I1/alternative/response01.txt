@@ -1,0 +1,46 @@
+def reference(vectors):
+    MASK = (1 << 32) - 1
+    out = 0
+    prev_in = 0
+    current = {"reset": 0, "in": 0}
+    result = []
+
+    for row in vectors:
+        # Drive specified inputs before the sampled posedge.
+        if "reset" in row:
+            current["reset"] = row["reset"] & 1
+        if "in" in row:
+            current["in"] = row["in"] & MASK
+
+        r = current["reset"]
+        inval = current["in"]
+
+        if r:
+            # synchronous_active_high_reset
+            # global: clear/suppress prev_in while reset is high
+            out = 0
+            prev_in = 0
+        else:
+            # falling_edge_capture_and_hold
+            out = (out | (prev_in & ((~inval) & MASK))) & MASK
+            prev_in = inval & MASK
+
+        result.append({"out": out & MASK})
+
+        # Optional mid changes occur after sampling and carry to next row start.
+        if isinstance(row, dict) and "mid" in row:
+            mid = row["mid"]
+            if isinstance(mid, dict):
+                if "reset" in mid:
+                    current["reset"] = mid["reset"] & 1
+                if "in" in mid:
+                    current["in"] = mid["in"] & MASK
+            elif isinstance(mid, (list, tuple)):
+                for change in mid:
+                    if isinstance(change, dict):
+                        if "reset" in change:
+                            current["reset"] = change["reset"] & 1
+                        if "in" in change:
+                            current["in"] = change["in"] & MASK
+
+    return result

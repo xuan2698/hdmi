@@ -1,0 +1,234 @@
+[
+  {
+    "issue": {
+      "issue_id": "I10",
+      "rule_id": "R1_predict_outputs",
+      "type": "ambiguity",
+      "severity": "high",
+      "detail": "Spec does not define initial PHT state or GHR reset value; prediction output before any training is ambiguous.",
+      "spec_evidence": "Reset is asynchronous active-high.",
+      "alternative": "PHT initializes to 0 (strongly not-taken) and GHR to 0 on reset.",
+      "sequence": [
+        {
+          "areset": 1,
+          "predict_valid": 0,
+          "predict_pc": 0,
+          "train_valid": 0,
+          "train_taken": 0,
+          "train_mispredicted": 0,
+          "train_history": 0,
+          "train_pc": 0
+        },
+        {
+          "areset": 0,
+          "predict_valid": 1,
+          "predict_pc": 0,
+          "train_valid": 0,
+          "train_taken": 0,
+          "train_mispredicted": 0,
+          "train_history": 0,
+          "train_pc": 0
+        }
+      ]
+    },
+    "status": "no_effect",
+    "issue_id": "I10",
+    "outputs": {
+      "original": [
+        {
+          "predict_taken": 0,
+          "predict_history": 0
+        },
+        {
+          "predict_taken": 0,
+          "predict_history": 0
+        }
+      ],
+      "alternative": [
+        {
+          "predict_taken": 0,
+          "predict_history": 0
+        },
+        {
+          "predict_taken": 0,
+          "predict_history": 0
+        }
+      ]
+    },
+    "differences": []
+  },
+  {
+    "issue": {
+      "issue_id": "I11",
+      "rule_id": "R2_predict_ghr_update",
+      "type": "ambiguity",
+      "severity": "high",
+      "detail": "Spec does not state whether predicted direction is shifted into GHR as taken=1/not-taken=0 or opposite, nor shift direction.",
+      "spec_evidence": "The branch history register is then updated (at the next positive clock edge) for the predicted branch.",
+      "alternative": "GHR shifts left and inserts predict_taken (1 for taken, 0 for not-taken).",
+      "sequence": [
+        {
+          "areset": 0,
+          "predict_valid": 1,
+          "predict_pc": 0,
+          "train_valid": 0,
+          "train_taken": 0,
+          "train_mispredicted": 0,
+          "train_history": 0,
+          "train_pc": 0
+        },
+        {
+          "areset": 0,
+          "predict_valid": 0,
+          "predict_pc": 0,
+          "train_valid": 0,
+          "train_taken": 0,
+          "train_mispredicted": 0,
+          "train_history": 0,
+          "train_pc": 0
+        }
+      ]
+    },
+    "status": "no_effect",
+    "issue_id": "I11",
+    "outputs": {
+      "original": [
+        {
+          "predict_taken": 0,
+          "predict_history": 0
+        },
+        {
+          "predict_taken": 0,
+          "predict_history": 0
+        }
+      ],
+      "alternative": [
+        {
+          "predict_taken": 0,
+          "predict_history": 0
+        },
+        {
+          "predict_taken": 0,
+          "predict_history": 0
+        }
+      ]
+    },
+    "differences": []
+  },
+  {
+    "issue": {
+      "issue_id": "I12",
+      "rule_id": "R4_train_mispredict_ghr_recover",
+      "type": "ambiguity",
+      "severity": "high",
+      "detail": "Spec does not define how to form GHR state immediately after mispredicting branch from train_history and train_taken.",
+      "spec_evidence": "recover the branch history register to the state immediately after the mispredicting branch completes execution.",
+      "alternative": "GHR becomes (train_history << 1) | train_taken.",
+      "sequence": [
+        {
+          "areset": 0,
+          "predict_valid": 0,
+          "predict_pc": 0,
+          "train_valid": 1,
+          "train_taken": 1,
+          "train_mispredicted": 1,
+          "train_history": 2,
+          "train_pc": 4
+        },
+        {
+          "areset": 0,
+          "predict_valid": 0,
+          "predict_pc": 0,
+          "train_valid": 0,
+          "train_taken": 0,
+          "train_mispredicted": 0,
+          "train_history": 0,
+          "train_pc": 0
+        }
+      ]
+    },
+    "status": "no_effect",
+    "issue_id": "I12",
+    "outputs": {
+      "original": [
+        {
+          "predict_taken": 0,
+          "predict_history": 0
+        },
+        {
+          "predict_taken": 0,
+          "predict_history": 0
+        }
+      ],
+      "alternative": [
+        {
+          "predict_taken": 0,
+          "predict_history": 0
+        },
+        {
+          "predict_taken": 0,
+          "predict_history": 0
+        }
+      ]
+    },
+    "differences": []
+  },
+  {
+    "issue": {
+      "issue_id": "I13",
+      "rule_id": "R3_train_pht_update",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec does not define 2-bit counter encoding or saturation update direction.",
+      "spec_evidence": "Update the pattern history table (PHT) to train the branch predictor to predict this branch more accurately next time.",
+      "alternative": "Counters are 2-bit saturating: 00,01,10,11; taken increments, not-taken decrements; predict_taken = MSB.",
+      "sequence": [
+        {
+          "areset": 0,
+          "predict_valid": 0,
+          "predict_pc": 0,
+          "train_valid": 1,
+          "train_taken": 1,
+          "train_mispredicted": 0,
+          "train_history": 0,
+          "train_pc": 0
+        },
+        {
+          "areset": 0,
+          "predict_valid": 1,
+          "predict_pc": 0,
+          "train_valid": 0,
+          "train_taken": 0,
+          "train_mispredicted": 0,
+          "train_history": 0,
+          "train_pc": 0
+        }
+      ]
+    },
+    "status": "no_effect",
+    "issue_id": "I13",
+    "outputs": {
+      "original": [
+        {
+          "predict_taken": 0,
+          "predict_history": 0
+        },
+        {
+          "predict_taken": 0,
+          "predict_history": 0
+        }
+      ],
+      "alternative": [
+        {
+          "predict_taken": 0,
+          "predict_history": 0
+        },
+        {
+          "predict_taken": 0,
+          "predict_history": 0
+        }
+      ]
+    },
+    "differences": []
+  }
+]

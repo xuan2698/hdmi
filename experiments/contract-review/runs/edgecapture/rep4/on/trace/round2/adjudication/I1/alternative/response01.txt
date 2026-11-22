@@ -1,0 +1,80 @@
+def reference(vectors):
+    # Fixed widths from the contract.
+    IN_WIDTH = 32
+    OUT_WIDTH = 32
+    IN_MASK = (1 << IN_WIDTH) - 1
+    OUT_MASK = (1 << OUT_WIDTH) - 1
+
+    # Named synchronous state.
+    out_reg = 0
+    prev_in = 0
+
+    # Carried input values at the start of each row.
+    cur_reset = 0
+    cur_in = 0
+
+    result = []
+
+    for row in vectors:
+        # Apply row-driven input values before the sampled posedge.
+        # Missing values retain the carried value from prior mid changes.
+        if isinstance(row, dict):
+            if "reset" in row:
+                cur_reset = int(row["reset"]) & 1
+            if "in" in row:
+                cur_in = int(row["in"]) & IN_MASK
+
+        # Rule sync_active_high_reset: active-high synchronous reset clears
+        # out_reg and overrides capture/retention at this posedge.
+        # Resolved uncertainty for capture_sticky_one_to_zero:
+        # prev_in is cleared/ignored during reset, so the first reset==0
+        # posedge cannot capture from the input sampled on a reset==1 posedge.
+        if cur_reset:
+            out_reg = 0
+            prev_in = 0
+        else:
+            # Rule capture_sticky_one_to_zero: per-bit sticky capture for
+            # sampled 1->0 transitions using previous sampled in and current in.
+            falling = prev_in & ((~cur_in) & IN_MASK)
+            out_reg = (out_reg | falling) & OUT_MASK
+            prev_in = cur_in & IN_MASK
+
+        result.append({"out": out_reg & OUT_MASK})
+
+        # Optional mid-row changes occur after sampling and are carried to the
+        # start of the next row; they do not change out until the next posedge.
+        mid_changes = {}
+        if isinstance(row, dict):
+            if "mid" in row:
+                m = row["mid"]
+                if isinstance(m, dict):
+                    mid_changes.update(m)
+                elif isinstance(m, list):
+                    for item in m:
+                        if isinstance(item, dict):
+                            mid_changes.update(item)
+                        elif isinstance(item, tuple) and len(item) == 2:
+                            mid_changes[item[0]] = item[1]
+                        elif isinstance(item, list) and len(item) == 2:
+                            mid_changes[item[0]] = item[1]
+            if "mid_changes" in row:
+                m = row["mid_changes"]
+                if isinstance(m, dict):
+                    mid_changes.update(m)
+            for k, v in row.items():
+                if isinstance(k, str):
+                    if k.startswith("mid_"):
+                        port = k[4:]
+                        if port in ("reset", "in"):
+                            mid_changes[port] = v
+                    elif k.endswith("_mid"):
+                        port = k[:-4]
+                        if port in ("reset", "in"):
+                            mid_changes[port] = v
+
+        if "reset" in mid_changes:
+            cur_reset = int(mid_changes["reset"]) & 1
+        if "in" in mid_changes:
+            cur_in = int(mid_changes["in"]) & IN_MASK
+
+    return result

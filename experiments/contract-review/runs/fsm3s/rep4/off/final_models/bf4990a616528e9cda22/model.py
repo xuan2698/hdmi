@@ -1,0 +1,53 @@
+def reference(vectors):
+    # State encoding: A=0, B=1, C=2, D=3
+    # R5: synchronous active high reset forces state A on posedge.
+    # Candidate interpretation: reset forces out=0 combinationally while asserted.
+    # We track state; output is combinational from state (R1-R4).
+    # Reset is synchronous: state updates to A only on posedge when reset==1.
+    # However, the candidate interpretation says reset forces out=0 combinationally
+    # while asserted. We apply: if reset==1, out=0 regardless of state (combinational).
+    # State still updates on posedge per R5.
+
+    state = 0  # power-up unspecified; start at A (0) as a concrete choice
+    out = 0
+    results = []
+
+    for vec in vectors:
+        inp = vec.get('in', 0)
+        rst = vec.get('reset', 0)
+
+        # R1-R4: combinational output from state
+        if state == 0:      # R1: state A -> out 0
+            out = 0
+        elif state == 1:    # R2: state B -> out 0
+            out = 0
+        elif state == 2:    # R3: state C -> out 0
+            out = 0
+        elif state == 3:    # R4: state D -> out 1
+            out = 1
+        else:
+            out = 0
+
+        # Candidate interpretation for R5: reset forces out=0 combinationally while asserted
+        if rst == 1:
+            out = 0
+
+        # Record output for this row (sampled after posedge settled; combinational visible same cycle)
+        results.append({'out': out & 1})
+
+        # R5-R9: posedge state transition
+        if rst == 1:
+            # R5: synchronous active high reset -> state A
+            state = 0
+        else:
+            # R6-R9: explicit transitions
+            if state == 0:      # R6: A -> A if in==0, B if in==1
+                state = 0 if inp == 0 else 1
+            elif state == 1:    # R7: B -> C if in==0, B if in==1
+                state = 2 if inp == 0 else 1
+            elif state == 2:    # R8: C -> A if in==0, D if in==1
+                state = 0 if inp == 0 else 3
+            elif state == 3:    # R9: D -> C if in==0, B if in==1
+                state = 2 if inp == 0 else 1
+
+    return results

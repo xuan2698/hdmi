@@ -1,0 +1,76 @@
+{
+  "responses": [
+    {
+      "issue_id": "I1",
+      "decision": "accept",
+      "reason": "The rule condition references prev_in but the contract never states prev_in's initial value; the first-row expected out=0 relies on prev_in initialized to 0. Clarify this in the rule condition.",
+      "spec_quote": "capture when the input signal changes from 1 in one clock cycle to 0 the next",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R2_capture_falling",
+            "condition"
+          ],
+          "value": "reset == 0 && for each bit i: out[i] | (prev_in[i] & ~in[i]); prev_in initialized to 0 before the first sampled cycle"
+        }
+      ]
+    },
+    {
+      "issue_id": "I3",
+      "decision": "accept",
+      "reason": "R3_hold's example never shows a previously set bit being held at 1, so it does not demonstrate the hold behavior the spec requires. Replace the example to first set a bit then hold it.",
+      "spec_quote": "the output will remain 1 until the register is reset",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R3_hold",
+            "example"
+          ],
+          "value": {
+            "vectors": [
+              {
+                "reset": 0,
+                "in": 1
+              },
+              {
+                "reset": 0,
+                "in": 0
+              },
+              {
+                "reset": 0,
+                "in": 0
+              }
+            ],
+            "expected": [
+              {
+                "out": 0
+              },
+              {
+                "out": 1
+              },
+              {
+                "out": 1
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "issue_id": "I4",
+      "decision": "rebut",
+      "reason": "The issue itself confirms the R2 example matches the rule with no discrepancy; no change needed.",
+      "spec_quote": "capture when the input signal changes from 1 in one clock cycle to 0 the next",
+      "edits": []
+    },
+    {
+      "issue_id": "I5",
+      "decision": "rebut",
+      "reason": "The issue confirms the contract's reset handling is consistent with the spec and raises no verbatim evidence problem; no change needed.",
+      "spec_quote": "active high synchronous reset",
+      "edits": []
+    }
+  ]
+}

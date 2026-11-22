@@ -1,0 +1,44 @@
+def reference(vectors):
+    # State
+    out = 0
+    prev_in = 0
+    cur_reset = 0
+    cur_in = 0
+    results = []
+
+    for row in vectors:
+        # Drive inputs before the sampled posedge.
+        if "reset" in row:
+            cur_reset = row["reset"]
+        if "in" in row:
+            cur_in = row["in"]
+
+        reset_s = cur_reset & 1
+        in_s = cur_in & 0xFFFFFFFF
+
+        # Rule ID: synchronous_active_high_reset
+        # Active-high synchronous reset has priority over capture/hold.
+        if reset_s:
+            out = 0
+        else:
+            # Rule ID: falling_edge_capture_and_hold
+            # Capture 1-to-0 transitions; existing 1s are preserved.
+            transitions = prev_in & (~in_s) & 0xFFFFFFFF
+            out = (out | transitions) & 0xFFFFFFFF
+
+        # prev_in updates every sampled posedge, including reset cycles.
+        prev_in = in_s
+
+        # Output is visible after the sampled posedge.
+        results.append({"out": out})
+
+        # Optional mid changes occur after sampling and before the next edge.
+        # They are carried to the start of the next row.
+        mid = row.get("mid")
+        if mid is not None:
+            if "reset" in mid:
+                cur_reset = mid["reset"]
+            if "in" in mid:
+                cur_in = mid["in"]
+
+    return results

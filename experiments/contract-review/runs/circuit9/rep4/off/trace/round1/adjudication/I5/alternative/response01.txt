@@ -1,0 +1,77 @@
+```python
+def reference(vectors):
+    # Contract rules:
+    # hold_when_a_high: on posedge, if a==1, q holds (priority 1)
+    # increment_when_a_low: on posedge, if a==0, q increments (priority 1)
+    # global interpretation: increment q on posedge iff a sampled at previous posedge was 0; hold otherwise.
+    # Power-up unspecified: q starts at 4 (from waveform at 5ns, first posedge with a=1 holds -> q=4).
+    # We model state as q value; initial q = 4 (concrete unsigned within 3 bits).
+    # Each row: values driven before sampled posedge edge. Mid changes occur AFTER sampling,
+    # carried to start of next row. So we sample 'a' at the posedge of each row, then apply
+    # the transition based on the PREVIOUS sampled a (per global interpretation).
+    # Actually per rules: hold_when_a_high / increment_when_a_low use a at the posedge of that row
+    # (visible same_cycle). But global interpretation says increment iff a sampled at PREVIOUS posedge was 0.
+    # The waveform: at 5ns posedge a=1 -> q=4 (hold). At 15ns posedge a=1 -> q=4. ...
+    # At 55ns posedge a=0 -> q=5 (increment). At 65ns posedge a=0 -> q=6. At 75ns posedge a=0 -> q=0.
+    # At 85ns posedge a=0 -> q=1.
+    # So increment happens on posedge when a==0 at THAT posedge (same_cycle), not previous.
+    # Wait: at 45ns posedge a=0 -> q stays 4 (row 45ns shows q=4). Then 55ns posedge a=0 -> q=5.
+    # So at 45ns posedge a=0 but q did NOT increment. That matches "increment iff a sampled at PREVIOUS posedge was 0".
+    # Previous posedge before 45ns was 35ns with a=1 -> hold. So at 45ns, previous a=1 -> hold -> q=4. Correct.
+    # At 55ns, previous posedge 45ns a=0 -> increment -> q=5. Correct.
+    # At 65ns, previous 55ns a=0 -> increment -> q=6. Correct.
+    # At 75ns, previous 65ns a=0 -> increment -> q=0 (6+1=7 mod 8 = 7? No, 6+1=7, but waveform shows 0).
+    # Hmm 6+1=7, but waveform shows q=0 at 75ns. So it's mod 8? 7 mod 8 = 7, not 0.
+    # Wait 6+1=7, but waveform says 0. Let me recheck: 65ns q=6, 75ns q=0. 6+1=7 not 0.
+    # Unless it's mod 7? 6+1=7 mod 7 = 0. Then 0+1=1 at 85ns. Yes! Mod 7.
+    # Check: 4->5->6->0->1. That's mod 7 (values 0..6). 3-bit but wraps at 7.
+    # So increment is (q+1) % 7.
+    # Initial q = 4 (from first posedge at 5ns with a=1, hold -> q=4).
+    # We need to track previous sampled a. Initial previous a: at 5ns posedge, a=1, q=4 (hold).
+    # For first row (0ns, clk=0), no posedge yet, q=x but we must return concrete. Use 4.
+    # Actually first row 0ns clk=0, q=x. We return 4 (concrete).
+    # Then at 5ns posedge: a=1, previous a (from before) = ? We need to decide.
+    # Since q=4 at 5ns and it's a hold, previous a must have been 1 (or initial state holds).
+    # Let's set initial prev_a = 1 so first posedge holds.
+    # Then at 5ns: prev_a=1 -> hold -> q=4. Update prev_a = a at 5ns = 1.
+    # At 15ns: prev_a=1 -> hold -> q=4. prev_a=1.
+    # ... all a=1 until 45ns: prev_a=1 -> hold -> q=4. prev_a=0 (a at 45ns).
+    # At 55ns: prev_a=0 -> increment -> q=5. prev_a=0.
+    # At 65ns: prev_a=0 -> increment -> q=6. prev_a=0.
+    # At 75ns: prev_a=0 -> increment -> q=(6+1)%7=0. prev_a=0.
+    # At 85ns: prev_a=0 -> increment -> q=1. prev_a=0.
+    # Matches waveform.
+    # Now handle mid changes: mid changes occur AFTER sampling, before other edge, carried to next row.
+    # In vectors, each row has 'a' value driven before sampled edge. Mid changes would be additional
+    # info but vectors only give 'a' per row. We assume 'a' in each row is the value at the posedge
+    # (or at the sampling edge). For rows with clk=0, no posedge, so q holds, but we still update prev_a?
+    # The contract says "Each row's values are driven before the sampled edge." The sampled edge is posedge.
+    # For clk=0 rows, there's no posedge, so no state update. But 'a' might change mid.
+    # We'll process: for each row, if clk==1 (posedge), apply transition using prev_a, then set prev_a = a.
+    # If clk==0, no transition, but we might update prev_a if mid change? The mid changes are "carried to start of next row".
+    # Since vectors only give 'a' per row, we treat 'a' as the value at the posedge for clk=1 rows.
+    # For clk=0 rows, 'a' is the value during that row; if it differs from previous, it's a mid change
+    # that will be seen at next posedge. So we should update prev_a at clk=0 rows too? 
+    # Actually "mid input changes occur AFTER sampling, before the other edge, and are carried to the start of the next row."
+    # So if a changes during clk=0 row, it's carried to next row's start. The next row's 'a' value already reflects it.
+    # So we just use 'a' from each row as the value at that row's sampling point (posedge for clk=1).
+    # For clk=0 rows, no posedge, so no transition, but we don't need to update prev_a because
+    # the next posedge row will have its own 'a' which is the carried value.
+    # Wait: prev_a should be the a value at the PREVIOUS posedge. So we only update prev_a at posedge rows.
+    # Let's implement:
+    q = 4  # initial concrete value (power-up unspecified, but waveform shows 4 at first posedge)
+    prev_a = 1  # initial previous a to make first posedge hold
+    results = []
+    for row in vectors:
+        clk = row['clk']
+        a = row['a']
+        if clk == 1:
+            # posedge: apply transition based on prev_a
+            if prev_a == 0:
+                q = (q + 1) % 7  # increment_when_a_low (global interpretation: prev a==0)
+            # else hold_when_a_high
+            prev_a = a  # update prev_a to current a at this posedge
+        # else clk==0: no state change, prev_a unchanged (mid changes carried via next row's a)
+        results.append({'q': q})
+    return results
+```

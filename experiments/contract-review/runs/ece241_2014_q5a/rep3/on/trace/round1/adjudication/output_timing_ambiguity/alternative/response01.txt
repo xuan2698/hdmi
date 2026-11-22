@@ -1,0 +1,93 @@
+```python
+def reference(vectors):
+    # If the caller passes a wrapper dict, use its vector list.
+    if isinstance(vectors, dict) and "vectors" in vectors:
+        vectors = vectors["vectors"]
+
+    # States:
+    # A: carry=0, no input 1 seen yet, Moore z=0
+    # B: carry=1, at least one input 1 seen, Moore z=1
+    # C: carry=1, at least one input 1 seen, Moore z=0
+    state = "A"
+    cur = {"areset": 0, "x": 0}
+
+    def z_for(s):
+        if s == "A":
+            return 0
+        if s == "B":
+            return 1
+        return 0
+
+    def apply_mid_change(k, v):
+        nonlocal state
+        val = int(v) & 1
+        cur[k] = val
+        # async_reset: mid assertion of areset also asynchronously forces state A.
+        if k == "areset" and val == 1:
+            state = "A"
+
+    out = []
+    for row in vectors:
+        # Apply row-driven values before the sampled edge.
+        if isinstance(row, dict):
+            if row.get("areset") is not None:
+                cur["areset"] = int(row["areset"]) & 1
+            if row.get("x") is not None:
+                cur["x"] = int(row["x"]) & 1
+        else:
+            try:
+                cur["areset"] = int(row[0]) & 1
+                cur["x"] = int(row[1]) & 1
+            except Exception:
+                pass
+
+        areset = cur["areset"]
+        x = cur["x"]
+
+        # async_reset: areset high forces state A and z=0 asynchronously,
+        # independent of clk, and is visible in this row's output.
+        if areset == 1:
+            state = "A"
+            z = 0
+        else:
+            # serial_twos_complement (candidate lag interpretation):
+            # z is the pre-edge Moore output; the sampled x updates state for the next row.
+            z = z_for(state)
+
+            # serial_twos_complement: explicit state transitions from the contract.
+            if state == "A":
+                state = "B" if x == 1 else "A"
+            elif state == "B":
+                state = "C" if x == 1 else "B"
+            else:  # state == "C"
+                state = "C" if x == 1 else "B"
+
+        out.append({"z": z})
+
+        # Mid changes occur after sampling, do not affect this row's output,
+        # and are carried to the start of the next row.
+        if isinstance(row, dict):
+            mid = None
+            for key in ("mid", "mid_inputs", "mid_changes"):
+                if key in row and row[key] is not None:
+                    mid = row[key]
+                    break
+
+            if isinstance(mid, dict):
+                for k in ("areset", "x"):
+                    if k in mid and mid[k] is not None:
+                        apply_mid_change(k, mid[k])
+            elif isinstance(mid, (list, tuple)):
+                for md in mid:
+                    if isinstance(md, dict):
+                        for k in ("areset", "x"):
+                            if k in md and md[k] is not None:
+                                apply_mid_change(k, md[k])
+
+            if row.get("mid_areset") is not None:
+                apply_mid_change("areset", row["mid_areset"])
+            if row.get("mid_x") is not None:
+                apply_mid_change("x", row["mid_x"])
+
+    return out
+```

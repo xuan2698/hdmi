@@ -1,0 +1,44 @@
+def reference(vectors):
+    # State encoding
+    A, B, C, D = 0, 1, 2, 3
+
+    # Moore output per state (R1, R2)
+    # R1: states A, B, C -> out 0
+    # R2: state D -> out 1
+    def moore_out(state):
+        return 1 if state == D else 0  # R1, R2
+
+    # Initialize: power-up unspecified; use reset state A
+    state = A
+    # Registered output reflects previous state (global interpretation)
+    out_reg = moore_out(state)
+
+    results = []
+    for vec in vectors:
+        inp = vec.get('in', 0)
+        rst = vec.get('reset', 0)
+
+        # Sample: output is registered, reflects state from before this edge
+        # (global interpretation: out visible one cycle after state update)
+        results.append({'out': out_reg & 1})
+
+        # Compute next state at posedge
+        if rst == 1:
+            # R3: synchronous active high reset -> state A
+            next_state = A
+        else:
+            # R4-R7: explicit transitions
+            if state == A:
+                next_state = B if inp == 1 else A  # R4
+            elif state == B:
+                next_state = B if inp == 1 else C  # R5
+            elif state == C:
+                next_state = D if inp == 1 else A  # R6
+            else:  # state == D
+                next_state = B if inp == 1 else C  # R7
+
+        state = next_state
+        # Update registered output to reflect new state (visible next cycle)
+        out_reg = moore_out(state)
+
+    return results

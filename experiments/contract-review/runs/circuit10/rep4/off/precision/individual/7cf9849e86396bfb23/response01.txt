@@ -1,0 +1,23 @@
+```python
+def reference(vectors):
+    # Contract implementation.
+    # R1: state toggles on every posedge (state <= NOT state), visible next cycle.
+    # R2: q <= a AND b on posedge, visible next cycle.
+    # Initial state/q unspecified -> use 0 as concrete value.
+    state = 0
+    q = 0
+    out = []
+    for v in vectors:
+        a = v.get('a', 0) & 1
+        b = v.get('b', 0) & 1
+        # R2: q <= a AND b (posedge, next cycle)
+        q_next = a & b
+        # R1: state <= NOT state (posedge, next cycle)
+        state_next = 1 - state
+        # Outputs reflect current (post-edge) values
+        out.append({'q': q & 1, 'state': state & 1})
+        # Advance state for next cycle
+        q = q_next
+        state = state_next
+    return out
+```

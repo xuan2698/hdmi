@@ -1,0 +1,58 @@
+```json
+{
+  "module_name": "top_module",
+  "io": [
+    {
+      "name": "clk",
+      "dir": "input",
+      "width": 1,
+      "description": "Clock signal; state transitions occur on the rising edge."
+    },
+    {
+      "name": "reset",
+      "dir": "input",
+      "width": 1,
+      "description": "Synchronous active-high reset; when asserted at a rising edge, the FSM is forced to state A."
+    },
+    {
+      "name": "in",
+      "dir": "input",
+      "width": 1,
+      "description": "Single-bit input controlling the next-state transition."
+    },
+    {
+      "name": "out",
+      "dir": "output",
+      "width": 1,
+      "description": "Moore output determined solely by the current state: 1 in state D, 0 otherwise."
+    }
+  ],
+  "clocking": {
+    "clock": {
+      "name": "clk",
+      "edge": "posedge"
+    },
+    "reset": {
+      "name": "reset",
+      "active": "high",
+      "kind": "synchronous"
+    }
+  },
+  "timing": {
+    "outputs": {
+      "out": {
+        "latency_cycles": 0
+      }
+    }
+  },
+  "functional_summary": {
+    "overview": "A Moore finite state machine with four states (A, B, C, D), one input (in), one output (out), and a synchronous active-high reset. The output depends only on the current state: out=1 in state D and out=0 in states A, B, and C. On each rising clock edge, if reset is high the FSM goes to state A; otherwise it transitions according to the state transition table.",
+    "rules": [
+      "On a rising clock edge with reset=1, the next state is A regardless of in.",
+      "On a rising clock edge with reset=0, the next state is determined by the current state and in: from A go to A if in=0 else B; from B go to C if in=0 else B; from C go to A if in=0 else D; from D go to C if in=0 else B.",
+      "The output out is a combinational function of the current state: out=1 if current state is D, otherwise out=0.",
+      "The output is stable for the entire clock cycle corresponding to the current state (Moore behavior, latency_cycles=0)."
+    ]
+  }
+}
+```

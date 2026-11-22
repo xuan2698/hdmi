@@ -1,0 +1,44 @@
+```python
+def reference(vectors):
+    # State encoding
+    A, B, C, D = 0, 1, 2, 3
+    # Output per state (Moore): A=0, B=0, C=0, D=1
+    OUT = {A: 0, B: 0, C: 0, D: 1}
+
+    # Initial state assumed A (global uncertainty candidate)
+    state = A
+
+    results = []
+    for vec in vectors:
+        inp = vec.get('in', 0) & 1
+        rst = vec.get('reset', 0) & 1
+
+        # R1/R2/R3/R4: combinational Moore output based on current state
+        # R5: output during reset cycle is 0 combinationally same cycle
+        if rst == 1:
+            out = 0
+        else:
+            out = OUT[state]
+
+        results.append({'out': out})
+
+        # Compute next state at posedge
+        if rst == 1:
+            # R5: synchronous active high reset forces state A
+            state = A
+        else:
+            if state == A:
+                # R6
+                state = A if inp == 0 else B
+            elif state == B:
+                # R7
+                state = C if inp == 0 else B
+            elif state == C:
+                # R8
+                state = A if inp == 0 else D
+            elif state == D:
+                # R9
+                state = C if inp == 0 else B
+
+    return results
+```

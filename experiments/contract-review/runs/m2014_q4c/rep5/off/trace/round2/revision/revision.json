@@ -1,0 +1,76 @@
+{
+  "responses": [
+    {
+      "issue_id": "I1",
+      "decision": "rebut",
+      "reason": "The spec_quote is verbatim from the public specification and the reset semantics (active high, synchronous, output to 0) are fully expressed by that quote; the condition r==1 is directly grounded by it.",
+      "spec_quote": "active high synchronous reset (reset output to 0)"
+    },
+    {
+      "issue_id": "I2",
+      "decision": "rebut",
+      "reason": "The spec_quote is verbatim from the public specification; the D flip-flop load behavior on r==0 and same-cycle visibility follow from 'simple D flip flop' combined with the synchronous reset clause, which the contract already encodes.",
+      "spec_quote": "Implement a simple D flip flop"
+    },
+    {
+      "issue_id": "I3",
+      "decision": "accept",
+      "reason": "R1's example first vector (d=1,r=0) yields q=1, which is inconsistent with R1's r==1 reset condition; the example must reflect reset behavior only on r==1 cycles.",
+      "spec_quote": "active high synchronous reset (reset output to 0)",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R1",
+            "example"
+          ],
+          "value": {
+            "vectors": [
+              {
+                "d": 1,
+                "r": 1
+              },
+              {
+                "d": 0,
+                "r": 1
+              },
+              {
+                "d": 1,
+                "r": 0
+              }
+            ],
+            "expected": [
+              {
+                "q": 0
+              },
+              {
+                "q": 0
+              },
+              {
+                "q": 1
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "issue_id": "I4",
+      "decision": "rebut",
+      "reason": "R2's example is internally consistent with load behavior on r==0; the cross-rule conflict is addressed by the R1 example fix, and R2 itself needs no change.",
+      "spec_quote": "Implement a simple D flip flop"
+    },
+    {
+      "issue_id": "I5",
+      "decision": "rebut",
+      "reason": "The specification states active high synchronous reset with output reset to 0, which establishes reset priority over load when r==1; the contract's R1 priority 1 already encodes this.",
+      "spec_quote": "active high synchronous reset (reset output to 0)"
+    },
+    {
+      "issue_id": "I7",
+      "decision": "rebut",
+      "reason": "The derived sequence [1,0,0] is exactly what R1's example already expresses after the I3 fix; the rule condition r==1 governs only reset cycles, and the example's r==0 cycles load d per the D flip-flop behavior.",
+      "spec_quote": "active high synchronous reset (reset output to 0)"
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+def reference(vectors):
+    st = 0
+    out = []
+    for r in vectors:
+        if r['areset']:
+            st = 0
+        else:
+            st = [[0, 1], [1, 2], [1, 2]][st][r['x']]
+        out.append({'z': [0, 1, 0][st]})
+        m = r.get('mid')
+        if m and m.get('areset') == 1:
+            st = 0
+    return out

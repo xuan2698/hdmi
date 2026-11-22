@@ -1,0 +1,104 @@
+```python
+def reference(vectors):
+    # States: S0 (no 1 yet, z=0), S1 (1 received, z=1), S2 (1 received, z=0)
+    state = "S0"
+    z = 0
+    cur = {"areset": 0, "x": 0}
+    out = []
+
+    for row in vectors:
+        # Drive row inputs before the sampled posedge.
+        if "areset" in row:
+            try:
+                cur["areset"] = int(row["areset"]) & 1
+            except Exception:
+                cur["areset"] = 0
+        if "x" in row:
+            try:
+                cur["x"] = int(row["x"]) & 1
+            except Exception:
+                cur["x"] = 0
+
+        # async_reset_z0: active-high asynchronous reset forces S0 and z=0.
+        if cur["areset"] == 1:
+            state = "S0"
+            z = 0
+
+        # Sample posedge after the edge has settled.
+        if cur["areset"] == 0:
+            # s0_x0 / s0_x1
+            if state == "S0":
+                if cur["x"] == 0:
+                    state = "S0"
+                else:
+                    state = "S1"
+            # s1_x0 / s1_x1
+            elif state == "S1":
+                if cur["x"] == 0:
+                    state = "S1"
+                else:
+                    state = "S2"
+            # s2_x0 / s2_x1
+            else:  # S2
+                if cur["x"] == 0:
+                    state = "S1"
+                else:
+                    state = "S2"
+        else:
+            # async_reset_z0: reset dominates the edge.
+            state = "S0"
+
+        # Moore output after the edge, visible same cycle.
+        z = 1 if state == "S1" else 0
+        out.append({"z": z})
+
+        # Optional mid changes occur AFTER sampling and carry to the next row.
+        mid = row.get("mid", None)
+        if mid is not None:
+            changes = []
+            if isinstance(mid, dict):
+                changes.append(mid)
+            elif isinstance(mid, (list, tuple)):
+                # Handle a direct pair such as ("x", 1).
+                if (
+                    len(mid) == 2
+                    and isinstance(mid[0], str)
+                    and not isinstance(mid[1], (dict, list, tuple))
+                ):
+                    changes.append({mid[0]: mid[1]})
+                else:
+                    for item in mid:
+                        if isinstance(item, dict):
+                            changes.append(item)
+                        elif isinstance(item, (list, tuple)) and len(item) >= 2:
+                            changes.append({item[0]: item[1]})
+
+            for ch in changes:
+                if not isinstance(ch, dict):
+                    continue
+                # Allow {"inputs": {...}} wrapper if present.
+                if "inputs" in ch and isinstance(ch["inputs"], dict):
+                    ch = ch["inputs"]
+
+                for k, v in ch.items():
+                    if k == "areset":
+                        try:
+                            cur["areset"] = int(v) & 1
+                        except Exception:
+                            cur["areset"] = 0
+                    elif k == "x":
+                        try:
+                            cur["x"] = int(v) & 1
+                        except Exception:
+                            cur["x"] = 0
+
+                # async_reset_z0: reset asserted by a mid change acts asynchronously.
+                if cur["areset"] == 1:
+                    state = "S0"
+                    z = 0
+                else:
+                    # Release leaves the held reset state S0 until the next posedge.
+                    z = 1 if state == "S1" else 0
+
+    return out
+```

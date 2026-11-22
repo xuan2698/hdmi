@@ -1,0 +1,87 @@
+```python
+def reference(vectors):
+    q = 0
+    ena = 0
+    reset_carry = 0
+    out = []
+
+    for row in vectors:
+        # Determine reset value at the sampled posedge.
+        if 'reset' in row:
+            rv = row['reset']
+            if isinstance(rv, list):
+                if len(rv) > 0:
+                    reset_edge = rv[0]
+                    reset_next = rv[-1]
+                else:
+                    reset_edge = reset_carry
+                    reset_next = reset_carry
+            else:
+                reset_edge = rv
+                reset_next = rv
+        else:
+            reset_edge = reset_carry
+            reset_next = reset_carry
+
+        # sync_reset: reset high at posedge clears q and ena
+        if reset_edge:
+            q = 0
+            ena = 0
+        else:
+            # bcd_increment: BCD increment modulo 10000
+            ones = q & 0xF
+            tens = (q >> 4) & 0xF
+            hundreds = (q >> 8) & 0xF
+            thousands = (q >> 12) & 0xF
+
+            if ones == 9:
+                ones = 0
+                carry = 1
+            else:
+                ones += 1
+                carry = 0
+
+            if carry:
+                if tens == 9:
+                    tens = 0
+                    carry = 1
+                else:
+                    tens += 1
+                    carry = 0
+
+            if carry:
+                if hundreds == 9:
+                    hundreds = 0
+                    carry = 1
+                else:
+                    hundreds += 1
+                    carry = 0
+
+            if carry:
+                if thousands == 9:
+                    thousands = 0
+                else:
+                    thousands += 1
+
+            q_next = (thousands << 12) | (hundreds << 8) | (tens << 4) | ones
+
+            # upper_digit_enables: registered on posedge from previous q
+            old_ones = q & 0xF
+            old_tens = (q >> 4) & 0xF
+            old_hundreds = (q >> 8) & 0xF
+
+            bit0 = 1 if old_ones == 9 else 0
+            bit1 = 1 if (old_ones == 9 and old_tens == 9) else 0
+            bit2 = 1 if (old_ones == 9 and old_tens == 9 and old_hundreds == 9) else 0
+            ena_next = bit0 | (bit1 << 1) | (bit2 << 2)
+
+            q = q_next
+            ena = ena_next
+
+        out.append({"q": q & 0xFFFF, "ena": ena & 0x7})
+
+        # Carry any mid-cycle changes to the start of the next row.
+        reset_carry = reset_next
+
+    return out
+```

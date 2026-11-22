@@ -1,0 +1,23 @@
+def reference(vectors):
+    m=(1<<32)-1
+    h=0
+    s={'areset':0,'predict_valid':0,'predict_taken':0,'train_mispredicted':0,'train_taken':0,'train_history':0}
+    r=[]
+    for row in vectors:
+        for k,v in row.items():
+            if k!='mid':
+                s[k]=v
+        if s.get('areset',0):
+            h=0
+        elif s.get('train_mispredicted',0):
+            h=(((s.get('train_history',0)&m)<<1)|(s.get('train_taken',0)&1))&m
+        elif s.get('predict_valid',0):
+            h=((h<<1)|(s.get('predict_taken',0)&1))&m
+        r.append({'predict_history':h&m})
+        mid=row.get('mid')
+        if mid:
+            for k,v in mid.items():
+                s[k]=v
+            if mid.get('areset',0):
+                h=0
+    return r

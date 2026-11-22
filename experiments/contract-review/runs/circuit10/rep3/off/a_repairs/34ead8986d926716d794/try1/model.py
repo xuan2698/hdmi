@@ -1,0 +1,32 @@
+def reference(vectors):
+    # Contract implementation.
+    # R1: state is a single flip-flop updated on posedge clk (next_cycle).
+    # R2: q = state OR (a XOR b) (combinational, same_cycle).
+    # Reset: none; power-up state unspecified -> use 0 as concrete value.
+    state = 0
+    out = []
+    for v in vectors:
+        a = v.get('a', 0) & 1
+        b = v.get('b', 0) & 1
+        # R2: combinational output using current state
+        q = (state | (a ^ b)) & 1
+        out.append({'q': q, 'state': state & 1})
+        # R1: next state on posedge. Observed transitions:
+        # state stays 0 for (0,1),(1,0),(1,1) from 0; becomes 1 for (0,0) from 0.
+        # From state 1: (1,1)->1, (1,0)->0, (0,1)->0, (0,0)->1.
+        # This matches next_state = NOT(a XOR b) XOR state? Let's derive:
+        # state=0: (0,0)->1, (0,1)->0, (1,0)->0, (1,1)->0 => next = ~(a|b)
+        # state=1: (0,0)->1, (0,1)->0, (1,0)->0, (1,1)->1 => next = ~(a^b)
+        # Combined: next = ~(a|b) when state=0; ~(a^b) when state=1.
+        # Equivalently: next = ~(a|b) | (state & ~(a^b))
+        # Check state=1,(1,1): ~(1|1)=0 | (1 & ~0)=1 -> 1. Good.
+        # state=1,(0,0): ~(0|0)=1 | ... -> 1. Good.
+        # state=1,(0,1): 0 | (1 & ~1)=0 -> 0. Good.
+        # state=1,(1,0): 0 | (1 & ~1)=0 -> 0. Good.
+        # state=0,(0,0): 1 | 0 = 1. Good.
+        # state=0,(0,1): 0 | 0 = 0. Good.
+        # state=0,(1,0): 0 | 0 = 0. Good.
+        # state=0,(1,1): 0 | 0 = 0. Good.
+        nxt = ((~(a | b)) | (state & (~(a ^ b)))) & 1
+        state = nxt
+    return out

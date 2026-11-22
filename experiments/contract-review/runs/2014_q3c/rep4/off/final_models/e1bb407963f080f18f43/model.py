@@ -1,0 +1,56 @@
+def reference(vectors):
+    # R_Y0: Y0 = next-state bit 0 of Y[2:0] as function of present state y[2:0] and input x
+    # R_z: z = 1 when present state y[2:0] is 011 or 100, else 0 (Moore output)
+    # state_register: 3-bit present-state register y[2:0] updated on posedge clk from next-state function Y[2:0]
+    # mid: Optional mid input changes occur AFTER sampling, before the other edge, and are carried to the start of the next row.
+    # No reset (kind none).
+    #
+    # State-assigned table:
+    #   y=000: x=0 -> Y=000, x=1 -> Y=001
+    #   y=001: x=0 -> Y=001, x=1 -> Y=100
+    #   y=010: x=0 -> Y=010, x=1 -> Y=001
+    #   y=011: x=0 -> Y=001, x=1 -> Y=010
+    #   y=100: x=0 -> Y=011, x=1 -> Y=100
+    #
+    # Next-state function Y[2:0] = f(y, x):
+    #   Y2 = (y==001 and x==1) or (y==100 and x==0)
+    #   Y1 = (y==000 and x==1) or (y==001 and x==0) or (y==010 and x==1) or (y==011 and x==0) or (y==100 and x==0)
+    #   Y0 = (y==000 and x==1) or (y==001 and x==0) or (y==010 and x==1) or (y==011 and x==0) or (y==100 and x==0)
+    #
+    # Wait, let me recompute Y0 carefully from the table:
+    #   y=000: x=0 -> Y0=0, x=1 -> Y0=1
+    #   y=001: x=0 -> Y0=1, x=1 -> Y0=0
+    #   y=010: x=0 -> Y0=0, x=1 -> Y0=1
+    #   y=011: x=0 -> Y0=1, x=1 -> Y0=0
+    #   y=100: x=0 -> Y0=1, x=1 -> Y0=0
+    #
+    # So Y0 = 1 when:
+    #   (y==000 and x==1) or (y==001 and x==0) or (y==010 and x==1) or (y==011 and x==0) or (y==100 and x==0)
+    #
+    # z = 1 when y==011 or y==100.
+
+    results = []
+    for vec in vectors:
+        x = vec.get('x', 0) & 1
+        y = vec.get('y', 0) & 7
+
+        # R_Y0: compute next-state bit 0
+        if y == 0:
+            Y0 = 1 if x == 1 else 0
+        elif y == 1:
+            Y0 = 1 if x == 0 else 0
+        elif y == 2:
+            Y0 = 1 if x == 1 else 0
+        elif y == 3:
+            Y0 = 1 if x == 0 else 0
+        elif y == 4:
+            Y0 = 1 if x == 0 else 0
+        else:
+            Y0 = 0
+
+        # R_z: Moore output
+        z = 1 if (y == 3 or y == 4) else 0
+
+        results.append({"Y0": Y0 & 1, "z": z & 1})
+
+    return results

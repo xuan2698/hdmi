@@ -1,0 +1,67 @@
+def reference(vectors):
+    # rule global: registered Moore output is sampled from the pre-edge state (one-cycle latency).
+    # Power-up is concrete as S0 with z=0; reset handling below overrides this asynchronously.
+    state = "S0"
+    cur_areset = 0
+    cur_x = 0
+    result = []
+
+    for row in vectors:
+        # Row inputs are driven before the sampled posedge.
+        if "areset" in row:
+            cur_areset = row["areset"] & 1
+        if "x" in row:
+            cur_x = row["x"] & 1
+
+        if cur_areset == 1:
+            # rule async_reset_z0: active-high asynchronous reset forces S0 and z=0.
+            state = "S0"
+            z = 0
+        else:
+            # rule global: sample registered Moore output from the pre-edge state.
+            if state == "S0":
+                z = 0
+            elif state == "S1":
+                z = 1
+            else:  # S2
+                z = 0
+
+            # Explicit state transitions on sampled posedge with areset=0.
+            if state == "S0":
+                if cur_x == 0:
+                    state = "S0"  # rule s0_x0
+                else:
+                    state = "S1"  # rule s0_x1
+            elif state == "S1":
+                if cur_x == 0:
+                    state = "S1"  # rule s1_x0
+                else:
+                    state = "S2"  # rule s1_x1
+            else:  # S2
+                if cur_x == 0:
+                    state = "S1"  # rule s2_x0
+                else:
+                    state = "S2"  # rule s2_x1
+
+        result.append({"z": z})
+
+        # Optional mid changes occur after sampling and carry to the next row.
+        if "mid" in row and row["mid"] is not None:
+            mid = row["mid"]
+            if isinstance(mid, dict):
+                mids = [mid]
+            else:
+                mids = mid
+
+            for m in mids:
+                if isinstance(m, dict):
+                    if "areset" in m:
+                        cur_areset = m["areset"] & 1
+                        if cur_areset == 1:
+                            # rule async_reset_z0: mid reset assertion forces S0 asynchronously
+                            # after the current sample, affecting the next row.
+                            state = "S0"
+                    if "x" in m:
+                        cur_x = m["x"] & 1
+
+    return result

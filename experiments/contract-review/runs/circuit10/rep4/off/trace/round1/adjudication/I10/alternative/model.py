@@ -1,0 +1,31 @@
+def reference(vectors):
+    # Contract implementation.
+    # R1: state <= a XOR b at posedge clk (priority 1). The "uncertain" candidate
+    #     interpretations (AND / q) are rejected because the waveform matches XOR.
+    # R2: q = state combinationally (same cycle).
+    # Reset: none. Power-up state is unspecified; we start at 0 (concrete value
+    # required by the contract for every row).
+    # Mid changes: inputs may change after sampling; we carry the latest values
+    # forward to the next row's sampling edge.
+
+    state = 0  # R1: initial flip-flop value (unspecified at power-up; concrete 0)
+    a = 0
+    b = 0
+    out = []
+
+    for row in vectors:
+        # Apply any input values driven before this row's sampled edge.
+        if 'a' in row:
+            a = row['a']
+        if 'b' in row:
+            b = row['b']
+
+        # R2: q is combinational passthrough of state (same cycle).
+        q = state
+
+        # R1: at posedge, state <= a XOR b.
+        state = (a ^ b) & 1
+
+        out.append({'q': q & 1, 'state': state & 1})
+
+    return out

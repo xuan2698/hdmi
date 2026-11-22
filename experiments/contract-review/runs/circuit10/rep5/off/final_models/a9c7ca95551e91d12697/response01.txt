@@ -1,0 +1,43 @@
+Looking at the waveform, I need to determine the next-state function. Let me analyze the transitions at posedge (when state updates):
+
+At each posedge, state becomes the previous q value (q is next-state combinational, state is registered).
+
+Let me trace (a, b, state) → next_state:
+- 15ns: (0,0,0) → 0
+- 25ns: (0,0,0) → 0
+- 35ns: (0,0,0) → 0
+- 45ns: (0,1,0) → 1
+- 55ns: (1,0,0) → 1
+- 65ns: (1,1,0) → 0
+- 75ns: (0,0,1) → 1
+- 85ns: (1,1,0) → 0
+- 95ns: (1,1,1) → 1
+- 105ns: (1,1,1) → 1
+- 115ns: (1,0,1) → 0
+- 125ns: (0,1,1) → 0
+- 135ns: (0,0,1) → 1
+- 145ns: (0,0,0) → 0
+
+Check candidates:
+- a XOR b XOR state: (0,0,0)→0✓, (0,1,0)→1✓, (1,0,0)→1✓, (1,1,0)→0✓, (0,0,1)→1✓, (1,1,1)→1✓, (1,0,1)→0✓, (0,1,1)→0✓. All match!
+- a XOR b: (0,0,1)→0✗ (should be 1)
+- (a AND b) XOR state: (0,1,0)→0✗
+
+So state_next = a XOR b XOR state. And q = next-state (combinational).
+
+```python
+def reference(vectors):
+    # r1: q is the next-state (combinational) value; state is registered value updated at posedge
+    # r2: next state = a XOR b XOR state (waveform-consistent candidate)
+    state = 0
+    out = []
+    for v in vectors:
+        a = v['a'] & 1
+        b = v['b'] & 1
+        # r1: q is combinational next-state
+        q = (a ^ b ^ state) & 1
+        out.append({'q': q, 'state': state & 1})
+        # r2: state updates at posedge to next-state
+        state = q
+    return out
+```

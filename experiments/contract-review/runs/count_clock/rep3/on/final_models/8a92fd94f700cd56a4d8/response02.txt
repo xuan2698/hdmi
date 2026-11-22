@@ -1,0 +1,90 @@
+```python
+def reference(vectors):
+    # Initial state: reset values (12:00:00 AM)
+    pm = 0
+    hh = 0x12
+    mm = 0x00
+    ss = 0x00
+
+    # Initial input state (assumed 0)
+    cur_reset = 0
+    cur_ena = 0
+
+    outputs = []
+
+    # Helper: increment a BCD value by 1 (assumes no wrap beyond max)
+    def inc_bcd(val):
+        units = val & 0x0F
+        tens = (val >> 4) & 0x0F
+        if units == 9:
+            units = 0
+            tens += 1
+        else:
+            units += 1
+        return (tens << 4) | units
+
+    for row in vectors:
+        # Apply row's explicit inputs (driven before the sampled posedge)
+        if "reset" in row:
+            cur_reset = row["reset"]
+        if "ena" in row:
+            cur_ena = row["ena"]
+
+        # rule reset_priority: synchronous reset has priority over enable
+        if cur_reset == 1:
+            pm = 0
+            hh = 0x12
+            mm = 0x00
+            ss = 0x00
+        else:
+            if cur_ena == 1:
+                # rule increment_clock: advance one second in packed BCD
+                carry_ss = 0
+                if ss == 0x59:
+                    ss = 0x00
+                    carry_ss = 1
+                else:
+                    ss = inc_bcd(ss)
+
+                if carry_ss:
+                    if mm == 0x59:
+                        mm = 0x00
+                        carry_mm = 1
+                    else:
+                        mm = inc_bcd(mm)
+                        carry_mm = 0
+                else:
+                    carry_mm = 0
+
+                if carry_mm:
+                    if hh == 0x11:
+                        hh = 0x12
+                        pm = 1 - pm  # toggle PM
+                    elif hh == 0x12:
+                        hh = 0x01
+                        # PM unchanged
+                    else:
+                        hh = inc_bcd(hh)
+                # else carry_mm == 0: hours and pm hold
+            else:
+                # rule hold_clock: reset==0 && ena==0, hold all state
+                pass
+
+        # Output the next state after posedge clk
+        outputs.append({
+            "pm": pm,
+            "hh": hh,
+            "mm": mm,
+            "ss": ss
+        })
+
+        # Optional mid input changes occur after sampling and carry to next row
+        if "mid" in row:
+            mid = row["mid"]
+            if "reset" in mid:
+                cur_reset = mid["reset"]
+            if "ena" in mid:
+                cur_ena = mid["ena"]
+
+    return outputs
+```

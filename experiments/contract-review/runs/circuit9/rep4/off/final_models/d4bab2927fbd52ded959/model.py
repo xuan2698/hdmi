@@ -1,0 +1,28 @@
+def reference(vectors):
+    # Contract implementation.
+    # State: count (3-bit), q is x before first posedge.
+    # First posedge: q <- 4 regardless of a.
+    # Subsequent posedges: a==1 -> hold; a==0 -> increment by 1 (mod 8).
+    # Mid changes occur after sampling, carried to next row.
+
+    q = None  # x before first posedge
+    initialized = False
+    out = []
+
+    for row in vectors:
+        a = row['a']
+        # posedge sampling
+        if not initialized:
+            # global: first posedge loads 4 regardless of a
+            q = 4
+            initialized = True
+        else:
+            if a == 1:
+                # hold_when_a_high
+                pass
+            else:
+                # increment_when_a_low
+                q = (q + 1) & 0x7
+        out.append({'q': q})
+        # mid changes: none modeled beyond carrying 'a' to next row (already done)
+    return out

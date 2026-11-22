@@ -1,0 +1,71 @@
+```python
+def reference(vectors):
+    # FSM state encoding
+    S0, S1, S11, S110, FOUND = 0, 1, 2, 3, 4
+    state = S0
+    cur_reset = 0
+    cur_data = 0
+    result = []
+
+    for row in vectors:
+        # Each row's values are driven before the sampled posedge.
+        if isinstance(row, dict):
+            if "reset" in row:
+                cur_reset = int(row["reset"]) & 1
+            if "data" in row:
+                cur_data = int(row["data"]) & 1
+        else:
+            # Tolerate non-dict rows by keeping current inputs.
+            pass
+
+        # R_RESET_CLEAR: synchronous active-high reset forces S0 and start_shifting=0.
+        if cur_reset == 1:
+            next_state = S0
+        else:
+            # Explicit transitions for detecting 1101.
+            if state == S0:
+                next_state = S1 if cur_data == 1 else S0
+            elif state == S1:
+                next_state = S11 if cur_data == 1 else S0
+            elif state == S11:
+                next_state = S11 if cur_data == 1 else S110
+            elif state == S110:
+                # R_SET_OR_HOLD_1101: detection completes on this posedge.
+                next_state = FOUND if cur_data == 1 else S0
+            elif state == FOUND:
+                # R_SET_OR_HOLD_1101: sticky until reset.
+                next_state = FOUND
+            else:
+                next_state = S0
+
+        state = next_state
+
+        # Output visible after the settled posedge.
+        # R_SET_OR_HOLD_1101 and R_KEEP_ZERO_UNTIL_FOUND:
+        # start_shifting is 1 only after FOUND has been entered, else 0.
+        start_shifting = 1 if state == FOUND else 0
+        result.append({"start_shifting": start_shifting})
+
+        # Optional mid input changes occur AFTER sampling, before the other edge,
+        # and are carried to the start of the next row.
+        mid = None
+        if isinstance(row, dict):
+            mid = row.get("mid")
+            if mid is None:
+                mid = row.get("mid_inputs")
+
+        if isinstance(mid, dict):
+            if "reset" in mid:
+                cur_reset = int(mid["reset"]) & 1
+            if "data" in mid:
+                cur_data = int(mid["data"]) & 1
+        elif isinstance(mid, list):
+            for change in mid:
+                if isinstance(change, dict):
+                    if "reset" in change:
+                        cur_reset = int(change["reset"]) & 1
+                    if "data" in change:
+                        cur_data = int(change["data"]) & 1
+
+    return result
+```

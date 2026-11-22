@@ -1,0 +1,33 @@
+def reference(vectors):
+    # State: 3-bit counter q, initialized on first posedge to 4.
+    # Rule hold_when_a_high: when a==1 and initialized, hold q.
+    # Rule increment_when_a_low: when prev_a==0, increment q (mod 8).
+    # First posedge loads 4 regardless of a.
+    # Mid changes occur after sampling, carried to next row.
+
+    q = None  # uninitialized before first posedge
+    prev_a = None
+    initialized = False
+    results = []
+
+    for row in vectors:
+        a = row["a"]
+        # Sample at posedge: use current a (driven before edge)
+        if not initialized:
+            # First posedge: load 4 regardless of a
+            q = 4
+            initialized = True
+        else:
+            # hold_when_a_high: if a==1, hold
+            if a == 1:
+                pass  # hold
+            else:
+                # increment_when_a_low: prev_a == 0 -> increment
+                if prev_a == 0:
+                    q = (q + 1) % 8
+                # else hold (prev_a == 1, a == 0 -> hold)
+        results.append({"q": q})
+        # After sampling, update prev_a for next cycle (mid changes carried)
+        prev_a = a
+
+    return results

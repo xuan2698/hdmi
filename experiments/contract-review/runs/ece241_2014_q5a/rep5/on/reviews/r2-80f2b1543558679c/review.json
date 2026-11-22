@@ -1,0 +1,84 @@
+{
+  "coverage": {
+    "S01": [
+      "A_on_x0",
+      "A_on_x1",
+      "B_on_x0",
+      "B_on_x1",
+      "C_on_x0",
+      "C_on_x1"
+    ],
+    "S02": [
+      "A_on_x0",
+      "A_on_x1",
+      "B_on_x0",
+      "B_on_x1",
+      "C_on_x0",
+      "C_on_x1"
+    ],
+    "S03": [
+      "A_on_x0",
+      "A_on_x1",
+      "B_on_x0",
+      "B_on_x1",
+      "C_on_x0",
+      "C_on_x1"
+    ],
+    "S04": [
+      "async_reset_assert"
+    ],
+    "S05": [
+      "async_reset_assert",
+      "A_on_x0",
+      "A_on_x1"
+    ]
+  },
+  "issues": [
+    {
+      "issue_id": "AMB1",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec does not state reset polarity; contract hard-codes active-high.",
+      "spec_evidence": "The circuit requires a positive edge triggered asynchronous reset.",
+      "alternative": "Treat reset as active-low: areset=0 asserts reset and areset=1 releases; in the sequence, the final areset=1,x=1 would release reset and produce z=1 instead of the contract's reset z=0.",
+      "sequence": [
+        {
+          "areset": 1,
+          "x": 0
+        },
+        {
+          "areset": 0,
+          "x": 0
+        },
+        {
+          "areset": 1,
+          "x": 1
+        }
+      ]
+    },
+    {
+      "issue_id": "AMB2",
+      "rule_id": "async_reset_assert",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec says conversion stops on reset but does not define Z while reset is asserted; contract infers z=0.",
+      "spec_evidence": "The conversion begins when Reset is released and stops when Reset is asserted.",
+      "alternative": "If Z retains its previous value while areset=1, the final row remains z=1 instead of being forced to z=0.",
+      "sequence": [
+        {
+          "areset": 1,
+          "x": 0
+        },
+        {
+          "areset": 0,
+          "x": 1
+        },
+        {
+          "areset": 1,
+          "x": 0
+        }
+      ]
+    }
+  ]
+}

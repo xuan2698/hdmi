@@ -1,0 +1,739 @@
+We need to implement a Moore FSM for the Lemmings problem. Let me carefully analyze the spec.
+
+Key points:
+- States: WALK_LEFT, WALK_RIGHT, FALL_LEFT, FALL_RIGHT, DIG_LEFT, DIG_RIGHT, SPLAT
+- Async reset (positive edge triggered) to WALK_LEFT
+- Outputs are Moore (based on state only)
+- Fall duration counting: "falls for more than 20 clock cycles then hits the ground" → splat. The uncertain note says: "fall duration counts full FALL_* cycles; splat when duration reaches 21 on ground=1". So we count cycles spent in FALL state. When we enter FALL (from walk/dig with ground=0), that cycle is the entry cycle. The next cycles in FALL increment. When ground=1 is sampled while in FALL, if the accumulated fall duration > 20 (i.e., >= 21), splat.
+
+Let me think about the counting carefully. The standard Lemmings HDLBits problem: "if a Lemming falls for more than 20 clock cycles then hits the ground, it will splatter". The typical solution counts cycles in fall state. When entering fall, counter starts at 0. Each subsequent cycle in fall increments. When ground=1 and counter >= 20 (meaning it has been falling for 20+ cycles before this cycle), splat. Actually let me think again.
+
+Standard interpretation: The Lemming falls for N cycles. If N > 20 when it hits ground, splat. The cycle where ground goes low is the first fall cycle (but the Lemming is still in walk state that cycle, transitioning to fall). Then subsequent cycles are in fall state. When ground=1 is sampled while in fall state, we check how many cycles we've been in fall state.
+
+Let me use the common HDLBits solution approach: a counter that increments each cycle in FALL state. When ground=1 and counter == 20 (or > 20), splat.
+
+Actually, let me reconsider. The spec says "falls for more than 20 clock cycles". The uncertain note says "fall duration counts full FALL_* cycles; splat when duration reaches 21 on ground=1". So: count full cycles in FALL state. When ground=1 sampled and count >= 21, splat. Wait, "splat when duration reaches 21" — so if duration is 21 or more, splat. That means > 20.
+
+Let me define: `fall_count` = number of full cycles spent in FALL state (not counting the entry cycle where we transition into FALL). When we're in FALL state and ground=1:
+- if fall_count >= 21 → SPLAT (wait, "reaches 21" means >= 21? or == 21?)
+
+Hmm, "splat when duration reaches 21" — I'll interpret as fall_count >= 21 means splat. But actually "more than 20" means >= 21. So if fall_count (full cycles in FALL) >= 21, splat.
+
+Wait, but the entry cycle: when ground goes low while walking, that cycle we're still in WALK state (outputs show walking). Next cycle we're in FALL. So the first FALL cycle is the first full fall cycle. If ground=1 on the very next cycle after entering FALL, fall_count would be... let me trace.
+
+Let me define fall_count as: number of cycles we've been in FALL state at the time of sampling (before transition). 
+
+Cycle 0: WALK, ground=0 → transition to FALL. fall_count starts at 0.
+Cycle 1: FALL, fall_count=0 (we just entered). If ground=1 now, we've fallen for... 1 cycle? The spec says "falls for more than 20 clock cycles". 
+
+Hmm, this is genuinely ambiguous. Let me look at the standard HDLBits solution. The standard solution uses a counter that increments while in FALL state, and splats when counter reaches 20 (with counter starting at 0 when entering fall, and checking counter==20 when ground=1). Actually let me recall...
+
+The common solution: 
+```
+if (state == FALL) begin
+  if (ground) begin
+    if (counter == 20) state <= SPLAT;
+    else state <= WALK;
+  end else counter <= counter + 1;
+end
+```
+Wait that doesn't quite work either. Let me think about what "20 cycles" means.
+
+Actually the standard HDLBits Lemmings2/3 solution: counter increments each cycle in FALL. When ground=1, if counter >= 20, splat. Let me just go with: counter counts cycles in FALL state (incremented each posedge while in FALL and ground=0). When ground=1 sampled, if counter >= 20, splat.
+
+Hmm, but the uncertain note says "splat when duration reaches 21". Let me reconcile: "falls for more than 20 clock cycles" → splat. So 21+ cycles → splat. 20 cycles → no splat.
+
+If counter counts full FALL cycles: entering FALL at cycle 1, counter=0. Cycle 2: counter=1. ... Cycle k: counter=k-1. If ground=1 at cycle k, we've been in FALL for k-1 full cycles (cycles 1..k-1 were FALL with ground=0, and cycle k is FALL with ground=1). Hmm, actually the number of cycles fallen = k-1 (the cycles where we were in FALL and ground was 0). Wait no.
+
+Let me re-trace. Say ground goes low at cycle 0 (we're walking). Cycle 0: WALK, ground=0. Transition to FALL. Cycle 1: FALL, ground=0 (still falling). Cycle 2: FALL, ground=0. ... Cycle 21: FALL, ground=1 (ground reappears). How many cycles did we fall? Cycles 1 through 20 were FALL with ground=0 (20 cycles), and cycle 21 we hit ground. So we fell for 20 cycles. That's not more than 20, so no splat.
+
+If ground reappears at cycle 22: cycles 1-21 FALL ground=0 (21 cycles), cycle 22 ground=1. Fell 21 cycles > 20 → splat.
+
+So: if we enter FALL at cycle 1, and ground=1 at cycle k, we fell for (k-1) cycles. Splat if (k-1) > 20, i.e., k > 21, i.e., k >= 22.
+
+Now with counter: counter=0 at cycle 1 (entry). At cycle k, counter = k-1. Splat if counter > 20, i.e., counter >= 21.
+
+So: when in FALL and ground=1, if counter >= 21 → SPLAT. Otherwise resume walking. And counter increments each cycle in FALL (when ground=0).
+
+Wait, but the counter at cycle k is k-1 only if it increments every cycle. Let me define: counter starts at 0 when entering FALL. Each posedge while in FALL and ground=0, counter++. When ground=1, check counter.
+
+Cycle 1: FALL, counter=0, ground=0 → counter becomes 1.
+Cycle 2: FALL, counter=1, ground=0 → counter becomes 2.
+...
+Cycle k: FALL, counter=k-1, ground=0 → counter becomes k.
+Cycle k+1: FALL, counter=k, ground=1 → check counter=k. Fell for k cycles (cycles 1..k). Splat if k > 20.
+
+So splat if counter > 20, i.e., counter >= 21. Good, matches "splat when duration reaches 21".
+
+So: when in FALL and ground=1: if counter >= 21 → SPLAT, else → WALK (same direction). When in FALL and ground=0: counter++.
+
+Wait, but counter needs to be reset when entering FALL. And when we resume walking, counter should reset (but it doesn't matter since we only use it in FALL).
+
+Actually, let me reconsider — should counter increment on the entry cycle? At cycle 1 (entry), counter=0. If ground=1 at cycle 1 (i.e., ground went low at cycle 0 and back high at cycle 1), then counter=0, fell for 0 cycles? That seems wrong. Hmm.
+
+Wait, if ground goes low at cycle 0 (walking), we transition to FALL at cycle 1. If ground=1 at cycle 1, we never actually fell (ground was only low for one cycle, and we were walking that cycle). So we resume walking. That makes sense — counter=0, no splat.
+
+OK so my model: counter=0 on entry to FALL. Increment each cycle in FALL with ground=0. On ground=1 in FALL: if counter >= 21 → SPLAT, else resume walk.
+
+Hmm wait, let me re-examine. At cycle 1 (first FALL cycle), counter=0. If ground=0, counter becomes 1. At cycle 2, counter=1. If ground=1 at cycle 2, we fell for 1 cycle (cycle 1). counter=1, 1 > 20? No. Resume. Good.
+
+At cycle 21, counter=20 (if ground was 0 for cycles 1-20). If ground=1 at cycle 21, fell for 20 cycles. counter=20, 20 > 20? No. Resume. Good — 20 cycles is not more than 20.
+
+At cycle 22, counter=21. If ground=1, fell for 21 cycles. counter=21 > 20? Yes. Splat. Good.
+
+So condition: counter >= 21 → splat. Equivalently counter > 20.
+
+Now let me also handle: what if we're in FALL and ground=1 but counter < 21 → resume walking in same direction.
+
+Also, when transitioning from WALK to FALL (ground=0), counter resets to 0. When transitioning from DIG to FALL (ground=0), counter resets to 0.
+
+Now let me write the Python reference function.
+
+```python
+def reference(vectors):
+    # State encoding
+    WALK_LEFT, WALK_RIGHT, FALL_LEFT, FALL_RIGHT, DIG_LEFT, DIG_RIGHT, SPLAT = range(7)
+    
+    state = WALK_LEFT
+    counter = 0
+    outputs = []
+    
+    for v in vectors:
+        areset = v['areset']
+        bump_left = v['bump_left']
+        bump_right = v['bump_right']
+        ground = v['ground']
+        dig = v['dig']
+        
+        # Async reset: if areset=1, state becomes WALK_LEFT immediately
+        if areset:
+            state = WALK_LEFT
+            counter = 0
+        
+        # Compute outputs based on current state (Moore)
+        if state == WALK_LEFT:
+            out = {'walk_left':1,'walk_right':0,'aaah':0,'digging':0}
+        elif state == WALK_RIGHT:
+            out = {'walk_left':0,'walk_right':1,'aaah':0,'digging':0}
+        elif state in (FALL_LEFT, FALL_RIGHT):
+            out = {'walk_left':0,'walk_right':0,'aaah':1,'digging':0}
+        elif state in (DIG_LEFT, DIG_RIGHT):
+            out = {'walk_left':0,'walk_right':0,'aaah':0,'digging':1}
+        else:  # SPLAT
+            out = {'walk_left':0,'walk_right':0,'aaah':0,'digging':0}
+        outputs.append(out)
+        
+        # Compute next state (posedge)
+        if areset:
+            # reset takes priority, state already set
+            continue
+        
+        if state == WALK_LEFT:
+            if ground == 0:
+                state = FALL_LEFT
+                counter = 0
+            elif dig == 1:
+                state = DIG_LEFT
+            elif bump_left == 1 or bump_right == 1:
+                state = WALK_RIGHT
+        elif state == WALK_RIGHT:
+            if ground == 0:
+                state = FALL_RIGHT
+                counter = 0
+            elif dig == 1:
+                state = DIG_RIGHT
+            elif bump_left == 1 or bump_right == 1:
+                state = WALK_LEFT
+        elif state == FALL_LEFT:
+            if ground == 1:
+                if counter >= 21:
+                    state = SPLAT
+                else:
+                    state = WALK_LEFT
+            else:
+                counter += 1
+        elif state == FALL_RIGHT:
+            if ground == 1:
+                if counter >= 21:
+                    state = SPLAT
+                else:
+                    state = WALK_RIGHT
+            else:
+                counter += 1
+        elif state == DIG_LEFT:
+            if ground == 0:
+                state = FALL_LEFT
+                counter = 0
+        elif state == DIG_RIGHT:
+            if ground == 0:
+                state = FALL_RIGHT
+                counter = 0
+        # SPLAT: stay forever
+    
+    return outputs
+```
+
+Wait, there's an issue with the async reset. The spec says "areset is positive edge triggered asynchronous reseting". In the reference function, we process vectors cycle by cycle. The reset is async, meaning if areset=1, the state is immediately WALK_LEFT (outputs show walk_left=1). Then on the next posedge, if areset is still 1, state stays WALK_LEFT. If areset goes to 0, normal transitions apply.
+
+But there's a subtlety: "first_released_cycle": "first posedge clk after areset returns to 0". So the cycle where areset goes from 1 to 0, the state is still WALK_LEFT (from reset), and then the posedge at the end of that cycle applies normal transitions. Hmm, actually let me think about the timing.
+
+The protocol: "Each row's values are driven before the sampled edge." So each vector represents the inputs before a posedge. The outputs are sampled after the posedge settles. Wait, but outputs are Moore (combinational from state). Let me re-read.
+
+"Clock clk; sample after the posedge edge has settled. Each row's values are driven before the sampled edge."
+
+So for each vector: inputs are set, then posedge occurs, then outputs are sampled. So the output for vector i reflects the state AFTER the posedge with inputs from vector i.
+
+Hmm, but that's not quite right for Moore machines. Let me think again. In a Moore machine, outputs depend only on state. The state updates on posedge. So:
+- Before posedge: inputs are set (vector i).
+- Posedge: state transitions based on inputs and current state.
+- After posedge: outputs reflect new state.
+
+So output[i] = f(state after posedge with inputs[i]).
+
+But wait, the async reset: if areset=1, the state is immediately WALK_LEFT (async). So even before the posedge, state is WALK_LEFT. After posedge, still WALK_LEFT (reset holds). So output[i] = WALK_LEFT outputs.
+
+Hmm, but actually the way these reference functions usually work: we process each vector, compute the output based on current state (before transition), then apply the transition. Let me reconsider.
+
+Actually, looking at the example for R1_reset:
+```
+vectors: [{areset:0,...}, {areset:1,...}, {areset:0,...}]
+expected: [{walk_left:1,...}, {walk_left:1,...}, {walk_left:1,...}]
+```
+First vector areset=0: output walk_left=1 (initial state WALK_LEFT). Second vector areset=1: output walk_left=1 (reset). Third vector areset=0: output walk_left=1 (still WALK_LEFT after reset released).
+
+So the pattern is: output[i] = f(state[i]) where state[i] is the state at the start of cycle i (before posedge). Then state[i+1] = transition(state[i], inputs[i]).
+
+Wait, but that means the output is based on the state BEFORE the posedge. Let me check with R2_walk_outputs:
+```
+vectors: [{bump_left:0,...}, {bump_left:1,...}, {bump_left:0,...}]
+expected: [{walk_left:1,...}, {walk_left:0,walk_right:1,...}, {walk_left:0,walk_right:1,...}]
+```
+Cycle 0: state=WALK_LEFT, output walk_left=1. Inputs bump_left=0 → next state WALK_LEFT.
+Cycle 1: state=WALK_LEFT, output walk_left=1? But expected is walk_right=1!
+
+Hmm, that contradicts. Let me re-read.
+
+Wait, expected[1] = {walk_left:0, walk_right:1}. So after cycle 0's posedge (with bump_left=0), state should be WALK_LEFT. Then cycle 1 output should be walk_left=1. But expected is walk_right=1.
+
+Unless... the output is based on the state AFTER the posedge. Let me re-check.
+
+Cycle 0: inputs bump_left=0. State before posedge: WALK_LEFT (initial). After posedge: WALK_LEFT (no bump). Output[0] = walk_left=1. ✓
+Cycle 1: inputs bump_left=1. State before posedge: WALK_LEFT. After posedge: WALK_RIGHT (bumped). Output[1] = walk_right=1. ✓
+Cycle 2: inputs bump_left=0. State before posedge: WALK_RIGHT. After posedge: WALK_RIGHT. Output[2] = walk_right=1. ✓
+
+So output[i] = f(state AFTER posedge with inputs[i]). That means we apply the transition first, then compute output.
+
+But wait, for the async reset, if areset=1, the state is immediately WALK_LEFT (before posedge). After posedge, still WALK_LEFT. So output = walk_left=1. ✓
+
+OK so the model is: for each vector, apply the transition (posedge) using current state and inputs, then compute output from new state.
+
+But hold on — for async reset, the reset happens immediately when areset=1, not on posedge. So if areset=1, state becomes WALK_LEFT regardless of posedge. Then the posedge with areset=1 keeps it at WALK_LEFT. So effectively, if areset=1, state = WALK_LEFT after processing.
+
+Let me redo:
+
+```python
+def reference(vectors):
+    WALK_LEFT, WALK_RIGHT, FALL_LEFT, FALL_RIGHT, DIG_LEFT, DIG_RIGHT, SPLAT = range(7)
+    state = WALK_LEFT
+    counter = 0
+    outputs = []
+    
+    for v in vectors:
+        areset = v['areset']
+        bump_left = v['bump_left']
+        bump_right = v['bump_right']
+        ground = v['ground']
+        dig = v['dig']
+        
+        # Async reset: state becomes WALK_LEFT immediately
+        if areset:
+            state = WALK_LEFT
+            counter = 0
+        else:
+            # Posedge transition
+            if state == WALK_LEFT:
+                if ground == 0:
+                    state = FALL_LEFT
+                    counter = 0
+                elif dig == 1:
+                    state = DIG_LEFT
+                elif bump_left == 1 or bump_right == 1:
+                    state = WALK_RIGHT
+            elif state == WALK_RIGHT:
+                if ground == 0:
+                    state = FALL_RIGHT
+                    counter = 0
+                elif dig == 1:
+                    state = DIG_RIGHT
+                elif bump_left == 1 or bump_right == 1:
+                    state = WALK_LEFT
+            elif state == FALL_LEFT:
+                if ground == 1:
+                    if counter >= 21:
+                        state = SPLAT
+                    else:
+                        state = WALK_LEFT
+                else:
+                    counter += 1
+            elif state == FALL_RIGHT:
+                if ground == 1:
+                    if counter >= 21:
+                        state = SPLAT
+                    else:
+                        state = WALK_RIGHT
+                else:
+                    counter += 1
+            elif state == DIG_LEFT:
+                if ground == 0:
+                    state = FALL_LEFT
+                    counter = 0
+            elif state == DIG_RIGHT:
+                if ground == 0:
+                    state = FALL_RIGHT
+                    counter = 0
+            # SPLAT: stay
+        
+        # Compute output from new state
+        if state == WALK_LEFT:
+            out = {'walk_left':1,'walk_right':0,'aaah':0,'digging':0}
+        elif state == WALK_RIGHT:
+            out = {'walk_left':0,'walk_right':1,'aaah':0,'digging':0}
+        elif state in (FALL_LEFT, FALL_RIGHT):
+            out = {'walk_left':0,'walk_right':0,'aaah':1,'digging':0}
+        elif state in (DIG_LEFT, DIG_RIGHT):
+            out = {'walk_left':0,'walk_right':0,'aaah':0,'digging':1}
+        else:
+            out = {'walk_left':0,'walk_right':0,'aaah':0,'digging':0}
+        outputs.append(out)
+    
+    return outputs
+```
+
+Wait, but there's still an issue. Let me re-check R1_reset example:
+```
+vectors: [{areset:0,...}, {areset:1,...}, {areset:0,...}]
+expected: [{walk_left:1,...}, {walk_left:1,...}, {walk_left:1,...}]
+```
+Cycle 0: areset=0, state=WALK_LEFT, no transition (bump=0, ground=1, dig=0). Output walk_left=1. ✓
+Cycle 1: areset=1, state=WALK_LEFT (reset). Output walk_left=1. ✓
+Cycle 2: areset=0, state=WALK_LEFT, no transition. Output walk_left=1. ✓
+
+Good.
+
+Now let me check R3_fall_outputs:
+```
+vectors: [{ground:0,...}, {ground:0,...}, {ground:1,...}]
+expected: [{aaah:1,...}, {aaah:1,...}, {walk_left:1,...}]
+```
+Cycle 0: state=WALK_LEFT, ground=0 → state=FALL_LEFT, counter=0. Output aaah=1. ✓
+Cycle 1: state=FALL_LEFT, ground=0 → counter=1, state stays FALL_LEFT. Output aaah=1. ✓
+Cycle 2: state=FALL_LEFT, ground=1 → counter=1 < 21, state=WALK_LEFT. Output walk_left=1. ✓
+
+Good.
+
+Now let me check R4_dig_outputs:
+```
+vectors: [{ground:1,dig:1,...}, {ground:1,dig:1,...}, {ground:0,dig:1,...}]
+expected: [{digging:1,...}, {digging:1,...}, {aaah:1,...}]
+```
+Cycle 0: state=WALK_LEFT, ground=1, dig=1 → state=DIG_LEFT. Output digging=1. ✓
+Cycle 1: state=DIG_LEFT, ground=1 → stay DIG_LEFT. Output digging=1. ✓
+Cycle 2: state=DIG_LEFT, ground=0 → state=FALL_LEFT, counter=0. Output aaah=1. ✓
+
+Good.
+
+Now let me check R6_walk_transitions:
+```
+vectors: [{bump_left:0,...}, {bump_left:1,...}, {bump_left:0,...}]
+expected: [{walk_left:1,...}, {walk_right:1,...}, {walk_right:1,...}]
+```
+Cycle 0: state=WALK_LEFT, no bump → WALK_LEFT. Output walk_left=1. ✓
+Cycle 1: state=WALK_LEFT, bump_left=1 → WALK_RIGHT. Output walk_right=1. ✓
+Cycle 2: state=WALK_RIGHT, no bump → WALK_RIGHT. Output walk_right=1. ✓
+
+Good.
+
+Now let me check R7_fall_transitions:
+```
+vectors: [{ground:0,...}, {ground:0,...}, {ground:1,...}]
+expected: [{aaah:1,...}, {aaah:1,...}, {walk_left:1,...}]
+```
+Same as R3. ✓
+
+Now let me check R8_dig_transitions:
+```
+vectors: [{ground:1,dig:1,...}, {ground:1,dig:1,...}, {ground:0,dig:1,...}]
+expected: [{digging:1,...}, {digging:1,...}, {aaah:1,...}]
+```
+Same as R4. ✓
+
+Now let me check R9_splat_transition example:
+```
+vectors: [{ground:0,...}, {ground:0,...}, {ground:1,...}]
+expected: [{aaah:1,...}, {aaah:1,...}, {walk_left:1,...}]
+```
+Same as R3/R7. ✓ (Short fall, no splat.)
+
+Now let me think about the splat threshold more carefully. The uncertain note says "splat when duration reaches 21". My condition is counter >= 21. Let me verify with a trace.
+
+Suppose ground goes low at cycle 0 (walking). 
+Cycle 0: WALK, ground=0 → FALL, counter=0. Output aaah.
+Cycle 1: FALL, ground=0 → counter=1. Output aaah.
+...
+Cycle 20: FALL, ground=0 → counter=20. Output aaah.
+Cycle 21: FALL, ground=0 → counter=21. Output aaah.
+Cycle 22: FALL, ground=1 → counter=21 >= 21 → SPLAT. Output all 0.
+
+So the Lemming fell for cycles 1-21 (21 cycles) and splatted at cycle 22. That's "more than 20 cycles" → splat. ✓
+
+If ground=1 at cycle 21: counter=20 < 21 → resume walking. Fell for cycles 1-20 (20 cycles). Not more than 20 → no splat. ✓
+
+Good.
+
+But wait, I need to double check: at cycle 21, counter is 20 (before increment). Let me re-trace:
+Cycle 0: WALK, ground=0 → FALL, counter=0.
+Cycle 1: FALL, counter=0, ground=0 → counter=1.
+Cycle 2: FALL, counter=1, ground=0 → counter=2.
+...
+Cycle k: FALL, counter=k-1, ground=0 → counter=k.
+Cycle 21: FALL, counter=20, ground=0 → counter=21.
+Cycle 22: FALL, counter=21, ground=1 → check counter=21 >= 21 → SPLAT.
+
+If ground=1 at cycle 21: FALL, counter=20, ground=1 → check counter=20 >= 21? No → WALK. Fell for 20 cycles (cycles 1-20). ✓
+
+Good.
+
+Now, one more consideration: what if the Lemming enters FALL from DIG? Same logic — counter resets to 0 on entry.
+
+Also, what about the case where ground=0 and we're in FALL, but we also have bump or dig inputs? The spec says "being bumped while falling does not affect the walking direction, and being told to dig when falling or when there is no ground is ignored". So in FALL state, we ignore bump and dig. My code does that. ✓
+
+What about "being bumped in the same cycle as ground disappears (but not yet falling)"? That's the cycle where we're in WALK and ground=0. The spec says bump doesn't affect direction in that case. My code: in WALK, if ground=0, we go to FALL (ignoring bump). ✓
+
+"or when the ground reappears while still falling" — in FALL, ground=1, bump ignored. ✓
+
+Now let me also consider: in WALK state, if ground=0 AND dig=1, fall takes precedence. My code checks ground first. ✓
+
+In WALK state, if dig=1 AND bump=1, dig takes precedence. My code checks dig before bump. ✓
+
+OK, I think the logic is correct. Let me also make sure the output format matches — the function should return a list of dicts with the output keys.
+
+Let me also double-check the reset behavior. The spec says "areset is positive edge triggered asynchronous reseting". So areset=1 → state=WALK_LEFT immediately (async). My code does this. But there's a subtlety: if areset=1, should we still process the posedge transition? No — reset overrides. My code skips the transition when areset=1. ✓
+
+But wait, what if areset=1 and we're in SPLAT? Reset should bring us back to WALK_LEFT. My code does that. ✓
+
+Now, one more thing: the "first_released_cycle" is "first posedge clk after areset returns to 0". So if areset goes 1→0, the first posedge after that applies normal transitions. In my model, when areset=0, I apply normal transitions. So if areset was 1 in cycle i and 0 in cycle i+1, then cycle i+1 applies normal transition from WALK_LEFT. ✓
+
+Let me also verify the R5_splat_outputs example:
+```
+vectors: [{ground:1,...}, {ground:1,...}, {ground:1,...}]
+expected: [{walk_left:0,walk_right:0,aaah:0,digging:0}, ...]
+```
+Hmm, this example shows all zeros for all cycles. But the initial state is WALK_LEFT, which should output walk_left=1. Unless... the example is just showing what SPLAT outputs look like, not a full trace. The example vectors don't actually cause splat (ground=1 throughout, no fall). So the expected outputs should be walk_left=1 for all cycles, not all zeros.
+
+Wait, let me re-read the R5 example:
+```
+"example":{"vectors":[{"areset":0,"bump_left":0,"bump_right":0,"ground":1,"dig":0},{"areset":0,"bump_left":0,"bump_right":0,"ground":1,"dig":0},{"areset":0,"bump_left":0,"bump_right":0,"ground":1,"dig":0}],"expected":[{"walk_left":0,"walk_right":0,"aaah":0,"digging":0},{"walk_left":0,"walk_right":0,"aaah":0,"digging":0},{"walk_left":0,"walk_right":0,"aaah":0,"digging":0}]}
+```
+
+This is inconsistent with my model — with these inputs, the Lemming should be walking left (walk_left=1). The example seems to be illustrating SPLAT outputs but the vectors don't actually cause SPLAT. This might be a flawed example in the spec. I'll trust the rules over the example.
+
+Actually, wait. Maybe the example is meant to show that IF the state is SPLAT, the outputs are all 0. But the vectors don't reach SPLAT. This is likely just a poorly constructed example. I'll go with my logic.
+
+Hmm, but this makes me worried. Let me re-read the R5 rule: "condition":"state is SPLAT". So the rule is about SPLAT state outputs. The example is just showing SPLAT outputs but with vectors that don't reach SPLAT. This is a spec inconsistency. I'll implement the correct logic.
+
+Actually, let me reconsider. Maybe the reference function is supposed to be tested against these examples? If so, my function would fail R5's example. But the examples are just illustrative, and the actual test vectors will be different. I'll implement the correct logic.
+
+Let me also think about whether there's any issue with the counter when transitioning from FALL to WALK and then back to FALL. The counter resets to 0 on entry to FALL. ✓
+
+One more edge case: what if we're in FALL and ground=1, and counter >= 21, we go to SPLAT. Then in SPLAT, we stay forever (until reset). ✓
+
+What if we're in FALL and ground=1, counter < 21, we go to WALK. Then next cycle, if ground=0 again, we go to FALL with counter=0. ✓
+
+I think the logic is solid. Let me write the final code.
+
+Actually, let me reconsider the counter increment timing once more. In my code:
+
+```python
+elif state == FALL_LEFT:
+    if ground == 1:
+        if counter >= 21:
+            state = SPLAT
+        else:
+            state = WALK_LEFT
+    else:
+        counter += 1
+```
+
+So when in FALL and ground=0, counter increments. When ground=1, we check counter (which reflects the number of full FALL cycles with ground=0 so far). 
+
+Wait, let me re-trace with this code:
+Cycle 0: WALK, ground=0 → FALL, counter=0.
+Cycle 1: FALL, ground=0 → counter=1.
+Cycle 2: FALL, ground=0 → counter=2.
+...
+Cycle k: FALL, ground=0 → counter=k.
+Cycle k+1: FALL, ground=1 → check counter=k. If k >= 21 → SPLAT.
+
+So if ground=1 at cycle k+1, we've been in FALL for k cycles (cycles 1..k). Splat if k >= 21, i.e., fell for 21+ cycles. ✓
+
+If ground=1 at cycle 21: counter=20 (from cycle 20's increment). 20 >= 21? No → WALK. Fell for 20 cycles. ✓
+If ground=1 at cycle 22: counter=21. 21 >= 21? Yes → SPLAT. Fell for 21 cycles. ✓
+
+Good.
+
+Hmm wait, let me re-trace cycle 21 carefully:
+Cycle 0: WALK, ground=0 → FALL, counter=0.
+Cycle 1: FALL, counter=0, ground=0 → counter=1.
+Cycle 2: FALL, counter=1, ground=0 → counter=2.
+...
+Cycle 20: FALL, counter=19, ground=0 → counter=20.
+Cycle 21: FALL, counter=20, ground=0 → counter=21.
+Cycle 22: FALL, counter=21, ground=1 → 21 >= 21 → SPLAT.
+
+If ground=1 at cycle 21: FALL, counter=20, ground=1 → 20 >= 21? No → WALK. Fell for cycles 1-20 = 20 cycles. ✓
+
+Good.
+
+Now let me write the final code. I need to make sure it follows the v3 Python restrictions: no imports, no I/O, no executable top-level code. The function should be named `reference` and take `vectors` as input.
+
+Let me also make sure the output dict has exactly the right keys.
+
+```python
+def reference(vectors):
+    WALK_LEFT, WALK_RIGHT, FALL_LEFT, FALL_RIGHT, DIG_LEFT, DIG_RIGHT, SPLAT = range(7)
+    state = WALK_LEFT
+    counter = 0
+    outputs = []
+    
+    for v in vectors:
+        areset = v['areset']
+        bump_left = v['bump_left']
+        bump_right = v['bump_right']
+        ground = v['ground']
+        dig = v['dig']
+        
+        if areset:
+            state = WALK_LEFT
+            counter = 0
+        else:
+            if state == WALK_LEFT:
+                if ground == 0:
+                    state = FALL_LEFT
+                    counter = 0
+                elif dig == 1:
+                    state = DIG_LEFT
+                elif bump_left == 1 or bump_right == 1:
+                    state = WALK_RIGHT
+            elif state == WALK_RIGHT:
+                if ground == 0:
+                    state = FALL_RIGHT
+                    counter = 0
+                elif dig == 1:
+                    state = DIG_RIGHT
+                elif bump_left == 1 or bump_right == 1:
+                    state = WALK_LEFT
+            elif state == FALL_LEFT:
+                if ground == 1:
+                    if counter >= 21:
+                        state = SPLAT
+                    else:
+                        state = WALK_LEFT
+                else:
+                    counter += 1
+            elif state == FALL_RIGHT:
+                if ground == 1:
+                    if counter >= 21:
+                        state = SPLAT
+                    else:
+                        state = WALK_RIGHT
+                else:
+                    counter += 1
+            elif state == DIG_LEFT:
+                if ground == 0:
+                    state = FALL_LEFT
+                    counter = 0
+            elif state == DIG_RIGHT:
+                if ground == 0:
+                    state = FALL_RIGHT
+                    counter = 0
+        
+        if state == WALK_LEFT:
+            out = {'walk_left':1,'walk_right':0,'aaah':0,'digging':0}
+        elif state == WALK_RIGHT:
+            out = {'walk_left':0,'walk_right':1,'aaah':0,'digging':0}
+        elif state == FALL_LEFT or state == FALL_RIGHT:
+            out = {'walk_left':0,'walk_right':0,'aaah':1,'digging':0}
+        elif state == DIG_LEFT or state == DIG_RIGHT:
+            out = {'walk_left':0,'walk_right':0,'aaah':0,'digging':1}
+        else:
+            out = {'walk_left':0,'walk_right':0,'aaah':0,'digging':0}
+        outputs.append(out)
+    
+    return outputs
+```
+
+This looks good. Let me finalize.
+
+Actually, I realize I should double-check one thing: the spec says "if a Lemming falls for more than 20 clock cycles then hits the ground, it will splatter". The uncertain note says "splat when duration reaches 21". My interpretation: counter >= 21 → splat. This means 21+ cycles of falling → splat. "More than 20" = 21+. ✓
+
+But wait, there's another interpretation: the counter counts cycles including the entry cycle. Let me consider that alternative.
+
+Alternative: counter starts at 1 on entry to FALL (counting the entry cycle). Then:
+Cycle 1: FALL, counter=1, ground=0 → counter=2.
+...
+Cycle k: FALL, counter=k, ground=0 → counter=k+1.
+Cycle k+1: FALL, counter=k+1, ground=1 → check counter=k+1.
+
+If ground=1 at cycle 21: counter=21. 21 > 20? Yes → SPLAT. But we only fell for 20 cycles (cycles 1-20). That would be wrong.
+
+So the alternative interpretation gives splat at 20 cycles, which contradicts "more than 20". So my interpretation (counter starts at 0, splat when counter >= 21) is correct.
+
+Hmm, but the uncertain note says "splat when duration reaches 21". If duration = counter (starting at 0), then duration reaches 21 when counter=21. ✓
+
+OK, I'm confident. Let me write the final answer.
+
+Wait, one more thing. Let me reconsider whether the output should be based on state before or after posedge. I determined it's after posedge based on R2 example. Let me re-verify with R1.
+
+R1: vectors [{areset:0}, {areset:1}, {areset:0}], expected [{walk_left:1}, {walk_left:1}, {walk_left:1}].
+
+With my model (output after posedge):
+Cycle 0: areset=0, state=WALK_LEFT, no transition → WALK_LEFT. Output walk_left=1. ✓
+Cycle 1: areset=1, state=WALK_LEFT (reset). Output walk_left=1. ✓
+Cycle 2: areset=0, state=WALK_LEFT, no transition → WALK_LEFT. Output walk_left=1. ✓
+
+Good.
+
+But wait, what if the output is based on state BEFORE posedge? Then:
+Cycle 0: state=WALK_LEFT (initial). Output walk_left=1. Then transition with areset=0 → WALK_LEFT.
+Cycle 1: state=WALK_LEFT. Output walk_left=1. Then transition with areset=1 → WALK_LEFT.
+Cycle 2: state=WALK_LEFT. Output walk_left=1. Then transition with areset=0 → WALK_LEFT.
+
+Same result for R1. But R2 distinguishes them. R2 expected cycle 1 output is walk_right=1, which requires output after posedge. So my model is correct.
+
+Actually, hold on. Let me reconsider R2 more carefully.
+
+R2: vectors [{bump_left:0}, {bump_left:1}, {bump_left:0}], expected [{walk_left:1}, {walk_right:1}, {walk_right:1}].
+
+If output is BEFORE posedge:
+Cycle 0: state=WALK_LEFT. Output walk_left=1. Transition with bump_left=0 → WALK_LEFT.
+Cycle 1: state=WALK_LEFT. Output walk_left=1. But expected is walk_right=1. ✗
+
+If output is AFTER posedge:
+Cycle 0: state=WALK_LEFT, transition with bump_left=0 → WALK_LEFT. Output walk_left=1. ✓
+Cycle 1: state=WALK_LEFT, transition with bump_left=1 → WALK_RIGHT. Output walk_right=1. ✓
+Cycle 2: state=WALK_RIGHT, transition with bump_left=0 → WALK_RIGHT. Output walk_right=1. ✓
+
+So output is AFTER posedge. My model is correct.
+
+But wait, this is a bit unusual for a Moore machine. In a Moore machine, output depends only on state, and state updates on posedge. So the output during cycle i (between posedge i-1 and posedge i) depends on state after posedge i-1. If we sample "after the posedge has settled", we're sampling the output during cycle i, which reflects state after posedge i-1... 
+
+Hmm, actually let me think about this differently. The protocol says "sample after the posedge edge has settled". So for vector i, we set inputs, then posedge occurs, then we sample outputs. The outputs after posedge i reflect the state after posedge i. So output[i] = f(state after posedge i). That's what I have.
+
+But actually, in a real Moore machine, the output is combinational from state. So immediately after posedge i, the state has updated, and the output reflects the new state. So yes, output[i] = f(state after posedge i). ✓
+
+OK, I'm confident. Let me finalize.
+
+Actually, I want to reconsider one more time. The standard way these reference functions work in HDLBits-style problems: the function processes vectors and returns outputs. The convention is usually that output[i] corresponds to the state during cycle i (before the posedge at the end of cycle i). But the examples here clearly show output after posedge. Let me just go with what the examples show.
+
+Hmm, but actually, let me reconsider. Maybe the convention is: vector i represents inputs during cycle i. The posedge at the end of cycle i updates the state. Output[i] is sampled during cycle i (before posedge i). So output[i] = f(state during cycle i) = f(state after posedge i-1).
+
+For cycle 0: state is initial (WALK_LEFT). Output[0] = walk_left=1. ✓
+For cycle 1: state after posedge 0. With bump_left=0, state stays WALK_LEFT. Output[1] = walk_left=1. But expected is walk_right=1. ✗
+
+So this doesn't work. The only way R2 works is if output[i] = f(state after posedge i). So the posedge happens BEFORE the output is sampled for that vector. This means the vector's inputs are applied, then posedge, then output sampled. So the output reflects the effect of the vector's inputs.
+
+OK, final answer with output after posedge.
+
+Let me also double check: for the async reset, if areset=1, the state becomes WALK_LEFT immediately (before posedge). Then posedge with areset=1 keeps it at WALK_LEFT. So output = walk_left=1. ✓
+
+But what if areset=1 and we're in SPLAT? Reset brings us to WALK_LEFT. ✓
+
+What if areset=1 and we're in FALL with counter=25? Reset brings us to WALK_LEFT, counter=0. ✓
+
+OK, I'm done. Let me write the final answer.
+
+Actually, one more edge case: what if areset=1 but we also have other inputs? Reset takes priority. My code handles this (if areset, skip transition). ✓
+
+Let me also make sure the function handles the case where vectors is empty. It should return an empty list. My code does that. ✓
+
+Final code:
+
+```python
+def reference(vectors):
+    WALK_LEFT, WALK_RIGHT, FALL_LEFT, FALL_RIGHT, DIG_LEFT, DIG_RIGHT, SPLAT = range(7)
+    state = WALK_LEFT
+    counter = 0
+    outputs = []
+    
+    for v in vectors:
+        areset = v['areset']
+        bump_left = v['bump_left']
+        bump_right = v['bump_right']
+        ground = v['ground']
+        dig = v['dig']
+        
+        if areset:
+            state = WALK_LEFT
+            counter = 0
+        else:
+            if state == WALK_LEFT:
+                if ground == 0:
+                    state = FALL_LEFT
+                    counter = 0
+                elif dig == 1:
+                    state = DIG_LEFT
+                elif bump_left == 1 or bump_right == 1:
+                    state = WALK_RIGHT
+            elif state == WALK_RIGHT:
+                if ground == 0:
+                    state = FALL_RIGHT
+                    counter = 0
+                elif dig == 1:
+                    state = DIG_RIGHT
+                elif bump_left == 1 or bump_right == 1:
+                    state = WALK_LEFT
+            elif state == FALL_LEFT:
+                if ground == 1:
+                    if counter >= 21:
+                        state = SPLAT
+                    else:
+                        state = WALK_LEFT
+                else:
+                    counter += 1
+            elif state == FALL_RIGHT:
+                if ground == 1:
+                    if counter >= 21:
+                        state = SPLAT
+                    else:
+                        state = WALK_RIGHT
+                else:
+                    counter += 1
+            elif state == DIG_LEFT:
+                if ground == 0:
+                    state = FALL_LEFT
+                    counter = 0
+            elif state == DIG_RIGHT:
+                if ground == 0:
+                    state = FALL_RIGHT
+                    counter = 0
+        
+        if state == WALK_LEFT:
+            out = {'walk_left':1,'walk_right':0,'aaah':0,'digging':0}
+        elif state == WALK_RIGHT:
+            out = {'walk_left':0,'walk_right':1,'aaah':0,'digging':0}
+        elif state == FALL_LEFT or state == FALL_RIGHT:
+            out = {'walk_left':0,'walk_right':0,'aaah':1,'digging':0}
+        elif state == DIG_LEFT or state == DIG_RIGHT:
+            out = {'walk_left':0,'walk_right':0,'aaah':0,'digging':1}
+        else:
+            out = {'walk_left':0,'walk_right':0,'aaah':0,'digging':0}
+        outputs.append(out)
+    
+    return outputs
+```
+
+This should be correct. Let me format the final JSON answer.
+
+```json
+{"models":{"10953f71f178aeffda":"def reference(vectors):\n    WALK_LEFT, WALK_RIGHT, FALL_LEFT, FALL_RIGHT, DIG_LEFT, DIG_RIGHT, SPLAT = range(7)\n    state = WALK_LEFT\n    counter = 0\n    outputs = []\n    \n    for v in vectors:\n        areset = v['areset']\n        bump_left = v['bump_left']\n        bump_right = v['bump_right']\n        ground = v['ground']\n        dig = v['dig']\n        \n        if areset:\n            state = WALK_LEFT\n            counter = 0\n        else:\n            if state == WALK_LEFT:\n                if ground == 0:\n                    state = FALL_LEFT\n                    counter = 0\n                elif dig == 1:\n                    state = DIG_LEFT\n                elif bump_left == 1 or bump_right == 1:\n                    state = WALK_RIGHT\n            elif state == WALK_RIGHT:\n                if ground == 0:\n                    state = FALL_RIGHT\n                    counter = 0\n                elif dig == 1:\n                    state = DIG_RIGHT\n                elif bump_left == 1 or bump_right == 1:\n                    state = WALK_LEFT\n            elif state == FALL_LEFT:\n                if ground == 1:\n                    if counter >= 21:\n                        state = SPLAT\n                    else:\n                        state = WALK_LEFT\n                else:\n                    counter += 1\n            elif state == FALL_RIGHT:\n                if ground == 1:\n                    if counter >= 21:\n                        state = SPLAT\n                    else:\n                        state = WALK_RIGHT\n                else:\n                    counter += 1\n            elif state == DIG_LEFT:\n                if ground == 0:\n                    state = FALL_LEFT\n                    counter = 0\n            elif state == DIG_RIGHT:\n                if ground == 0:\n                    state = FALL_RIGHT\n                    counter = 0\n        \n        if state == WALK_LEFT:\n            out = {'walk_left':1,'walk_right':0,'aaah':0,'digging':0}\n        elif state == WALK_RIGHT:\n            out = {'walk_left':0,'walk_right':1,'aaah':0,'digging':0}\n        elif state == FALL_LEFT or state == FALL_RIGHT:\n            out = {'walk_left':0,'walk_right':0,'aaah':1,'digging':0}\n        elif state == DIG_LEFT or state == DIG_RIGHT:\n            out = {'walk_left':0,'walk_right':0,'aaah':0,'digging':1}\n        else:\n            out = {'walk_left':0,'walk_right':0,'aaah':0,'digging':0}\n        outputs.append(out)\n    \n    return outputs\n","86da3224c81419308a":"def reference(vectors):\n    WALK_LEFT, WALK_RIGHT, FALL_LEFT, FALL_RIGHT, DIG_LEFT, DIG_RIGHT, SPLAT = range(7)\n    state = WALK_LEFT\n    counter = 0\n    outputs = []\n    \n    for v in vectors:\n        areset = v['areset']\n        bump_left = v['bump_left']\n        bump_right = v['bump_right']\n        ground = v['ground']\n        dig = v['dig']\n        \n        if areset:\n            state = WALK_LEFT\n            counter = 0\n        else:\n            if state == WALK_LEFT:\n                if ground == 0:\n                    state = FALL_LEFT\n                    counter = 0\n                elif dig == 1:\n                    state = DIG_LEFT\n                elif bump_left == 1 or bump_right == 1:\n                    state = WALK_RIGHT\n            elif state == WALK_RIGHT:\n                if ground == 0:\n                    state = FALL_RIGHT\n                    counter = 0\n                elif dig == 1:\n                    state = DIG_RIGHT\n                elif bump_left == 1 or bump_right == 1:\n                    state = WALK_LEFT\n            elif state == FALL_LEFT:\n                if ground == 1:\n                    if counter >= 21:\n                        state = SPLAT\n                    else:\n                        state = WALK_LEFT\n                else:\n                    counter += 1\n            elif state == FALL_RIGHT:\n                if ground == 1:\n                    if counter >= 21:\n                        state = SPLAT\n                    else:\n                        state = WALK_RIGHT\n                else:\n                    counter += 1\n            elif state == DIG_LEFT:\n                if ground == 0:\n                    state = FALL_LEFT\n                    counter = 0\n            elif state == DIG_RIGHT:\n                if ground == 0:\n                    state = FALL_RIGHT\n                    counter = 0\n        \n        if state == WALK_LEFT:\n            out = {'walk_left':1,'walk_right':0,'aaah':0,'digging':0}\n        elif state == WALK_RIGHT:\n            out = {'walk_left':0,'walk_right':1,'aaah':0,'digging':0}\n        elif state == FALL_LEFT or state == FALL_RIGHT:\n            out = {'walk_left':0,'walk_right':0,'aaah':1,'digging':0}\n        elif state == DIG_LEFT or state == DIG_RIGHT:\n            out = {'walk_left':0,'walk_right':0,'aaah':0,'digging':1}\n        else:\n            out = {'walk_left':0,'walk_right':0,'aaah':0,'digging':0}\n        outputs.append(out)\n    \n    return outputs\n","3a76b5e3571f786492":"def reference(vectors):\n    WALK_LEFT, WALK_RIGHT, FALL_LEFT, FALL_RIGHT, DIG_LEFT, DIG_RIGHT, SPLAT = range(7)\n    state = WALK_LEFT\n    counter = 0\n    outputs = []\n    \n    for v in vectors:\n        areset = v['areset']\n        bump_left = v['bump_left']\n        bump_right = v['bump_right']\n        ground = v['ground']\n        dig = v['dig']\n        \n        if areset:\n            state = WALK_LEFT\n            counter = 0\n        else:\n            if state == WALK_LEFT:\n                if ground == 0:\n                    state = FALL_LEFT\n                    counter = 0\n                elif dig == 1:\n                    state = DIG_LEFT\n                elif bump_left == 1 or bump_right == 1:\n                    state = WALK_RIGHT\n            elif state == WALK_RIGHT:\n                if ground == 0:\n                    state = FALL_RIGHT\n                    counter = 0\n                elif dig == 1:\n                    state = DIG_RIGHT\n                elif bump_left == 1 or bump_right == 1:\n                    state = WALK_LEFT\n            elif state == FALL_LEFT:\n                if ground == 1:\n                    if counter >= 21:\n                        state = SPLAT\n                    else:\n                        state = WALK_LEFT\n                else:\n                    counter += 1\n            elif state == FALL_RIGHT:\n                if ground == 1:\n                    if counter >= 21:\n                        state = SPLAT\n                    else:\n                        state = WALK_RIGHT\n                else:\n                    counter += 1\n            elif state == DIG_LEFT:\n                if ground == 0:\n                    state = FALL_LEFT\n                    counter = 0\n            elif state == DIG_RIGHT:\n                if ground == 0:\n                    state = FALL_RIGHT\n                    counter = 0\n        \n        if state == WALK_LEFT:\n            out = {'walk_left':1,'walk_right':0,'aaah':0,'digging':0}\n        elif state == WALK_RIGHT:\n            out = {'walk_left':0,'walk_right':1,'aaah':0,'digging':0}\n        elif state == FALL_LEFT or state == FALL_RIGHT:\n            out = {'walk_left':0,'walk_right':0,'aaah':1,'digging':0}\n        elif state == DIG_LEFT or state == DIG_RIGHT:\n            out = {'walk_left':0,'walk_right':0,'aaah':0,'digging':1}\n        else:\n            out = {'walk_left':0,'walk_right':0,'aaah':0,'digging':0}\n        outputs.append(out)\n    \n    return outputs\n","52fbe82f05aec96135":"def reference(vectors):\n    WALK_LEFT, WALK_RIGHT, FALL_LEFT, FALL_RIGHT, DIG_LEFT, DIG_RIGHT, SPLAT = range(7)\n    state = WALK_LEFT\n    counter = 0\n    outputs = []\n    \n    for v in vectors:\n        areset = v['areset']\n        bump_left = v['bump_left']\n        bump_right = v['bump_right']\n        ground = v['ground']\n        dig = v['dig']\n        \n        if areset:\n            state = WALK_LEFT\n            counter = 0\n        else:\n            if state == WALK_LEFT:\n                if ground == 0:\n                    state = FALL_LEFT\n                    counter = 0\n                elif dig == 1:\n                    state = DIG_LEFT\n                elif bump_left == 1 or bump_right == 1:\n                    state = WALK_RIGHT\n            elif state == WALK_RIGHT:\n                if ground == 0:\n                    state = FALL_RIGHT\n                    counter = 0\n                elif dig == 1:\n                    state = DIG_RIGHT\n                elif bump_left == 1 or bump_right == 1:\n                    state = WALK_LEFT\n            elif state == FALL_LEFT:\n                if ground == 1:\n                    if counter >= 21:\n                        state = SPLAT\n                    else:\n                        state = WALK_LEFT\n                else:\n                    counter += 1\n            elif state == FALL_RIGHT:\n                if ground == 1:\n                    if counter >= 21:\n                        state = SPLAT\n                    else:\n                        state = WALK_RIGHT\n                else:\n                    counter += 1\n            elif state == DIG_LEFT:\n                if ground == 0:\n                    state = FALL_LEFT\n                    counter = 0\n            elif state == DIG_RIGHT:\n                if ground == 0:\n                    state = FALL_RIGHT\n                    counter = 0\n        \n        if state == WALK_LEFT:\n            out = {'walk_left':1,'walk_right':0,'aaah':0,'digging':0}\n        elif state == WALK_RIGHT:\n            out = {'walk_left':0,'walk_right':1,'aaah':0,'digging':0}\n        elif state == FALL_LEFT or state == FALL_RIGHT:\n            out = {'walk_left':0,'walk_right':0,'aaah':1,'digging':0}\n        elif state == DIG_LEFT or state == DIG_RIGHT:\n            out = {'walk_left':0,'walk_right':0,'aaah':0,'digging':1}\n        else:\n            out = {'walk_left':0,'walk_right':0,'aaah':0,'digging':0}\n        outputs.append(out)\n    \n    return outputs\n"}}
+```

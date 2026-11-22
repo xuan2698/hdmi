@@ -1,0 +1,74 @@
+def reference(vectors):
+    # State mapping: A => z=0 (no first 1), B => z=1, C => z=0.
+    state = "A"
+    current = {"areset": 0, "x": 0}
+    result = []
+
+    for row in vectors:
+        # Row values are driven before the sampled posedge.
+        if "areset" in row:
+            current["areset"] = int(row["areset"]) & 1
+        if "x" in row:
+            current["x"] = int(row["x"]) & 1
+
+        # async_reset_assert: active-high reset asynchronously forces state A and z=0.
+        if current["areset"] == 1:
+            state = "A"
+        else:
+            x = current["x"]
+            # Posedge transition rules, priorities 10-15.
+            if state == "A":
+                if x == 0:
+                    # A_on_x0
+                    state = "A"
+                else:
+                    # A_on_x1
+                    state = "B"
+            elif state == "B":
+                if x == 0:
+                    # B_on_x0
+                    state = "B"
+                else:
+                    # B_on_x1
+                    state = "C"
+            else:  # state == "C"
+                if x == 0:
+                    # C_on_x0
+                    state = "B"
+                else:
+                    # C_on_x1
+                    state = "C"
+
+        # Moore output after the sampled posedge / asynchronous reset.
+        z = 1 if state == "B" else 0
+        result.append({"z": z})
+
+        # Optional mid changes occur after sampling and carry into the next row.
+        if "mid" in row:
+            mid = row["mid"]
+            if isinstance(mid, dict):
+                if "areset" in mid:
+                    current["areset"] = int(mid["areset"]) & 1
+                if "x" in mid:
+                    current["x"] = int(mid["x"]) & 1
+            else:
+                # Support a list/tuple of mid changes without imports.
+                for item in mid:
+                    if isinstance(item, dict):
+                        if "areset" in item:
+                            current["areset"] = int(item["areset"]) & 1
+                        if "x" in item:
+                            current["x"] = int(item["x"]) & 1
+                    else:
+                        name = item[0]
+                        value = item[1]
+                        if name == "areset":
+                            current["areset"] = int(value) & 1
+                        elif name == "x":
+                            current["x"] = int(value) & 1
+
+            # async_reset_assert: a mid-cycle reset assertion also forces A before the next posedge.
+            if current["areset"] == 1:
+                state = "A"
+
+    return result

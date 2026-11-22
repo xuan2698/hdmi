@@ -1,0 +1,58 @@
+{
+  "responses": [
+    {
+      "issue_id": "I1",
+      "decision": "rebut",
+      "reason": "The current contract already marks reset active level as unspecified and lists active-low areset with z=0 while asserted as a candidate, so no edit is needed.",
+      "spec_quote": "The circuit requires a positive edge triggered asynchronous reset.",
+      "edits": []
+    },
+    {
+      "issue_id": "I2",
+      "decision": "rebut",
+      "reason": "The current contract already notes that the exact output while reset is asserted is unspecified and includes reset value of z unspecified or previous as a candidate, covering the proposed behavior.",
+      "spec_quote": "The conversion begins when Reset is released and stops when Reset is asserted.",
+      "edits": []
+    },
+    {
+      "issue_id": "I3",
+      "decision": "accept",
+      "reason": "The public specification does not explicitly settle the observation phase, so the contract should retain its same-cycle choice but record the pre-edge alternative as an uncertainty.",
+      "spec_quote": "You are to design a one-input one-output serial 2's complementer Moore state machine.",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R_CONVERT",
+            "uncertain"
+          ],
+          "value": true
+        },
+        {
+          "path": [
+            "uncertain"
+          ],
+          "value": [
+            {
+              "rule_id": "R_RESET",
+              "note": "The specification requires an asynchronous reset but does not explicitly state polarity or the exact output while reset is asserted; z=0 and areset=1 in the example are an active-high/reset-to-zero interpretation.",
+              "candidates": [
+                "active-high areset with z=0 while reset is asserted",
+                "active-low areset with z=0 while reset is asserted",
+                "active level unspecified; reset value of z unspecified or previous"
+              ]
+            },
+            {
+              "rule_id": "R_CONVERT",
+              "note": "The public specification does not explicitly state the observation phase; current contract uses the post-posedge same-cycle Moore output, but a pre-posedge observation would delay the first converted bit by one cycle.",
+              "candidates": [
+                "post-posedge same-cycle Moore output (current contract)",
+                "pre-posedge Moore output, delaying the first converted bit by one observation cycle"
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,49 @@
+def reference(vectors):
+    # Initial concrete state for unspecified power-up.
+    q = 0
+    ena = 0
+    outs = []
+
+    for row in vectors:
+        reset = row.get('reset', 0) & 1
+
+        if reset:
+            # sync_active_high_reset: synchronous active-high reset forces q=0 and ena=0 at posedge.
+            q = 0
+            ena = 0
+        else:
+            # bcd_counter_increment: increment four packed BCD digits modulo 10000.
+            old_q = q
+            d0 = old_q & 0xF
+            d1 = (old_q >> 4) & 0xF
+            d2 = (old_q >> 8) & 0xF
+            d3 = (old_q >> 12) & 0xF
+
+            d0 += 1
+            if d0 == 10:
+                d0 = 0
+                d1 += 1
+                if d1 == 10:
+                    d1 = 0
+                    d2 += 1
+                    if d2 == 10:
+                        d2 = 0
+                        d3 += 1
+                        if d3 == 10:
+                            d3 = 0
+
+            next_q = d0 | (d1 << 4) | (d2 << 8) | (d3 << 12)
+
+            # upper_digit_enables: registered enable from carry interpretation.
+            # After a 9->10 style carry transition, the corresponding ena bit is 1
+            # for the cycle following the edge, based on the old q carry condition.
+            e0 = 1 if ((old_q & 0xF) == 9) else 0
+            e1 = 1 if (((old_q & 0xF) == 9) and (((old_q >> 4) & 0xF) == 9)) else 0
+            e2 = 1 if (((old_q & 0xF) == 9) and (((old_q >> 4) & 0xF) == 9) and (((old_q >> 8) & 0xF) == 9)) else 0
+
+            ena = (e2 << 2) | (e1 << 1) | e0
+            q = next_q
+
+        outs.append({'q': q & 0xFFFF, 'ena': ena & 0x7})
+
+    return outs

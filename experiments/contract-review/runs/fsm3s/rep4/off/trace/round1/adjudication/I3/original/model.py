@@ -1,0 +1,49 @@
+def reference(vectors):
+    # Contract implementation.
+    # State encoding: A=0, B=1, C=2, D=3
+    # R1-R4: combinational output based on current state (same_cycle)
+    # R5: synchronous active high reset -> state A on posedge
+    # R6-R9: next-state transitions on posedge
+    # mid: input changes after sampling, carried to next row
+
+    state = 0  # power-up unspecified; start at A
+    out = 0
+    results = []
+
+    for vec in vectors:
+        # Apply mid changes from previous row are already reflected in vec
+        # Sample inputs at this row (before posedge)
+        in_val = vec.get("in", 0)
+        reset_val = vec.get("reset", 0)
+
+        # R1-R4: combinational output for current state (visible same_cycle)
+        if state == 0:      # R1: state A -> out 0
+            out = 0
+        elif state == 1:    # R2: state B -> out 0
+            out = 0
+        elif state == 2:    # R3: state C -> out 0
+            out = 0
+        elif state == 3:    # R4: state D -> out 1
+            out = 1
+
+        results.append({"out": out & 0x1})
+
+        # Posedge update: compute next state
+        if reset_val == 1:
+            # R5: synchronous active high reset forces state A
+            state = 0
+        else:
+            if state == 0:
+                # R6: A && in==0 -> A; A && in==1 -> B
+                state = 0 if in_val == 0 else 1
+            elif state == 1:
+                # R7: B && in==0 -> C; B && in==1 -> B
+                state = 2 if in_val == 0 else 1
+            elif state == 2:
+                # R8: C && in==0 -> A; C && in==1 -> D
+                state = 0 if in_val == 0 else 3
+            elif state == 3:
+                # R9: D && in==0 -> C; D && in==1 -> B
+                state = 2 if in_val == 0 else 1
+
+    return results

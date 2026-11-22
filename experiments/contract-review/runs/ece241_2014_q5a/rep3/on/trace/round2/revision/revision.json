@@ -1,0 +1,50 @@
+{
+  "responses": [
+    {
+      "issue_id": "I1",
+      "decision": "accept",
+      "reason": "The spec does not state reset polarity, so the active-high assumption must remain marked uncertain; set async_reset.uncertain to true to match the existing global uncertainty note.",
+      "spec_quote": "The circuit requires a positive edge triggered asynchronous reset.",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "async_reset",
+            "uncertain"
+          ],
+          "value": true
+        }
+      ]
+    },
+    {
+      "issue_id": "I2",
+      "decision": "rebut",
+      "reason": "The contract already records this assumption in the global uncertain list: the async_reset note states that the output value during asynchronous reset is unspecified and that the contract assumes z=0, with both candidates. No additional field change is needed.",
+      "spec_quote": "The conversion begins when Reset is released and stops when Reset is asserted.",
+      "edits": []
+    },
+    {
+      "issue_id": "I3",
+      "decision": "rebut",
+      "reason": "The contract already records this exact visibility ambiguity in the global uncertain list for serial_twos_complement, including the same-cycle assumption and the lagged alternative. No additional edit is needed for this ambiguity.",
+      "spec_quote": "The input (x) is a series of bits (one per clock cycle) beginning with the least-significant bit of the number, and the output (Z) is the 2's complement of the input.",
+      "edits": []
+    },
+    {
+      "issue_id": "I4",
+      "decision": "accept",
+      "reason": "The global uncertain list contains open assumptions for serial_twos_complement, but its rule still says uncertain=false. Set the rule's uncertain flag to true to match the existing uncertainty entry; async_reset was already corrected in I1.",
+      "spec_quote": "The input (x) is a series of bits (one per clock cycle) beginning with the least-significant bit of the number, and the output (Z) is the 2's complement of the input.",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "serial_twos_complement",
+            "uncertain"
+          ],
+          "value": true
+        }
+      ]
+    }
+  ]
+}

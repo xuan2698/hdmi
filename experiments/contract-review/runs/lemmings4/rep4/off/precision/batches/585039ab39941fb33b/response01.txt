@@ -1,0 +1,591 @@
+We need to implement four independent reference models, one per assigned item. Each must define `reference(vectors)` returning a list of output dicts, one per input vector, simulating the Moore FSM with async reset, fall counter, and all rules.
+
+Key semantics:
+- Async active-high reset: when areset=1, state becomes WALK_LEFT immediately (same cycle output).
+- Fall counter: counts cycles spent in FALL state. Splat if fall counter > 20 when landing (ground=1). Need to track: when entering FALL, counter starts at 0; each cycle in FALL increments. On landing, if counter > 20 → SPLAT. "falls for more than 20 clock cycles" — so 21+ cycles of falling → splat. Let's define: counter increments each cycle we're in FALL (including the cycle we enter? Let's think). The Lemming falls for N cycles then hits ground. If N > 20 → splat. So if we enter FALL at cycle t (output aaah at t), and ground returns at cycle t+N, then N cycles of falling occurred. We need counter = number of cycles spent in FALL before landing. So when in FALL and ground=0, counter++. When ground=1, check counter > 20.
+
+Let's define counter as: when transitioning into FALL, counter=0. Each subsequent cycle in FALL with ground=0: counter++. When ground=1 in FALL: if counter > 20 → SPLAT else resume walking. Wait, but the cycle we enter FALL — do we count it? The Lemming is falling during that cycle (aaah=1). So if it enters FALL at cycle t and lands at cycle t+1 (ground=1 at t+1), it fell for 1 cycle. So counter should be 1 at landing. Let's set: on entering FALL, counter=1 (counting the entry cycle). Then each additional FALL cycle with ground=0: counter++. On landing: if counter > 20 → splat.
+
+Check: fall for 21 cycles → counter=21 > 20 → splat. Fall for 20 cycles → counter=20, not >20 → survive. Good.
+
+But careful: the entry cycle — the Lemming was walking at cycle t-1, then at cycle t it's in FALL (aaah=1). So it fell during cycle t. If ground=1 at cycle t+1, it fell for 1 cycle. So counter=1 at landing. Yes.
+
+Implementation approach: simulate cycle by cycle. State variables: state, fall_counter. For each vector:
+1. If areset=1: state=WALK_LEFT, fall_counter=0. Output based on WALK_LEFT.
+2. Else: output based on current state (Moore). Then compute next state based on inputs and current state.
+
+Wait — Moore machine: output depends only on current state. So output for cycle i is determined by state at start of cycle i (after any reset). Then we compute next state using inputs at cycle i.
+
+But async reset: if areset=1 during cycle i, state becomes WALK_LEFT immediately, so output is WALK_LEFT's output. Then next state computation: since reset is async and held, state stays WALK_LEFT. Actually if areset=1, next state is also WALK_LEFT (reset dominates). When areset returns to 0, next posedge uses normal transition from WALK_LEFT.
+
+Let me structure:
+
+```
+state = WALK_LEFT
+fall_counter = 0
+outputs = []
+for v in vectors:
+    if v['areset']:
+        state = WALK_LEFT
+        fall_counter = 0
+    # output based on state
+    out = output_for(state)
+    outputs.append(out)
+    # compute next state (only if not reset? If reset, next state is WALK_LEFT anyway)
+    if v['areset']:
+        next_state = WALK_LEFT
+        next_counter = 0
+    else:
+        next_state, next_counter = transition(state, fall_counter, v)
+    state = next_state
+    fall_counter = next_counter
+```
+
+Wait, but the reset is async — if areset=1, the state is forced to WALK_LEFT regardless of clock. So output during that cycle is WALK_LEFT. And next state (for next cycle) is also WALK_LEFT (since reset still held or just released — if released, next posedge transitions from WALK_LEFT). So the above works.
+
+Transition function:
+
+```
+def transition(state, fc, v):
+    g = v['ground']; bl = v['bump_left']; br = v['bump_right']; d = v['dig']
+    if state == WALK_LEFT:
+        if g == 0:
+            return FALL_LEFT, 1
+        elif d == 1:
+            return DIG_LEFT, 0
+        elif bl or br:
+            return WALK_RIGHT, 0
+        else:
+            return WALK_LEFT, 0
+    elif state == WALK_RIGHT:
+        if g == 0:
+            return FALL_RIGHT, 1
+        elif d == 1:
+            return DIG_RIGHT, 0
+        elif bl or br:
+            return WALK_LEFT, 0
+        else:
+            return WALK_RIGHT, 0
+    elif state == FALL_LEFT:
+        if g == 1:
+            if fc > 20:
+                return SPLAT, 0
+            else:
+                return WALK_LEFT, 0
+        else:
+            return FALL_LEFT, fc + 1
+    elif state == FALL_RIGHT:
+        if g == 1:
+            if fc > 20:
+                return SPLAT, 0
+            else:
+                return WALK_RIGHT, 0
+        else:
+            return FALL_RIGHT, fc + 1
+    elif state == DIG_LEFT:
+        if g == 0:
+            return FALL_LEFT, 1
+        else:
+            return DIG_LEFT, 0
+    elif state == DIG_RIGHT:
+        if g == 0:
+            return FALL_RIGHT, 1
+        else:
+            return DIG_RIGHT, 0
+    elif state == SPLAT:
+        return SPLAT, 0
+```
+
+Wait — for FALL entry counter: when we transition from WALK to FALL, we set fc=1 (counting the entry cycle). Then in FALL with ground=0, fc+1. So if we enter FALL at cycle t (fc=1), and at cycle t+1 ground=0, fc becomes 2. At cycle t+1 output is FALL (aaah=1). At cycle t+2 if ground=1, we check fc=2 > 20? No. So fell for 2 cycles (t and t+1), counter=2. Correct.
+
+But wait: the entry cycle — at cycle t, we output FALL (aaah=1) because state is FALL. The transition into FALL happened at the posedge before cycle t. So the Lemming is falling during cycle t. So counter should count cycle t. Setting fc=1 on entry is correct.
+
+Now check R11 example: vectors: ground=0, ground=0, ground=1. Start WALK_LEFT.
+- Cycle 0: state WALK_LEFT, output walk_left=1. Transition: g=0 → FALL_LEFT, fc=1.
+- Cycle 1: state FALL_LEFT, output aaah=1. Transition: g=0 → FALL_LEFT, fc=2.
+- Cycle 2: state FALL_LEFT, output aaah=1. Transition: g=1, fc=2 not >20 → WALK_LEFT, fc=0.
+Expected: [{walk_left:0,walk_right:0,aaah:1,digging:0}, {walk_left:0,walk_right:0,aaah:1,digging:0}, {walk_left:0,walk_right:0,aaah:0,digging:0}]. 
+
+Wait expected row 0 is aaah=1? Let me re-read R11 example: vectors: [{ground:0},{ground:0},{ground:1}], expected: [{walk_left:0,walk_right:0,aaah:1,digging:0}, {walk_left:0,walk_right:0,aaah:1,digging:0}, {walk_left:0,walk_right:0,aaah:0,digging:0}]. Hmm, row 0 expected aaah=1. But my simulation gives row 0 walk_left=1 (since state WALK_LEFT at start). 
+
+Wait — the example starts with ground=0 at cycle 0. But the initial state is WALK_LEFT (after reset). At cycle 0, state is WALK_LEFT, so output walk_left=1. But expected says aaah=1. That's inconsistent with Moore semantics unless the reset happened and then... Hmm. Let me re-read the example. Actually maybe the example assumes the Lemming is already falling at cycle 0? Or maybe the vectors are applied and the output is sampled after the edge? The problem says "sample after the posedge edge has settled. Each row's values are driven before the sampled edge." So the inputs for row i are driven before the posedge that samples row i. So the state at the time of sampling row i is the state after the previous posedge. So for row 0, the state is the initial state (WALK_LEFT after reset). So output should be walk_left=1. But expected says aaah=1.
+
+Hmm, maybe the example is just illustrative and not perfectly consistent? The note says "illustrative 2-cycle fall; actual splat requires >20 fall cycles per condition". Maybe the example is showing the fall behavior but the first row is already in fall? Let me check R3 example: vectors: ground=1, ground=0, ground=0. Expected: row0 walk_left=1, row1 aaah=1, row2 aaah=1. That matches my simulation: row0 WALK_LEFT output walk_left=1; transition to FALL_LEFT; row1 FALL_LEFT output aaah=1; row2 FALL_LEFT output aaah=1. Good.
+
+R11 example: vectors: ground=0, ground=0, ground=1. Expected: row0 aaah=1, row1 aaah=1, row2 all zero. That would mean at row0 the state is already FALL. But initial state is WALK_LEFT. Unless the example assumes the Lemming was already falling before the vectors started? Or maybe the example is wrong? Let me check R15 example: vectors: ground=0, ground=0, ground=0. Expected: row0 walk_left=1, row1 aaah=1, row2 aaah=1. That matches my simulation. So R11 example seems inconsistent with R15. Possibly R11 example is just illustrative and not meant to be exact? The note says "illustrative 2-cycle fall; actual splat requires >20 fall cycles per condition". Maybe the example is showing what happens if the Lemming is already falling at row0? But the vectors don't show that.
+
+Given the inconsistency, I'll trust the Moore semantics and the other examples. The R11 example might be a mistake in the spec. I'll implement the correct Moore FSM.
+
+Let me double-check R10 example: vectors: ground=1, ground=0, ground=1 with bump_left=1,bump_right=1,dig=1 at row2. Expected: row0 walk_left=1, row1 aaah=1, row2 digging=1. My simulation: row0 WALK_LEFT output walk_left=1; transition g=1,d=0,no bump → WALK_LEFT. row1 WALK_LEFT output walk_left=1? Wait expected row1 aaah=1. Hmm. Let me re-read R10 example: vectors: [{areset:0,bump_left:0,bump_right:0,ground:1,dig:0}, {areset:0,bump_left:0,bump_right:0,ground:0,dig:0}, {areset:0,bump_left:1,bump_right:1,ground:1,dig:1}]. Expected: [{walk_left:1,walk_right:0,aaah:0,digging:0}, {walk_left:0,walk_right:0,aaah:1,digging:0}, {walk_left:0,walk_right:0,aaah:0,digging:1}].
+
+My simulation: 
+- Cycle 0: state WALK_LEFT, output walk_left=1. Transition: g=1, d=0, no bump → WALK_LEFT.
+- Cycle 1: state WALK_LEFT, output walk_left=1. But expected aaah=1. 
+
+Wait, that's wrong. Let me re-read: row1 ground=0. So at cycle 1, state is WALK_LEFT (from cycle 0 transition). Output should be walk_left=1. But expected aaah=1. That means the state at cycle 1 should be FALL_LEFT. But transition from cycle 0: g=1, so no fall. Hmm.
+
+Wait, maybe the vectors are: row0 inputs are applied, then posedge samples row0 output. Then row1 inputs applied, posedge samples row1 output. So at row1, the state is the result of transition from row0. Row0: g=1, so state stays WALK_LEFT. So row1 output should be walk_left=1. But expected aaah=1. 
+
+Unless the transition uses the inputs of the same row? No, Moore machine: output depends on current state, which is determined by previous inputs. So row1 output depends on row0 inputs. Row0 g=1 → no fall. So row1 should be WALK_LEFT.
+
+Let me check R3 example again: vectors: ground=1, ground=0, ground=0. Expected: row0 walk_left=1, row1 aaah=1, row2 aaah=1. My simulation: row0 WALK_LEFT output walk_left=1; transition g=1 → WALK_LEFT. row1 WALK_LEFT output walk_left=1? But expected aaah=1. Wait, that's also inconsistent!
+
+Hold on. Let me re-read R3 example carefully:
+vectors: [{areset:0,bump_left:0,bump_right:0,ground:1,dig:0}, {areset:0,bump_left:0,bump_right:0,ground:0,dig:0}, {areset:0,bump_left:0,bump_right:0,ground:0,dig:0}]
+expected: [{walk_left:1,walk_right:0,aaah:0,digging:0}, {walk_left:0,walk_right:0,aaah:1,digging:0}, {walk_left:0,walk_right:0,aaah:1,digging:0}]
+
+My simulation: 
+- Cycle 0: state WALK_LEFT, output walk_left=1. Transition: g=1 → WALK_LEFT.
+- Cycle 1: state WALK_LEFT, output walk_left=1. But expected aaah=1.
+
+So there's a discrepancy. Unless the transition uses the current row's inputs to determine the current row's output? That would be a Mealy machine, not Moore. But the spec says Moore.
+
+Wait, maybe the sampling is: inputs are driven, then posedge occurs, state updates, then output is sampled after the posedge. So the output at row i reflects the state AFTER the posedge that used row i's inputs. That would be a Mealy-like timing where output depends on current inputs. But the spec says Moore.
+
+Let me re-read the problem statement: "Clock clk; sample after the posedge edge has settled. Each row's values are driven before the sampled edge." So for row i: inputs are driven, then posedge occurs, then output is sampled. So the state used for output is the state AFTER the posedge. That means the output at row i depends on the inputs at row i (since the posedge used those inputs to transition). That's effectively a Mealy machine in terms of input-output timing, but the state itself is Moore (output depends only on state, but state is updated using current inputs before output is sampled).
+
+So the correct model: for each row, first compute next state using current inputs and current state, then output based on next state. Wait, but that would mean the output at row i is based on the state after the posedge, which used row i's inputs. So output at row i = f(state after transition using row i inputs). That matches the examples.
+
+Let me verify with R3: 
+- Row0: inputs g=1. Start state WALK_LEFT. Transition: g=1 → WALK_LEFT. Output based on WALK_LEFT: walk_left=1. Expected row0 walk_left=1. ✓
+- Row1: inputs g=0. State WALK_LEFT. Transition: g=0 → FALL_LEFT. Output based on FALL_LEFT: aaah=1. Expected row1 aaah=1. ✓
+- Row2: inputs g=0. State FALL_LEFT. Transition: g=0 → FALL_LEFT. Output aaah=1. Expected row2 aaah=1. ✓
+
+Yes! So the model is: for each row, compute next state using current inputs and current state, then output based on next state. But wait, what about async reset? If areset=1, the state is forced to WALK_LEFT immediately (asynchronously), so output should be WALK_LEFT regardless of clock. But in the sampling scheme, if areset=1, the posedge might not matter. Let's check R1 example: vectors: areset=0, areset=1, areset=0. Expected: row0 walk_left=1, row1 walk_left=1, row2 walk_left=1. 
+
+If we use the "transition then output" model: 
+- Row0: areset=0. Start state WALK_LEFT. Transition: areset=0, g=1 → WALK_LEFT. Output walk_left=1. ✓
+- Row1: areset=1. Async reset forces state to WALK_LEFT. Output walk_left=1. ✓ (Even if we did transition, areset=1 → WALK_LEFT.)
+- Row2: areset=0. State WALK_LEFT. Transition: g=1 → WALK_LEFT. Output walk_left=1. ✓
+
+So the model: for each row, if areset=1, state becomes WALK_LEFT (and fall_counter=0), output based on WALK_LEFT. Else, compute next state using current inputs and current state, then output based on next state. But wait, that means the output at row i is based on the state after the posedge, which used row i's inputs. So the state variable we carry is the state after the previous row's posedge. Let me restructure:
+
+```
+state = WALK_LEFT
+fall_counter = 0
+outputs = []
+for v in vectors:
+    if v['areset']:
+        state = WALK_LEFT
+        fall_counter = 0
+        out = output_for(state)
+        outputs.append(out)
+        # state remains WALK_LEFT for next row
+    else:
+        next_state, next_counter = transition(state, fall_counter, v)
+        state = next_state
+        fall_counter = next_counter
+        out = output_for(state)
+        outputs.append(out)
+```
+
+Wait, but this means the output at row i is based on the state after the transition using row i's inputs. That matches the examples. But is this truly Moore? The output depends only on the state, but the state is updated before output is sampled. So it's a Moore machine where the output is sampled after the clock edge. That's standard for synchronous Moore machines: outputs are registered and change after the clock edge. So the output during cycle i is the state after the clock edge at the start of cycle i. So yes, this is correct.
+
+Let me verify R6 example: vectors: row0 no bump, row1 bump_left=1, row2 no bump. Expected: row0 walk_left=1, row1 walk_right=1, row2 walk_right=1.
+- Row0: state WALK_LEFT. Transition: g=1, no bump → WALK_LEFT. Output walk_left=1. ✓
+- Row1: state WALK_LEFT. Transition: bump_left=1 → WALK_RIGHT. Output walk_right=1. ✓
+- Row2: state WALK_RIGHT. Transition: no bump → WALK_RIGHT. Output walk_right=1. ✓
+
+R8 example: row0 no dig, row1 dig=1,bump_left=1, row2 no dig. Expected: row0 walk_left=1, row1 digging=1, row2 digging=1.
+- Row0: WALK_LEFT → WALK_LEFT. Output walk_left=1. ✓
+- Row1: WALK_LEFT, dig=1 → DIG_LEFT. Output digging=1. ✓
+- Row2: DIG_LEFT, g=1 → DIG_LEFT. Output digging=1. ✓
+
+R9 example: row0 g=1, row1 g=0,dig=1,bump both, row2 g=0. Expected: row0 walk_left=1, row1 aaah=1, row2 aaah=1.
+- Row0: WALK_LEFT → WALK_LEFT. Output walk_left=1. ✓
+- Row1: WALK_LEFT, g=0 → FALL_LEFT. Output aaah=1. ✓
+- Row2: FALL_LEFT, g=0 → FALL_LEFT. Output aaah=1. ✓
+
+R10 example: row0 g=1, row1 g=0, row2 g=1,bump both,dig=1. Expected: row0 walk_left=1, row1 aaah=1, row2 digging=1.
+- Row0: WALK_LEFT → WALK_LEFT. Output walk_left=1. ✓
+- Row1: WALK_LEFT, g=0 → FALL_LEFT, fc=1. Output aaah=1. ✓
+- Row2: FALL_LEFT, g=1, fc=1 not >20 → WALK_LEFT. Output walk_left=1? But expected digging=1. Wait, expected row2 digging=1. Hmm.
+
+Let me re-read R10 example: vectors: [{ground:1,dig:0}, {ground:0,dig:0}, {ground:1,dig:1,bump_left:1,bump_right:1}]. Expected: [{walk_left:1}, {aaah:1}, {digging:1}].
+
+My simulation: row2: state FALL_LEFT, g=1, fc=1 → WALK_LEFT. Output walk_left=1. But expected digging=1. That's inconsistent. Unless the transition from FALL_LEFT with g=1 and dig=1 goes to DIG_LEFT? But the spec says: "When the ground reappears (ground=1), the Lemming will resume walking in the same direction as before the fall." It doesn't say it can start digging immediately upon landing. But the example shows digging=1 at row2. 
+
+Wait, maybe the transition from FALL_LEFT with g=1 goes to WALK_LEFT, and then the dig=1 is processed in the same cycle? No, that would be two transitions. Or maybe the rule is: when landing, if dig=1, it starts digging? The spec says: "A Lemming can dig if it is currently walking on ground (ground=1 and not falling)". So upon landing, it becomes walking, and if dig=1, it could start digging. But that would require two cycles: one to land, one to start digging. But the example shows digging=1 at the landing cycle. 
+
+Let me check R10 example again carefully. The expected row2 is digging=1. So at row2, the output is digging=1. That means the state at row2 (after transition) is DIG_LEFT. So the transition from FALL_LEFT with g=1, dig=1 must go to DIG_LEFT. But the spec says resume walking. Hmm.
+
+Wait, maybe the example is wrong? Or maybe the transition from FALL_LEFT with g=1 goes to WALK_LEFT, but then the output is based on the state after the transition, which is WALK_LEFT, so output walk_left=1. But expected digging=1. 
+
+Let me check R12 example: row0 dig=1, row1 bump both, row2 no dig. Expected: row0 walk_left=1, row1 digging=1, row2 digging=1.
+- Row0: WALK_LEFT, dig=1 → DIG_LEFT. Output digging=1? But expected row0 walk_left=1. Wait, expected row0 walk_left=1. Hmm.
+
+R12 example: vectors: [{ground:1,dig:1}, {ground:1,dig:0,bump_left:1,bump_right:1}, {ground:1,dig:0}]. Expected: [{walk_left:1}, {digging:1}, {digging:1}].
+- Row0: state WALK_LEFT, dig=1 → DIG_LEFT. Output digging=1. But expected walk_left=1. 
+
+So there's a contradiction. Let me re-read R12 example: "vectors":[{"areset":0,"bump_left":0,"bump_right":0,"ground":1,"dig":1},{"areset":0,"bump_left":1,"bump_right":1,"ground":1,"dig":0},{"areset":0,"bump_left":0,"bump_right":0,"ground":1,"dig":0}],"expected":[{"walk_left":1,"walk_right":0,"aaah":0,"digging":0},{"walk_left":0,"walk_right":0,"aaah":0,"digging":1},{"walk_left":0,"walk_right":0,"aaah":0,"digging":1}]
+
+So row0 expected walk_left=1, even though dig=1. That means the dig=1 at row0 does NOT cause digging at row0. It causes digging at row1. So the output at row i is based on the state BEFORE the transition using row i's inputs. That is, the state at row i is the state after the previous row's transition. So the output at row i is based on the state at the start of row i (before applying row i's inputs). Then the transition using row i's inputs determines the state for row i+1.
+
+Let me re-verify with R3: 
+- Row0: start state WALK_LEFT. Output walk_left=1. Transition: g=1 → WALK_LEFT.
+- Row1: state WALK_LEFT. Output walk_left=1? But expected aaah=1. 
+
+Wait, that doesn't work either. Let me re-read R3 example: vectors: ground=1, ground=0, ground=0. Expected: row0 walk_left=1, row1 aaah=1, row2 aaah=1.
+If output is based on state before transition:
+- Row0: state WALK_LEFT, output walk_left=1. Transition: g=1 → WALK_LEFT.
+- Row1: state WALK_LEFT, output walk_left=1. But expected aaah=1. ✗
+
+If output is based on state after transition:
+- Row0: state WALK_LEFT, transition g=1 → WALK_LEFT, output walk_left=1. ✓
+- Row1: state WALK_LEFT, transition g=0 → FALL_LEFT, output aaah=1. ✓
+- Row2: state FALL_LEFT, transition g=0 → FALL_LEFT, output aaah=1. ✓
+
+So R3 supports "output after transition". But R12 supports "output before transition". Contradiction.
+
+Let me re-read R12 example carefully. Maybe I misread the vectors. R12: vectors: [{ground:1,dig:1}, {ground:1,dig:0,bump_left:1,bump_right:1}, {ground:1,dig:0}]. Expected: [{walk_left:1}, {digging:1}, {digging:1}].
+
+If output after transition:
+- Row0: state WALK_LEFT, dig=1 → DIG_LEFT, output digging=1. But expected walk_left=1. ✗
+
+If output before transition:
+- Row0: state WALK_LEFT, output walk_left=1. Transition: dig=1 → DIG_LEFT.
+- Row1: state DIG_LEFT, output digging=1. Transition: g=1 → DIG_LEFT.
+- Row2: state DIG_LEFT, output digging=1. Transition: g=1 → DIG_LEFT.
+Expected: row0 walk_left=1, row1 digging=1, row2 digging=1. ✓
+
+So R12 supports "output before transition". But R3 supports "output after transition". 
+
+Wait, maybe the difference is that in R3, the first row has ground=1, and the Lemming is walking. The transition to FALL happens at row1. So at row1, the state is FALL_LEFT, output aaah=1. That's consistent with "output before transition" if the transition from row0 to row1 happened at the posedge between row0 and row1. So at row1, the state is the result of row0's transition. So output at row1 is based on state after row0's transition. That is "output before transition" for row1 (since row1's transition hasn't happened yet). So the model is: state is updated at the posedge between rows. Output at row i is based on the state at the start of row i (which is the state after row i-1's transition). Then row i's inputs are used to compute the next state for row i+1.
+
+Let me re-verify R3 with this model:
+- Row0: start state WALK_LEFT. Output walk_left=1. Transition using row0 inputs (g=1) → WALK_LEFT.
+- Row1: state WALK_LEFT. Output walk_left=1? But expected aaah=1. ✗
+
+Wait, that's still wrong. Let me re-read R3 example one more time. Maybe the vectors are: row0 ground=1, row1 ground=0, row2 ground=0. Expected: row0 walk_left=1, row1 aaah=1, row2 aaah=1. 
+
+If the state at row1 is WALK_LEFT (from row0 transition g=1), then output at row1 should be walk_left=1. But expected aaah=1. So the state at row1 must be FALL_LEFT. That means the transition to FALL happened at row0's posedge. But row0's ground=1, so no fall. Unless the transition uses row1's inputs? That would be "output after transition" for row1.
+
+I'm confused. Let me look at the problem statement again: "Each row's values are driven before the sampled edge." So for row i, the inputs are driven, then the posedge occurs, then the output is sampled. So the output at row i is the state AFTER the posedge that used row i's inputs. So output at row i = f(state after transition using row i inputs). That's the "output after transition" model.
+
+Let me re-check R12 with this model:
+- Row0: state WALK_LEFT, inputs dig=1. Transition: dig=1 → DIG_LEFT. Output digging=1. But expected walk_left=1. ✗
+
+So R12 contradicts. Unless the transition from WALK_LEFT with dig=1 doesn't happen immediately? But the spec says "it starts digging when dig=1". And R8 example shows: row0 no dig, row1 dig=1,bump_left=1, row2 no dig. Expected: row0 walk_left=1, row1 digging=1, row2 digging=1. With "output after transition":
+- Row0: WALK_LEFT, no dig → WALK_LEFT, output walk_left=1. ✓
+- Row1: WALK_LEFT, dig=1 → DIG_LEFT, output digging=1. ✓
+- Row2: DIG_LEFT, g=1 → DIG_LEFT, output digging=1. ✓
+So R8 supports "output after transition".
+
+R12: row0 dig=1. With "output after transition", row0 should be digging=1. But expected walk_left=1. So R12 is inconsistent with R8. 
+
+Wait, maybe R12's row0 is not the first cycle? The vectors start with areset=0. Maybe the initial state is not WALK_LEFT? But reset sets to WALK_LEFT. Hmm.
+
+Let me re-read R12 example: "vectors":[{"areset":0,"bump_left":0,"bump_right":0,"ground":1,"dig":1},{"areset":0,"bump_left":1,"bump_right":1,"ground":1,"dig":0},{"areset":0,"bump_left":0,"bump_right":0,"ground":1,"dig":0}],"expected":[{"walk_left":1,"walk_right":0,"aaah":0,"digging":0},{"walk_left":0,"walk_right":0,"aaah":0,"digging":1},{"walk_left":0,"walk_right":0,"aaah":0,"digging":1}]
+
+Maybe the expected row0 is walk_left=1 because the dig=1 is ignored on the first cycle? No, that doesn't make sense.
+
+Wait, maybe the sampling is: inputs are driven, then the posedge occurs, then output is sampled. But the state used for output is the state BEFORE the posedge? That would be "output before transition". Let's test R8 with "output before transition":
+- Row0: state WALK_LEFT, output walk_left=1. Transition: no dig → WALK_LEFT.
+- Row1: state WALK_LEFT, output walk_left=1? But expected digging=1. ✗
+
+So R8 contradicts "output before transition". 
+
+There's a fundamental inconsistency in the examples. Let me check if maybe the examples are just illustrative and not meant to be exact. The problem says "For diagnosis, return JSON {models:{id: Python source string}}." So we need to implement the correct semantics, not necessarily match every example. The examples might have errors.
+
+Given the spec text, the correct Moore machine semantics: output depends only on current state. The state updates at posedge using inputs. The output during a cycle is the state at the start of the cycle (after the previous posedge). So "output before transition" is the standard Moore model. But then R3 example fails. Let me re-read R3 example: maybe the vectors are: row0 ground=1, row1 ground=0, row2 ground=0. Expected: row0 walk_left=1, row1 aaah=1, row2 aaah=1. 
+
+If output before transition:
+- Row0: state WALK_LEFT, output walk_left=1. Transition: g=1 → WALK_LEFT.
+- Row1: state WALK_LEFT, output walk_left=1. But expected aaah=1. ✗
+
+So R3 fails with "output before transition". 
+
+What if the initial state is not WALK_LEFT? But reset sets to WALK_LEFT. 
+
+Wait, maybe the vectors in R3 are: row0 ground=1, row1 ground=0, row2 ground=0. But the expected row1 aaah=1 means the state at row1 is FALL_LEFT. That means the transition to FALL happened at row0's posedge. But row0's ground=1, so no fall. Unless the transition uses row1's inputs? That would be "output after transition" for row1. 
+
+I think the examples are inconsistent. Let me look at the problem statement: "sample after the posedge edge has settled. Each row's values are driven before the sampled edge." This clearly means: for row i, drive inputs, then posedge, then sample output. So output at row i is based on state after posedge using row i inputs. That's "output after transition". 
+
+Let me re-check R12 with "output after transition" and see if maybe I misread the expected. R12 expected row0: walk_left=1. But with dig=1, transition WALK_LEFT → DIG_LEFT, output digging=1. So expected should be digging=1. But it says walk_left=1. So R12 example is wrong. 
+
+Similarly, R10 example: row2 expected digging=1. With "output after transition": row2 state FALL_LEFT, g=1, fc=1 → WALK_LEFT, output walk_left=1. But expected digging=1. So R10 example is also wrong. 
+
+Given the inconsistencies, I'll implement the standard Moore machine with "output after transition" (i.e., output based on state after posedge using current inputs). This matches R3, R6, R7, R8, R9, R11, R13, R14, R15. It fails R10 and R12, but those examples seem to have errors.
+
+Wait, let me check R13: vectors: row0 dig=1, row1 g=0, row2 g=0. Expected: row0 digging=1, row1 aaah=1, row2 aaah=1.
+With "output after transition":
+- Row0: WALK_LEFT, dig=1 → DIG_LEFT, output digging=1. ✓
+- Row1: DIG_LEFT, g=0 → FALL_LEFT, fc=1, output aaah=1. ✓
+- Row2: FALL_LEFT, g=0 → FALL_LEFT, fc=2, output aaah=1. ✓
+Matches.
+
+R14: vectors: row0 g=1, row1 bump both,dig=1, row2 g=0. Expected: all zero.
+With "output after transition":
+- Row0: WALK_LEFT, g=1 → WALK_LEFT, output walk_left=1. But expected all zero. ✗
+
+Wait, R14 expected: [{walk_left:0,walk_right:0,aaah:0,digging:0}, {walk_left:0,walk_right:0,aaah:0,digging:0}, {walk_left:0,walk_right:0,aaah:0,digging:0}]. That's all zero. But row0 should be walk_left=1. So R14 example is also wrong? Or maybe the initial state is SPLAT? No, reset sets to WALK_LEFT. 
+
+Hmm, R14 example seems to assume the Lemming is already splatted at row0. But the vectors don't show that. So R14 example is also inconsistent.
+
+Given the many inconsistencies, I'll implement the correct Moore FSM based on the spec text, using "output after transition" (standard synchronous Moore). I'll also handle async reset: if areset=1, state becomes WALK_LEFT immediately, output based on WALK_LEFT, and next state is WALK_LEFT.
+
+Let me write the code for each item. Since all four items have the same spec (just different examples), I'll write the same reference function for all four. The only difference might be the reset behavior (item 4 has an uncertainty about edge-triggered vs level async reset). For item 4, I'll implement level async reset (active-high level), which is the current contract. The alternative is edge-triggered, but I'll stick with level.
+
+Let me write the Python code:
+
+```python
+def reference(vectors):
+    # states: 0=WALK_LEFT, 1=WALK_RIGHT, 2=FALL_LEFT, 3=FALL_RIGHT, 4=DIG_LEFT, 5=DIG_RIGHT, 6=SPLAT
+    state = 0
+    fall_counter = 0
+    outputs = []
+    for v in vectors:
+        if v['areset']:
+            state = 0
+            fall_counter = 0
+            # output based on WALK_LEFT
+            outputs.append({'walk_left':1,'walk_right':0,'aaah':0,'digging':0})
+            # state remains WALK_LEFT for next cycle
+            continue
+        # compute next state using current inputs
+        g = v['ground']
+        bl = v['bump_left']
+        br = v['bump_right']
+        d = v['dig']
+        if state == 0:  # WALK_LEFT
+            if g == 0:
+                next_state = 2  # FALL_LEFT
+                next_fc = 1
+            elif d == 1:
+                next_state = 4  # DIG_LEFT
+                next_fc = 0
+            elif bl or br:
+                next_state = 1  # WALK_RIGHT
+                next_fc = 0
+            else:
+                next_state = 0
+                next_fc = 0
+        elif state == 1:  # WALK_RIGHT
+            if g == 0:
+                next_state = 3  # FALL_RIGHT
+                next_fc = 1
+            elif d == 1:
+                next_state = 5  # DIG_RIGHT
+                next_fc = 0
+            elif bl or br:
+                next_state = 0  # WALK_LEFT
+                next_fc = 0
+            else:
+                next_state = 1
+                next_fc = 0
+        elif state == 2:  # FALL_LEFT
+            if g == 1:
+                if fall_counter > 20:
+                    next_state = 6  # SPLAT
+                    next_fc = 0
+                else:
+                    next_state = 0  # WALK_LEFT
+                    next_fc = 0
+            else:
+                next_state = 2
+                next_fc = fall_counter + 1
+        elif state == 3:  # FALL_RIGHT
+            if g == 1:
+                if fall_counter > 20:
+                    next_state = 6
+                    next_fc = 0
+                else:
+                    next_state = 1  # WALK_RIGHT
+                    next_fc = 0
+            else:
+                next_state = 3
+                next_fc = fall_counter + 1
+        elif state == 4:  # DIG_LEFT
+            if g == 0:
+                next_state = 2  # FALL_LEFT
+                next_fc = 1
+            else:
+                next_state = 4
+                next_fc = 0
+        elif state == 5:  # DIG_RIGHT
+            if g == 0:
+                next_state = 3  # FALL_RIGHT
+                next_fc = 1
+            else:
+                next_state = 5
+                next_fc = 0
+        else:  # SPLAT
+            next_state = 6
+            next_fc = 0
+        state = next_state
+        fall_counter = next_fc
+        # output based on new state
+        if state == 0:
+            outputs.append({'walk_left':1,'walk_right':0,'aaah':0,'digging':0})
+        elif state == 1:
+            outputs.append({'walk_left':0,'walk_right':1,'aaah':0,'digging':0})
+        elif state == 2 or state == 3:
+            outputs.append({'walk_left':0,'walk_right':0,'aaah':1,'digging':0})
+        elif state == 4 or state == 5:
+            outputs.append({'walk_left':0,'walk_right':0,'aaah':0,'digging':1})
+        else:  # SPLAT
+            outputs.append({'walk_left':0,'walk_right':0,'aaah':0,'digging':0})
+    return outputs
+```
+
+Wait, but for areset=1, I append output and continue, but I don't update state? I set state=0 and fall_counter=0, then continue. That's fine because state is already 0. But I should ensure that after areset=1, the next cycle starts with state=0. Yes.
+
+But there's a subtlety: if areset=1, the output is based on WALK_LEFT. But what if the previous state was something else? The async reset forces state to WALK_LEFT immediately, so output is WALK_LEFT. That's correct.
+
+Now, let me test with R3 example: vectors: g=1, g=0, g=0.
+- Row0: areset=0. state=0. g=1, d=0, no bump → next_state=0, next_fc=0. state=0. output walk_left=1. ✓
+- Row1: state=0. g=0 → next_state=2, next_fc=1. state=2. output aaah=1. ✓
+- Row2: state=2. g=0 → next_state=2, next_fc=2. state=2. output aaah=1. ✓
+Matches.
+
+R6: row0 no bump, row1 bump_left=1, row2 no bump.
+- Row0: state=0, g=1, no bump → state=0, output walk_left=1. ✓
+- Row1: state=0, bump_left=1 → state=1, output walk_right=1. ✓
+- Row2: state=1, no bump → state=1, output walk_right=1. ✓
+Matches.
+
+R8: row0 no dig, row1 dig=1,bump_left=1, row2 no dig.
+- Row0: state=0, g=1, d=0 → state=0, output walk_left=1. ✓
+- Row1: state=0, d=1 → state=4, output digging=1. ✓
+- Row2: state=4, g=1 → state=4, output digging=1. ✓
+Matches.
+
+R9: row0 g=1, row1 g=0,dig=1,bump both, row2 g=0.
+- Row0: state=0, g=1 → state=0, output walk_left=1. ✓
+- Row1: state=0, g=0 → state=2, fc=1, output aaah=1. ✓
+- Row2: state=2, g=0 → state=2, fc=2, output aaah=1. ✓
+Matches.
+
+R10: row0 g=1, row1 g=0, row2 g=1,bump both,dig=1.
+- Row0: state=0, g=1 → state=0, output walk_left=1. ✓
+- Row1: state=0, g=0 → state=2, fc=1, output aaah=1. ✓
+- Row2: state=2, g=1, fc=1 not >20 → state=0, output walk_left=1. But expected digging=1. ✗ (example error)
+
+R11: row0 g=0, row1 g=0, row2 g=1.
+- Row0: state=0, g=0 → state=2, fc=1, output aaah=1. But expected row0 aaah=1? Wait expected row0 aaah=1. My output: state=2 → aaah=1. ✓
+- Row1: state=2, g=0 → state=2, fc=2, output aaah=1. ✓
+- Row2: state=2, g=1, fc=2 not >20 → state=0, output walk_left=1. But expected all zero. ✗ (example error, since fc=2 not >20, should not splat)
+
+R12: row0 dig=1, row1 bump both, row2 no dig.
+- Row0: state=0, d=1 → state=4, output digging=1. But expected walk_left=1. ✗ (example error)
+
+R13: row0 dig=1, row1 g=0, row2 g=0.
+- Row0: state=0, d=1 → state=4, output digging=1. ✓
+- Row1: state=4, g=0 → state=2, fc=1, output aaah=1. ✓
+- Row2: state=2, g=0 → state=2, fc=2, output aaah=1. ✓
+Matches.
+
+R14: row0 g=1, row1 bump both,dig=1, row2 g=0.
+- Row0: state=0, g=1 → state=0, output walk_left=1. But expected all zero. ✗ (example error)
+
+R15: row0 g=0, row1 g=0, row2 g=0.
+- Row0: state=0, g=0 → state=2, fc=1, output aaah=1. But expected row0 walk_left=1. ✗ (example error? Wait expected row0 walk_left=1. My output aaah=1. So R15 example contradicts R11 example. R11 row0 g=0 expected aaah=1, R15 row0 g=0 expected walk_left=1. Inconsistent.)
+
+So the examples are indeed inconsistent. I'll go with the standard Moore model with "output after transition" as it matches the majority and the spec text.
+
+Now, for item 4 (f8264c52222c547545), there's an uncertainty about reset. I'll implement level async reset (active-high level). The alternative is edge-triggered, but I'll stick with level.
+
+Let me write the final code. I'll make it a single function for all items.
+
+```python
+def reference(vectors):
+    state = 0
+    fall_counter = 0
+    outputs = []
+    for v in vectors:
+        if v['areset']:
+            state = 0
+            fall_counter = 0
+            outputs.append({'walk_left':1,'walk_right':0,'aaah':0,'digging':0})
+            continue
+        g = v['ground']
+        bl = v['bump_left']
+        br = v['bump_right']
+        d = v['dig']
+        if state == 0:
+            if g == 0:
+                next_state = 2
+                next_fc = 1
+            elif d == 1:
+                next_state = 4
+                next_fc = 0
+            elif bl or br:
+                next_state = 1
+                next_fc = 0
+            else:
+                next_state = 0
+                next_fc = 0
+        elif state == 1:
+            if g == 0:
+                next_state = 3
+                next_fc = 1
+            elif d == 1:
+                next_state = 5
+                next_fc = 0
+            elif bl or br:
+                next_state = 0
+                next_fc = 0
+            else:
+                next_state = 1
+                next_fc = 0
+        elif state == 2:
+            if g == 1:
+                if fall_counter > 20:
+                    next_state = 6
+                    next_fc = 0
+                else:
+                    next_state = 0
+                    next_fc = 0
+            else:
+                next_state = 2
+                next_fc = fall_counter + 1
+        elif state == 3:
+            if g == 1:
+                if fall_counter > 20:
+                    next_state = 6
+                    next_fc = 0
+                else:
+                    next_state = 1
+                    next_fc = 0
+            else:
+                next_state = 3
+                next_fc = fall_counter + 1
+        elif state == 4:
+            if g == 0:
+                next_state = 2
+                next_fc = 1
+            else:
+                next_state = 4
+                next_fc = 0
+        elif state == 5:
+            if g == 0:
+                next_state = 3
+                next_fc = 1
+            else:
+                next_state = 5
+                next_fc = 0
+        else:
+            next_state = 6
+            next_fc = 0
+        state = next_state
+        fall_counter = next_fc
+        if state == 0:
+            outputs.append({'walk_left':1,'walk_right':0,'aaah':0,'digging':0})
+        elif state == 1:
+            outputs.append({'walk_left':0,'walk_right':1,'aaah':0,'digging':0})
+        elif state == 2 or state == 3:
+            outputs.append({'walk_left':0,'walk_right':0,'aaah':1,'digging':0})
+        elif state == 4 or state == 5:
+            outputs.append({'walk_left':0,'walk_right':0,'aaah':0,'digging':1})
+        else:
+            outputs.append({'walk_left':0,'walk_right':0,'aaah':0,'digging':0})
+    return outputs
+```
+
+I'll use this for all four items. The JSON should have models with id keys and Python source strings.
+
+Let me format the JSON properly. The source string should be the function definition. I'll use triple quotes or escape newlines. Since it's JSON, I'll use \n for newlines.
+
+I'll write the same function for all four items. The only difference is item 4 has an uncertainty, but I'll implement the same.
+
+Let me produce the final JSON.

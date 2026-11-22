@@ -1,0 +1,57 @@
+{
+  "responses": [
+    {
+      "issue_id": "I1",
+      "decision": "accept",
+      "reason": "The spec does not fix whether the entry cycle counts toward the >20 fall threshold; the contract's uncertain field already lists both candidates but the rule condition asserts one interpretation. Clarify the rule condition to reflect the chosen counting and keep the ambiguity documented.",
+      "spec_quote": "if a Lemming falls for more than 20 clock cycles then hits the ground, it will splatter",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R9_splat_transition",
+            "condition"
+          ],
+          "value": "in FALL_*: ground=1 and fall duration > 20 cycles -> SPLAT; fall duration counts full cycles spent in FALL_* state (cycle ground goes low does not count; splat when duration reaches 21); entry-cycle counting is ambiguous per uncertain field"
+        }
+      ]
+    },
+    {
+      "issue_id": "I2",
+      "decision": "rebut",
+      "reason": "The contract already uses toggle for any bump (including both), which matches the spec's statement that bumping on both sides still switches direction; the alternative forcing interpretation is not supported by the spec.",
+      "spec_quote": "If it's bumped on both sides at the same time, it will still switch directions.",
+      "edits": []
+    },
+    {
+      "issue_id": "I3",
+      "decision": "accept",
+      "reason": "R9's example only shows a short fall resuming walking and does not exercise the >20-cycle splat threshold; replace the example with a 2-4 cycle example that still demonstrates the rule's stated behavior is not feasible within 2-4 cycles, so instead clarify the rule's example note via the uncertain field to acknowledge the example does not validate the threshold.",
+      "spec_quote": "if a Lemming falls for more than 20 clock cycles then hits the ground, it will splatter",
+      "edits": [
+        {
+          "path": [
+            "uncertain"
+          ],
+          "value": [
+            {
+              "rule_id": "R9_splat_transition",
+              "note": "No upper limit on fall length; splat only occurs on the cycle ground=1 is sampled while in FALL_*; mid-air never splats. R9 example only shows a short fall resuming walking and does not exercise the >20-cycle threshold.",
+              "candidates": [
+                "fall duration counts full FALL_* cycles; splat when duration reaches 21 on ground=1",
+                "fall duration counts cycles including entry cycle; splat when duration reaches 21 on ground=1"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "issue_id": "I4",
+      "decision": "rebut",
+      "reason": "The contract already declares reset kind async with name areset and active high, and the spec only requires async positive-edge reset to walk left; the example need not show a mid-cycle event to ground the async declaration.",
+      "spec_quote": "areset is positive edge triggered asynchronous reseting the Lemming machine to walk left",
+      "edits": []
+    }
+  ]
+}

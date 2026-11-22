@@ -1,0 +1,24 @@
+def reference(vectors):
+    # State: q_state holds the 8-bit register value.
+    # R1_sync_reset: active high synchronous reset, priority 1, on negedge.
+    # R2_dff_capture: capture d on negedge when reset==0, priority 2.
+    # Reset value is 0x34 (52).
+    # Power-up unspecified -> initialize to reset value 0x34.
+    q_state = 0x34  # R1_sync_reset reset value
+
+    results = []
+    for vec in vectors:
+        d = vec.get('d', 0) & 0xFF
+        reset = vec.get('reset', 0) & 0x1
+
+        # negedge sampling: apply reset or capture d
+        if reset == 1:
+            # R1_sync_reset: synchronous reset to 0x34
+            q_state = 0x34
+        else:
+            # R2_dff_capture: capture d
+            q_state = d & 0xFF
+
+        results.append({'q': q_state & 0xFF})
+
+    return results

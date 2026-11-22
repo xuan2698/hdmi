@@ -1,0 +1,96 @@
+```python
+def reference(vectors):
+    MASK = (1 << 32) - 1
+
+    # State: out_reg is the sticky capture register; prev_in is the previous sampled input.
+    out = 0
+    prev_in = 0
+    cur_reset = 0
+    cur_in = 0
+    result = []
+
+    for row in vectors:
+        # Apply values driven before the sampled posedge. Missing signals keep carried values.
+        if isinstance(row, dict):
+            if 'reset' in row:
+                cur_reset = int(row['reset']) & 1
+            if 'in' in row:
+                cur_in = int(row['in']) & MASK
+            if 'inputs' in row and isinstance(row['inputs'], dict):
+                for k, v in row['inputs'].items():
+                    if k == 'reset':
+                        cur_reset = int(v) & 1
+                    elif k == 'in':
+                        cur_in = int(v) & MASK
+
+        # Rule sync_active_high_reset: synchronous active-high reset clears out at posedge.
+        if cur_reset == 1:
+            out = 0
+        else:
+            # Rule capture_sticky_one_to_zero: capture per-bit 1-to-0 transitions; OR keeps it sticky.
+            out = (out | (prev_in & (~cur_in & MASK))) & MASK
+
+        # State contract: prev_in updates on every posedge, including reset cycles.
+        prev_in = cur_in & MASK
+
+        result.append({'out': out})
+
+        # Mid-row changes occur after sampling and are carried to the next row.
+        if isinstance(row, dict):
+            mids = None
+            if 'mid' in row:
+                mids = row['mid']
+            elif 'mid_changes' in row:
+                mids = row['mid_changes']
+            elif 'after' in row:
+                mids = row['after']
+
+            # Accept flat mid_* keys.
+            for k, v in row.items():
+                if k == 'mid_reset':
+                    cur_reset = int(v) & 1
+                elif k == 'mid_in':
+                    cur_in = int(v) & MASK
+                elif k == 'mid_inputs' and isinstance(v, dict):
+                    for kk, vv in v.items():
+                        if kk == 'reset':
+                            cur_reset = int(vv) & 1
+                        elif kk == 'in':
+                            cur_in = int(vv) & MASK
+
+            if isinstance(mids, dict):
+                for k, v in mids.items():
+                    if k == 'reset' or k == 'mid_reset':
+                        cur_reset = int(v) & 1
+                    elif k == 'in' or k == 'mid_in':
+                        cur_in = int(v) & MASK
+                    elif k == 'inputs' and isinstance(v, dict):
+                        for kk, vv in v.items():
+                            if kk == 'reset':
+                                cur_reset = int(vv) & 1
+                            elif kk == 'in':
+                                cur_in = int(vv) & MASK
+            elif isinstance(mids, (list, tuple)):
+                for item in mids:
+                    if isinstance(item, dict):
+                        for k, v in item.items():
+                            if k == 'reset' or k == 'mid_reset':
+                                cur_reset = int(v) & 1
+                            elif k == 'in' or k == 'mid_in':
+                                cur_in = int(v) & MASK
+                            elif k == 'inputs' and isinstance(v, dict):
+                                for kk, vv in v.items():
+                                    if kk == 'reset':
+                                        cur_reset = int(vv) & 1
+                                    elif kk == 'in':
+                                        cur_in = int(vv) & MASK
+                    elif isinstance(item, (list, tuple)) and len(item) >= 2:
+                        k = item[0]
+                        v = item[1]
+                        if k == 'reset' or k == 'mid_reset':
+                            cur_reset = int(v) & 1
+                        elif k == 'in' or k == 'mid_in':
+                            cur_in = int(v) & MASK
+
+    return result
+```

@@ -1,0 +1,110 @@
+def reference(vectors):
+    # Initial state: 12:00 AM (reset state) for concrete power-up
+    pm = 0
+    hh = 0x12
+    mm = 0x00
+    ss = 0x00
+    # Current input values carried between rows (default 0)
+    cur_reset = 0
+    cur_ena = 0
+    results = []
+
+    for row in vectors:
+        # Apply row inputs driven before the sampled edge (support flat or nested)
+        if 'inputs' in row and isinstance(row['inputs'], dict):
+            if 'reset' in row['inputs']:
+                cur_reset = row['inputs']['reset']
+            if 'ena' in row['inputs']:
+                cur_ena = row['inputs']['ena']
+        if 'reset' in row:
+            cur_reset = row['reset']
+        if 'ena' in row:
+            cur_ena = row['ena']
+
+        # Sample at posedge clk
+        # Rule sync_reset_priority: reset has highest priority
+        if cur_reset == 1:
+            pm = 0
+            hh = 0x12
+            mm = 0x00
+            ss = 0x00
+        # Rule normal_ena_increment: reset=0, ena=1
+        elif cur_ena == 1:
+            # Increment seconds BCD modulo 60
+            if ss == 0x59:
+                ss = 0x00
+                ss_roll = True
+            else:
+                low = ss & 0x0F
+                high = ss >> 4
+                low += 1
+                if low == 10:
+                    low = 0
+                    high += 1
+                ss = (high << 4) | low
+                ss_roll = False
+
+            if ss_roll:
+                # Increment minutes BCD modulo 60
+                if mm == 0x59:
+                    mm = 0x00
+                    mm_roll = True
+                else:
+                    low = mm & 0x0F
+                    high = mm >> 4
+                    low += 1
+                    if low == 10:
+                        low = 0
+                        high += 1
+                    mm = (high << 4) | low
+                    mm_roll = False
+
+                if mm_roll:
+                    # Advance hours 01-12 with AM/PM toggle on 11->12
+                    if hh == 0x11:          # 11 -> 12, toggle pm
+                        hh = 0x12
+                        pm = 1 - pm
+                    elif hh == 0x12:        # 12 -> 01, pm holds
+                        hh = 0x01
+                    else:                   # 01-10 -> next BCD
+                        low = hh & 0x0F
+                        high = hh >> 4
+                        low += 1
+                        if low == 10:
+                            low = 0
+                            high += 1
+                        hh = (high << 4) | low
+        # Rule hold_without_ena: reset=0, ena=0 -> hold all
+        else:
+            pass
+
+        # Output after posedge settled
+        results.append({'pm': pm, 'hh': hh, 'mm': mm, 'ss': ss})
+
+        # Process optional mid input changes AFTER sampling, carried to next row
+        if 'mid' in row:
+            mid = row['mid']
+            if isinstance(mid, dict):
+                if 'inputs' in mid and isinstance(mid['inputs'], dict):
+                    if 'reset' in mid['inputs']:
+                        cur_reset = mid['inputs']['reset']
+                    if 'ena' in mid['inputs']:
+                        cur_ena = mid['inputs']['ena']
+                if 'reset' in mid:
+                    cur_reset = mid['reset']
+                if 'ena' in mid:
+                    cur_ena = mid['ena']
+            elif isinstance(mid, list):
+                for change in mid:
+                    if isinstance(change, dict):
+                        if 'inputs' in change and isinstance(change['inputs'], dict):
+                            if 'reset' in change['inputs']:
+                                cur_reset = change['inputs']['reset']
+                            if 'ena' in change['inputs']:
+                                cur_ena = change['inputs']['ena']
+                        if 'reset' in change:
+                            cur_reset = change['reset']
+                        if 'ena' in change:
+                            cur_ena = change['ena']
+
+    return results

@@ -1,0 +1,74 @@
+def reference(vectors):
+    state = "A"
+    z_reg = 0
+    carried_areset = 0
+    carried_x = 0
+    result = []
+
+    for row in vectors:
+        areset = carried_areset
+        x = carried_x
+
+        if "areset" in row:
+            areset = int(row["areset"]) & 1
+        if "x" in row:
+            x = int(row["x"]) & 1
+
+        # async_reset_assert: active-high asynchronous reset forces state A.
+        # Selected interpretation: while areset=1, z retains its previous value.
+        if areset == 1:
+            state = "A"
+            z = z_reg
+        else:
+            # Posedge transition rules. Moore output is the new state's output.
+            if state == "A":
+                if x == 0:
+                    state = "A"
+                    z_reg = 0  # A_on_x0
+                else:
+                    state = "B"
+                    z_reg = 1  # A_on_x1
+            elif state == "B":
+                if x == 0:
+                    state = "B"
+                    z_reg = 1  # B_on_x0
+                else:
+                    state = "C"
+                    z_reg = 0  # B_on_x1
+            else:  # state == "C"
+                if x == 0:
+                    state = "B"
+                    z_reg = 1  # C_on_x0
+                else:
+                    state = "C"
+                    z_reg = 0  # C_on_x1
+            z = z_reg
+
+        result.append({"z": int(z) & 1})
+
+        # Row values persist after the sampled posedge.
+        carried_areset = areset
+        carried_x = x
+
+        # mid changes occur after sampling and before the next posedge.
+        if "mid" in row and row["mid"] is not None:
+            mid = row["mid"]
+            old_areset = carried_areset
+
+            if "x" in mid:
+                carried_x = int(mid["x"]) & 1
+
+            if "areset" in mid:
+                new_areset = int(mid["areset"]) & 1
+                carried_areset = new_areset
+
+                if new_areset == 1:
+                    # async_reset_assert: force state A; z retains previous value.
+                    state = "A"
+                    # z_reg intentionally unchanged.
+                else:
+                    # Reset released: normal Moore output from state A is visible.
+                    if old_areset == 1:
+                        z_reg = 0
+
+    return result

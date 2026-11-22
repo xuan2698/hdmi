@@ -1,0 +1,17 @@
+def reference(vectors):
+    # Initial Q is unspecified (reset kind none); use concrete 0 as required.
+    q = 0
+    result = []
+    for vec in vectors:
+        # R_Q_POSEDGE: On posedge clk, Q updates to L ? r_in : q_in.
+        # Candidate interpretation: q_in is Q feedback, so when L=0, Q holds instead of loading q_in.
+        L = vec["L"]
+        r_in = vec["r_in"]
+        if L == 1:
+            q = r_in
+        else:
+            # Hold current Q when L=0.
+            q = q
+        # Output Q is 1-bit wide; return concrete unsigned integer.
+        result.append({"Q": q & 1})
+    return result

@@ -1,0 +1,78 @@
+```python
+def reference(vectors):
+    # R_RESET_CLEAR: synchronous active-high reset clears start_shifting but leaves search state unchanged (per overridden interpretation).
+    # R_SET_OR_HOLD_1101: start_shifting is set to 1 on the posedge that completes 1101 or when already in FOUND, and held until reset.
+    # R_KEEP_ZERO_UNTIL_FOUND: start_shifting is 0 before detection.
+    
+    # FSM states: S0, S1, S11, S110, FOUND
+    state = "S0"
+    start_shifting = 0
+    
+    # Current input values, including mid-cycle changes carried to next row.
+    cur_inputs = {"reset": 0, "data": 0}
+    
+    outputs = []
+    
+    for row in vectors:
+        # Drive primary inputs before the sampled posedge.
+        for key in row:
+            if key == "mid":
+                continue
+            if key.endswith("_mid"):
+                continue
+            if key in ("reset", "data"):
+                cur_inputs[key] = row[key]
+        
+        # Sample inputs at the posedge.
+        reset_val = cur_inputs.get("reset", 0)
+        data_val = cur_inputs.get("data", 0)
+        
+        # Compute next state and next registered output.
+        if reset_val == 1:
+            # R_RESET_CLEAR: clear start_shifting, preserve search state.
+            next_state = state
+            next_start = 0
+        else:
+            # R_SET_OR_HOLD_1101 / R_KEEP_ZERO_UNTIL_FOUND: normal transitions.
+            if state == "S0":
+                next_state = "S1" if data_val == 1 else "S0"
+                next_start = 0
+            elif state == "S1":
+                next_state = "S11" if data_val == 1 else "S0"
+                next_start = 0
+            elif state == "S11":
+                next_state = "S11" if data_val == 1 else "S110"
+                next_start = 0
+            elif state == "S110":
+                if data_val == 1:
+                    next_state = "FOUND"
+                    next_start = 1  # same_cycle detection
+                else:
+                    next_state = "S0"
+                    next_start = 0
+            elif state == "FOUND":
+                next_state = "FOUND"
+                next_start = 1
+            else:
+                next_state = "S0"
+                next_start = 0
+        
+        # Update state and registered output after the posedge settles.
+        state = next_state
+        start_shifting = next_start
+        
+        # Apply mid-cycle input changes after sampling, carried to next row.
+        if "mid" in row and isinstance(row["mid"], dict):
+            for k, v in row["mid"].items():
+                if k in ("reset", "data"):
+                    cur_inputs[k] = v
+        for key in row:
+            if key.endswith("_mid"):
+                base = key[:-4]  # remove "_mid"
+                if base in ("reset", "data"):
+                    cur_inputs[base] = row[key]
+        
+        outputs.append({"start_shifting": start_shifting})
+    
+    return outputs
+```

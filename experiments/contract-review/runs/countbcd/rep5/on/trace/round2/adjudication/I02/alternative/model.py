@@ -1,0 +1,74 @@
+def reference(vectors):
+    # Initial power-up state: q = 0.
+    q = 0
+    cur_reset = 0
+    out = []
+
+    def bcd_inc(v):
+        ones = v & 0xF
+        tens = (v >> 4) & 0xF
+        hundreds = (v >> 8) & 0xF
+        thousands = (v >> 12) & 0xF
+        ones += 1
+        if ones == 10:
+            ones = 0
+            tens += 1
+            if tens == 10:
+                tens = 0
+                hundreds += 1
+                if hundreds == 10:
+                    hundreds = 0
+                    thousands += 1
+                    if thousands == 10:
+                        thousands = 0
+        return (thousands << 12) | (hundreds << 8) | (tens << 4) | ones
+
+    for row in vectors:
+        # Row inputs are driven before the sampled posedge.
+        r = cur_reset
+        try:
+            if 'reset' in row:
+                r = row['reset']
+        except TypeError:
+            pass
+
+        # sync_reset: synchronous active-high reset has priority over increment.
+        # Candidate interpretation: reset loads non-zero BCD value 9999 instead of 0.
+        if r:
+            q = 0x9999
+        else:
+            # bcd_increment: increment by one as a 4-digit BCD number modulo 10000.
+            q = bcd_inc(q)
+
+        # upper_digit_enables: combinational from current q.
+        ones = q & 0xF
+        tens = (q >> 4) & 0xF
+        hundreds = (q >> 8) & 0xF
+        bit0 = 1 if ones == 9 else 0
+        bit1 = 1 if (ones == 9 and tens == 9) else 0
+        bit2 = 1 if (ones == 9 and tens == 9 and hundreds == 9) else 0
+        ena = bit0 + (bit1 << 1) + (bit2 << 2)
+
+        out.append({'q': q, 'ena': ena})
+
+        # Mid-cycle input changes occur after sampling and carry to the next row.
+        cur_reset = r
+        mid = None
+        try:
+            if 'mid' in row:
+                mid = row['mid']
+        except TypeError:
+            mid = None
+        if mid is not None:
+            try:
+                if 'reset' in mid:
+                    cur_reset = mid['reset']
+            except TypeError:
+                cur_reset = mid
+        try:
+            if 'mid_reset' in row:
+                cur_reset = row['mid_reset']
+        except TypeError:
+            pass
+
+    return out

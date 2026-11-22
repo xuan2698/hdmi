@@ -1,0 +1,64 @@
+def reference(vectors):
+    # Initial state is the reset state: 12:00:00 AM.
+    pm = 0
+    hours = 12
+    minutes = 0
+    seconds = 0
+    cur_reset = 0
+    cur_ena = 0
+    result = []
+
+    for row in vectors:
+        # Inputs driven before the sampled posedge. If a signal is absent,
+        # the previous value (including any mid change) is retained.
+        if "reset" in row:
+            cur_reset = int(row["reset"]) & 1
+        if "ena" in row:
+            cur_ena = int(row["ena"]) & 1
+
+        # Synchronous posedge sampling.
+        if cur_reset == 1:
+            # reset_priority: reset forces 12:00:00 AM and has priority over ena.
+            pm = 0
+            hours = 12
+            minutes = 0
+            seconds = 0
+        elif cur_ena == 1:
+            # increment_clock: advance one displayed second.
+            seconds += 1
+            if seconds == 60:
+                seconds = 0
+                minutes += 1
+                if minutes == 60:
+                    minutes = 0
+                    if hours == 11:
+                        # 11 -> 12 toggles AM/PM.
+                        hours = 12
+                        pm = 1 - pm
+                    elif hours == 12:
+                        # 12 -> 1 does not toggle AM/PM.
+                        hours = 1
+                    else:
+                        hours += 1
+        else:
+            # hold_clock: reset=0 and ena=0, so all state is held.
+            pass
+
+        # Pack BCD outputs as unsigned integers within their 8-bit widths.
+        hh = ((hours // 10) << 4) | (hours % 10)
+        mm = ((minutes // 10) << 4) | (minutes % 10)
+        ss = ((seconds // 10) << 4) | (seconds % 10)
+
+        result.append({"pm": pm, "hh": hh, "mm": mm, "ss": ss})
+
+        # Optional mid input changes occur AFTER sampling and are carried
+        # to the start of the next row.
+        if "mid" in row:
+            mid = row["mid"]
+            if isinstance(mid, dict):
+                if "reset" in mid:
+                    cur_reset = int(mid["reset"]) & 1
+                if "ena" in mid:
+                    cur_ena = int(mid["ena"]) & 1
+
+    return result

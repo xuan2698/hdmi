@@ -1,0 +1,41 @@
+```json
+{
+  "module_name": "top_module",
+  "io": [
+    {"name": "clk", "dir": "input", "width": 1, "description": "Clock; all state updates on posedge."},
+    {"name": "areset", "dir": "input", "width": 1, "description": "Asynchronous active-high reset."},
+    {"name": "predict_valid", "dir": "input", "width": 1, "description": "Request a branch prediction for predict_pc."},
+    {"name": "predict_pc", "dir": "input", "width": 7, "description": "PC of branch to predict."},
+    {"name": "train_valid", "dir": "input", "width": 1, "description": "Request training for train_pc."},
+    {"name": "train_taken", "dir": "input", "width": 1, "description": "Actual branch outcome for training."},
+    {"name": "train_mispredicted", "dir": "input", "width": 1, "description": "Branch being trained was mispredicted; recover history."},
+    {"name": "train_history", "dir": "input", "width": 7, "description": "Branch history register value used for the trained branch."},
+    {"name": "train_pc", "dir": "input", "width": 7, "description": "PC of branch to train."},
+    {"name": "predict_taken", "dir": "output", "width": 1, "description": "Predicted branch direction."},
+    {"name": "predict_history", "dir": "output", "width": 7, "description": "Branch history register value used for the prediction."}
+  ],
+  "clocking": {
+    "clock": {"name": "clk", "edge": "posedge"},
+    "reset": {"name": "areset", "active": "high", "kind": "asynchronous"}
+  },
+  "timing": {
+    "outputs": {
+      "predict_taken": {"latency_cycles": 0},
+      "predict_history": {"latency_cycles": 0}
+    }
+  },
+  "functional_summary": {
+    "overview": "Gshare branch predictor with 7-bit PC, 7-bit global history register (GHR), XOR-hashed 7-bit index into a 128-entry table of 2-bit saturating counters (PHT). Provides a prediction interface (Fetch stage) and a training interface (post-execution).",
+    "rules": [
+      "Index = predict_pc XOR GHR (7 bits) for prediction; index = train_pc XOR train_history for training.",
+      "predict_taken is the MSB of the PHT entry at the prediction index; predict_history is the current GHR value (combinational, latency 0).",
+      "On posedge with predict_valid=1 and no training precedence, GHR shifts left and inserts the predicted direction (predict_taken).",
+      "On posedge with train_valid=1, PHT entry at train index saturates toward train_taken (2-bit saturating counter).",
+      "On posedge with train_valid=1 and train_mispredicted=1, GHR is recovered to train_history shifted left with train_taken inserted.",
+      "If train_valid and predict_valid occur in the same cycle, training takes precedence for GHR update; prediction still reads pre-update PHT state.",
+      "Prediction observes PHT state before any same-cycle training effect (training updates PHT only at the next posedge).",
+      "Asynchronous active-high areset clears GHR and all PHT counters to 0."
+    ]
+  }
+}
+```

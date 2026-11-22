@@ -1,0 +1,29 @@
+def reference(vectors):
+    # Contract implementation.
+    # State: COUNT (4-bit q), power-up value 0.
+    # R1: reset == 1 on posedge -> q = 0 (sync, active high, priority 1).
+    # R2: reset == 0 && q < 9 on posedge -> q = q + 1 (priority 2).
+    # R3: reset == 0 && q == 9 on posedge -> q = 0 (priority 3).
+    # Mid changes occur AFTER sampling, before next edge; carried to next row.
+    # Each row: values driven before sampled edge; sample after posedge settles.
+
+    q = 0  # power-up state
+    out = []
+    for row in vectors:
+        # Apply any mid changes from previous row are already reflected in row inputs.
+        reset = row.get("reset", 0)
+        # Sample on posedge: compute next state based on current inputs and state.
+        if reset == 1:
+            # R1: synchronous active-high reset
+            q_next = 0
+        elif q < 9:
+            # R2: count up
+            q_next = q + 1
+        else:
+            # R3: wrap from 9 to 0
+            q_next = 0
+        # Output visible same cycle (after edge settles)
+        out.append({"q": q_next & 0xF})
+        # Update state for next row
+        q = q_next
+    return out

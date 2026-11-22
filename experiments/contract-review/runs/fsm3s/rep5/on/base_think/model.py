@@ -1,0 +1,21 @@
+def reference(vectors):
+    s=0
+    x=0
+    r=0
+    y=[]
+    nxt=[[0,1],[2,1],[0,3],[2,1]]
+    out=[0,0,0,1]
+    for v in vectors:
+        if 'in' in v:
+            x=v['in']
+        if 'reset' in v:
+            r=v['reset']
+        s=0 if r else nxt[s][1 if x else 0]
+        y.append({'out':out[s]})
+        m=v.get('mid')
+        if m:
+            if 'in' in m:
+                x=m['in']
+            if 'reset' in m:
+                r=m['reset']
+    return y

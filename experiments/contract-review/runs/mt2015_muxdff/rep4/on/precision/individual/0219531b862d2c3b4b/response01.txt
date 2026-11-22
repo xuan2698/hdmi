@@ -1,0 +1,34 @@
+```python
+def reference(vectors):
+    # Q_posedge_update: At each posedge of clk, after settlement,
+    # Q becomes r_in when L=1; otherwise Q becomes q_in.
+    Q = 0
+    cur = {"L": 0, "q_in": 0, "r_in": 0}
+    out = []
+    for row in vectors:
+        # Drive row's values before the sampled edge; carried mid changes are defaults.
+        for k in ("L", "q_in", "r_in"):
+            if k in row:
+                cur[k] = row[k]
+        L = cur["L"]
+        q_in = cur["q_in"]
+        r_in = cur["r_in"]
+        # Q_posedge_update
+        if L:
+            Q = r_in
+        else:
+            Q = q_in
+        Q = Q & 1  # ensure 1-bit width
+        out.append({"Q": Q})
+        # Process mid changes after sampling, before next edge.
+        mid = row.get("mid")
+        if mid:
+            if isinstance(mid, dict):
+                items = mid.items()
+            else:
+                items = mid
+            for k, v in items:
+                if k in cur:
+                    cur[k] = v
+    return out
+```

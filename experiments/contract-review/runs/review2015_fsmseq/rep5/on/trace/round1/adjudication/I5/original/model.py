@@ -1,0 +1,70 @@
+def reference(vectors):
+    state = "S0"
+    start_shifting = 0
+    inputs = {"reset": 0, "data": 0}
+    outputs = []
+    for row in vectors:
+        # Drive row values before the sampled posedge.
+        if "reset" in row:
+            inputs["reset"] = row["reset"]
+        if "data" in row:
+            inputs["data"] = row["data"]
+        reset = inputs["reset"]
+        data = inputs["data"]
+        next_state = state
+        # R_RESET_CLEAR: synchronous reset forces S0 and start_shifting=0.
+        if reset == 1:
+            next_state = "S0"
+            start_shifting = 0
+        else:
+            if state == "S0":
+                if data == 1:
+                    next_state = "S1"
+                else:
+                    next_state = "S0"
+            elif state == "S1":
+                if data == 1:
+                    next_state = "S11"
+                else:
+                    next_state = "S0"
+            elif state == "S11":
+                if data == 1:
+                    next_state = "S11"
+                else:
+                    next_state = "S110"
+            elif state == "S110":
+                if data == 1:
+                    next_state = "FOUND"
+                else:
+                    next_state = "S0"
+            elif state == "FOUND":
+                next_state = "FOUND"
+            # R_SET_OR_HOLD_1101: setting/sticky FOUND behavior.
+            # R_KEEP_ZERO_UNTIL_FOUND: keep zero otherwise.
+            if next_state == "FOUND":
+                start_shifting = 1
+            else:
+                start_shifting = 0
+        state = next_state
+        outputs.append({"start_shifting": start_shifting})
+        # Optional mid input changes occur after sampling and carry to next row.
+        if "mid" in row:
+            mid = row["mid"]
+            try:
+                for k, v in mid.items():
+                    inputs[k] = v
+            except:
+                try:
+                    for change in mid:
+                        try:
+                            for k, v in change.items():
+                                inputs[k] = v
+                        except:
+                            try:
+                                k, v = change
+                                inputs[k] = v
+                            except:
+                                pass
+                except:
+                    pass
+    return outputs

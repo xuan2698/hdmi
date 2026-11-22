@@ -1,0 +1,126 @@
+[
+  {
+    "issue": {
+      "issue_id": "I15",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "high",
+      "detail": "Spec says Moore output depends only on state, but contract has combinational output rules R1/R2 and posedge output rules R3-R7 all driving out; alternative is Moore output only from state.",
+      "spec_evidence": "The following is the state transition table for a Moore state machine with one input, one output, and four states.",
+      "alternative": "Output out is purely combinational function of current state: A/B/C=0, D=1; state updates only on posedge per transition table.",
+      "sequence": [
+        {
+          "in": 0,
+          "reset": 1
+        },
+        {
+          "in": 0,
+          "reset": 0
+        },
+        {
+          "in": 1,
+          "reset": 0
+        },
+        {
+          "in": 0,
+          "reset": 0
+        },
+        {
+          "in": 1,
+          "reset": 0
+        }
+      ]
+    },
+    "status": "no_effect",
+    "issue_id": "I15",
+    "outputs": {
+      "original": [
+        {
+          "out": 0
+        },
+        {
+          "out": 0
+        },
+        {
+          "out": 0
+        },
+        {
+          "out": 0
+        },
+        {
+          "out": 0
+        }
+      ],
+      "alternative": [
+        {
+          "out": 0
+        },
+        {
+          "out": 0
+        },
+        {
+          "out": 0
+        },
+        {
+          "out": 0
+        },
+        {
+          "out": 0
+        }
+      ]
+    },
+    "differences": []
+  },
+  {
+    "issue": {
+      "issue_id": "I16",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Reset release timing ambiguous: contract says first_released_cycle 'cycle after reset deasserts at posedge' but examples apply inputs same cycle reset=0.",
+      "spec_evidence": "Include a synchronous active high reset that resets the FSM to state A.",
+      "alternative": "On posedge with reset=1 state becomes A; on first posedge with reset=0, transition from A using in sampled that edge.",
+      "sequence": [
+        {
+          "in": 1,
+          "reset": 1
+        },
+        {
+          "in": 1,
+          "reset": 0
+        },
+        {
+          "in": 0,
+          "reset": 0
+        }
+      ]
+    },
+    "status": "no_effect",
+    "issue_id": "I16",
+    "outputs": {
+      "original": [
+        {
+          "out": 0
+        },
+        {
+          "out": 0
+        },
+        {
+          "out": 0
+        }
+      ],
+      "alternative": [
+        {
+          "out": 0
+        },
+        {
+          "out": 0
+        },
+        {
+          "out": 0
+        }
+      ]
+    },
+    "differences": []
+  }
+]

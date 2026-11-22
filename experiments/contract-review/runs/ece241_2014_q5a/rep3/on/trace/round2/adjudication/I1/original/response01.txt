@@ -1,0 +1,89 @@
+def reference(vectors):
+    # State machine: A (carry=0, z=0), B (carry=1, z=1), C (carry=1, z=0)
+    st = {'state': 'A', 'areset': 0, 'x': 0}
+    outputs = []
+
+    def z_of():
+        # Moore output: B -> 1, A and C -> 0
+        return 1 if st['state'] == 'B' else 0
+
+    def apply_mid(sig, val):
+        st[sig] = val
+        # async_reset: asynchronous reset forces state A and z=0 independent of clk.
+        if sig == 'areset' and val == 1:
+            st['state'] = 'A'
+
+    for row in vectors:
+        # Drive row inputs before the sampled posedge
+        if 'areset' in row:
+            st['areset'] = row['areset']
+        if 'x' in row:
+            st['x'] = row['x']
+        if 'inputs' in row and isinstance(row['inputs'], dict):
+            if 'areset' in row['inputs']:
+                st['areset'] = row['inputs']['areset']
+            if 'x' in row['inputs']:
+                st['x'] = row['inputs']['x']
+
+        # async_reset: asynchronous reset forces state A and z=0 independent of clk.
+        if st['areset'] == 1:
+            st['state'] = 'A'
+        else:
+            # serial_twos_complement: posedge transition per state table.
+            s = st['state']
+            x = st['x']
+            if s == 'A':
+                if x == 0:
+                    st['state'] = 'A'
+                else:
+                    st['state'] = 'B'
+            elif s == 'B':
+                if x == 0:
+                    st['state'] = 'B'
+                else:
+                    st['state'] = 'C'
+            elif s == 'C':
+                if x == 0:
+                    st['state'] = 'B'
+                else:
+                    st['state'] = 'C'
+
+        # Record output after settled posedge, before mid changes.
+        outputs.append({'z': z_of()})
+
+        # Collect mid changes (occur after sampling, before other edge).
+        mids = []
+        def collect_mid(m):
+            if isinstance(m, dict):
+                for k, v in m.items():
+                    if k in ('areset', 'x'):
+                        mids.append((k, v))
+            elif isinstance(m, list):
+                for item in m:
+                    if isinstance(item, dict):
+                        for k, v in item.items():
+                            if k in ('areset', 'x'):
+                                mids.append((k, v))
+                    elif isinstance(item, (tuple, list)) and len(item) == 2:
+                        k, v = item
+                        if k in ('areset', 'x'):
+                            mids.append((k, v))
+        if 'mid' in row:
+            collect_mid(row['mid'])
+        if 'mid_changes' in row:
+            collect_mid(row['mid_changes'])
+        for k, v in row.items():
+            if k.startswith('mid_'):
+                sig = k[4:]
+                if sig in ('areset', 'x'):
+                    mids.append((sig, v))
+            elif k.endswith('_mid'):
+                sig = k[:-4]
+                if sig in ('areset', 'x'):
+                    mids.append((sig, v))
+
+        # Apply mid changes in order. They carry to the start of the next row.
+        for sig, val in mids:
+            apply_mid(sig, val)
+
+    return outputs

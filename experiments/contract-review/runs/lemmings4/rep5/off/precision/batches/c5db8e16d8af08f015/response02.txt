@@ -1,0 +1,84 @@
+I'll implement the Lemmings FSM as a Python reference function. The key semantics:
+
+- Async reset to WALK_LEFT (walk_left=1)
+- Walking: ground=0 → fall (same dir); else dig=1 → dig (same dir); else bump → switch
+- Falling: track fall duration; ground=1 → resume walk (same dir) unless fell >20 cycles → SPLAT
+- Digging: ground=0 → fall (same dir); else stay digging
+- SPLAT: all outputs 0 forever
+
+```python
+def reference(vectors):
+    # States: 0=WALK_LEFT,1=WALK_RIGHT,2=FALL_LEFT,3=FALL_RIGHT,4=DIG_LEFT,5=DIG_RIGHT,6=SPLAT
+    state = 0
+    fall_count = 0
+    outputs = []
+    for v in vectors:
+        areset = v.get('areset', 0)
+        bl = v.get('bump_left', 0)
+        br = v.get('bump_right', 0)
+        g = v.get('ground', 1)
+        d = v.get('dig', 0)
+        # async reset takes effect same cycle
+        if areset:
+            state = 0
+            fall_count = 0
+        # compute outputs from current state
+        wl = 1 if state == 0 else 0
+        wr = 1 if state == 1 else 0
+        aaah = 1 if state in (2, 3) else 0
+        digging = 1 if state in (4, 5) else 0
+        outputs.append({'walk_left': wl, 'walk_right': wr, 'aaah': aaah, 'digging': digging})
+        # if reset, no state transition this cycle (reset dominates)
+        if areset:
+            continue
+        # next-state logic (posedge)
+        if state == 0:  # WALK_LEFT
+            if g == 0:
+                state = 2
+                fall_count = 1
+            elif d == 1:
+                state = 4
+            elif bl == 1 or br == 1:
+                state = 1
+        elif state == 1:  # WALK_RIGHT
+            if g == 0:
+                state = 3
+                fall_count = 1
+            elif d == 1:
+                state = 5
+            elif bl == 1 or br == 1:
+                state = 0
+        elif state == 2:  # FALL_LEFT
+            if g == 1:
+                if fall_count > 20:
+                    state = 6
+                else:
+                    state = 0
+                fall_count = 0
+            else:
+                fall_count += 1
+        elif state == 3:  # FALL_RIGHT
+            if g == 1:
+                if fall_count > 20:
+                    state = 6
+                else:
+                    state = 1
+                fall_count = 0
+            else:
+                fall_count += 1
+        elif state == 4:  # DIG_LEFT
+            if g == 0:
+                state = 2
+                fall_count = 1
+        elif state == 5:  # DIG_RIGHT
+            if g == 0:
+                state = 3
+                fall_count = 1
+        elif state == 6:  # SPLAT
+            pass
+    return outputs
+```
+
+```json
+{"models":{"0356712339d6d991d0":"def reference(vectors):\n    state = 0\n    fall_count = 0\n    outputs = []\n    for v in vectors:\n        areset = v.get('areset', 0)\n        bl = v.get('bump_left', 0)\n        br = v.get('bump_right', 0)\n        g = v.get('ground', 1)\n        d = v.get('dig', 0)\n        if areset:\n            state = 0\n            fall_count = 0\n        wl = 1 if state == 0 else 0\n        wr = 1 if state == 1 else 0\n        aaah = 1 if state in (2, 3) else 0\n        digging = 1 if state in (4, 5) else 0\n        outputs.append({'walk_left': wl, 'walk_right': wr, 'aaah': aaah, 'digging': digging})\n        if areset:\n            continue\n        if state == 0:\n            if g == 0:\n                state = 2\n                fall_count = 1\n            elif d == 1:\n                state = 4\n            elif bl == 1 or br == 1:\n                state = 1\n        elif state == 1:\n            if g == 0:\n                state = 3\n                fall_count = 1\n            elif d == 1:\n                state = 5\n            elif bl == 1 or br == 1:\n                state = 0\n        elif state == 2:\n            if g == 1:\n                if fall_count > 20:\n                    state = 6\n                else:\n                    state = 0\n                fall_count = 0\n            else:\n                fall_count += 1\n        elif state == 3:\n            if g == 1:\n                if fall_count > 20:\n                    state = 6\n                else:\n                    state = 1\n                fall_count = 0\n            else:\n                fall_count += 1\n        elif state == 4:\n            if g == 0:\n                state = 2\n                fall_count = 1\n        elif state == 5:\n            if g == 0:\n                state = 3\n                fall_count = 1\n        elif state == 6:\n            pass\n    return outputs","271ee5f653e26921a2":"def reference(vectors):\n    state = 0\n    fall_count = 0\n    outputs = []\n    for v in vectors:\n        areset = v.get('areset', 0)\n        bl = v.get('bump_left', 0)\n        br = v.get('bump_right', 0)\n        g = v.get('ground', 1)\n        d = v.get('dig', 0)\n        if areset:\n            state = 0\n            fall_count = 0\n        wl = 1 if state == 0 else 0\n        wr = 1 if state == 1 else 0\n        aaah = 1 if state in (2, 3) else 0\n        digging = 1 if state in (4, 5) else 0\n        outputs.append({'walk_left': wl, 'walk_right': wr, 'aaah': aaah, 'digging': digging})\n        if areset:\n            continue\n        if state == 0:\n            if g == 0:\n                state = 2\n                fall_count = 1\n            elif d == 1:\n                state = 4\n            elif bl == 1 or br == 1:\n                state = 1\n        elif state == 1:\n            if g == 0:\n                state = 3\n                fall_count = 1\n            elif d == 1:\n                state = 5\n            elif bl == 1 or br == 1:\n                state = 0\n        elif state == 2:\n            if g == 1:\n                if fall_count > 20:\n                    state = 6\n                else:\n                    state = 0\n                fall_count = 0\n            else:\n                fall_count += 1\n        elif state == 3:\n            if g == 1:\n                if fall_count > 20:\n                    state = 6\n                else:\n                    state = 1\n                fall_count = 0\n            else:\n                fall_count += 1\n        elif state == 4:\n            if g == 0:\n                state = 2\n                fall_count = 1\n        elif state == 5:\n            if g == 0:\n                state = 3\n                fall_count = 1\n        elif state == 6:\n            pass\n    return outputs","2f3270d87bb13d92e9":"def reference(vectors):\n    state = 0\n    fall_count = 0\n    outputs = []\n    for v in vectors:\n        areset = v.get('areset', 0)\n        bl = v.get('bump_left', 0)\n        br = v.get('bump_right', 0)\n        g = v.get('ground', 1)\n        d = v.get('dig', 0)\n        if areset:\n            state = 0\n            fall_count = 0\n        wl = 1 if state == 0 else 0\n        wr = 1 if state == 1 else 0\n        aaah = 1 if state in (2, 3) else 0\n        digging = 1 if state in (4, 5) else 0\n        outputs.append({'walk_left': wl, 'walk_right': wr, 'aaah': aaah, 'digging': digging})\n        if areset:\n            continue\n        if state == 0:\n            if g == 0:\n                state = 2\n                fall_count = 1\n            elif d == 1:\n                state = 4\n            elif bl == 1 or br == 1:\n                state = 1\n        elif state == 1:\n            if g == 0:\n                state = 3\n                fall_count = 1\n            elif d == 1:\n                state = 5\n            elif bl == 1 or br == 1:\n                state = 0\n        elif state == 2:\n            if g == 1:\n                if fall_count > 20:\n                    state = 6\n                else:\n                    state = 0\n                fall_count = 0\n            else:\n                fall_count += 1\n        elif state == 3:\n            if g == 1:\n                if fall_count > 20:\n                    state = 6\n                else:\n                    state = 1\n                fall_count = 0\n            else:\n                fall_count += 1\n        elif state == 4:\n            if g == 0:\n                state = 2\n                fall_count = 1\n        elif state == 5:\n            if g == 0:\n                state = 3\n                fall_count = 1\n        elif state == 6:\n            pass\n    return outputs","ad33f1c23d411aa909":"def reference(vectors):\n    state = 0\n    fall_count = 0\n    outputs = []\n    for v in vectors:\n        areset = v.get('areset', 0)\n        bl = v.get('bump_left', 0)\n        br = v.get('bump_right', 0)\n        g = v.get('ground', 1)\n        d = v.get('dig', 0)\n        if areset:\n            state = 0\n            fall_count = 0\n        wl = 1 if state == 0 else 0\n        wr = 1 if state == 1 else 0\n        aaah = 1 if state in (2, 3) else 0\n        digging = 1 if state in (4, 5) else 0\n        outputs.append({'walk_left': wl, 'walk_right': wr, 'aaah': aaah, 'digging': digging})\n        if areset:\n            continue\n        if state == 0:\n            if g == 0:\n                state = 2\n                fall_count = 1\n            elif d == 1:\n                state = 4\n            elif bl == 1 or br == 1:\n                state = 1\n        elif state == 1:\n            if g == 0:\n                state = 3\n                fall_count = 1\n            elif d == 1:\n                state = 5\n            elif bl == 1 or br == 1:\n                state = 0\n        elif state == 2:\n            if g == 1:\n                if fall_count > 20:\n                    state = 6\n                else:\n                    state = 0\n                fall_count = 0\n            else:\n                fall_count += 1\n        elif state == 3:\n            if g == 1:\n                if fall_count > 20:\n                    state = 6\n                else:\n                    state = 1\n                fall_count = 0\n            else:\n                fall_count += 1\n        elif state == 4:\n            if g == 0:\n                state = 2\n                fall_count = 1\n        elif state == 5:\n            if g == 0:\n                state = 3\n                fall_count = 1\n        elif state == 6:\n            pass\n    return outputs"}}
+```

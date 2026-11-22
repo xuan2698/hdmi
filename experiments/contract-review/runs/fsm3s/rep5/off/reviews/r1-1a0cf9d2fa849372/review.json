@@ -1,0 +1,113 @@
+{
+  "coverage": {
+    "S01": [
+      "R1",
+      "R2",
+      "R4",
+      "R5",
+      "R6",
+      "R7"
+    ],
+    "S02": [
+      "R1",
+      "R2",
+      "R3",
+      "R4",
+      "R5",
+      "R6",
+      "R7"
+    ],
+    "S03": [
+      "R3"
+    ],
+    "S04": [
+      "R1",
+      "R2",
+      "R4",
+      "R5",
+      "R6",
+      "R7"
+    ],
+    "S05": [
+      "R1",
+      "R4"
+    ],
+    "S06": [
+      "R1",
+      "R5"
+    ],
+    "S07": [
+      "R1",
+      "R6"
+    ],
+    "S08": [
+      "R2",
+      "R7"
+    ]
+  },
+  "issues": [
+    {
+      "issue_id": "I1",
+      "rule_id": "R2",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "R2 example expects out=1 after two in=1 cycles from reset, but D is reached only after A->B->B (still B), so out should be 0; example contradicts transition table.",
+      "spec_evidence": "D | C, B | 1",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I2",
+      "rule_id": "R7",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "R7 example expects out=1 on second cycle after reset with in=1, but state is B (out=0); D requires A->B->C->D, so example is wrong.",
+      "spec_evidence": "D | C, B | 1",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I3",
+      "rule_id": "R3",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "R3 models reset as a transition rule with output out, but reset is a state control; alternative is reset asynchronously forcing state A and out=0 immediately, distinguishable by asserting reset mid-cycle.",
+      "spec_evidence": "synchronous active high reset that resets the FSM to state A",
+      "alternative": "Asynchronous active-high reset: asserting reset immediately forces state A and out=0 without waiting for posedge.",
+      "sequence": [
+        {
+          "in": 0,
+          "reset": 1,
+          "mid": {
+            "reset": 0
+          }
+        }
+      ]
+    },
+    {
+      "issue_id": "I4",
+      "rule_id": "R1",
+      "type": "ambiguity",
+      "severity": "low",
+      "detail": "R1 condition groups A/B/C for out=0 but spec_quote only covers A; alternative is separate output rules per state, distinguishable only by rule granularity not behavior.",
+      "spec_evidence": "A | A, B | 0",
+      "alternative": "Separate combinational output rules: out=0 iff state==A, out=0 iff state==B, out=0 iff state==C.",
+      "sequence": [
+        {
+          "in": 0,
+          "reset": 0
+        }
+      ]
+    },
+    {
+      "issue_id": "I5",
+      "rule_id": "global",
+      "type": "grounding",
+      "severity": "low",
+      "detail": "R4-R7 spec_quotes include output column text not part of the transition clause they encode; quotes are verbatim table rows but not verbatim for the transition-only condition.",
+      "spec_evidence": "A | A, B | 0",
+      "alternative": "",
+      "sequence": []
+    }
+  ]
+}

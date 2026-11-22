@@ -1,0 +1,54 @@
+[
+  {
+    "issue": {
+      "issue_id": "I3",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec says reset to 0x34; contract reset.values q=52 matches, but R1 example third vector reset=0 d=0 expects q=0, implying async clear or different reset semantics.",
+      "spec_evidence": "The flip-flops must be reset to 0x34 rather than zero.",
+      "alternative": "Reset is synchronous and only applied on negedge when reset==1; when reset==0, q captures d.",
+      "sequence": [
+        {
+          "d": 0,
+          "reset": 1
+        },
+        {
+          "d": 255,
+          "reset": 1
+        },
+        {
+          "d": 0,
+          "reset": 0
+        }
+      ]
+    },
+    "status": "no_effect",
+    "issue_id": "I3",
+    "outputs": {
+      "original": [
+        {
+          "q": 52
+        },
+        {
+          "q": 52
+        },
+        {
+          "q": 0
+        }
+      ],
+      "alternative": [
+        {
+          "q": 52
+        },
+        {
+          "q": 52
+        },
+        {
+          "q": 0
+        }
+      ]
+    },
+    "differences": []
+  }
+]

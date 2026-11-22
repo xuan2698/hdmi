@@ -1,0 +1,44 @@
+[
+  {
+    "issue": {
+      "issue_id": "I2",
+      "rule_id": "R2_capture_falling",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec says capture 1->0 per bit; contract uses prev_in init 0, so first cycle with in=0 after reset release does not capture (prev=0). Alternative: treat first sampled cycle as no prior, also no capture — same. Distinguishing case: reset released with in=0 then in=1 then in=0.",
+      "spec_evidence": "capture when the input signal changes from 1 in one clock cycle to 0 the next",
+      "alternative": "Initialize prev_in to the first sampled in value (no capture on first cycle) vs 0; differs when first cycle in=1 then second in=0: init-0 captures at cycle2 (prev=1), init-first also captures. Differs when first cycle in=0, second in=1, third in=0: both capture at cycle3. No difference. Alternative: capture only after at least two cycles; differs if first cycle in=1, second in=0: init-0 captures, delayed does not.",
+      "sequence": [
+        {
+          "reset": 0,
+          "in": 4294967295
+        },
+        {
+          "reset": 0,
+          "in": 0
+        }
+      ]
+    },
+    "status": "no_effect",
+    "issue_id": "I2",
+    "outputs": {
+      "original": [
+        {
+          "out": 0
+        },
+        {
+          "out": 4294967295
+        }
+      ],
+      "alternative": [
+        {
+          "out": 0
+        },
+        {
+          "out": 4294967295
+        }
+      ]
+    },
+    "differences": []
+  }
+]

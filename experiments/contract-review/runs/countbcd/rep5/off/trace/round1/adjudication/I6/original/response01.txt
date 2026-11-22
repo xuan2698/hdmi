@@ -1,0 +1,55 @@
+```python
+def reference(vectors):
+    # State: 16-bit BCD counter value
+    # q[3:0]=ones, q[7:4]=tens, q[11:8]=hundreds, q[15:12]=thousands
+    state = {"q": 0}
+    out = []
+
+    for vec in vectors:
+        reset = vec.get("reset", 0)
+
+        # Compute outputs visible at this posedge (based on current state)
+        q = state["q"]
+        ones = q & 0xF
+        tens = (q >> 4) & 0xF
+        hundreds = (q >> 8) & 0xF
+        thousands = (q >> 12) & 0xF
+
+        # R3_ena_tens: ena[0] when ones==9
+        # R4_ena_hundreds: ena[1] when ones==9 and tens==9
+        # R5_ena_thousands: ena[2] when ones==9 and tens==9 and hundreds==9
+        ena = 0
+        if ones == 9:
+            ena |= 1
+        if ones == 9 and tens == 9:
+            ena |= 2
+        if ones == 9 and tens == 9 and hundreds == 9:
+            ena |= 4
+
+        # R1_reset: synchronous active-high reset -> q=0, ena=0
+        if reset == 1:
+            out.append({"q": 0, "ena": 0})
+            # update state at posedge
+            state["q"] = 0
+        else:
+            out.append({"q": q, "ena": ena})
+            # R2_ones_increment / R6_bcd_rollover: increment BCD counter
+            new_ones = ones + 1
+            new_tens = tens
+            new_hundreds = hundreds
+            new_thousands = thousands
+            if new_ones == 10:
+                new_ones = 0
+                new_tens += 1
+                if new_tens == 10:
+                    new_tens = 0
+                    new_hundreds += 1
+                    if new_hundreds == 10:
+                        new_hundreds = 0
+                        new_thousands += 1
+                        if new_thousands == 10:
+                            new_thousands = 0
+            state["q"] = (new_thousands << 12) | (new_hundreds << 8) | (new_tens << 4) | new_ones
+
+    return out
+```

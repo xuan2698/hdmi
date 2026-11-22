@@ -1,0 +1,153 @@
+{
+  "coverage": {
+    "S01": [
+      "unrelated"
+    ],
+    "S02": [
+      "unrelated"
+    ],
+    "S03": [
+      "unrelated"
+    ],
+    "S04": [
+      "R1_a_high_load4"
+    ],
+    "S05": [
+      "R1_a_high_load4"
+    ],
+    "S06": [
+      "R1_a_high_load4"
+    ],
+    "S07": [
+      "R1_a_high_load4"
+    ],
+    "S08": [
+      "R1_a_high_load4"
+    ],
+    "S09": [
+      "R1_a_high_load4"
+    ],
+    "S10": [
+      "R1_a_high_load4"
+    ],
+    "S11": [
+      "R1_a_high_load4"
+    ],
+    "S12": [
+      "R1_a_high_load4"
+    ],
+    "S13": [
+      "R2_first_low_hold"
+    ],
+    "S14": [
+      "R2_first_low_hold"
+    ],
+    "S15": [
+      "R3_count_low"
+    ],
+    "S16": [
+      "R3_count_low"
+    ],
+    "S17": [
+      "R3_count_low"
+    ],
+    "S18": [
+      "R3_count_low"
+    ],
+    "S19": [
+      "R3_count_low"
+    ],
+    "S20": [
+      "R3_count_low"
+    ],
+    "S21": [
+      "R3_count_low"
+    ],
+    "S22": [
+      "R3_count_low"
+    ]
+  },
+  "issues": [
+    {
+      "issue_id": "AMB_R1_load_vs_hold",
+      "rule_id": "R1_a_high_load4",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec only shows q=4 while a is high after an initial edge; loading 4 on every high and holding an initialized 4 both fit.",
+      "spec_evidence": "// 5ns             1               1               4",
+      "alternative": "a=1 only holds the current q after an initial load/init to 4; it does not reload 4 on a later high.",
+      "sequence": [
+        {
+          "a": 1
+        },
+        {
+          "a": 0
+        },
+        {
+          "a": 0
+        },
+        {
+          "a": 1
+        }
+      ]
+    },
+    {
+      "issue_id": "AMB_R2_latency_vs_prev_a",
+      "rule_id": "R2_first_low_hold",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "The first low-sample hold can also be one-cycle counter/output latency rather than a prev_a gate.",
+      "spec_evidence": "// 45ns             1               0               4",
+      "alternative": "Internal c increments on each a=0 posedge; q is registered c (one-cycle delayed), and a=1 loads c=4, producing the same first-low hold.",
+      "sequence": [
+        {
+          "a": 1
+        },
+        {
+          "a": 0
+        },
+        {
+          "a": 0
+        },
+        {
+          "a": 0
+        },
+        {
+          "a": 1
+        }
+      ]
+    },
+    {
+      "issue_id": "AMB_R3_after_1",
+      "rule_id": "R3_count_low",
+      "type": "ambiguity",
+      "severity": "low",
+      "detail": "Observed 4,5,6,0,1 supports modulo-7 but does not show post-1 counting; a shorter cycle also fits.",
+      "spec_evidence": "// 85ns             1               0               1",
+      "alternative": "After q=1, the next low sample wraps to 4 instead of incrementing to 2; cycle is 4,5,6,0,1,4.",
+      "sequence": [
+        {
+          "a": 1
+        },
+        {
+          "a": 0
+        },
+        {
+          "a": 0
+        },
+        {
+          "a": 0
+        },
+        {
+          "a": 0
+        },
+        {
+          "a": 0
+        },
+        {
+          "a": 0
+        }
+      ]
+    }
+  ]
+}

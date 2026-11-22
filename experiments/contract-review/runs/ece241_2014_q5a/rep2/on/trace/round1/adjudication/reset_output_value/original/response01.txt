@@ -1,0 +1,87 @@
+def reference(vectors):
+    # State encoding: 0 = S0, 1 = S1, 2 = S2.
+    state = 0
+    cur = {"areset": 0, "x": 0}
+    results = []
+
+    def apply_input(name, value):
+        nonlocal state
+        if name not in ("areset", "x"):
+            return
+        bit = int(value) & 1
+        cur[name] = bit
+        # async_reset_z0: active-high asynchronous reset forces state S0 and z=0 while asserted.
+        if name == "areset" and bit == 1:
+            state = 0
+
+    def apply_change(change):
+        nonlocal state
+        if isinstance(change, dict):
+            if "input" in change and "value" in change:
+                apply_input(change["input"], change["value"])
+                return
+            if "name" in change and "value" in change:
+                apply_input(change["name"], change["value"])
+                return
+            for key, value in change.items():
+                if key in ("areset", "x"):
+                    apply_input(key, value)
+        elif isinstance(change, (list, tuple)) and len(change) >= 2 and isinstance(change[0], str):
+            apply_input(change[0], change[1])
+
+    for row in vectors:
+        drive = row.get("inputs", row) if isinstance(row, dict) else row
+        if isinstance(drive, dict):
+            for key in ("areset", "x"):
+                if key in drive:
+                    apply_input(key, drive[key])
+
+        if cur["areset"] == 1:
+            # async_reset_z0: while areset=1, hold S0 and z=0.
+            state = 0
+            z = 0
+        else:
+            x = cur["x"] & 1
+            if state == 0:
+                # s0_x0: S0 with x=0 -> S0, z=0.
+                # s0_x1: S0 with x=1 -> S1, z=1.
+                if x == 0:
+                    state = 0
+                else:
+                    state = 1
+            elif state == 1:
+                # s1_x0: S1 with x=0 -> S1, z=1.
+                # s1_x1: S1 with x=1 -> S2, z=0.
+                if x == 0:
+                    state = 1
+                else:
+                    state = 2
+            else:
+                # s2_x0: S2 with x=0 -> S1, z=1.
+                # s2_x1: S2 with x=1 -> S2, z=0.
+                if x == 0:
+                    state = 1
+                else:
+                    state = 2
+            z = 1 if state == 1 else 0
+
+        results.append({"z": int(z) & 1})
+
+        # Mid changes occur after the sampled posedge and before the next clock edge.
+        if isinstance(row, dict) and "mid" in row:
+            m = row["mid"]
+            if isinstance(m, list):
+                if len(m) == 2 and isinstance(m[0], str):
+                    changes = [m]
+                else:
+                    changes = m
+            else:
+                changes = [m]
+
+            for change in changes:
+                apply_change(change)
+                # async_reset_z0: a mid assertion of areset keeps the asynchronous reset state S0.
+                if cur["areset"] == 1:
+                    state = 0
+
+    return results

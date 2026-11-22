@@ -1,0 +1,39 @@
+def reference(vectors):
+    # Concrete initial registered state; every row will resolve q via the sampled edge.
+    q = 0
+
+    # Carried input state from optional mid changes; first row's explicit values override.
+    current_d = 0
+    current_r = 0
+
+    result = []
+
+    for row in vectors:
+        # Each row's explicit input values are driven before the sampled posedge.
+        # Omitted inputs keep values carried from a previous row's mid changes.
+        if "d" in row:
+            current_d = row["d"]
+        if "r" in row:
+            current_r = row["r"]
+
+        # sync_active_high_reset: active-high synchronous reset has priority at posedge.
+        if current_r == 1:
+            q = 0
+        else:
+            # d_update_when_not_reset: when r == 0, q loads d at posedge.
+            q = current_d
+
+        # Output is 1-bit unsigned integer.
+        result.append({"q": q & 1})
+
+        # mid changes occur after this row's posedge sampling and carry forward.
+        if "mid" in row:
+            mid = row["mid"]
+            if mid:
+                for key in mid:
+                    if key == "d":
+                        current_d = mid[key]
+                    elif key == "r":
+                        current_r = mid[key]
+
+    return result

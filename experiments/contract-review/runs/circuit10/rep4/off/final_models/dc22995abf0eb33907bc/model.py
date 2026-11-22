@@ -1,0 +1,16 @@
+def reference(vectors):
+    # Contract implementation.
+    # R1: state <= a XOR b on posedge (next_cycle). Power-up state unspecified -> 0.
+    # R2: q = a XOR b (combinational next-state), visible next_cycle.
+    # No reset. Mid changes occur after sampling, carried to next row.
+    state = 0
+    out = []
+    for v in vectors:
+        a = v.get('a', 0) & 1
+        b = v.get('b', 0) & 1
+        # R2: q is combinational next-state = a XOR b
+        q = a ^ b
+        # R1: state updates on posedge to a XOR b
+        state = a ^ b
+        out.append({'q': q & 1, 'state': state & 1})
+    return out

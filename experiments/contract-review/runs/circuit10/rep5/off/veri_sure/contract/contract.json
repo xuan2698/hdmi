@@ -1,0 +1,61 @@
+{
+  "module_name": "top_module",
+  "io": [
+    {
+      "name": "clk",
+      "dir": "input",
+      "width": 1,
+      "description": "Clock, rising-edge triggered"
+    },
+    {
+      "name": "a",
+      "dir": "input",
+      "width": 1,
+      "description": "Input a"
+    },
+    {
+      "name": "b",
+      "dir": "input",
+      "width": 1,
+      "description": "Input b"
+    },
+    {
+      "name": "q",
+      "dir": "output",
+      "width": 1,
+      "description": "Registered output (flip-flop output)"
+    },
+    {
+      "name": "state",
+      "dir": "output",
+      "width": 1,
+      "description": "Observable flip-flop state (same as q)"
+    }
+  ],
+  "clocking": {
+    "clock": {
+      "name": "clk",
+      "edge": "posedge"
+    },
+    "reset": null
+  },
+  "timing": {
+    "outputs": {
+      "q": {
+        "latency_cycles": 1
+      },
+      "state": {
+        "latency_cycles": 1
+      }
+    }
+  },
+  "functional_summary": {
+    "overview": "Single flip-flop sequential circuit. On each rising edge of clk, the flip-flop updates its state to the value of the combinational next-state function of inputs a, b and current state. Output q equals the flip-flop state.",
+    "rules": [
+      "state and q are identical and reflect the flip-flop contents (updated on posedge clk).",
+      "Next-state function derived from waveform: next = (a AND NOT b) OR (a AND state) OR (b AND NOT state) OR (NOT a AND b AND state) — equivalently next = a XOR b XOR state when a=1, and next = b XOR state when a=0; consolidated: next = (a & ~b) | (a & state) | (b & ~state) | (~a & b & state).",
+      "Verified transitions: (a,b,state)->next: (0,0,0)->0, (0,1,0)->1, (1,0,0)->1, (1,1,0)->0, (0,0,1)->1, (1,1,1)->1, (1,0,1)->0, (0,1,1)->0.",
+      "No reset; initial state is unknown (x) until first posedge with defined inputs."
+    ]
+  }
+}

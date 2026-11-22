@@ -1,0 +1,68 @@
+def reference(vectors):
+    # State
+    pht = [0] * 128          # 2-bit saturating counters
+    ghr = 0                  # 7-bit global history register
+
+    outputs = []
+
+    def pht_index(pc, hist):
+        return (pc ^ hist) & 0x7F
+
+    def sat_update(counter, taken):
+        # 2-bit saturating counter update
+        if taken:
+            return min(3, counter + 1)
+        else:
+            return max(0, counter - 1)
+
+    for vec in vectors:
+        areset = vec.get('areset', 0)
+        predict_valid = vec.get('predict_valid', 0)
+        predict_pc = vec.get('predict_pc', 0) & 0x7F
+        train_valid = vec.get('train_valid', 0)
+        train_taken = vec.get('train_taken', 0)
+        train_mispredicted = vec.get('train_mispredicted', 0)
+        train_history = vec.get('train_history', 0) & 0x7F
+        train_pc = vec.get('train_pc', 0) & 0x7F
+
+        # R6_async_reset: asynchronous active-high reset clears GHR and PHT
+        if areset:
+            pht = [0] * 128
+            ghr = 0
+            outputs.append({'predict_taken': 0, 'predict_history': 0})
+            continue
+
+        # R1_predict_outputs: combinational read of PHT and GHR before edge update
+        if predict_valid:
+            idx = pht_index(predict_pc, ghr)
+            counter = pht[idx]
+            predict_taken = 1 if counter >= 2 else 0
+            predict_history = ghr
+        else:
+            predict_taken = 0
+            predict_history = 0
+
+        outputs.append({'predict_taken': predict_taken, 'predict_history': predict_history})
+
+        # Compute next state (posedge updates)
+        new_pht = list(pht)
+        new_ghr = ghr
+
+        # R3_train_pht_update: train PHT entry at (train_pc xor train_history)
+        if train_valid:
+            tidx = pht_index(train_pc, train_history)
+            new_pht[tidx] = sat_update(pht[tidx], train_taken)
+
+        # R4_train_mispredict_ghr_recover / R5_train_precedence_over_predict:
+        # mispredicted training restores GHR = (train_history << 1 | train_taken) & 0x7F
+        # and takes precedence over prediction GHR shift
+        if train_valid and train_mispredicted:
+            new_ghr = ((train_history << 1) | train_taken) & 0x7F
+        elif predict_valid:
+            # R2_predict_ghr_update: shift in predicted direction
+            new_ghr = ((ghr << 1) | predict_taken) & 0x7F
+
+        pht = new_pht
+        ghr = new_ghr
+
+    return outputs

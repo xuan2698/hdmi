@@ -1,0 +1,68 @@
+{
+  "coverage": {
+    "S01": ["R1", "R2", "R4", "R5", "R6", "R7"],
+    "S02": ["R1", "R2", "R3", "R4", "R5", "R6", "R7"],
+    "S03": ["R3"],
+    "S04": ["R1", "R2", "R4", "R5", "R6", "R7"],
+    "S05": ["R1", "R4"],
+    "S06": ["R1", "R5"],
+    "S07": ["R1", "R6"],
+    "S08": ["R2", "R7"]
+  },
+  "issues": [
+    {
+      "issue_id": "I1",
+      "rule_id": "R3",
+      "type": "consistency",
+      "severity": "medium",
+      "detail": "R3 is a reset rule with edge posedge and visible next_cycle, but its example expects out=0 on the same cycle as reset=1; a synchronous reset should affect state/output only after the next posedge.",
+      "spec_evidence": "Include a synchronous active high reset that resets the FSM to state A.",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I2",
+      "rule_id": "R6",
+      "type": "consistency",
+      "severity": "medium",
+      "detail": "R6 example expects out=1 on the third vector after two in=1 transitions from reset; with synchronous reset and next_cycle visibility, state D (out=1) is not reached until after the third posedge, so out should still be 0 on that row.",
+      "spec_evidence": "// C | A, D | 0",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I3",
+      "rule_id": "R7",
+      "type": "consistency",
+      "severity": "medium",
+      "detail": "R7 example expects out=1 on all three vectors, but starting from reset state A with in=1,1,0 the FSM reaches D only after the second posedge; out should be 0 on the first row and 1 only from the second row onward.",
+      "spec_evidence": "// D | C, B | 1",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I4",
+      "rule_id": "R2",
+      "type": "consistency",
+      "severity": "medium",
+      "detail": "R2 example expects out=1 on all three vectors, but from reset state A with in=1,1,0 the FSM reaches D only after the second posedge; out should be 0 on the first row.",
+      "spec_evidence": "// D | C, B | 1",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I5",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "low",
+      "detail": "Spec does not define output behavior during reset release cycle or whether Moore output is registered or combinational; contract chooses combinational same_cycle for R1/R2 and next_cycle for reset.",
+      "spec_evidence": "The following is the state transition table for a Moore state machine with one input, one output, and four states.",
+      "alternative": "Treat Moore output as registered and visible one cycle after state update, so out reflects previous state.",
+      "sequence": [
+        {"in": 1, "reset": 1},
+        {"in": 1, "reset": 0},
+        {"in": 1, "reset": 0}
+      ]
+    }
+  ]
+}

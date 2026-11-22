@@ -1,0 +1,99 @@
+def reference(vectors):
+    # State: ss_ones, ss_tens, mm_ones, mm_tens, hh_ones, hh_tens, pm_state
+    # hh is BCD 12-hour: 0x12 = 12 o'clock, 0x01 = 1 o'clock
+    # Initial state: 12:00 AM -> hh=0x12, mm=0x00, ss=0x00, pm=0
+    ss_ones = 0
+    ss_tens = 0
+    mm_ones = 0
+    mm_tens = 0
+    hh_ones = 2
+    hh_tens = 1
+    pm_state = 0
+
+    def pack():
+        return {
+            "pm": pm_state,
+            "hh": (hh_tens << 4) | hh_ones,
+            "mm": (mm_tens << 4) | mm_ones,
+            "ss": (ss_tens << 4) | ss_ones,
+        }
+
+    results = []
+    for row in vectors:
+        # Sample current outputs (driven before sampled edge)
+        results.append(pack())
+
+        reset = row.get("reset", 0)
+        ena = row.get("ena", 0)
+
+        # R1_reset: reset has priority, sync, sets 12:00 AM
+        if reset == 1:
+            ss_ones = 0
+            ss_tens = 0
+            mm_ones = 0
+            mm_tens = 0
+            hh_ones = 2
+            hh_tens = 1
+            pm_state = 0
+            continue
+
+        # R6_hold: no enable -> hold
+        if ena == 0:
+            continue
+
+        # ena == 1, reset == 0: increment
+        ss_val = (ss_tens << 4) | ss_ones
+        mm_val = (mm_tens << 4) | mm_ones
+        hh_val = (hh_tens << 4) | hh_ones
+
+        # R2_seconds: ss != 0x59 -> increment seconds
+        if ss_val != 0x59:
+            if ss_ones == 9:
+                ss_ones = 0
+                ss_tens += 1
+            else:
+                ss_ones += 1
+            continue
+
+        # ss == 0x59: rollover seconds
+        ss_ones = 0
+        ss_tens = 0
+
+        # R3_seconds_rollover: mm != 0x59 -> increment minutes
+        if mm_val != 0x59:
+            if mm_ones == 9:
+                mm_ones = 0
+                mm_tens += 1
+            else:
+                mm_ones += 1
+            continue
+
+        # mm == 0x59: rollover minutes
+        mm_ones = 0
+        mm_tens = 0
+
+        # R4_minutes_rollover: hh != 0x12 -> increment hours
+        if hh_val != 0x12:
+            # hh is 12-hour BCD: 01..09, 10, 11, 12
+            if hh_val == 0x11:
+                # 11 -> 12
+                hh_ones = 2
+                hh_tens = 1
+            elif hh_val == 0x12:
+                # 12 -> 01 (handled by R5, but guard)
+                hh_ones = 1
+                hh_tens = 0
+            elif hh_ones == 9:
+                # 09 -> 10
+                hh_ones = 0
+                hh_tens = 1
+            else:
+                hh_ones += 1
+            continue
+
+        # R5_hour_rollover_am_pm: hh == 0x12 -> 01, toggle pm
+        hh_ones = 1
+        hh_tens = 0
+        pm_state = 1 - pm_state
+
+    return results

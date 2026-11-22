@@ -1,0 +1,46 @@
+Looking at the waveform, I need to determine the next-state function for the flip-flop.
+
+Let me trace through the state transitions (state at posedge → next state):
+
+- 15ns: state=0, a=0,b=0 → next state=0
+- 25ns: state=0, a=0,b=0 → next state=0
+- 35ns: state=0, a=0,b=0 → next state=0
+- 45ns: state=0, a=0,b=1 → next state=1
+- 55ns: state=0, a=1,b=0 → next state=1
+- 65ns: state=0, a=1,b=1 → next state=0
+- 75ns: state=1, a=0,b=0 → next state=1
+- 85ns: state=0, a=1,b=1 → next state=0
+- 95ns: state=1, a=1,b=1 → next state=1
+- 105ns: state=1, a=1,b=1 → next state=1
+- 115ns: state=1, a=1,b=0 → next state=0
+- 125ns: state=1, a=0,b=1 → next state=0
+- 135ns: state=1, a=0,b=0 → next state=1
+- 145ns: state=0, a=0,b=0 → next state=0
+
+Let me check `state_next = a XOR b XOR state`:
+- (0,0,0)→0 ✓
+- (0,1,0)→1 ✓
+- (1,0,0)→1 ✓
+- (1,1,0)→0 ✓
+- (0,0,1)→1 ✓
+- (1,1,1)→1 ✓
+- (1,0,1)→0 ✓
+- (0,1,1)→0 ✓
+
+All consistent! The `q` output equals the next-state (combinational), and `state` is the registered value.
+
+Let me verify q at each row (q = next state = a XOR b XOR state):
+- 45ns: a=0,b=1,state=0 → q=1 ✓
+- 55ns: a=1,b=0,state=0 → q=1 ✓
+- 65ns: a=1,b=1,state=0 → q=0 ✓
+- 75ns: a=0,b=0,state=1 → q=1 ✓
+- 95ns: a=1,b=1,state=1 → q=1 ✓
+- 115ns: a=1,b=0,state=1 → q=0 ✓
+- 125ns: a=0,b=1,state=1 → q=0 ✓
+- 135ns: a=0,b=0,state=1 → q=1 ✓
+
+All consistent. The function is `state_next = a XOR b XOR state`, with `q = state_next` (combinational) and `state` registered at posedge.
+
+```json
+{"models":{"f1c3ea3dfd93634cd4":"def reference(vectors):\n    state = 0\n    out = []\n    for v in vectors:\n        a = v['a']\n        b = v['b']\n        nxt = a ^ b ^ state\n        out.append({'q': nxt, 'state': state})\n        state = nxt\n    return out"}}
+```

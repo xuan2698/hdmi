@@ -1,0 +1,136 @@
+{
+  "responses": [
+    {
+      "issue_id": "I1",
+      "decision": "accept",
+      "reason": "R2 example's first two rows show q=7,8 which are not consistent with R2's condition q==9; those rows belong to R3. Fixing the example to show only the q==9 wrap row plus consistent context.",
+      "spec_quote": "counts from 0 through 9, inclusive, with a period of 10",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R2",
+            "example"
+          ],
+          "value": {
+            "vectors": [
+              {
+                "reset": 0
+              },
+              {
+                "reset": 0
+              },
+              {
+                "reset": 0
+              }
+            ],
+            "expected": [
+              {
+                "q": 8
+              },
+              {
+                "q": 9
+              },
+              {
+                "q": 0
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "issue_id": "I2",
+      "decision": "accept",
+      "reason": "R1 example's first row has reset=0 but expects q=0, which is not justified by R1 (reset==1). Adjusting example so all rows have reset==1 to match R1's condition.",
+      "spec_quote": "reset input is active high synchronous, and should reset the counter to 0",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R1",
+            "example"
+          ],
+          "value": {
+            "vectors": [
+              {
+                "reset": 1
+              },
+              {
+                "reset": 1
+              },
+              {
+                "reset": 1
+              }
+            ],
+            "expected": [
+              {
+                "q": 0
+              },
+              {
+                "q": 0
+              },
+              {
+                "q": 0
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "issue_id": "I3",
+      "decision": "accept",
+      "reason": "Initial q before first reset is unspecified; clarifying in state meaning without inventing a reset kind.",
+      "spec_quote": "reset input is active high synchronous, and should reset the counter to 0",
+      "edits": [
+        {
+          "path": [
+            "states",
+            "count",
+            "meaning"
+          ],
+          "value": "Current decade count value, 0 through 9 inclusive; initial value before first reset is unspecified"
+        }
+      ]
+    },
+    {
+      "issue_id": "I4",
+      "decision": "rebut",
+      "reason": "R2 already encodes the 9->0 wrap via condition q==9 with expected q=0, and R3 covers q!=9 increment; the period-of-10 quote supports wrap.",
+      "spec_quote": "counts from 0 through 9, inclusive, with a period of 10",
+      "edits": []
+    },
+    {
+      "issue_id": "I5",
+      "decision": "accept",
+      "reason": "R2's spec_quote does not verbatim support the q==9 wrap condition specifically; marking R2 uncertain with plausible interpretations.",
+      "spec_quote": "counts from 0 through 9, inclusive, with a period of 10",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R2",
+            "uncertain"
+          ],
+          "value": true
+        },
+        {
+          "path": [
+            "uncertain"
+          ],
+          "value": [
+            {
+              "rule_id": "R2",
+              "note": "R2's quote supports period 10 but does not verbatim state the 9->0 wrap; plausible interpretations differ on wrap vs hold at 9.",
+              "candidates": [
+                "On q==9 with reset==0, next q=0 (wrap)",
+                "On q==9 with reset==0, hold at 9"
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

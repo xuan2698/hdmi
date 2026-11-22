@@ -1,0 +1,64 @@
+def reference(vectors):
+    # State: 16-bit packed 4-digit BCD counter. Concrete power-up choice is 0.
+    q = 0
+    current_reset = 0
+    result = []
+
+    for row in vectors:
+        # Primary input values are driven before the sampled posedge.
+        if isinstance(row, dict):
+            if "reset" in row and row["reset"] is not None:
+                current_reset = int(row["reset"])
+        else:
+            # Fallback for a single-input row: interpret first element as reset.
+            if len(row) > 0 and row[0] is not None:
+                current_reset = int(row[0])
+
+        # sync_reset: synchronous active-high reset has priority and clears q to 0.
+        if current_reset == 1:
+            q = 0
+        else:
+            # bcd_increment: increment packed 4-digit BCD modulo 10000.
+            ones = q & 0x000F
+            tens = (q >> 4) & 0x000F
+            hundreds = (q >> 8) & 0x000F
+            thousands = (q >> 12) & 0x000F
+
+            ones += 1
+            if ones == 10:
+                ones = 0
+                tens += 1
+                if tens == 10:
+                    tens = 0
+                    hundreds += 1
+                    if hundreds == 10:
+                        hundreds = 0
+                        thousands += 1
+                        if thousands == 10:
+                            thousands = 0
+
+            q = (thousands << 12) | (hundreds << 8) | (tens << 4) | ones
+            q &= 0xFFFF
+
+        # upper_digit_enables: combinational from current q after the sampled edge/reset.
+        ones = q & 0x000F
+        tens = (q >> 4) & 0x000F
+        hundreds = (q >> 8) & 0x000F
+
+        bit0 = 1 if ones == 9 else 0
+        bit1 = 1 if (ones == 9 and tens == 9) else 0
+        bit2 = 1 if (ones == 9 and tens == 9 and hundreds == 9) else 0
+        ena = bit0 | (bit1 << 1) | (bit2 << 2)
+
+        result.append({"ena": ena, "q": q})
+
+        # Optional mid input changes occur after sampling and carry to the next row.
+        if isinstance(row, dict) and "mid" in row:
+            mid = row["mid"]
+            if isinstance(mid, dict):
+                if "reset" in mid and mid["reset"] is not None:
+                    current_reset = int(mid["reset"])
+            elif mid is not None:
+                current_reset = int(mid)
+
+    return result

@@ -1,0 +1,26 @@
+def reference(vectors):
+    # R_Y0: Y0 = next-state bit 0 of Y[2:0] as function of present state y[2:0] and input x
+    # R_z: z = 1 when present state y[2:0] is 011 or 100, else 0
+    # State-assigned table:
+    #   y=000: x=0 -> Y=000, x=1 -> Y=001
+    #   y=001: x=0 -> Y=001, x=1 -> Y=100
+    #   y=010: x=0 -> Y=010, x=1 -> Y=001
+    #   y=011: x=0 -> Y=001, x=1 -> Y=010
+    #   y=100: x=0 -> Y=011, x=1 -> Y=100
+    # (states 101,110,111 unspecified; treat as don't-care -> default 0)
+    next_state = {
+        (0, 0): 0b000, (0, 1): 0b001,
+        (1, 0): 0b001, (1, 1): 0b100,
+        (2, 0): 0b010, (2, 1): 0b001,
+        (3, 0): 0b001, (3, 1): 0b010,
+        (4, 0): 0b011, (4, 1): 0b100,
+    }
+    out = []
+    for v in vectors:
+        y = v["y"] & 0x7
+        x = v["x"] & 0x1
+        Y = next_state.get((y, x), 0)
+        Y0 = Y & 0x1  # R_Y0
+        z = 1 if y in (0b011, 0b100) else 0  # R_z
+        out.append({"Y0": Y0, "z": z})
+    return out

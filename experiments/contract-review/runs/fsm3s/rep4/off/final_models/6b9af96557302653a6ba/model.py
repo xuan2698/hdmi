@@ -1,0 +1,40 @@
+def reference(vectors):
+    # State encoding: A=0, B=1, C=2, D=3
+    # Output: A->0, B->0, C->0, D->1
+    # R1-R4: combinational output based on current state (Moore)
+    # R5: synchronous active high reset -> state A on posedge
+    # R6-R9: next-state transitions on posedge
+    # Initial state assumed A (global uncertain note)
+    state = 0  # A
+    out = 0
+    results = []
+    for vec in vectors:
+        # Mid changes are carried to start of next row; here we just use vec values.
+        # Sample: compute output from current state (combinational, same_cycle)
+        # R1: state==A -> out 0
+        # R2: state==B -> out 0
+        # R3: state==C -> out 0
+        # R4: state==D -> out 1
+        if state == 0:      # R1
+            out = 0
+        elif state == 1:    # R2
+            out = 0
+        elif state == 2:    # R3
+            out = 0
+        else:               # R4
+            out = 1
+        results.append({"out": out & 1})
+        # Posedge update: reset has priority (R5), else transition (R6-R9)
+        if vec.get("reset", 0) == 1:
+            state = 0  # R5: sync reset to A
+        else:
+            inp = vec.get("in", 0) & 1
+            if state == 0:      # R6
+                state = 0 if inp == 0 else 1
+            elif state == 1:    # R7
+                state = 2 if inp == 0 else 1
+            elif state == 2:    # R8
+                state = 0 if inp == 0 else 3
+            else:               # R9
+                state = 2 if inp == 0 else 1
+    return results

@@ -1,0 +1,64 @@
+[
+  {
+    "issue": {
+      "issue_id": "I4",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "low",
+      "detail": "Spec does not define initial count value at power-up; contract assumes 0.",
+      "spec_evidence": "",
+      "alternative": "Power-on q may be undefined/X until first reset, so first posedge with reset=0 could yield any value rather than 0.",
+      "sequence": [
+        {
+          "reset": 0
+        }
+      ]
+    },
+    "status": "no_effect",
+    "issue_id": "I4",
+    "outputs": {
+      "original": [
+        {
+          "q": 1
+        }
+      ],
+      "alternative": [
+        {
+          "q": 1
+        }
+      ]
+    },
+    "differences": []
+  },
+  {
+    "issue": {
+      "issue_id": "I5",
+      "rule_id": "R1",
+      "type": "ambiguity",
+      "severity": "low",
+      "detail": "'visible same_cycle' for synchronous reset: q=0 visible at the posedge edge itself vs after edge; timing semantics ambiguous.",
+      "spec_evidence": "The reset input is active high synchronous, and should reset the counter to 0.",
+      "alternative": "Reset takes effect at the clock edge, so q updates to 0 only after the posedge (registered output), not combinationally during the cycle.",
+      "sequence": [
+        {
+          "reset": 1
+        }
+      ]
+    },
+    "status": "no_effect",
+    "issue_id": "I5",
+    "outputs": {
+      "original": [
+        {
+          "q": 0
+        }
+      ],
+      "alternative": [
+        {
+          "q": 0
+        }
+      ]
+    },
+    "differences": []
+  }
+]

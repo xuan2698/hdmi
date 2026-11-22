@@ -1,0 +1,67 @@
+def reference(vectors):
+    # State: pm, hh, mm, ss (BCD encoded)
+    pm = 0
+    hh = 0x12
+    mm = 0x00
+    ss = 0x00
+    out = []
+    for row in vectors:
+        # Sample inputs at posedge
+        reset = row.get('reset', 0)
+        ena = row.get('ena', 0)
+        # Compute next state (synchronous, one-cycle latency)
+        if reset:
+            n_pm, n_hh, n_mm, n_ss = 0, 0x12, 0x00, 0x00
+        elif ena:
+            n_pm, n_hh, n_mm, n_ss = pm, hh, mm, ss
+            # increment seconds
+            s_lo = n_ss & 0x0F
+            s_hi = (n_ss >> 4) & 0x0F
+            s_lo += 1
+            if s_lo > 9:
+                s_lo = 0
+                s_hi += 1
+            if s_hi > 5:
+                s_hi = 0
+                # increment minutes
+                m_lo = n_mm & 0x0F
+                m_hi = (n_mm >> 4) & 0x0F
+                m_lo += 1
+                if m_lo > 9:
+                    m_lo = 0
+                    m_hi += 1
+                if m_hi > 5:
+                    m_hi = 0
+                    # increment hours
+                    h_lo = n_hh & 0x0F
+                    h_hi = (n_hh >> 4) & 0x0F
+                    # hours 01..12
+                    if h_lo == 2 and h_hi == 1:
+                        # 12 -> 01, toggle pm
+                        h_lo = 1
+                        h_hi = 0
+                        n_pm = 1 - n_pm
+                    elif h_lo == 9:
+                        h_lo = 0
+                        h_hi += 1
+                        if h_hi == 1 and h_lo == 0:
+                            # 09 -> 10
+                            pass
+                        # 11 -> 12 handled below
+                        if h_hi == 1 and h_lo == 2:
+                            # 11 -> 12, toggle pm
+                            n_pm = 1 - n_pm
+                    else:
+                        h_lo += 1
+                        if h_hi == 1 and h_lo == 2:
+                            # 11 -> 12, toggle pm
+                            n_pm = 1 - n_pm
+                    n_hh = (h_hi << 4) | h_lo
+                n_mm = (m_hi << 4) | m_lo
+            n_ss = (s_hi << 4) | s_lo
+        else:
+            n_pm, n_hh, n_mm, n_ss = pm, hh, mm, ss
+        # Outputs reflect state after edge (one-cycle latency means outputs = new state)
+        pm, hh, mm, ss = n_pm, n_hh, n_mm, n_ss
+        out.append({'pm': pm, 'hh': hh, 'mm': mm, 'ss': ss})
+    return out

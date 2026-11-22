@@ -1,0 +1,71 @@
+def reference(vectors):
+    # State encoding: 0=A, 1=B, 2=C
+    state = 0  # power-up concrete value: state A
+    z = 0      # power-up concrete value
+    cur_areset = 0
+    cur_x = 0
+    result = []
+
+    for row in vectors:
+        # Each row's values are driven before the sampled edge.
+        if 'areset' in row:
+            cur_areset = row['areset']
+        if 'x' in row:
+            cur_x = row['x']
+
+        # async_reset_assert: active-high areset asynchronously forces state A.
+        # Override candidate: Z retains its previous value while areset=1.
+        if cur_areset == 1:
+            state = 0  # A
+            # z unchanged (retains previous value)
+
+        # Sample after posedge has settled.
+        if cur_areset == 1:
+            # async_reset_assert: reset remains active at posedge; state A, z retains.
+            state = 0
+        else:
+            if state == 0:  # A
+                # A_on_x0
+                if cur_x == 0:
+                    state = 0
+                    z = 0
+                # A_on_x1
+                else:
+                    state = 1
+                    z = 1
+            elif state == 1:  # B
+                # B_on_x0
+                if cur_x == 0:
+                    state = 1
+                    z = 1
+                # B_on_x1
+                else:
+                    state = 2
+                    z = 0
+            else:  # C
+                # C_on_x0
+                if cur_x == 0:
+                    state = 1
+                    z = 1
+                # C_on_x1
+                else:
+                    state = 2
+                    z = 0
+
+        # Record Moore output after the sampled posedge.
+        result.append({'z': z})
+
+        # mid changes occur after sampling and are carried to next row.
+        if 'mid' in row:
+            mid = row['mid']
+            if mid:
+                if 'areset' in mid:
+                    cur_areset = mid['areset']
+                    if cur_areset == 1:
+                        # async_reset_assert: mid-cycle assertion forces state A,
+                        # while Z retains its previous value.
+                        state = 0
+                if 'x' in mid:
+                    cur_x = mid['x']
+
+    return result

@@ -1,0 +1,89 @@
+{
+  "ports": {
+    "inputs": {
+      "L": 1,
+      "q_in": 1,
+      "r_in": 1
+    },
+    "outputs": {
+      "Q": 1
+    },
+    "clock": "clk"
+  },
+  "states": [
+    {
+      "name": "Q0",
+      "meaning": "Registered output Q is 0 and holds between active clock edges.",
+      "update_time": "posedge clk after the edge has settled",
+      "update_during_reset": false
+    },
+    {
+      "name": "Q1",
+      "meaning": "Registered output Q is 1 and holds between active clock edges.",
+      "update_time": "posedge clk after the edge has settled",
+      "update_during_reset": false
+    }
+  ],
+  "rules": [
+    {
+      "id": "Q_posedge_update",
+      "outputs": [
+        "Q"
+      ],
+      "condition": "At each posedge of clk, after settlement, Q becomes r_in when L=1; otherwise Q becomes q_in. Between clock edges Q holds.",
+      "edge": "posedge",
+      "visible": "same_cycle",
+      "priority": 1,
+      "spec_quote": "where a flipflop and 2-1 multiplexer are in a submodule",
+      "uncertain": true,
+      "example": {
+        "vectors": [
+          {
+            "L": 1,
+            "q_in": 0,
+            "r_in": 1
+          },
+          {
+            "L": 0,
+            "q_in": 0,
+            "r_in": 1
+          },
+          {
+            "L": 0,
+            "q_in": 1,
+            "r_in": 0
+          }
+        ],
+        "expected": [
+          {
+            "Q": 1
+          },
+          {
+            "Q": 0
+          },
+          {
+            "Q": 1
+          }
+        ]
+      }
+    }
+  ],
+  "reset": {
+    "kind": "none",
+    "name": null,
+    "active": "none",
+    "values": {
+      "Q": null
+    },
+    "first_released_cycle": "not_applicable"
+  },
+  "mid": "Optional mid changes occur after the sampled posedge and before the next edge; they do not change Q for the current row and are carried to the start of the next row.",
+  "uncertain": [],
+  "remaining_uncertain_fields": {
+    "global": [],
+    "Q_posedge_update": [
+      "L=0 holds Q (q_in is current-state feedback, not external data)."
+    ]
+  },
+  "selected_interpretations": []
+}

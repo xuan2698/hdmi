@@ -1,0 +1,70 @@
+def reference(vectors):
+    # State encoding: 0=A, 1=B, 2=C
+    state = 0
+    held_areset = 0
+    held_x = 0
+    results = []
+
+    for row in vectors:
+        # Start with values held after the previous sampled edge, then apply this row's pre-edge drives
+        areset = held_areset
+        x = held_x
+        if 'areset' in row:
+            areset = row['areset']
+        if 'x' in row:
+            x = row['x']
+
+        # async_reset: areset high asynchronously forces state A and z=0
+        if areset:
+            state = 0
+            out_z = 0
+        else:
+            # serial_twos_complement candidate interpretation: z reflects pre-edge state and lags one cycle
+            if state == 1:
+                out_z = 1
+            else:
+                out_z = 0
+
+        # serial_twos_complement: posedge samples x and updates Moore state when areset=0
+        if not areset:
+            if state == 0:
+                if x:
+                    state = 1
+                else:
+                    state = 0
+            elif state == 1:
+                if x:
+                    state = 2
+                else:
+                    state = 1
+            else:  # state == 2
+                if x:
+                    state = 2
+                else:
+                    state = 1
+        else:
+            # async_reset: state remains A while areset is high
+            state = 0
+
+        results.append({'z': out_z})
+
+        # Inputs hold after the sampled edge unless a mid change occurs
+        held_areset = areset
+        held_x = x
+
+        # mid changes occur after sampling, do not affect the current row's output, and carry to the next row
+        if 'mid' in row:
+            mid = row['mid']
+            if mid is not None:
+                try:
+                    if 'areset' in mid:
+                        held_areset = mid['areset']
+                        # async_reset: mid areset high asynchronously resets state after the current output is sampled
+                        if held_areset:
+                            state = 0
+                    if 'x' in mid:
+                        held_x = mid['x']
+                except:
+                    pass
+
+    return results

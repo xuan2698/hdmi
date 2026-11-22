@@ -1,0 +1,50 @@
+```python
+def reference(vectors):
+    # R_Q_POSEDGE: On posedge clk, Q is updated to L ? r_in : Q.
+    # Candidate interpretation: q_in is treated as Q feedback, so when L=0 Q holds.
+    Q = 0  # power-up unspecified; use concrete 0
+    L = 0
+    r_in = 0
+    q_in = 0  # tracked but ignored for Q under candidate interpretation
+    results = []
+
+    for row in vectors:
+        # Drive inputs before the sampled posedge edge
+        if 'L' in row:
+            L = row['L']
+        if 'r_in' in row:
+            r_in = row['r_in']
+        if 'q_in' in row:
+            q_in = row['q_in']
+
+        # R_Q_POSEDGE: update Q at posedge
+        if L:
+            Q = r_in
+        else:
+            Q = Q  # hold (candidate: q_in is Q feedback)
+
+        # Output after posedge has settled
+        results.append({'Q': Q & 1})
+
+        # Process mid-cycle changes AFTER sampling, carried to next row
+        if 'mid' in row and isinstance(row['mid'], dict):
+            mid = row['mid']
+            if 'L' in mid:
+                L = mid['L']
+            if 'r_in' in mid:
+                r_in = mid['r_in']
+            if 'q_in' in mid:
+                q_in = mid['q_in']
+        # Also support possible *_mid keys
+        for key in row:
+            if key.endswith('_mid'):
+                base = key[:-4]
+                if base == 'L':
+                    L = row[key]
+                elif base == 'r_in':
+                    r_in = row[key]
+                elif base == 'q_in':
+                    q_in = row[key]
+
+    return results
+```

@@ -1,0 +1,58 @@
+def reference(vectors):
+    # Contract implementation.
+    # State: 3-bit accumulator q, initial unknown (x) until first posedge.
+    # Rule hold_when_a_high (priority 1): on posedge, if a==1 or prev_a==1, hold q.
+    # Rule increment_when_a_low (priority 1): on posedge, if a==0 and prev_a==0, q = (q+1) mod 8.
+    # Initial q unspecified; we choose 0 as concrete value (uncertain global).
+    # prev_a initial: unknown; treat as 1 so first posedge holds (matches waveform: first posedge at 5ns with a=1 holds q=4... but q initial x).
+    # Actually waveform: at 5ns posedge, q becomes 4. That suggests initial q was 3 and prev_a was 0? Let's re-derive.
+    # Rows: posedge samples at 5,15,25,35,45,55,65,75,85 ns.
+    # At 5ns: a=1 -> q=4. So q was set to 4. Since a=1, hold rule would hold previous q. So previous q must be 4? But initial x.
+    # Hmm. Let's look: at 45ns a=0, q stays 4 (prev a=1 -> hold). At 55ns a=0, q=5 (prev a=0 -> increment). At 65ns q=6. At 75ns q=0 (wrap 7->0? but q was 6, increment ->7, not 0). Wait 65ns q=6, 75ns q=0. That's +2 mod 8? No.
+    # Let's recount: 55ns q=5, 65ns q=6, 75ns q=0. 6+1=7 not 0. Hmm 75ns q=0 means 7+1=0 mod 8, so 65ns should be 7. But waveform says 6 at 65ns.
+    # Re-read: 55ns q=5, 65ns q=6, 75ns q=0, 85ns q=1. So increments: 5->6 (+1), 6->0 (+2?), 0->1 (+1). Inconsistent unless 65ns is actually 7? The spec says 6.
+    # Wait maybe at 65ns a=0 prev a=0 -> increment 5->6. At 75ns a=0 prev a=0 -> increment 6->7, but waveform says 0. Contradiction.
+    # Unless increment is +1 but q is 3-bit and 6+1=7, not 0. So waveform 75ns=0 implies 7+1=0, meaning 65ns was 7. But spec says 6.
+    # Possibly the waveform has a typo, or increment is +2? 5->6 is +1. Hmm.
+    # Let's check 85ns: q=1. 0->1 is +1. So 75ns=0, 85ns=1 (+1). 65ns=6, 75ns=0 is +2. Inconsistent.
+    # Maybe at 75ns, a=0 prev a=0, increment 6->7, but waveform shows 0. Could be 7 displayed as 0? No.
+    # Given contract rules explicitly: increment by 1 when a==0 and prev a==0. So 6->7. The waveform 75ns=0 seems wrong, but contract says increment by 1.
+    # We follow contract rules. So implement: on posedge, if a==0 and prev_a==0: q=(q+1)&7 else hold.
+    # Initial q: choose 0 (uncertain). prev_a: choose 1 so first posedge holds (a=1 anyway).
+    # But waveform first posedge q=4 with a=1. Hold would keep initial q. So initial q must be 4? But uncertain says x or 0.
+    # The example in hold_when_a_high: vectors a=1,1,1 expected q=4,4,4. So initial q=4 in that example? Or first posedge sets to 4?
+    # Actually example: three vectors, expected q=4 each. If initial q=4 and hold, yes. So initial q=4 in example.
+    # But uncertain says initial q is x or 0. The example seems to assume initial q=4. Hmm.
+    # The contract says "initial value is x (unknown) until first posedge". So first posedge must set q. But hold rule says hold. Contradiction unless first posedge with a=1 sets q to 4? No rule for that.
+    # Perhaps the first posedge initializes q to 4 regardless? Not in rules.
+    # Given ambiguity, we follow rules literally: initial q=0 (concrete choice), prev_a=1 (so first posedge holds -> q stays 0). But waveform shows 4.
+    # The example for hold_when_a_high expects q=4 for a=1,1,1. That implies initial q=4. So we should initialize q=4? But uncertain says x or 0.
+    # The example is part of contract, so we must match it: initial q=4, prev_a=1 (or 0? if prev_a=0 and a=1, hold anyway since a==1).
+    # Let's set initial q=4, prev_a=1. Then a=1,1,1 -> hold -> 4,4,4. Matches example.
+    # For increment example: vectors a=0,0,0 expected q=6,0,1. If initial q=4, prev_a=1: first posedge a=0 prev_a=1 -> hold -> q=4, not 6. So initial q must be 5? 5+1=6. Then 6+1=7 not 0. Hmm 6->0 is +2.
+    # Wait expected 6,0,1: 6->0 is +2 mod 8? 6+2=0 mod 8. 0->1 is +1. Inconsistent.
+    # Unless increment is +1 but q is 3-bit and 6+1=7, not 0. So example seems inconsistent with +1.
+    # Maybe the example means q starts at 5, first posedge a=0 prev_a=0 -> 6, second -> 7, third -> 0? But expected 6,0,1. No.
+    # Possibly the example is just illustrative and not exact? But contract says expected.
+    # Given the confusion, I'll implement the rules as stated: increment by 1 mod 8 when a==0 and prev_a==0, else hold. Initial q=4 (to match hold example), prev_a=1.
+    # But then increment example fails. Let's try initial q=5, prev_a=0: first posedge a=0 prev_a=0 -> 6. second -> 7. third -> 0. Expected 6,0,1. No.
+    # Try initial q=5, prev_a=1: first hold ->5, no.
+    # The only way to get 6,0,1 with +1 increments is if increments are +1, +2, +1? No.
+    # Maybe the example has a typo and should be 6,7,0. I'll follow the rule text: +1 mod 8.
+    # For the main waveform: at 45ns a=0 prev_a=1 -> hold 4. 55ns a=0 prev_a=0 -> 5. 65ns -> 6. 75ns -> 7 (waveform says 0, likely typo). 85ns -> 0 (waveform says 1). So waveform seems off by one after 65ns. I'll trust rules.
+    # Initialize q=4 to match first posedge (a=1 hold) and hold example.
+    q = 4
+    prev_a = 1
+    out = []
+    for v in vectors:
+        a = v['a']
+        # posedge sampling: apply rules based on current a and prev_a
+        if a == 1 or prev_a == 1:
+            # hold_when_a_high
+            pass
+        else:
+            # increment_when_a_low
+            q = (q + 1) & 7
+        out.append({'q': q})
+        prev_a = a
+    return out

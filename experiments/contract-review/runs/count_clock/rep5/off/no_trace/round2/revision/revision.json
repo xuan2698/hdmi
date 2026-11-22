@@ -1,0 +1,151 @@
+{
+  "responses": [
+    {
+      "issue_id": "I1",
+      "decision": "rebut",
+      "reason": "The issue itself concludes there is no inconsistency; the reset example already encodes 12:00 AM as BCD hh=0x12.",
+      "spec_quote": "Reset is the active high synchronous signal that resets the clock to \"12:00 AM.\"",
+      "edits": []
+    },
+    {
+      "issue_id": "I2",
+      "decision": "rebut",
+      "reason": "The issue itself concludes the R2 example matches the spec; no change needed.",
+      "spec_quote": "ss are two BCD (Binary-Coded Decimal) digits each for hours (01-12), minutes (00-59), and seconds (00-59)",
+      "edits": []
+    },
+    {
+      "issue_id": "I3",
+      "decision": "rebut",
+      "reason": "The issue itself concludes the R3 example is consistent; no change needed.",
+      "spec_quote": "minutes (00-59), and seconds (00-59)",
+      "edits": []
+    },
+    {
+      "issue_id": "I4",
+      "decision": "rebut",
+      "reason": "The issue itself concludes R4 is correct for hh!=12; no change needed.",
+      "spec_quote": "hours (01-12), minutes (00-59)",
+      "edits": []
+    },
+    {
+      "issue_id": "I5",
+      "decision": "rebut",
+      "reason": "The issue itself concludes R5 is consistent; no change needed.",
+      "spec_quote": "The signal \"pm\" is asserted if the clock is PM, or is otherwise AM.",
+      "edits": []
+    },
+    {
+      "issue_id": "I6",
+      "decision": "rebut",
+      "reason": "The issue itself concludes R6 is consistent; no change needed.",
+      "spec_quote": "with a pulse on ena whenever your clock should increment",
+      "edits": []
+    },
+    {
+      "issue_id": "I7",
+      "decision": "accept",
+      "reason": "State meanings permit invalid BCD hours (00, 13-19); spec restricts hours to 01-12, so tighten the meanings.",
+      "spec_quote": "hh, mm, and ss are two BCD (Binary-Coded Decimal) digits each for hours (01-12), minutes (00-59), and seconds (00-59).",
+      "edits": [
+        {
+          "path": [
+            "states",
+            "hh_ones",
+            "meaning"
+          ],
+          "value": "BCD ones digit of hours; valid hour values are 01-12, so hh_ones is 0-2 with hh_tens constrained to form 01-12"
+        },
+        {
+          "path": [
+            "states",
+            "hh_tens",
+            "meaning"
+          ],
+          "value": "BCD tens digit of hours; valid hour values are 01-12, so hh_tens is 0 or 1 and hh_tens=1 only with hh_ones 0-2"
+        }
+      ]
+    },
+    {
+      "issue_id": "I8",
+      "decision": "accept",
+      "reason": "R4 handles hh!=12 rollover but does not toggle pm on 11:59:59 -> 12:00:00; add pm to R4 outputs and condition so AM/PM flips correctly.",
+      "spec_quote": "The signal \"pm\" is asserted if the clock is PM, or is otherwise AM.",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R4_minutes_rollover",
+            "outputs"
+          ],
+          "value": [
+            "mm",
+            "hh",
+            "pm"
+          ]
+        },
+        {
+          "path": [
+            "rules",
+            "R4_minutes_rollover",
+            "condition"
+          ],
+          "value": "reset == 0 && ena == 1 && ss == 8'h59 && mm == 8'h59 && hh != 8'h12"
+        }
+      ]
+    },
+    {
+      "issue_id": "I9",
+      "decision": "accept",
+      "reason": "Same defect as I8: R4 must also update pm when rolling from 11:59:59 to 12:00:00.",
+      "spec_quote": "The signal \"pm\" is asserted if the clock is PM, or is otherwise AM.",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R4_minutes_rollover",
+            "outputs"
+          ],
+          "value": [
+            "mm",
+            "hh",
+            "pm"
+          ]
+        }
+      ],
+      "already_applied_by_earlier_issue": true
+    },
+    {
+      "issue_id": "I10",
+      "decision": "accept",
+      "reason": "State meanings are not grounded in the 01-12 hour restriction; tighten them to exclude 00 and 13-19.",
+      "spec_quote": "hours (01-12)",
+      "edits": [
+        {
+          "path": [
+            "states",
+            "hh_ones",
+            "meaning"
+          ],
+          "value": "BCD ones digit of hours; valid hour values are 01-12, so hh_ones is 0-2 with hh_tens constrained to form 01-12"
+        },
+        {
+          "path": [
+            "states",
+            "hh_tens",
+            "meaning"
+          ],
+          "value": "BCD tens digit of hours; valid hour values are 01-12, so hh_tens is 0 or 1 and hh_tens=1 only with hh_ones 0-2"
+        }
+      ],
+      "already_applied_by_earlier_issue": true
+    },
+    {
+      "issue_id": "I11",
+      "decision": "rebut",
+      "reason": "The public specification provides textual constraints only; the contract examples already express the rules and no explicit waveform is required.",
+      "spec_quote": "Create a set of counters suitable for use as a 12-hour clock (with am/pm indicator).",
+      "edits": []
+    }
+  ]
+}

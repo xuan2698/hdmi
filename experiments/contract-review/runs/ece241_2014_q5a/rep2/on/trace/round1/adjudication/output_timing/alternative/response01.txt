@@ -1,0 +1,80 @@
+def reference(vectors):
+    # Implemented rule IDs: async_reset_z0, s0_x0, s0_x1, s1_x0, s1_x1, s2_x0, s2_x1, global.
+    state = 'S0'  # concrete reset/power-up default
+    cur = {'areset': 0, 'x': 0}
+    out = []
+
+    for row in vectors:
+        # Drive this row's inputs before the sampled posedge.
+        if row:
+            for k, v in row.items():
+                if k == 'mid':
+                    continue
+                if k == 'areset' or k == 'x':
+                    cur[k] = int(v) & 1
+
+        areset = cur['areset']
+        x = cur['x']
+
+        # async_reset_z0: active-high asynchronous reset forces S0 and z=0 while asserted.
+        if areset == 1:
+            state = 'S0'
+
+        # global: registered Moore output is sampled from the pre-edge state,
+        # giving one-cycle latency.  Reset still forces z=0.
+        if areset == 1:
+            z = 0
+        else:
+            z = 1 if state == 'S1' else 0
+
+        # Posedge state transitions.
+        next_state = state
+        if areset == 1:
+            # async_reset_z0: reset has priority over transitions.
+            next_state = 'S0'
+        else:
+            if state == 'S0':
+                if x == 0:
+                    # s0_x0
+                    next_state = 'S0'
+                else:
+                    # s0_x1
+                    next_state = 'S1'
+            elif state == 'S1':
+                if x == 0:
+                    # s1_x0
+                    next_state = 'S1'
+                else:
+                    # s1_x1
+                    next_state = 'S2'
+            elif state == 'S2':
+                if x == 0:
+                    # s2_x0
+                    next_state = 'S1'
+                else:
+                    # s2_x1
+                    next_state = 'S2'
+
+        state = next_state
+        out.append({'z': int(z)})
+
+        # Mid changes occur after sampling, before the next edge, and carry forward.
+        if row and 'mid' in row:
+            mid = row['mid']
+            changes = []
+            if isinstance(mid, dict):
+                changes.append(mid)
+            elif isinstance(mid, (list, tuple)):
+                for item in mid:
+                    if isinstance(item, dict):
+                        changes.append(item)
+
+            for ch in changes:
+                for k, v in ch.items():
+                    if k == 'areset' or k == 'x':
+                        cur[k] = int(v) & 1
+                        if k == 'areset' and cur[k] == 1:
+                            # async_reset_z0: asynchronous reset takes effect immediately.
+                            state = 'S0'
+
+    return out

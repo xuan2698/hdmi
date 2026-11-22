@@ -1,0 +1,64 @@
+```python
+def reference(vectors):
+    # State encoding
+    S0 = 0
+    S1 = 1
+    S11 = 2
+    S110 = 3
+    FOUND = 4
+
+    state = S0
+    curr_reset = 0
+    curr_data = 0
+    results = []
+
+    for row in vectors:
+        # Drive row inputs before the sampled posedge.
+        if "reset" in row:
+            curr_reset = row["reset"] & 1
+        if "data" in row:
+            curr_data = row["data"] & 1
+
+        # R_RESET_CLEAR: synchronous active-high reset forces S0 and start_shifting=0.
+        if curr_reset == 1:
+            next_state = S0
+        else:
+            # Explicit transitions for the 1101 sequence detector.
+            if state == S0:
+                next_state = S1 if curr_data == 1 else S0
+            elif state == S1:
+                next_state = S11 if curr_data == 1 else S0
+            elif state == S11:
+                next_state = S11 if curr_data == 1 else S110
+            elif state == S110:
+                # R_SET_OR_HOLD_1101: completing 1101 enters FOUND and sets output.
+                next_state = FOUND if curr_data == 1 else S0
+            else:  # FOUND
+                # R_SET_OR_HOLD_1101: hold FOUND until reset.
+                next_state = FOUND
+
+        state = next_state
+
+        # R_KEEP_ZERO_UNTIL_FOUND: output stays 0 before FOUND.
+        # R_SET_OR_HOLD_1101: output is 1 in FOUND and remains sticky.
+        start_shifting = 1 if state == FOUND else 0
+        results.append({"start_shifting": start_shifting})
+
+        # Optional mid changes occur AFTER sampling and carry to next row start.
+        mid = row.get("mid")
+        if mid is not None:
+            if isinstance(mid, dict):
+                if "reset" in mid:
+                    curr_reset = mid["reset"] & 1
+                if "data" in mid:
+                    curr_data = mid["data"] & 1
+            elif isinstance(mid, list):
+                for change in mid:
+                    if isinstance(change, dict):
+                        if "reset" in change:
+                            curr_reset = change["reset"] & 1
+                        if "data" in change:
+                            curr_data = change["data"] & 1
+
+    return results
+```

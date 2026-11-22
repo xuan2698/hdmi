@@ -1,0 +1,114 @@
+def reference(vectors):
+    # State encoding
+    WALK_LEFT, WALK_RIGHT, FALL_LEFT, FALL_RIGHT, DIG_LEFT, DIG_RIGHT, SPLAT = range(7)
+
+    def outputs(state):
+        # R2_walk_outputs, R3_fall_outputs, R4_dig_outputs, R5_splat_outputs
+        if state == WALK_LEFT:
+            return {"walk_left": 1, "walk_right": 0, "aaah": 0, "digging": 0}
+        if state == WALK_RIGHT:
+            return {"walk_left": 0, "walk_right": 1, "aaah": 0, "digging": 0}
+        if state in (FALL_LEFT, FALL_RIGHT):
+            return {"walk_left": 0, "walk_right": 0, "aaah": 1, "digging": 0}
+        if state in (DIG_LEFT, DIG_RIGHT):
+            return {"walk_left": 0, "walk_right": 0, "aaah": 0, "digging": 1}
+        # SPLAT
+        return {"walk_left": 0, "walk_right": 0, "aaah": 0, "digging": 0}
+
+    state = WALK_LEFT  # power-up default (walk left)
+    fall_count = 0
+    results = []
+
+    for row in vectors:
+        areset = row.get("areset", 0)
+        bump_left = row.get("bump_left", 0)
+        bump_right = row.get("bump_right", 0)
+        ground = row.get("ground", 1)
+        dig = row.get("dig", 0)
+
+        # R1_reset: asynchronous positive-edge reset -> WALK_LEFT
+        if areset == 1:
+            state = WALK_LEFT
+            fall_count = 0
+
+        # Outputs visible same cycle (Moore)
+        results.append(outputs(state))
+
+        # Compute next state on posedge
+        ns = state
+        nfc = fall_count
+
+        if state == WALK_LEFT:
+            if ground == 0:
+                # R9_walk_fall
+                ns = FALL_LEFT
+                nfc = 0
+            elif dig == 1:
+                # R8_walk_start_dig
+                ns = DIG_LEFT
+            elif bump_left == 1 or bump_right == 1:
+                # R6_walk_bump_switch, R7_walk_bump_both_switch
+                ns = WALK_RIGHT
+            else:
+                ns = WALK_LEFT
+        elif state == WALK_RIGHT:
+            if ground == 0:
+                # R9_walk_fall
+                ns = FALL_RIGHT
+                nfc = 0
+            elif dig == 1:
+                # R8_walk_start_dig
+                ns = DIG_RIGHT
+            elif bump_left == 1 or bump_right == 1:
+                # R6_walk_bump_switch, R7_walk_bump_both_switch
+                ns = WALK_LEFT
+            else:
+                ns = WALK_RIGHT
+        elif state == FALL_LEFT:
+            if ground == 1:
+                if fall_count > 20:
+                    # R11_fall_splat
+                    ns = SPLAT
+                else:
+                    # R10_fall_land
+                    ns = WALK_LEFT
+                nfc = 0
+            else:
+                ns = FALL_LEFT
+                nfc = fall_count + 1
+        elif state == FALL_RIGHT:
+            if ground == 1:
+                if fall_count > 20:
+                    # R11_fall_splat
+                    ns = SPLAT
+                else:
+                    # R10_fall_land
+                    ns = WALK_RIGHT
+                nfc = 0
+            else:
+                ns = FALL_RIGHT
+                nfc = fall_count + 1
+        elif state == DIG_LEFT:
+            if ground == 0:
+                # R13_dig_to_fall
+                ns = FALL_LEFT
+                nfc = 0
+            else:
+                # R12_dig_continue
+                ns = DIG_LEFT
+        elif state == DIG_RIGHT:
+            if ground == 0:
+                # R13_dig_to_fall
+                ns = FALL_RIGHT
+                nfc = 0
+            else:
+                # R12_dig_continue
+                ns = DIG_RIGHT
+        elif state == SPLAT:
+            # R14_splat_hold
+            ns = SPLAT
+
+        state = ns
+        fall_count = nfc
+
+    return results

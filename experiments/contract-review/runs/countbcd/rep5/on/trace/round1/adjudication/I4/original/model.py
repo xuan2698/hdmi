@@ -1,0 +1,43 @@
+def reference(vectors):
+    # sync_reset, bcd_increment, upper_digit_enables
+    q = 0
+    result = []
+    for row in vectors:
+        reset = 0
+        if "reset" in row:
+            reset = row["reset"]
+        # sync_reset: synchronous active-high reset clears q to 0
+        if reset == 1:
+            q = 0
+        else:
+            # bcd_increment: increment 4-digit BCD modulo 10000
+            ones = q & 15
+            tens = (q >> 4) & 15
+            hundreds = (q >> 8) & 15
+            thousands = (q >> 12) & 15
+            ones = ones + 1
+            if ones == 10:
+                ones = 0
+                tens = tens + 1
+                if tens == 10:
+                    tens = 0
+                    hundreds = hundreds + 1
+                    if hundreds == 10:
+                        hundreds = 0
+                        thousands = thousands + 1
+                        if thousands == 10:
+                            thousands = 0
+            q = (thousands << 12) | (hundreds << 8) | (tens << 4) | ones
+        # upper_digit_enables: combinational from current q
+        ones = q & 15
+        tens = (q >> 4) & 15
+        hundreds = (q >> 8) & 15
+        ena = 0
+        if ones == 9:
+            ena = 1
+            if tens == 9:
+                ena = ena + 2
+                if hundreds == 9:
+                    ena = ena + 4
+        result.append({"q": q, "ena": ena})
+    return result

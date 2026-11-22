@@ -1,0 +1,39 @@
+def reference(vectors):
+    # Initial power-up values: unspecified, choose 0 for concrete output.
+    q = 0
+    prev_a = 0
+    prev_clk = 0
+    result = []
+    for vec in vectors:
+        a = vec.get('a', 0) & 1
+        clk = vec.get('clk', 1)  # if clock omitted, treat row as a posedge sample
+        # posedge detection: sample after the rising edge has settled
+        if clk == 1 and prev_clk == 0:
+            # R1_a_high_load4: a == 1 at posedge => q <= 4
+            if a == 1:
+                q = 4
+            else:
+                # a == 0
+                # R2_first_low_hold: a == 0 && prev_a == 1 => hold q
+                if prev_a == 1:
+                    pass
+                else:
+                    # R3_count_low with candidate interpretation:
+                    # cycle 4,5,6,0,1,4 (1->4), not modulo-7 1->2
+                    if q == 4:
+                        q = 5
+                    elif q == 5:
+                        q = 6
+                    elif q == 6:
+                        q = 0
+                    elif q == 0:
+                        q = 1
+                    elif q == 1:
+                        q = 4
+                    else:
+                        # unreachable from the specified cycle; fallback to modulo-7
+                        q = (q + 1) % 7
+            prev_a = a
+        prev_clk = clk
+        result.append({'q': q & 0x7})
+    return result

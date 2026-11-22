@@ -1,0 +1,200 @@
+{
+  "coverage": {
+    "S01": [
+      "R1_predict_outputs",
+      "R2_predict_updates_ghr",
+      "R3_train_updates_pht",
+      "R6_predict_sees_pre_train_pht"
+    ],
+    "S02": [
+      "R1_predict_outputs",
+      "R3_train_updates_pht",
+      "R6_predict_sees_pre_train_pht"
+    ],
+    "S03": [
+      "R2_predict_updates_ghr",
+      "R4_train_mispredicted_recovers_ghr",
+      "R5_train_priority_over_predict_ghr"
+    ],
+    "S04": [
+      "R1_predict_outputs",
+      "R3_train_updates_pht"
+    ],
+    "S05": [
+      "R1_predict_outputs"
+    ],
+    "S06": [
+      "R3_train_updates_pht"
+    ],
+    "S07": [
+      "R3_train_updates_pht"
+    ],
+    "S08": [
+      "R1_predict_outputs"
+    ],
+    "S09": [
+      "R2_predict_updates_ghr"
+    ],
+    "S10": [
+      "R3_train_updates_pht",
+      "R4_train_mispredicted_recovers_ghr"
+    ],
+    "S11": [
+      "R3_train_updates_pht"
+    ],
+    "S12": [
+      "R4_train_mispredicted_recovers_ghr"
+    ],
+    "S13": [
+      "R5_train_priority_over_predict_ghr"
+    ],
+    "S14": [
+      "R5_train_priority_over_predict_ghr"
+    ],
+    "S15": [
+      "R6_predict_sees_pre_train_pht"
+    ],
+    "S16": [
+      "R6_predict_sees_pre_train_pht"
+    ],
+    "S17": [
+      "R6_predict_sees_pre_train_pht"
+    ],
+    "S18": [
+      "R7_async_reset"
+    ]
+  },
+  "issues": [
+    {
+      "issue_id": "I1",
+      "rule_id": "R2_predict_updates_ghr",
+      "type": "grounding",
+      "severity": "high",
+      "detail": "Rule lacks verbatim evidence for how GHR is updated on prediction (shift direction, inserted bit).",
+      "spec_evidence": "The branch history register is then updated (at the next positive clock edge) for the predicted branch.",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I2",
+      "rule_id": "R3_train_updates_pht",
+      "type": "grounding",
+      "severity": "high",
+      "detail": "Rule lacks verbatim evidence for PHT counter update direction and saturation behavior.",
+      "spec_evidence": "Update the pattern history table (PHT) to train the branch predictor to predict this branch more accurately next time.",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I3",
+      "rule_id": "R4_train_mispredicted_recovers_ghr",
+      "type": "grounding",
+      "severity": "high",
+      "detail": "Rule lacks verbatim evidence for exact GHR recovery value from train_history.",
+      "spec_evidence": "if the branch being trained is mispredicted, also recover the branch history register to the state immediately after the mispredicting branch completes execution.",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I4",
+      "rule_id": "R6_predict_sees_pre_train_pht",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec does not state whether predict_history reflects GHR before or after same-cycle training GHR recovery.",
+      "spec_evidence": "If training and prediction of the same PHT entry happen at the same time, the prediction sees the PHT state before training because training only modifies the PHT at the next positive clock edge.",
+      "alternative": "predict_history reflects post-train GHR (train_history) when train_mispredicted=1 and predict_valid=1 in same cycle.",
+      "sequence": [
+        {
+          "areset": 0,
+          "predict_valid": 1,
+          "predict_pc": 3,
+          "train_valid": 1,
+          "train_taken": 1,
+          "train_mispredicted": 1,
+          "train_history": 5,
+          "train_pc": 3
+        }
+      ]
+    },
+    {
+      "issue_id": "I5",
+      "rule_id": "R1_predict_outputs",
+      "type": "consistency",
+      "severity": "medium",
+      "detail": "Example expected predict_history=0 for all cycles, but after first prediction GHR should update; example does not exercise nonzero history.",
+      "spec_evidence": "The branch history register is then updated (at the next positive clock edge) for the predicted branch.",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I6",
+      "rule_id": "R5_train_priority_over_predict_ghr",
+      "type": "consistency",
+      "severity": "medium",
+      "detail": "Example expected predict_history=0 in cycle 2 after training with train_history=2 and mispredicted=1; if recovery sets GHR to train_history, predict_history should be 2, not 0.",
+      "spec_evidence": "if the branch being trained is mispredicted, also recover the branch history register to the state immediately after the mispredicting branch completes execution.",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I7",
+      "rule_id": "R4_train_mispredicted_recovers_ghr",
+      "type": "consistency",
+      "severity": "medium",
+      "detail": "Example expected predict_history=0 in cycle 2 after mispredicted training with train_history=5; if recovery sets GHR to train_history, predict_history should be 5, not 0.",
+      "spec_evidence": "if the branch being trained is mispredicted, also recover the branch history register to the state immediately after the mispredicting branch completes execution.",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I8",
+      "rule_id": "R3_train_updates_pht",
+      "type": "consistency",
+      "severity": "medium",
+      "detail": "Example expected predict_taken=0 in cycle 2 after training taken=1 on entry 0; if counter saturating increments from 0 to 1, predict_taken should be 1, not 0.",
+      "spec_evidence": "Update the pattern history table (PHT) to train the branch predictor to predict this branch more accurately next time.",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I9",
+      "rule_id": "R6_predict_sees_pre_train_pht",
+      "type": "consistency",
+      "severity": "medium",
+      "detail": "Example expected predict_taken=0 in cycle 1 with same-cycle training taken=1 on same entry; if PHT initial state is 0 and training increments to 1, prediction should see pre-train 0, but example does not distinguish because initial state unknown.",
+      "spec_evidence": "If training and prediction of the same PHT entry happen at the same time, the prediction sees the PHT state before training because training only modifies the PHT at the next positive clock edge.",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I10",
+      "rule_id": "global",
+      "type": "coverage",
+      "severity": "medium",
+      "detail": "Spec S01-S02 describe 7-bit pc and 7-bit global history hashed by xor into 7-bit index; contract states this in state meaning but no rule explicitly defines index computation or PHT entry selection.",
+      "spec_evidence": "Build a gshare branch predictor with 7-bit pc and 7-bit global history, hashed (using xor) into a 7-bit index.",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I11",
+      "rule_id": "global",
+      "type": "coverage",
+      "severity": "medium",
+      "detail": "Spec S10 says training is told pc and branch history register value for the branch being trained; contract has train_history input but no rule explicitly states how train_history is used for PHT indexing.",
+      "spec_evidence": "When training for a branch is requested (train_valid = 1), the branch predictor is told the pc and branch history register value for the branch that is being trained, as well as the actual branch outcome and whether the branch was a misprediction (needing a pipeline flush).",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I12",
+      "rule_id": "R7_async_reset",
+      "type": "consistency",
+      "severity": "low",
+      "detail": "Reset example expected predict_history=0 in cycle 1 after areset deasserts and predict_valid=1; if GHR reset to 0, predict_history should be 0, consistent, but example does not verify async behavior.",
+      "spec_evidence": "Reset is asynchronous active-high.",
+      "alternative": "",
+      "sequence": []
+    }
+  ]
+}

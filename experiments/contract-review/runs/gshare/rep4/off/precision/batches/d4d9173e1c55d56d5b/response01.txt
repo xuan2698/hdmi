@@ -1,0 +1,68 @@
+We need to implement a gshare branch predictor with:
+- 7-bit PC, 7-bit GHR, XOR → 7-bit index into 128-entry PHT of 2-bit saturating counters.
+- Async active-high reset clears GHR and PHT.
+- Prediction: combinational read of PHT[index] and GHR; predict_taken = PHT[index][1] (MSB); predict_history = GHR.
+- At posedge: if predict_valid and not (train_valid and train_mispredicted), GHR shifts in predicted direction (predict_taken).
+- Training: at posedge, PHT[train_pc ^ train_history] saturating-updates toward train_taken.
+- If train_valid and train_mispredicted: GHR ← (train_history << 1 | train_taken) & 0x7F, takes precedence over prediction GHR update.
+
+Let me write the reference function.
+
+```python
+def reference(vectors):
+    # State
+    pht = [0] * 128  # 2-bit counters, init 0
+    ghr = 0
+    out = []
+    for v in vectors:
+        areset = v['areset']
+        if areset:
+            pht = [0] * 128
+            ghr = 0
+            out.append({'predict_taken': 0, 'predict_history': 0})
+            continue
+        # combinational outputs
+        pv = v['predict_valid']
+        if pv:
+            idx = (v['predict_pc'] ^ ghr) & 0x7F
+            pt = (pht[idx] >> 1) & 1
+            ph = ghr
+        else:
+            pt = 0
+            ph = 0
+        out.append({'predict_taken': pt, 'predict_history': ph})
+        # posedge updates
+        tv = v['train_valid']
+        tm = v['train_mispredicted']
+        # PHT update
+        if tv:
+            tidx = (v['train_pc'] ^ v['train_history']) & 0x7F
+            c = pht[tidx]
+            if v['train_taken']:
+                if c < 3:
+                    c += 1
+            else:
+                if c > 0:
+                    c -= 1
+            pht[tidx] = c
+        # GHR update
+        if tv and tm:
+            ghr = ((v['train_history'] << 1) | v['train_taken']) & 0x7F
+        elif pv:
+            ghr = ((ghr << 1) | pt) & 0x7F
+    return out
+```
+
+Wait — need to double check the "predict_history" output when predict_valid=0. The spec says "When a branch prediction is requested (predict_valid = 1) ... produces the predicted branch direction and state of the branch history register". When not requested, output is presumably 0 (as in examples). Yes, examples show 0 when predict_valid=0.
+
+Also need to check: does the PHT update happen even when train_mispredicted? Yes — training always updates PHT.
+
+Also: when train_valid and train_mispredicted and predict_valid, training takes precedence for GHR. But PHT update still happens for the training entry. And prediction output still reflects pre-edge PHT state (combinational). Good.
+
+One subtlety: when train_valid=1 but train_mispredicted=0 and predict_valid=1 — spec says "If training for a misprediction and a prediction ... occurs in the same cycle, both operations will want to modify the branch history register. When this happens, training takes precedence". So only misprediction training conflicts with prediction GHR update. Non-mispredicted training doesn't touch GHR. So prediction GHR update happens normally. Good — my code handles that.
+
+Let me verify with the example vectors... they all show 0 outputs which is consistent with initial state.
+
+Let me also double-check the PHT counter semantics: 2-bit saturating counter, predict_taken = MSB. Init 0 → predict not-taken. Train taken → 0→1→2→3. Train not-taken → saturate at 0. Standard.
+
+I'll produce the final JSON.

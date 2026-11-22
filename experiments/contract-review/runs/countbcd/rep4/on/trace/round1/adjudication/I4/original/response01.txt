@@ -1,0 +1,69 @@
+```python
+def reference(vectors):
+    # Initial state and input values for a concrete power-up.
+    q = 0
+    current_reset = 0
+    results = []
+
+    for row in vectors:
+        # Drive row input values before the sampled rising edge.
+        if isinstance(row, dict) and "reset" in row:
+            current_reset = int(row["reset"]) & 1
+
+        reset_val = current_reset
+
+        # Rule sync_active_high_reset: synchronous active-high reset.
+        if reset_val:
+            q = 0
+        else:
+            # Rule bcd_counter_increment: four packed BCD digits, modulo 10000.
+            d0 = q & 0xF
+            d1 = (q >> 4) & 0xF
+            d2 = (q >> 8) & 0xF
+            d3 = (q >> 12) & 0xF
+
+            if d0 != 9:
+                d0 += 1
+            else:
+                d0 = 0
+                if d1 != 9:
+                    d1 += 1
+                else:
+                    d1 = 0
+                    if d2 != 9:
+                        d2 += 1
+                    else:
+                        d2 = 0
+                        if d3 != 9:
+                            d3 += 1
+                        else:
+                            d3 = 0
+
+            q = ((d0 & 0xF) |
+                 ((d1 & 0xF) << 4) |
+                 ((d2 & 0xF) << 8) |
+                 ((d3 & 0xF) << 12))
+
+        # Rule upper_digit_enables: combinational enables from current q.
+        d0 = q & 0xF
+        d1 = (q >> 4) & 0xF
+        d2 = (q >> 8) & 0xF
+        e0 = 1 if d0 == 9 else 0
+        e1 = 1 if (d0 == 9 and d1 == 9) else 0
+        e2 = 1 if (d0 == 9 and d1 == 9 and d2 == 9) else 0
+        ena = e0 | (e1 << 1) | (e2 << 2)
+
+        # Rule sync_active_high_reset also forces ena to 0 after reset edge.
+        if reset_val:
+            ena = 0
+
+        results.append({"q": q & 0xFFFF, "ena": ena & 0x7})
+
+        # Optional mid-cycle input changes are applied after sampling.
+        if isinstance(row, dict) and isinstance(row.get("mid"), dict):
+            mid = row["mid"]
+            if "reset" in mid:
+                current_reset = int(mid["reset"]) & 1
+
+    return results
+```

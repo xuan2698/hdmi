@@ -1,0 +1,56 @@
+def reference(vectors):
+    # R_RESET: active-high areset asynchronously forces START and z=0.
+    # R_CONVERT: posedge with reset deasserted performs LSB-first 2's-complement conversion.
+    state = "START"
+    z = 0
+    cur_areset = 0
+    cur_x = 0
+    outs = []
+    for row in vectors:
+        if "areset" in row:
+            cur_areset = row["areset"]
+        if "x" in row:
+            cur_x = row["x"]
+
+        if cur_areset == 1:
+            # R_RESET
+            state = "START"
+            z = 0
+        else:
+            # R_CONVERT
+            if state == "START":
+                if cur_x == 0:
+                    state = "START"
+                    z = 0
+                else:
+                    state = "INV1"
+                    z = 1
+            elif state == "INV0":
+                if cur_x == 0:
+                    state = "INV1"
+                    z = 1
+                else:
+                    state = "INV0"
+                    z = 0
+            else:
+                if cur_x == 0:
+                    state = "INV1"
+                    z = 1
+                else:
+                    state = "INV0"
+                    z = 0
+
+        outs.append({"z": z})
+
+        if "mid" in row:
+            mid = row["mid"]
+            if "areset" in mid:
+                cur_areset = mid["areset"]
+                if cur_areset == 1:
+                    # R_RESET
+                    state = "START"
+                    z = 0
+            if "x" in mid:
+                cur_x = mid["x"]
+
+    return outs

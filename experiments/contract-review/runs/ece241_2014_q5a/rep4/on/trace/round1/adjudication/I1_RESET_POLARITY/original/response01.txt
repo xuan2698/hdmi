@@ -1,0 +1,56 @@
+def reference(vectors):
+    START = 0
+    INV0 = 1
+    INV1 = 2
+
+    state = START
+    areset = 0
+    x = 0
+    outputs = []
+
+    for row in vectors:
+        # Drive row inputs before the sampled posedge.
+        if 'areset' in row:
+            areset = row['areset'] & 1
+        if 'x' in row:
+            x = row['x'] & 1
+
+        # R_RESET: active-high asynchronous reset forces START and z=0.
+        # It has priority over the posedge transition.
+        if areset == 1:
+            state = START
+            z = 0
+        else:
+            # R_CONVERT: posedge sampled Moore transition.
+            if state == START:
+                if x == 1:
+                    state = INV1
+                else:
+                    state = START
+            else:
+                # A 1 has already been seen; subsequent bits are inverted.
+                if x == 0:
+                    state = INV1
+                else:
+                    state = INV0
+
+            # Moore output after the sampled posedge has settled.
+            if state == INV1:
+                z = 1
+            else:
+                z = 0
+
+        outputs.append({'z': z})
+
+        # Mid changes occur after sampling and carry to the next row.
+        if 'mid' in row:
+            mid = row['mid']
+            if 'x' in mid:
+                x = mid['x'] & 1
+            if 'areset' in mid:
+                areset = mid['areset'] & 1
+                # R_RESET: asynchronous reset assertion after sampling.
+                if areset == 1:
+                    state = START
+
+    return outputs

@@ -1,0 +1,29 @@
+def reference(vectors):
+    # Contract implementation.
+    # Rule global: q starts as x (unknown) until first posedge.
+    # Rule hold_when_a_high: on posedge, if a==1 or prev_a==1, hold q.
+    # Rule increment_when_a_low: on posedge, if a==0 and prev_a==0, q = (q+1) mod 8.
+    # prev_a tracks the a value sampled at the previous posedge (initially 1,
+    # since the first row shows a=1 and q becomes 4 at first posedge with a=1,
+    # meaning hold applies -> q was already 4? Actually first posedge q=4 from x.
+    # Per spec, first posedge with a=1 yields q=4. So initial q is treated as 4
+    # effectively for the first sample, but spec says x. We'll model: q unknown
+    # until first posedge; at first posedge, since prev_a is unknown/treated as 1
+    # (hold), q stays at its initial value. The waveform shows q=4 at 5ns.
+    # To match, we set initial q=4 (concrete) since output must be concrete.
+    # prev_a initial: treat as 1 so first posedge holds.
+    q = 4  # concrete stand-in for unknown initial value (matches waveform)
+    prev_a = 1  # so first posedge holds (rule hold_when_a_high)
+    out = []
+    for row in vectors:
+        a = row['a']
+        # posedge sampling: apply rules based on current a and prev_a
+        if a == 1 or prev_a == 1:
+            # hold_when_a_high
+            pass
+        else:
+            # increment_when_a_low
+            q = (q + 1) % 8
+        prev_a = a
+        out.append({'q': q & 0x7})
+    return out

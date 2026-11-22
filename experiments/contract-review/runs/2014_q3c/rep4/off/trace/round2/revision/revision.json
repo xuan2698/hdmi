@@ -1,0 +1,71 @@
+{
+  "responses": [
+    {
+      "issue_id": "I1",
+      "decision": "accept",
+      "reason": "Table defines next-state only for y=000..100; undefined states 101-111 need explicit handling in R_Y0 condition.",
+      "spec_quote": "// Present state y[2:0] | Next state Y[2:0] x=0, Next state Y[2:0] x=1 | Output z",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R_Y0",
+            "condition"
+          ],
+          "value": "Y0 = next-state bit 0 of Y[2:0] per state-assigned table: y=000 -> x=0:0, x=1:1; y=001 -> x=0:1, x=1:0; y=010 -> x=0:0, x=1:1; y=011 -> x=0:1, x=1:0; y=100 -> x=0:1, x=1:0; y=101,110,111 are unspecified by the table (implementation-defined)"
+        }
+      ]
+    },
+    {
+      "issue_id": "I2",
+      "decision": "accept",
+      "reason": "Table defines z only for y=000..100; undefined states 101-111 need explicit handling in R_z condition.",
+      "spec_quote": "// 100 | 011, 100 | 1",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R_z",
+            "condition"
+          ],
+          "value": "z = 1 when present state y[2:0] is 011 or 100, else 0 (Moore output from table); y=101,110,111 are unspecified by the table (implementation-defined)"
+        }
+      ]
+    },
+    {
+      "issue_id": "I3",
+      "decision": "accept",
+      "reason": "Spec gives Y[2:0] but only Y0 is exposed; bit-0 interpretation should be recorded as uncertain.",
+      "spec_quote": "Next state Y[2:0] x=0, Next state Y[2:0] x=1",
+      "edits": [
+        {
+          "path": [
+            "uncertain"
+          ],
+          "value": [
+            {
+              "rule_id": "R_Y0",
+              "note": "Spec table gives next-state Y[2:0] but contract exposes only Y0; bit position of Y0 within Y[2:0] is inferred.",
+              "candidates": [
+                "Y0 is bit 0 (LSB) of Y[2:0]",
+                "Y0 is bit 2 (MSB) of Y[2:0]"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "issue_id": "I4",
+      "decision": "rebut",
+      "reason": "R_Y0 example already uses y=0 and y=3 with expected Y0 values matching table bit0; existing example expresses the rule.",
+      "spec_quote": "// 011 | 001, 010 | 1"
+    },
+    {
+      "issue_id": "I5",
+      "decision": "rebut",
+      "reason": "R_z example already covers y=2,3,4,0 with expected z matching table; existing example expresses the rule.",
+      "spec_quote": "// 011 | 001, 010 | 1"
+    }
+  ]
+}

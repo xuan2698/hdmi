@@ -1,0 +1,40 @@
+def reference(vectors):
+    # Contract:
+    # - state is a 1-bit flip-flop updated on posedge clk: state_next = a
+    # - q is combinational: q = state XOR b
+    # - No reset; state is unspecified until first posedge.
+    # - Each row: inputs are driven before the sampled edge.
+    #   If clk==1 in a row, that row's edge is the posedge; state updates using
+    #   the a value in that row, and q is computed from the NEW state and b.
+    #   If clk==0, no edge; state holds, q computed from held state and b.
+    # - Mid input changes occur AFTER sampling, before the other edge, and are
+    #   carried to the start of the next row. We track a "pending" a value that
+    #   will be used at the next posedge if the row's own a is overridden.
+    #
+    # We model: for each row, determine the a value seen at the posedge (if any).
+    # The row's 'a' is the value driven before the sampled edge. Mid changes
+    # update a for subsequent rows. Since the table already reflects mid changes
+    # in the next row's 'a', we simply use each row's 'a' at its posedge.
+    #
+    # State starts unknown. We use 0 as a concrete placeholder until first posedge.
+
+    state = 0          # placeholder for unknown power-up
+    state_known = False
+    results = []
+
+    for row in vectors:
+        clk = row.get('clk', 0)
+        a = row.get('a', 0)
+        b = row.get('b', 0)
+
+        if clk == 1:
+            # posedge: sample a into state
+            state = a & 1
+            state_known = True
+
+        # q is combinational from current state and b
+        q = (state ^ (b & 1)) & 1
+
+        results.append({'state': state & 1, 'q': q})
+
+    return results

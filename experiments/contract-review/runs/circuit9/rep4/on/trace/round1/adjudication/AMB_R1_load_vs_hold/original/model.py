@@ -1,0 +1,28 @@
+def reference(vectors):
+    # State: q is the 3-bit modulo-7 counter value.
+    # State: prev_a is the value of a sampled at the previous posedge.
+    # Power-up is unspecified; choose concrete initial values 0 and 0.
+    q = 0
+    prev_a = 0
+    results = []
+
+    for row in vectors:
+        a = row['a'] & 1  # 1-bit input
+
+        # R1_a_high_load4: a == 1 at posedge => q <= 4 (priority 1)
+        if a == 1:
+            q = 4
+        # R2_first_low_hold: a == 0 and prev_a == 1 => q <= q (priority 2)
+        elif prev_a == 1:
+            q = q  # explicit hold
+        # R3_count_low: a == 0 and prev_a == 0 => q <= (q + 1) mod 7 (priority 3)
+        else:
+            q = (q + 1) % 7
+
+        # prev_a updates to the current a on each posedge.
+        prev_a = a
+
+        # q is a 3-bit output; keep a concrete unsigned integer within width.
+        results.append({'q': q & 0x7})
+
+    return results

@@ -1,0 +1,73 @@
+```python
+def reference(vectors):
+    # State variables
+    q = 0                 # concrete placeholder for unspecified power-up
+    prev_a = 0
+    initialized = False
+    prev_clk = 0
+
+    # Detect whether clock is included in the input vectors
+    has_clk = False
+    if vectors:
+        first = vectors[0]
+        if isinstance(first, dict) and 'clk' in first:
+            has_clk = True
+
+    out = []
+    for row in vectors:
+        # Extract input 'a' (and 'clk' if present)
+        if isinstance(row, dict):
+            a = row.get('a', 0)
+            if has_clk:
+                clk = row.get('clk', 0)
+        else:
+            a = row[0] if len(row) > 0 else 0
+            if has_clk:
+                clk = row[1] if len(row) > 1 else 0
+
+        a = 1 if a else 0
+
+        if has_clk:
+            clk = 1 if clk else 0
+            # Update only on rising edge
+            if prev_clk == 0 and clk == 1:
+                if not initialized:
+                    # R1_a_high_load4 interpretation: first posedge initializes q=4
+                    q = 4
+                    initialized = True
+                    prev_a = a
+                else:
+                    if a == 1:
+                        # R1_a_high_load4 (interpreted): later a=1 holds current q
+                        pass
+                    elif prev_a == 1:
+                        # R2_first_low_hold: first low sample after high holds
+                        pass
+                    else:
+                        # R3_count_low: count modulo 7 when a low for consecutive posedges
+                        q = (q + 1) % 7
+                    prev_a = a
+            prev_clk = clk
+        else:
+            # Each vector is a posedge sample
+            if not initialized:
+                # R1_a_high_load4 interpretation: first posedge initializes q=4
+                q = 4
+                initialized = True
+                prev_a = a
+            else:
+                if a == 1:
+                    # R1_a_high_load4 (interpreted): later a=1 holds current q
+                    pass
+                elif prev_a == 1:
+                    # R2_first_low_hold: first low sample after high holds
+                    pass
+                else:
+                    # R3_count_low: count modulo 7 when a low for consecutive posedges
+                    q = (q + 1) % 7
+                prev_a = a
+
+        out.append({'q': q})
+
+    return out
+```

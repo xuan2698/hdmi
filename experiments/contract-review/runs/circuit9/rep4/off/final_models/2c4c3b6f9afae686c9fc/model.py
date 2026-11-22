@@ -1,0 +1,21 @@
+def reference(vectors):
+    # Contract:
+    # - Sequential circuit, 3-bit counter q.
+    # - On posedge clk: if a==1 hold q (rule hold_when_a_high), if a==0 increment q mod 8 (rule increment_when_a_low).
+    # - No reset; power-up unspecified -> use 0 as concrete initial value.
+    # - Each row's values are driven before the sampled posedge edge.
+    # - Mid input changes occur AFTER sampling, before the other edge, carried to next row.
+    # - Return dict per row with concrete unsigned int within output width (3 bits).
+    q = 0  # power-up unspecified; concrete initial value
+    out = []
+    for row in vectors:
+        a = row.get('a', 0)
+        # posedge sampling: apply transition based on a
+        if a == 1:
+            # hold_when_a_high
+            q = q & 0x7
+        else:
+            # increment_when_a_low
+            q = (q + 1) & 0x7
+        out.append({'q': q})
+    return out

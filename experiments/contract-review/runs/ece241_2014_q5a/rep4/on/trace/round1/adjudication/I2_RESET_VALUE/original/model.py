@@ -1,0 +1,65 @@
+def reference(vectors):
+    START = "START"
+    INV0 = "INV0"
+    INV1 = "INV1"
+
+    state = START
+    z = 0
+    cur_areset = 0
+    cur_x = 0
+    results = []
+
+    for row in vectors:
+        # Drive row inputs before the sampled posedge; prior mid changes are carried forward.
+        if "areset" in row:
+            cur_areset = row["areset"]
+        if "x" in row:
+            cur_x = row["x"]
+
+        # R_RESET: active-high asynchronous reset forces START and z=0.
+        if cur_areset == 1:
+            state = START
+            z = 0
+
+        # R_CONVERT: posedge conversion when reset is deasserted; Moore z settles after edge.
+        if cur_areset == 0:
+            if state == START:
+                if cur_x == 0:
+                    state = START
+                else:
+                    state = INV1
+            elif state == INV1:
+                if cur_x == 0:
+                    state = INV1
+                else:
+                    state = INV0
+            else:
+                if cur_x == 0:
+                    state = INV1
+                else:
+                    state = INV0
+
+            if state == INV1:
+                z = 1
+            else:
+                z = 0
+        else:
+            z = 0
+
+        results.append({"z": z})
+
+        # Optional mid changes occur after this row's sample and carry to the next row.
+        if "mid" in row:
+            mid = row["mid"]
+            if mid:
+                if "areset" in mid:
+                    cur_areset = mid["areset"]
+                if "x" in mid:
+                    cur_x = mid["x"]
+
+                # R_RESET: asynchronous reset if asserted by a mid change.
+                if cur_areset == 1:
+                    state = START
+                    z = 0
+
+    return results

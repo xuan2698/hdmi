@@ -1,0 +1,55 @@
+def reference(vectors):
+    # state: dec holds the decimal counter value; q is derived as packed BCD
+    dec = 0
+    cur_reset = 0
+    out = []
+    for row in vectors:
+        # Apply inputs driven before the sampled posedge.
+        if isinstance(row, dict) and 'reset' in row:
+            cur_reset = row['reset']
+
+        # sync_reset: synchronous active-high reset clears q and overrides increment.
+        if cur_reset:
+            dec = 0
+        else:
+            # bcd_increment: increment by one modulo 10000.
+            dec = dec + 1
+            if dec >= 10000:
+                dec = 0
+
+        d0 = dec % 10
+        d1 = (dec // 10) % 10
+        d2 = (dec // 100) % 10
+        d3 = (dec // 1000) % 10
+
+        q = (d3 << 12) | (d2 << 8) | (d1 << 4) | d0
+
+        # upper_digit_enables: combinational enables from current q digits.
+        b0 = 1 if d0 == 9 else 0
+        b1 = 1 if (d0 == 9 and d1 == 9) else 0
+        b2 = 1 if (d0 == 9 and d1 == 9 and d2 == 9) else 0
+        ena = b0 | (b1 << 1) | (b2 << 2)
+
+        out.append({'q': q, 'ena': ena})
+
+        # Optional mid-cycle input changes occur after sampling.
+        if isinstance(row, dict) and 'mid' in row:
+            mid = row['mid']
+            if isinstance(mid, dict):
+                if 'reset' in mid:
+                    cur_reset = mid['reset']
+                if 'inputs' in mid and isinstance(mid['inputs'], dict):
+                    if 'reset' in mid['inputs']:
+                        cur_reset = mid['inputs']['reset']
+            elif isinstance(mid, (list, tuple)):
+                for ch in mid:
+                    if isinstance(ch, dict):
+                        if 'reset' in ch:
+                            cur_reset = ch['reset']
+                        if 'inputs' in ch and isinstance(ch['inputs'], dict):
+                            if 'reset' in ch['inputs']:
+                                cur_reset = ch['inputs']['reset']
+                    elif isinstance(ch, (list, tuple)) and len(ch) >= 2:
+                        if ch[0] == 'reset':
+                            cur_reset = ch[1]
+    return out

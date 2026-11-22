@@ -1,0 +1,219 @@
+{
+  "ports": {
+    "inputs": {
+      "reset": 1,
+      "ena": 1
+    },
+    "outputs": {
+      "pm": 1,
+      "hh": 8,
+      "mm": 8,
+      "ss": 8
+    },
+    "clock": "clk"
+  },
+  "states": [
+    {
+      "name": "pm",
+      "meaning": "AM/PM indicator; 0=AM, 1=PM; reset to 0",
+      "update_time": "posedge clk",
+      "update_during_reset": true
+    },
+    {
+      "name": "hh",
+      "meaning": "Two BCD hour digits 01-12; reset to 0x12 (decimal 18)",
+      "update_time": "posedge clk",
+      "update_during_reset": true
+    },
+    {
+      "name": "mm",
+      "meaning": "Two BCD minute digits 00-59; reset to 0x00",
+      "update_time": "posedge clk",
+      "update_during_reset": true
+    },
+    {
+      "name": "ss",
+      "meaning": "Two BCD second digits 00-59; reset to 0x00",
+      "update_time": "posedge clk",
+      "update_during_reset": true
+    }
+  ],
+  "rules": [
+    {
+      "id": "reset_priority",
+      "outputs": [
+        "pm",
+        "hh",
+        "mm",
+        "ss"
+      ],
+      "condition": "reset == 1; synchronous reset has priority over ena and forces pm=0, hh=0x12, mm=0x00, ss=0x00 at the posedge clk.",
+      "edge": "posedge",
+      "visible": "next_cycle",
+      "priority": 0,
+      "spec_quote": "resets the clock to \"12:00 AM.\"",
+      "uncertain": false,
+      "example": {
+        "vectors": [
+          {
+            "reset": 1,
+            "ena": 0
+          },
+          {
+            "reset": 1,
+            "ena": 1
+          },
+          {
+            "reset": 1,
+            "ena": 1
+          }
+        ],
+        "expected": [
+          {
+            "pm": 0,
+            "hh": 18,
+            "mm": 0,
+            "ss": 0
+          },
+          {
+            "pm": 0,
+            "hh": 18,
+            "mm": 0,
+            "ss": 0
+          },
+          {
+            "pm": 0,
+            "hh": 18,
+            "mm": 0,
+            "ss": 0
+          }
+        ]
+      }
+    },
+    {
+      "id": "increment_clock",
+      "outputs": [
+        "pm",
+        "hh",
+        "mm",
+        "ss"
+      ],
+      "condition": "reset == 0 && ena == 1; advance one displayed second in packed BCD: ss/mm/hh are BCD; ss 0x59 -> 0x00 carries mm, mm 0x59 -> 0x00 carries hh, hh 0x12 -> 0x01, hh 0x11 -> 0x12 toggles pm, and hh 0x12 -> 0x01 leaves pm unchanged; otherwise BCD increment.",
+      "edge": "posedge",
+      "visible": "next_cycle",
+      "priority": 10,
+      "spec_quote": "pulse on ena whenever your clock should increment",
+      "uncertain": true,
+      "example": {
+        "vectors": [
+          {
+            "reset": 0,
+            "ena": 1
+          },
+          {
+            "reset": 0,
+            "ena": 1
+          },
+          {
+            "reset": 0,
+            "ena": 1
+          },
+          {
+            "reset": 0,
+            "ena": 1
+          }
+        ],
+        "expected": [
+          {
+            "pm": 0,
+            "hh": 17,
+            "mm": 89,
+            "ss": 89
+          },
+          {
+            "pm": 1,
+            "hh": 18,
+            "mm": 0,
+            "ss": 0
+          },
+          {
+            "pm": 1,
+            "hh": 18,
+            "mm": 0,
+            "ss": 1
+          },
+          {
+            "pm": 1,
+            "hh": 18,
+            "mm": 0,
+            "ss": 2
+          }
+        ]
+      }
+    },
+    {
+      "id": "hold_clock",
+      "outputs": [
+        "pm",
+        "hh",
+        "mm",
+        "ss"
+      ],
+      "condition": "reset == 0 && ena == 0; hold pm, hh, mm, ss.",
+      "edge": "posedge",
+      "visible": "next_cycle",
+      "priority": 20,
+      "spec_quote": "pulse on ena whenever your clock should increment",
+      "uncertain": false,
+      "example": {
+        "vectors": [
+          {
+            "reset": 0,
+            "ena": 0
+          },
+          {
+            "reset": 0,
+            "ena": 0
+          }
+        ],
+        "expected": [
+          {
+            "pm": 0,
+            "hh": 18,
+            "mm": 0,
+            "ss": 0
+          },
+          {
+            "pm": 0,
+            "hh": 18,
+            "mm": 0,
+            "ss": 0
+          }
+        ]
+      }
+    }
+  ],
+  "reset": {
+    "kind": "sync",
+    "name": "reset",
+    "active": "high",
+    "values": {
+      "pm": 0,
+      "hh": 18,
+      "mm": 0,
+      "ss": 0
+    },
+    "first_released_cycle": "first posedge clk with reset == 0 is sampled; if ena == 1 then increment from the reset value, else hold"
+  },
+  "mid": "Optional mid input changes occur after sampling, before the next edge, and are carried to the start of the next row.",
+  "uncertain": [
+    {
+      "rule_id": "increment_clock",
+      "note": "The carry and AM/PM toggle sequence is inferred from the 12-hour-clock requirement; the specification enumerates BCD ranges but not every rollover transition.",
+      "candidates": [
+        "Conventional 12-hour BCD carry: seconds 59->00 carries minutes, minutes 59->00 carries hours, hours 12->01, pm toggles on 11->12.",
+        "Alternative carry or AM/PM phase, such as toggling pm on 12->01 or at a different rollover boundary."
+      ]
+    }
+  ]
+}

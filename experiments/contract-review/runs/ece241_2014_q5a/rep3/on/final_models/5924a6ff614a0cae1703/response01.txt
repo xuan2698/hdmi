@@ -1,0 +1,45 @@
+def reference(vectors):
+    # async_reset rule ID: active-high areset asynchronously forces state A and z=0.
+    state = "A"
+    z = 0
+    cur = {"areset": 0, "x": 0}
+    out = []
+    # serial_twos_complement rule ID: explicit Moore transitions, LSB-first two's complement.
+    trans = {
+        "A": (("A", 0), ("B", 1)),
+        "B": (("B", 1), ("C", 0)),
+        "C": (("B", 1), ("C", 0)),
+    }
+    for row in vectors:
+        # Drive each row's input values before the sampled edge.
+        for k in ("areset", "x"):
+            if k in row:
+                cur[k] = int(row[k]) & 1
+        # async_reset rule ID: reset has priority over clocked transition.
+        if cur["areset"]:
+            state = "A"
+            z = 0
+        else:
+            # serial_twos_complement rule ID: sample x on active posedge and update Moore state/output.
+            nxt, nz = trans[state][1 if cur["x"] else 0]
+            state = nxt
+            z = nz
+        out.append({"z": int(z) & 1})
+        # mid rule ID: mid changes occur after sampling and are carried to the next row.
+        mid = row.get("mid", None)
+        if isinstance(mid, dict):
+            mids = [mid]
+        elif isinstance(mid, (list, tuple)):
+            mids = mid
+        else:
+            mids = []
+        for m in mids:
+            if isinstance(m, dict):
+                for k in ("areset", "x"):
+                    if k in m:
+                        cur[k] = int(m[k]) & 1
+                        # async_reset rule ID: reset assertion in mid changes affects future rows immediately.
+                        if k == "areset" and cur[k]:
+                            state = "A"
+                            z = 0
+    return out

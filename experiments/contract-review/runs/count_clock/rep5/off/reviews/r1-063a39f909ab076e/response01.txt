@@ -1,0 +1,118 @@
+{
+  "coverage": {
+    "S01": ["R1_reset", "R2_seconds", "R3_seconds_rollover", "R4_minutes_rollover", "R5_hour_rollover_am_pm", "R6_hold"],
+    "S02": ["R2_seconds", "R3_seconds_rollover", "R4_minutes_rollover", "R5_hour_rollover_am_pm", "R6_hold"],
+    "S03": ["R1_reset", "R2_seconds", "R3_seconds_rollover", "R4_minutes_rollover", "R5_hour_rollover_am_pm"],
+    "S04": ["R1_reset"]
+  },
+  "issues": [
+    {
+      "issue_id": "I1",
+      "rule_id": "R1_reset",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "Reset example expected hh=18 (0x12) but spec says 12:00 AM; 18 is not BCD 12.",
+      "spec_evidence": "resets the clock to \"12:00 AM.\"",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I2",
+      "rule_id": "R2_seconds",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "R2 example starts from hh=18 and increments ss from 0 to 1; hh=18 is invalid BCD hour and contradicts 12-hour range.",
+      "spec_evidence": "hours (01-12)",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I3",
+      "rule_id": "R3_seconds_rollover",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "R3 example starts from hh=18 and mm=0, ss=59; hh=18 invalid and example does not show ss==59 precondition in first row.",
+      "spec_evidence": "hours (01-12), minutes (00-59), and seconds (00-59)",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I4",
+      "rule_id": "R4_minutes_rollover",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "R4 example starts from hh=18 and rolls to hh=1; hh=18 invalid and rollover from 18 to 1 is not 12-hour clock behavior.",
+      "spec_evidence": "hours (01-12)",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I5",
+      "rule_id": "R5_hour_rollover_am_pm",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "R5 example starts from hh=18 and sets pm=1; hh=18 invalid and pm transition from AM to PM at 12:59:59 is not shown.",
+      "spec_evidence": "The signal \"pm\" is asserted if the clock is PM, or is otherwise AM.",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I6",
+      "rule_id": "R6_hold",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "R6 example holds hh=18; invalid BCD hour contradicts 12-hour range.",
+      "spec_evidence": "hours (01-12)",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I7",
+      "rule_id": "R5_hour_rollover_am_pm",
+      "type": "ambiguity",
+      "severity": "high",
+      "detail": "Spec does not state whether pm toggles at 11:59:59->12:00:00 or 12:59:59->01:00:00; rule toggles only at 12:59:59.",
+      "spec_evidence": "The signal \"pm\" is asserted if the clock is PM, or is otherwise AM.",
+      "alternative": "pm toggles when hh==11 and mm==59 and ss==59, so 11:59:59 AM -> 12:00:00 PM.",
+      "sequence": [
+        {"reset": 0, "ena": 1, "mid": {"hh": 17, "mm": 89, "ss": 89, "pm": 0}},
+        {"reset": 0, "ena": 1},
+        {"reset": 0, "ena": 0}
+      ]
+    },
+    {
+      "issue_id": "I8",
+      "rule_id": "R4_minutes_rollover",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec does not define hour increment from 11:59:59; rule increments hh numerically (11->12) but 12-hour clock may wrap 11->12 with pm toggle or 12->1.",
+      "spec_evidence": "hours (01-12)",
+      "alternative": "At 11:59:59, hh becomes 12 and pm toggles; at 12:59:59, hh becomes 1.",
+      "sequence": [
+        {"reset": 0, "ena": 1, "mid": {"hh": 17, "mm": 89, "ss": 89, "pm": 0}},
+        {"reset": 0, "ena": 1},
+        {"reset": 0, "ena": 0}
+      ]
+    },
+    {
+      "issue_id": "I9",
+      "rule_id": "R1_reset",
+      "type": "grounding",
+      "severity": "medium",
+      "detail": "Reset value hh=18 is not verbatim 12:00 AM; spec requires BCD 12, i.e., hh=0x12.",
+      "spec_evidence": "resets the clock to \"12:00 AM.\"",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I10",
+      "rule_id": "global",
+      "type": "coverage",
+      "severity": "low",
+      "detail": "Spec S02 mentions fast clk and ena pulse; contract covers ena but no explicit statement on clk frequency beyond clock port.",
+      "spec_evidence": "clocked by a fast-running clk, with a pulse on ena",
+      "alternative": "",
+      "sequence": []
+    }
+  ]
+}

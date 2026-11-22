@@ -1,0 +1,78 @@
+{
+  "coverage": {
+    "S01": [
+      "R1_reset_clear",
+      "R2_capture_falling",
+      "R3_hold"
+    ]
+  },
+  "issues": [
+    {
+      "issue_id": "I1",
+      "rule_id": "R2_capture_falling",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "Rule condition uses prev_in (previous cycle input) but example's first row has no prior input; expected out=0 on first row is consistent only if prev_in initialized to 0, which is not stated.",
+      "spec_evidence": "capture when the input signal changes from 1 in one clock cycle to 0 the next",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I2",
+      "rule_id": "R2_capture_falling",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec says capture 1->0 transitions; contract uses prev_in & ~in. Alternative semantics: capture any bit that is 0 in current cycle and was 1 in any earlier cycle (sticky until reset), not just immediate previous cycle.",
+      "spec_evidence": "capture when the input signal changes from 1 in one clock cycle to 0 the next",
+      "alternative": "Set out[i] when in[i]==0 and out[i] was previously set or in[i] was 1 in any prior cycle since reset (i.e., detect any 0 after a 1, not only immediate 1->0).",
+      "sequence": [
+        {
+          "reset": 0,
+          "in": 1
+        },
+        {
+          "reset": 0,
+          "in": 0
+        },
+        {
+          "reset": 0,
+          "in": 1
+        },
+        {
+          "reset": 0,
+          "in": 0
+        }
+      ]
+    },
+    {
+      "issue_id": "I3",
+      "rule_id": "R3_hold",
+      "type": "consistency",
+      "severity": "medium",
+      "detail": "R3_hold example shows out=0 throughout with in=1,3,1; no 1->0 transition occurs, so hold is consistent, but example does not demonstrate holding a previously set bit (out=1) as spec requires.",
+      "spec_evidence": "the output will remain 1 until the register is reset",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I4",
+      "rule_id": "R2_capture_falling",
+      "type": "spec_example",
+      "severity": "low",
+      "detail": "R2 example: row1 in=0xFFFFFFFF, row2 in=0 -> out=0xFFFFFFFF on row2; row3 in=0 -> out stays 0xFFFFFFFF. Matches rule. No discrepancy.",
+      "spec_evidence": "",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I5",
+      "rule_id": "global",
+      "type": "grounding",
+      "severity": "low",
+      "detail": "Contract states update_during_reset=true and reset visible same_cycle; spec says active high synchronous reset, consistent. No verbatim evidence issue.",
+      "spec_evidence": "active high synchronous reset",
+      "alternative": "",
+      "sequence": []
+    }
+  ]
+}

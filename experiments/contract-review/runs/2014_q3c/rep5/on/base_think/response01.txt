@@ -1,0 +1,12 @@
+def reference(vectors):
+    out=[]
+    for r in vectors:
+        x=r.get('x',0)&1
+        y=r.get('y',0)&7
+        y2=(y>>2)&1
+        y1=(y>>1)&1
+        y0=y&1
+        Y0=(x&(1-y2)&(1-y0))|((1-x)&(y0|(y2&(1-y1))))
+        z=y2|(y1&y0)
+        out.append({'Y0':Y0&1,'z':z&1})
+    return out

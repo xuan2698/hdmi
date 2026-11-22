@@ -1,0 +1,33 @@
+{
+  "coverage": {
+    "S01": [
+      "sync_active_high_reset",
+      "d_update_when_not_reset"
+    ]
+  },
+  "issues": [
+    {
+      "issue_id": "I1",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "high",
+      "detail": "Spec does not specify clock edge; contract assumes posedge.",
+      "spec_evidence": "Implement a simple D flip flop with active high synchronous reset (reset output to 0).",
+      "alternative": "Negative-edge-triggered DFF: q samples d/r on negedge clk instead of posedge.",
+      "sequence": [
+        {
+          "d": 1,
+          "r": 0,
+          "mid": {
+            "d": 0,
+            "r": 0
+          }
+        },
+        {
+          "d": 0,
+          "r": 0
+        }
+      ]
+    }
+  ]
+}

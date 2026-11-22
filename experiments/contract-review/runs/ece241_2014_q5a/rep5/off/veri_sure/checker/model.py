@@ -1,0 +1,29 @@
+def reference(vectors):
+    # Moore FSM for serial 2's complementer (LSB first).
+    # States: S0 (no '1' seen yet, z=0), S1 ('1' seen, z=1).
+    # Asynchronous active-high reset forces S0, z=0.
+    # Output z is Moore: depends only on current state.
+    # Timing: outputs sampled after posedge settles; latency 1 cycle.
+    out = []
+    state = 0  # S0
+    for row in vectors:
+        clk = row.get('clk', 0)
+        areset = row.get('areset', 0)
+        x = row.get('x', 0)
+        # Asynchronous reset: applied immediately (before edge sampling)
+        if areset == 1:
+            state = 0
+        else:
+            # Positive edge triggered transition
+            if clk == 1:
+                if state == 0:
+                    if x == 1:
+                        state = 1
+                    else:
+                        state = 0
+                else:  # state == 1
+                    state = 1
+        # Moore output based on current state
+        z = 0 if state == 0 else 1
+        out.append({'z': z})
+    return out

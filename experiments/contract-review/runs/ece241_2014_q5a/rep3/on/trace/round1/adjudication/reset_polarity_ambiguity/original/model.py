@@ -1,0 +1,94 @@
+def reference(vectors):
+    # async_reset: reset state A (state 0) and z=0
+    state = 0  # A: z=0, B: z=1, C: z=0
+    cur_areset = 0
+    cur_x = 0
+    result = []
+
+    for vec in vectors:
+        # Drive row inputs before the sampled posedge
+        if 'areset' in vec:
+            cur_areset = vec['areset']
+        if 'x' in vec:
+            cur_x = vec['x']
+
+        # async_reset: asserted high asynchronously forces state A and z=0
+        if cur_areset == 1:
+            state = 0
+            z = 0
+        else:
+            # serial_twos_complement: posedge transition according to state and x
+            if state == 0:          # A
+                if cur_x == 0:
+                    state = 0       # A
+                else:
+                    state = 1       # B
+            elif state == 1:        # B
+                if cur_x == 0:
+                    state = 1       # B
+                else:
+                    state = 2       # C
+            else:                   # state == 2, C
+                if cur_x == 0:
+                    state = 1       # B
+                else:
+                    state = 2       # C
+
+            # serial_twos_complement: Moore output z after settled posedge
+            if state == 1:          # B
+                z = 1
+            else:                   # A or C
+                z = 0
+
+        result.append({'z': z})
+
+        # Mid changes occur after sampling and are carried to the next row
+        mid = None
+        if 'mid' in vec:
+            mid = vec['mid']
+
+        # Support alternate mid key names directly on the row
+        if 'mid_areset' in vec:
+            cur_areset = vec['mid_areset']
+            if cur_areset == 1:
+                # async_reset: mid areset high resets state asynchronously
+                state = 0
+        if 'mid_x' in vec:
+            cur_x = vec['mid_x']
+
+        if mid is not None:
+            # Try mid as a dictionary of changes
+            try:
+                val = mid['areset']
+                cur_areset = val
+                if val == 1:
+                    # async_reset: mid areset high resets state asynchronously
+                    state = 0
+            except:
+                pass
+            try:
+                val = mid['x']
+                cur_x = val
+            except:
+                pass
+
+            # Try mid as a sequence of change dictionaries
+            try:
+                for m in mid:
+                    try:
+                        val = m['areset']
+                        cur_areset = val
+                        if val == 1:
+                            # async_reset: mid areset high resets state asynchronously
+                            state = 0
+                    except:
+                        pass
+                    try:
+                        val = m['x']
+                        cur_x = val
+                    except:
+                        pass
+            except:
+                pass
+
+    return result

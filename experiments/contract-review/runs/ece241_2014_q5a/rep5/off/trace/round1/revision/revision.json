@@ -1,0 +1,216 @@
+{
+  "responses": [
+    {
+      "issue_id": "I1",
+      "decision": "accept",
+      "reason": "Spec does not state z=0 on reset; reset only forces state, and z is combinational from state and x. Remove the z=0 reset claim.",
+      "spec_quote": "The circuit requires a positive edge triggered asynchronous reset.",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R5",
+            "condition"
+          ],
+          "value": "Asynchronous reset asserted (areset=1) forces state to S0 immediately, independent of clk; z follows R1/R2 from the resulting state."
+        },
+        {
+          "path": [
+            "reset",
+            "values"
+          ],
+          "value": {}
+        }
+      ]
+    },
+    {
+      "issue_id": "I2",
+      "decision": "accept",
+      "reason": "With reset only forcing state, row1 areset=1,x=1 in S0 gives z=1 per R1, not 0. Fix example to match.",
+      "spec_quote": "",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R5",
+            "example"
+          ],
+          "value": {
+            "vectors": [
+              {
+                "areset": 1,
+                "x": 1
+              },
+              {
+                "areset": 1,
+                "x": 0
+              },
+              {
+                "areset": 0,
+                "x": 0
+              }
+            ],
+            "expected": [
+              {
+                "z": 1
+              },
+              {
+                "z": 0
+              },
+              {
+                "z": 0
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "issue_id": "I3",
+      "decision": "rebut",
+      "reason": "R3's example already matches the required combinational z values for x=[0,1,0] from S0: row1 z=0, row2 z=1, row3 z=1 (S1 complementing x=0). No change needed.",
+      "spec_quote": "the output (Z) is the 2's complement of the input",
+      "edits": []
+    },
+    {
+      "issue_id": "I4",
+      "decision": "accept",
+      "reason": "Row1 x=1 in S0 gives z=1 per R1, not 0. Fix example.",
+      "spec_quote": "",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R4",
+            "example"
+          ],
+          "value": {
+            "vectors": [
+              {
+                "areset": 0,
+                "x": 1
+              },
+              {
+                "areset": 0,
+                "x": 0
+              },
+              {
+                "areset": 0,
+                "x": 0
+              }
+            ],
+            "expected": [
+              {
+                "z": 1
+              },
+              {
+                "z": 1
+              },
+              {
+                "z": 1
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "issue_id": "I5",
+      "decision": "accept",
+      "reason": "Example assumes starting in S1 without stating it; row1 x=1 in S0 gives z=1. Fix example to be consistent from S0.",
+      "spec_quote": "",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R2",
+            "example"
+          ],
+          "value": {
+            "vectors": [
+              {
+                "areset": 0,
+                "x": 1
+              },
+              {
+                "areset": 0,
+                "x": 0
+              },
+              {
+                "areset": 0,
+                "x": 1
+              }
+            ],
+            "expected": [
+              {
+                "z": 1
+              },
+              {
+                "z": 1
+              },
+              {
+                "z": 0
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "issue_id": "I8",
+      "decision": "accept",
+      "reason": "Derived waveform for LSB-first 1,0,1 should be z=1,1,0; align R1 example to this canonical sequence.",
+      "spec_quote": "the output (Z) is the 2's complement of the input",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R1",
+            "example"
+          ],
+          "value": {
+            "vectors": [
+              {
+                "areset": 0,
+                "x": 1
+              },
+              {
+                "areset": 0,
+                "x": 0
+              },
+              {
+                "areset": 0,
+                "x": 1
+              }
+            ],
+            "expected": [
+              {
+                "z": 1
+              },
+              {
+                "z": 1
+              },
+              {
+                "z": 0
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "issue_id": "I9",
+      "decision": "rebut",
+      "reason": "The rule's pass-through-until-first-1 behavior is the standard derivation of 2's complement LSB-first; the existing spec_quote already expresses the governing rule.",
+      "spec_quote": "the output (Z) is the 2's complement of the input",
+      "edits": []
+    },
+    {
+      "issue_id": "I10",
+      "decision": "rebut",
+      "reason": "The complement-after-first-1 behavior is the standard derivation of 2's complement LSB-first; the existing spec_quote already expresses the governing rule.",
+      "spec_quote": "the output (Z) is the 2's complement of the input",
+      "edits": []
+    }
+  ]
+}

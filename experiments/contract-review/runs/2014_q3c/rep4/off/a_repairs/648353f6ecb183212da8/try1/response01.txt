@@ -1,0 +1,38 @@
+```python
+def reference(vectors):
+    # Contract rules:
+    # R_Y0: Y0 = next-state bit 0 of Y[2:0] per state-assigned table (combinational, same_cycle)
+    # R_z: z = 1 when present state y[2:0] is 011 or 100, else 0 (Moore output, combinational, same_cycle)
+    # state_register: 3-bit present-state register y[2:0] updated on posedge clk from next-state function Y[2:0]
+    # mid: optional mid input changes occur AFTER sampling, before the other edge, carried to start of next row
+
+    # Next-state table: Y[2:0] for (y, x)
+    # y=000: x=0 -> 000, x=1 -> 001
+    # y=001: x=0 -> 001, x=1 -> 100
+    # y=010: x=0 -> 010, x=1 -> 001
+    # y=011: x=0 -> 001, x=1 -> 010
+    # y=100: x=0 -> 011, x=1 -> 100
+    next_state = {
+        (0, 0): 0b000, (0, 1): 0b001,
+        (1, 0): 0b001, (1, 1): 0b100,
+        (2, 0): 0b010, (2, 1): 0b001,
+        (3, 0): 0b001, (3, 1): 0b010,
+        (4, 0): 0b011, (4, 1): 0b100,
+    }
+
+    results = []
+    for vec in vectors:
+        y = vec.get('y', 0) & 0x7
+        x = vec.get('x', 0) & 0x1
+
+        # R_Y0: next-state bit 0
+        ns = next_state[(y, x)]
+        Y0 = ns & 0x1
+
+        # R_z: Moore output from present state
+        z = 1 if y in (0b011, 0b100) else 0
+
+        results.append({'Y0': Y0, 'z': z})
+
+    return results
+```

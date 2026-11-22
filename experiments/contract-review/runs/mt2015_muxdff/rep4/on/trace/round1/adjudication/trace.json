@@ -1,0 +1,56 @@
+[
+  {
+    "issue": {
+      "issue_id": "I4",
+      "rule_id": "Q_posedge_update",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "q_in is an ungrounded extra input; if L=0 should hold prior Q instead of loading q_in, behavior differs. Sequence distinguishes: contract Q=0 after row2; hold alternative Q=1.",
+      "spec_evidence": "//         q <= {q[1] ^ q[2], q[0], q[2]};",
+      "alternative": "When L=0, hold the previous Q instead of loading q_in.",
+      "sequence": [
+        {
+          "L": 1,
+          "q_in": 0,
+          "r_in": 1
+        },
+        {
+          "L": 0,
+          "q_in": 0,
+          "r_in": 0
+        }
+      ]
+    },
+    "status": "effect",
+    "issue_id": "I4",
+    "outputs": {
+      "original": [
+        {
+          "Q": 1
+        },
+        {
+          "Q": 0
+        }
+      ],
+      "alternative": [
+        {
+          "Q": 1
+        },
+        {
+          "Q": 1
+        }
+      ]
+    },
+    "differences": [
+      {
+        "cycle": 2,
+        "original": {
+          "Q": 0
+        },
+        "alternative": {
+          "Q": 1
+        }
+      }
+    ]
+  }
+]

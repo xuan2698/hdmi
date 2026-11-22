@@ -1,0 +1,108 @@
+def reference(vectors):
+    # State encoding
+    WALK_LEFT = 0
+    WALK_RIGHT = 1
+    FALL_LEFT = 2
+    FALL_RIGHT = 3
+    DIG_LEFT = 4
+    DIG_RIGHT = 5
+    SPLAT = 6
+
+    # Initialize state: power-up unspecified, but we start as WALK_LEFT (reset default)
+    state = WALK_LEFT
+    fall_count = 0
+
+    results = []
+
+    for vec in vectors:
+        areset = vec.get('areset', 0)
+        bump_left = vec.get('bump_left', 0)
+        bump_right = vec.get('bump_right', 0)
+        ground = vec.get('ground', 1)
+        dig = vec.get('dig', 0)
+
+        # R1_reset: async positive edge triggered reset to WALK_LEFT
+        if areset == 1:
+            state = WALK_LEFT
+            fall_count = 0
+
+        # Compute outputs based on current state (Moore machine)
+        # R2_walk_outputs: WALK_LEFT/WALK_RIGHT -> walk_left/walk_right
+        # R3_fall_outputs: FALL_* -> aaah
+        # R4_dig_outputs: DIG_* -> digging
+        # R5_splat_outputs: SPLAT -> all zero
+        if state == WALK_LEFT:
+            out = {'walk_left': 1, 'walk_right': 0, 'aaah': 0, 'digging': 0}
+        elif state == WALK_RIGHT:
+            out = {'walk_left': 0, 'walk_right': 1, 'aaah': 0, 'digging': 0}
+        elif state == FALL_LEFT or state == FALL_RIGHT:
+            out = {'walk_left': 0, 'walk_right': 0, 'aaah': 1, 'digging': 0}
+        elif state == DIG_LEFT or state == DIG_RIGHT:
+            out = {'walk_left': 0, 'walk_right': 0, 'aaah': 0, 'digging': 1}
+        else:  # SPLAT
+            out = {'walk_left': 0, 'walk_right': 0, 'aaah': 0, 'digging': 0}
+
+        results.append(out)
+
+        # Compute next state (posedge update)
+        if areset == 1:
+            # Reset already applied; state stays WALK_LEFT
+            state = WALK_LEFT
+            fall_count = 0
+            continue
+
+        if state == WALK_LEFT or state == WALK_RIGHT:
+            # R6_walk_transitions: fall > dig > switch
+            if ground == 0:
+                # fall, same direction
+                if state == WALK_LEFT:
+                    state = FALL_LEFT
+                else:
+                    state = FALL_RIGHT
+                fall_count = 0
+            elif dig == 1:
+                # start digging, same direction
+                if state == WALK_LEFT:
+                    state = DIG_LEFT
+                else:
+                    state = DIG_RIGHT
+            elif bump_left == 1 or bump_right == 1:
+                # switch direction (toggle)
+                if state == WALK_LEFT:
+                    state = WALK_RIGHT
+                else:
+                    state = WALK_LEFT
+            # else stay
+
+        elif state == FALL_LEFT or state == FALL_RIGHT:
+            # R7_fall_transitions: bump/dig ignored
+            if ground == 1:
+                # R9_splat_transition: splat if fell > 20 cycles
+                # fall_count counts full FALL_* cycles; splat when duration reaches 21
+                if fall_count >= 21:
+                    state = SPLAT
+                else:
+                    if state == FALL_LEFT:
+                        state = WALK_LEFT
+                    else:
+                        state = WALK_RIGHT
+                fall_count = 0
+            else:
+                # stay falling, increment duration
+                fall_count += 1
+
+        elif state == DIG_LEFT or state == DIG_RIGHT:
+            # R8_dig_transitions: ground=0 -> fall, else stay digging
+            if ground == 0:
+                if state == DIG_LEFT:
+                    state = FALL_LEFT
+                else:
+                    state = FALL_RIGHT
+                fall_count = 0
+            # else stay digging
+
+        elif state == SPLAT:
+            # R9_splat_transition: stay splatted forever
+            state = SPLAT
+
+    return results

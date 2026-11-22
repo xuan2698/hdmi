@@ -1,0 +1,66 @@
+def reference(vectors):
+    # State
+    pht = [0] * 128          # 2-bit saturating counters
+    ghr = 0                  # 7-bit global history register
+
+    out = []
+
+    def predict_taken_for(pc, hist):
+        idx = (pc ^ hist) & 0x7F
+        return 1 if pht[idx] >= 2 else 0
+
+    for row in vectors:
+        # R6_async_reset: asynchronous active-high reset clears state and outputs
+        if row.get("areset", 0) == 1:
+            pht = [0] * 128
+            ghr = 0
+            out.append({"predict_taken": 0, "predict_history": 0})
+            continue
+
+        predict_valid = row.get("predict_valid", 0)
+        predict_pc = row.get("predict_pc", 0) & 0x7F
+        train_valid = row.get("train_valid", 0)
+        train_taken = row.get("train_taken", 0) & 1
+        train_mispredicted = row.get("train_mispredicted", 0) & 1
+        train_history = row.get("train_history", 0) & 0x7F
+        train_pc = row.get("train_pc", 0) & 0x7F
+
+        # R1_predict_outputs: combinational read of PHT and GHR (pre-edge state)
+        if predict_valid:
+            pt = predict_taken_for(predict_pc, ghr)
+            ph = ghr
+        else:
+            pt = 0
+            ph = 0
+
+        out.append({"predict_taken": pt, "predict_history": ph})
+
+        # Compute next-state updates at posedge
+        new_pht = pht
+        new_ghr = ghr
+
+        # R3_train_pht_update: update PHT entry toward train_taken (saturating)
+        if train_valid:
+            idx = (train_pc ^ train_history) & 0x7F
+            new_pht = list(pht)
+            c = new_pht[idx]
+            if train_taken:
+                if c < 3:
+                    c += 1
+            else:
+                if c > 0:
+                    c -= 1
+            new_pht[idx] = c
+
+        # R4_train_mispredict_ghr_recover / R5_train_precedence_over_predict
+        if train_valid and train_mispredicted:
+            # GHR restored to train_history shifted with train_taken
+            new_ghr = ((train_history << 1) | train_taken) & 0x7F
+        elif predict_valid:
+            # R2_predict_ghr_update: shift in predicted direction
+            new_ghr = ((ghr << 1) | pt) & 0x7F
+
+        pht = new_pht
+        ghr = new_ghr
+
+    return out

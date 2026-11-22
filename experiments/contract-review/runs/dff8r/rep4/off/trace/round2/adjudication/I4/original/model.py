@@ -1,0 +1,22 @@
+def reference(vectors):
+    # State: q_reg holds the 8-bit flip-flop output register.
+    # R1_sync_reset: on posedge clk with reset==1, q_reg <- 0 (priority 1).
+    # R2_dff_capture: on posedge clk with reset==0, q_reg <- d (priority 2).
+    # Power-up unspecified: initialize to 0 (concrete unsigned value).
+    q_reg = 0
+    out = []
+    for row in vectors:
+        d = row["d"] & 0xFF
+        reset = row["reset"] & 0x1
+        # Sample at posedge clk (after edge settled).
+        # R1_sync_reset (priority 1)
+        if reset == 1:
+            q_reg = 0
+        # R2_dff_capture (priority 2)
+        else:
+            q_reg = d
+        # Output visible next cycle (registered output).
+        out.append({"q": q_reg & 0xFF})
+        # Mid changes occur AFTER sampling, before other edge,
+        # carried to start of next row. No mid inputs in this contract.
+    return out

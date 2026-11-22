@@ -1,0 +1,76 @@
+def reference(vectors):
+    # R_RESET_CLEAR: synchronous active-high reset clears state to S0 and start_shifting=0 on posedge
+    # R_SET_OR_HOLD_1101: start_shifting set to 1 on posedge completing 1101 and held in FOUND until reset
+    # R_KEEP_ZERO_UNTIL_FOUND: candidate interpretation: initially 1 and remains 1 before first reset
+    state = "S0"
+    has_reset = False
+    start_shifting = 1
+    cur_reset = 0
+    cur_data = 0
+    out = []
+    for v in vectors:
+        # driven inputs before sampled posedge
+        if "reset" in v:
+            cur_reset = v["reset"]
+        if "data" in v:
+            cur_data = v["data"]
+        reset = cur_reset
+        data = cur_data
+
+        # posedge state update and output (settled after edge)
+        if reset == 1:
+            # R_RESET_CLEAR
+            state = "S0"
+            has_reset = True
+            start_shifting = 0
+        else:
+            if state == "S0":
+                if data == 1:
+                    state = "S1"
+                else:
+                    state = "S0"
+            elif state == "S1":
+                if data == 1:
+                    state = "S11"
+                else:
+                    state = "S0"
+            elif state == "S11":
+                if data == 1:
+                    state = "S11"
+                else:
+                    state = "S110"
+            elif state == "S110":
+                if data == 1:
+                    state = "FOUND"
+                else:
+                    state = "S0"
+            elif state == "FOUND":
+                state = "FOUND"
+            else:
+                state = "S0"
+
+            if has_reset:
+                # R_SET_OR_HOLD_1101
+                if state == "FOUND":
+                    start_shifting = 1
+                else:
+                    start_shifting = 0
+            else:
+                # R_KEEP_ZERO_UNTIL_FOUND candidate interpretation
+                start_shifting = 1
+
+        out.append({"start_shifting": start_shifting})
+
+        # optional mid changes occur after sampling, carried to next row start
+        mid = v.get("mid")
+        if mid is None:
+            mid = v.get("mid_inputs")
+        if mid is None:
+            mid = v.get("mid_changes")
+        if mid is not None:
+            if "reset" in mid:
+                cur_reset = mid["reset"]
+            if "data" in mid:
+                cur_data = mid["data"]
+
+    return out

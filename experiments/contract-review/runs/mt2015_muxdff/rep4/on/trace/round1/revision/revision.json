@@ -1,0 +1,32 @@
+{
+  "responses": [
+    {
+      "issue_id": "I1",
+      "decision": "rebut",
+      "reason": "The target is the one-bit DFF+mux submodule top_module; the q-bit transform belongs to the parent full_module and feeds q_in, so it is not logic inside top_module. The existing rule already gives Q=r_in when L=1 and Q=q_in otherwise.",
+      "spec_quote": "where a flipflop and 2-1 multiplexer are in a submodule",
+      "edits": []
+    },
+    {
+      "issue_id": "I2",
+      "decision": "rebut",
+      "reason": "The 1-bit ports are for the one-bit submodule top_module, which is instantiated three times to form the 3-bit full_module; no port change is required.",
+      "spec_quote": "that submodule is instantiated three times in this code",
+      "edits": []
+    },
+    {
+      "issue_id": "I3",
+      "decision": "rebut",
+      "reason": "The contract specifies the top_module submodule behavior; the three instantiations belong to the parent full_module, not inside top_module itself.",
+      "spec_quote": "Create the submodule called \"top_module\".",
+      "edits": []
+    },
+    {
+      "issue_id": "I4",
+      "decision": "rebut",
+      "reason": "q_in is the second data input of the required 2-1 multiplexer, so L=0 selects q_in rather than holding Q; holding would not implement a 2-1 mux.",
+      "spec_quote": "where a flipflop and 2-1 multiplexer are in a submodule",
+      "edits": []
+    }
+  ]
+}

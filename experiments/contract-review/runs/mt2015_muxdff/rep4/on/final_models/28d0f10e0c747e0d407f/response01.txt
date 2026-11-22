@@ -1,0 +1,53 @@
+```python
+def reference(vectors):
+    # Q_posedge_update: At each posedge of clk, after settlement, Q becomes
+    # r_in when L=1; otherwise Q becomes q_in. Between clock edges Q holds.
+    # No reset; power-up state is overwritten at the first sampled edge.
+    inputs = ('L', 'q_in', 'r_in')
+    cur = {'L': 0, 'q_in': 0, 'r_in': 0}  # carried input values
+    Q = 0  # initial Q, overwritten at first posedge
+    outs = []
+
+    for row in vectors:
+        # Each row's values are driven before the sampled edge.
+        for key in inputs:
+            if key in row:
+                cur[key] = int(row[key]) & 1
+
+        # Q_posedge_update: sample after posedge has settled.
+        if cur['L']:
+            Q_next = cur['r_in']
+        else:
+            Q_next = cur['q_in']
+        Q = Q_next & 1
+        outs.append({'Q': Q})
+
+        # Optional mid input changes occur after sampling, before the other
+        # edge, and are carried to the start of the next row. They do not
+        # change Q for the current row.
+        mid = None
+        if 'mid' in row:
+            mid = row['mid']
+        elif '__mid__' in row:
+            mid = row['__mid__']
+        elif 'mid_changes' in row:
+            mid = row['mid_changes']
+
+        if isinstance(mid, dict):
+            for key, val in mid.items():
+                if key in inputs:
+                    cur[key] = int(val) & 1
+        else:
+            # Also accept keys of the form 'mid_L', 'mid_q_in', etc.
+            for key, val in row.items():
+                if key.startswith('mid_'):
+                    name = key[4:]
+                    if name in inputs:
+                        cur[name] = int(val) & 1
+                elif key.startswith('mid'):
+                    name = key[3:]
+                    if name in inputs:
+                        cur[name] = int(val) & 1
+
+    return outs
+```

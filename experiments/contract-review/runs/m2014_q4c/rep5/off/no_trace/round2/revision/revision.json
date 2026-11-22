@@ -1,0 +1,104 @@
+{
+  "responses": [
+    {
+      "issue_id": "I1",
+      "decision": "accept",
+      "reason": "The spec does not define the initial Q value, and the current uncertain field already lists this ambiguity; however the state meaning asserts initial value 0, which conflicts. Clarify by removing the assertion from state meaning and keeping the uncertain entry.",
+      "spec_quote": "Implement a simple D flip flop with active high synchronous reset (reset output to 0).",
+      "edits": [
+        {
+          "path": [
+            "states",
+            "Q",
+            "meaning"
+          ],
+          "value": "Stored flip-flop value, driven to q; initial value before first posedge is unspecified"
+        }
+      ]
+    },
+    {
+      "issue_id": "I2",
+      "decision": "accept",
+      "reason": "R1's example includes a vector with r=0, which is not governed by R1's condition r==1. Replace the example so all vectors satisfy r==1.",
+      "spec_quote": "active high synchronous reset (reset output to 0)",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R1",
+            "example"
+          ],
+          "value": {
+            "vectors": [
+              {
+                "d": 1,
+                "r": 1
+              },
+              {
+                "d": 0,
+                "r": 1
+              },
+              {
+                "d": 1,
+                "r": 1
+              }
+            ],
+            "expected": [
+              {
+                "q": 0
+              },
+              {
+                "q": 0
+              },
+              {
+                "q": 0
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "issue_id": "I3",
+      "decision": "accept",
+      "reason": "R2's example presumes initial Q=0, contradicting the unspecified initial value. Adjust the example to avoid depending on the initial value by starting with a reset cycle.",
+      "spec_quote": "Implement a simple D flip flop",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R2",
+            "example"
+          ],
+          "value": {
+            "vectors": [
+              {
+                "d": 0,
+                "r": 1
+              },
+              {
+                "d": 1,
+                "r": 0
+              },
+              {
+                "d": 0,
+                "r": 0
+              }
+            ],
+            "expected": [
+              {
+                "q": 0
+              },
+              {
+                "q": 1
+              },
+              {
+                "q": 0
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

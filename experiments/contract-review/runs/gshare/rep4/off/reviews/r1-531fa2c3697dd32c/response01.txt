@@ -1,0 +1,119 @@
+{
+  "coverage": {
+    "S01": ["R1_predict_outputs", "R3_train_pht_update"],
+    "S02": ["R1_predict_outputs", "R3_train_pht_update"],
+    "S03": ["R2_predict_ghr_update", "R4_train_mispredict_ghr_recover"],
+    "S04": ["R1_predict_outputs", "R3_train_pht_update"],
+    "S05": ["R1_predict_outputs"],
+    "S06": ["unrelated"],
+    "S07": ["R3_train_pht_update"],
+    "S08": ["R1_predict_outputs"],
+    "S09": ["R2_predict_ghr_update"],
+    "S10": ["R3_train_pht_update", "R4_train_mispredict_ghr_recover"],
+    "S11": ["R3_train_pht_update"],
+    "S12": ["R4_train_mispredict_ghr_recover"],
+    "S13": ["R5_train_precedence_over_predict"],
+    "S14": ["R5_train_precedence_over_predict"],
+    "S15": ["R1_predict_outputs", "R3_train_pht_update"],
+    "S16": ["missing"],
+    "S17": ["R1_predict_outputs", "R3_train_pht_update"],
+    "S18": ["R6_async_reset"]
+  },
+  "issues": [
+    {
+      "issue_id": "I1",
+      "rule_id": "R2_predict_ghr_update",
+      "type": "consistency",
+      "severity": "medium",
+      "detail": "Rule condition says GHR shifts when predict_valid and (train_valid==0 or train_valid==1 but not mispredicted), but spec S14 says training takes precedence over prediction whenever both occur, not only on misprediction.",
+      "spec_evidence": "When this happens, training takes precedence, because the branch being predicted will be discarded anyway.",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I2",
+      "rule_id": "R4_train_mispredict_ghr_recover",
+      "type": "ambiguity",
+      "severity": "high",
+      "detail": "Spec says recover GHR to state immediately after mispredicting branch completes; contract says restore to train_history shifted with train_taken. Alternative: restore exactly to train_history (the provided post-branch history), not shifted.",
+      "spec_evidence": "recover the branch history register to the state immediately after the mispredicting branch completes execution.",
+      "alternative": "GHR <= train_history exactly (no additional shift by train_taken)",
+      "sequence": [
+        {"areset":0,"predict_valid":0,"predict_pc":0,"train_valid":1,"train_taken":1,"train_mispredicted":1,"train_history":2,"train_pc":4},
+        {"areset":0,"predict_valid":0,"predict_pc":0,"train_valid":0,"train_taken":0,"train_mispredicted":0,"train_history":0,"train_pc":0}
+      ]
+    },
+    {
+      "issue_id": "I3",
+      "rule_id": "R3_train_pht_update",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec does not state PHT counter update policy (increment/decrement vs set to taken/not-taken). Contract assumes saturating increment/decrement toward train_taken; alternative is direct set to 2'b11/2'b00.",
+      "spec_evidence": "Update the pattern history table (PHT) to train the branch predictor to predict this branch more accurately next time.",
+      "alternative": "PHT entry set directly to 2'b11 if train_taken else 2'b00",
+      "sequence": [
+        {"areset":0,"predict_valid":0,"predict_pc":0,"train_valid":1,"train_taken":1,"train_mispredicted":0,"train_history":0,"train_pc":0},
+        {"areset":0,"predict_valid":1,"predict_pc":0,"train_valid":0,"train_taken":0,"train_mispredicted":0,"train_history":0,"train_pc":0}
+      ]
+    },
+    {
+      "issue_id": "I4",
+      "rule_id": "R1_predict_outputs",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec does not define predict_taken encoding for 2-bit counter (e.g., MSB vs counter>=2). Contract example only shows 0; alternative: predict_taken = counter[1] (MSB).",
+      "spec_evidence": "produces the predicted branch direction",
+      "alternative": "predict_taken = PHT[index][1] (MSB of 2-bit counter)",
+      "sequence": [
+        {"areset":0,"predict_valid":0,"predict_pc":0,"train_valid":1,"train_taken":1,"train_mispredicted":0,"train_history":0,"train_pc":0},
+        {"areset":0,"predict_valid":1,"predict_pc":0,"train_valid":0,"train_taken":0,"train_mispredicted":0,"train_history":0,"train_pc":0}
+      ]
+    },
+    {
+      "issue_id": "I5",
+      "rule_id": "R2_predict_ghr_update",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec does not state which direction bit is shifted into GHR on prediction (predicted taken vs actual). Contract assumes predicted direction; alternative: shift in predict_taken.",
+      "spec_evidence": "The branch history register is then updated (at the next positive clock edge) for the predicted branch.",
+      "alternative": "GHR <= {GHR[5:0], predict_taken}",
+      "sequence": [
+        {"areset":0,"predict_valid":1,"predict_pc":3,"train_valid":0,"train_taken":0,"train_mispredicted":0,"train_history":0,"train_pc":0},
+        {"areset":0,"predict_valid":0,"predict_pc":0,"train_valid":0,"train_taken":0,"train_mispredicted":0,"train_history":0,"train_pc":0}
+      ]
+    },
+    {
+      "issue_id": "I6",
+      "rule_id": "R6_async_reset",
+      "type": "ambiguity",
+      "severity": "low",
+      "detail": "Spec says async active-high reset but does not specify reset values for PHT/GHR or outputs. Contract assumes zeros; alternative: GHR=0, PHT all 2'b01 (weakly not-taken).",
+      "spec_evidence": "Reset is asynchronous active-high.",
+      "alternative": "On areset: GHR=0, all PHT entries=2'b01",
+      "sequence": [
+        {"areset":1,"predict_valid":0,"predict_pc":0,"train_valid":0,"train_taken":0,"train_mispredicted":0,"train_history":0,"train_pc":0},
+        {"areset":0,"predict_valid":1,"predict_pc":0,"train_valid":0,"train_taken":0,"train_mispredicted":0,"train_history":0,"train_pc":0}
+      ]
+    },
+    {
+      "issue_id": "I7",
+      "rule_id": "global",
+      "type": "coverage",
+      "severity": "medium",
+      "detail": "Spec S16 references a timing diagram for simultaneous train/predict of PHT entry 0; no explicit waveform/table is provided in indexed spec, so cannot derive/compare.",
+      "spec_evidence": "The following timing diagram shows the timing when training and predicting PHT entry 0 at the same time.",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I8",
+      "rule_id": "R1_predict_outputs",
+      "type": "grounding",
+      "severity": "low",
+      "detail": "Rule example expected outputs are all zero and do not exercise nonzero PHT/GHR; no verbatim evidence for example values.",
+      "spec_evidence": "",
+      "alternative": "",
+      "sequence": []
+    }
+  ]
+}

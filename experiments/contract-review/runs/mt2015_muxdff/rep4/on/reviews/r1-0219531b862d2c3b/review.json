@@ -1,0 +1,108 @@
+{
+  "coverage": {
+    "S01": [
+      "unrelated"
+    ],
+    "S02": [
+      "missing"
+    ],
+    "S03": [
+      "missing"
+    ],
+    "S04": [
+      "Q_posedge_update"
+    ],
+    "S05": [
+      "Q_posedge_update"
+    ],
+    "S06": [
+      "missing"
+    ],
+    "S07": [
+      "unrelated"
+    ],
+    "S08": [
+      "Q_posedge_update"
+    ],
+    "S09": [
+      "Q_posedge_update"
+    ],
+    "S10": [
+      "Q_posedge_update"
+    ],
+    "S11": [
+      "missing"
+    ],
+    "S12": [
+      "missing"
+    ],
+    "S13": [
+      "unrelated"
+    ],
+    "S14": [
+      "unrelated"
+    ],
+    "S15": [
+      "unrelated"
+    ],
+    "S16": [
+      "missing"
+    ],
+    "S17": [
+      "missing"
+    ]
+  },
+  "issues": [
+    {
+      "issue_id": "I1",
+      "rule_id": "Q_posedge_update",
+      "type": "grounding",
+      "severity": "high",
+      "detail": "Rule's spec_quote only covers if(L); else/q_in is unsupported and the required q-bit transform is omitted.",
+      "spec_evidence": "//         q <= {q[1] ^ q[2], q[0], q[2]};",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I2",
+      "rule_id": "global",
+      "type": "grounding",
+      "severity": "high",
+      "detail": "Port/width mismatch: spec has 3-bit r and 3-bit registered q; contract uses 1-bit r_in, extra q_in, and 1-bit Q.",
+      "spec_evidence": "//     input [2:0] r,\n//     input L,\n//     input clk,\n//     output reg [2:0] q",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I3",
+      "rule_id": "global",
+      "type": "coverage",
+      "severity": "high",
+      "detail": "Missing required hierarchical design in S16/S17: no top_module submodule with flipflop+mux instantiated three times.",
+      "spec_evidence": "You want to create a hierarchical Verilog design where a flipflop and 2-1 multiplexer are in a submodule, and that submodule is instantiated three times in this code.",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I4",
+      "rule_id": "Q_posedge_update",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "q_in is an ungrounded extra input; if L=0 should hold prior Q instead of loading q_in, behavior differs. Sequence distinguishes: contract Q=0 after row2; hold alternative Q=1.",
+      "spec_evidence": "//         q <= {q[1] ^ q[2], q[0], q[2]};",
+      "alternative": "When L=0, hold the previous Q instead of loading q_in.",
+      "sequence": [
+        {
+          "L": 1,
+          "q_in": 0,
+          "r_in": 1
+        },
+        {
+          "L": 0,
+          "q_in": 0,
+          "r_in": 0
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,41 @@
+def reference(vectors):
+    # State encoding: S0 = 0, S1 = 1
+    S0, S1 = 0, 1
+
+    # R5: asynchronous reset forces state to S0 immediately (active high)
+    state = S0
+
+    results = []
+    for row in vectors:
+        areset = row.get('areset', 0)
+        x = row.get('x', 0)
+
+        # R5: async reset asserted -> state forced to S0 immediately, independent of clk
+        if areset == 1:
+            state = S0
+
+        # R1 / R2: combinational output based on current state
+        if state == S0:
+            # R1: In S0, z = x (pass through)
+            z = x & 1
+        else:
+            # R2: In S1, z = NOT x
+            z = (~x) & 1
+
+        results.append({'z': z})
+
+        # R3 / R4: posedge state update (sampled edge already settled)
+        # Only update state on posedge when not in reset
+        if areset == 0:
+            if state == S0:
+                # R3: if x=1 -> S1, else stay S0
+                if x == 1:
+                    state = S1
+                else:
+                    state = S0
+            else:
+                # R4: once in S1, remain S1 regardless of x
+                state = S1
+        # If areset==1, state stays S0 (already forced above)
+
+    return results

@@ -1,0 +1,22 @@
+def reference(vectors):
+    q = 0          # concrete power-up stand-in for unspecified q
+    prev_a = 0     # concrete power-up stand-in for previous sampled a
+    out = []
+    for row in vectors:
+        a = int(row["a"]) & 1
+
+        if a == 1:
+            # R1_a_high_load4: a == 1 at posedge => q <= 4
+            q_next = 4
+        elif prev_a == 1:
+            # R2_first_low_hold: a == 0 && prev_a == 1 => q <= q
+            q_next = q
+        else:
+            # R3_count_low: a == 0 && prev_a == 0 => q <= (q + 1) mod 7
+            q_next = (q + 1) % 7
+
+        q = q_next & 0x7
+        prev_a = a
+        out.append({"q": q})
+
+    return out

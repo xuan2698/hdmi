@@ -1,0 +1,90 @@
+{
+  "responses": [
+    {
+      "issue_id": "I1",
+      "decision": "accept",
+      "reason": "The rule relies on prev_in but the contract never states its initial value; adding an explicit initial-value clarification resolves the ambiguity without inventing a physical reset.",
+      "spec_quote": "capture when the input signal changes from 1 in one clock cycle to 0 the next",
+      "edits": [
+        {
+          "path": [
+            "states",
+            "out",
+            "meaning"
+          ],
+          "value": "Per-bit sticky flag: set to 1 when in bit transitions 1->0 on a posedge; held at 1 until synchronous reset. prev_in is initialized to 0 before the first sampled posedge (no prior cycle), so no capture occurs on the first row unless a 1->0 transition is observed."
+        }
+      ]
+    },
+    {
+      "issue_id": "I2",
+      "decision": "rebut",
+      "reason": "The spec explicitly says the transition is from 1 in one clock cycle to 0 the next, i.e. immediate previous cycle, not any earlier cycle. The existing condition prev_in & ~in already expresses this.",
+      "spec_quote": "capture when the input signal changes from 1 in one clock cycle to 0 the next",
+      "edits": []
+    },
+    {
+      "issue_id": "I3",
+      "decision": "accept",
+      "reason": "R3_hold's example does not demonstrate holding a previously set bit; replacing the example with one that sets out then holds it better expresses the rule.",
+      "spec_quote": "the output will remain 1 until the register is reset",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R3_hold",
+            "example"
+          ],
+          "value": {
+            "vectors": [
+              {
+                "reset": 0,
+                "in": 1
+              },
+              {
+                "reset": 0,
+                "in": 0
+              },
+              {
+                "reset": 0,
+                "in": 1
+              },
+              {
+                "reset": 0,
+                "in": 1
+              }
+            ],
+            "expected": [
+              {
+                "out": 0
+              },
+              {
+                "out": 1
+              },
+              {
+                "out": 1
+              },
+              {
+                "out": 1
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "issue_id": "I4",
+      "decision": "rebut",
+      "reason": "The issue itself confirms the R2 example matches the rule with no discrepancy; no change needed.",
+      "spec_quote": "capture when the input signal changes from 1 in one clock cycle to 0 the next",
+      "edits": []
+    },
+    {
+      "issue_id": "I5",
+      "decision": "rebut",
+      "reason": "The contract already states sync active-high reset with same_cycle visibility and update_during_reset=true, consistent with the spec; no change needed.",
+      "spec_quote": "active high synchronous reset",
+      "edits": []
+    }
+  ]
+}

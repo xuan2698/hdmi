@@ -1,0 +1,44 @@
+def reference(vectors):
+    state = 0  # 0=A reset/no first 1, 1=B, 2=C
+    areset = 0
+    x = 0
+    out = []
+    for row in vectors:
+        if 'areset' in row:
+            areset = row['areset']
+        if 'x' in row:
+            x = row['x']
+        if areset == 1:
+            # async_reset_assert: active-high async reset forces state A, z=0
+            state = 0
+        else:
+            if state == 0:
+                # A_on_x0 / A_on_x1
+                if x == 1:
+                    state = 1
+                else:
+                    state = 0
+            elif state == 1:
+                # B_on_x0 / B_on_x1
+                if x == 1:
+                    state = 2
+                else:
+                    state = 1
+            else:
+                # C_on_x0 / C_on_x1
+                if x == 1:
+                    state = 2
+                else:
+                    state = 1
+        z = 1 if state == 1 else 0
+        out.append({'z': z})
+        if 'mid' in row:
+            mid = row['mid']
+            if 'areset' in mid:
+                areset = mid['areset']
+                # async_reset_assert can assert between sampled edges via mid
+                if areset == 1:
+                    state = 0
+            if 'x' in mid:
+                x = mid['x']
+    return out

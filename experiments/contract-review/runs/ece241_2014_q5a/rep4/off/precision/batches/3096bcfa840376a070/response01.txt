@@ -1,0 +1,94 @@
+We need to implement four independent reference models, each matching its assigned state semantics. All four are essentially the same 2's complementer Moore machine, but with slight variations in the rule descriptions (which don't change the actual behavior). Let me analyze each:
+
+**Common behavior across all four:**
+- Two states: S0 (no 1 seen yet), S1 (1 seen, complementing)
+- Async reset (active high): state=S0, z=0
+- In S0: z = x (pass through)
+- In S1: z = NOT x
+- On posedge: S0→S1 if x=1, else stay; S1 stays S1
+
+The differences between the four items are only in the *descriptions* of rules (e.g., "z=x for trailing zeros only" vs "z=x"), but the actual functional behavior is identical. The examples given are consistent with the standard 2's complementer behavior.
+
+Let me verify the semantics carefully:
+
+For a 2's complementer processing LSB-first:
+- Trailing zeros are passed through as 0
+- The first 1 is passed through as 1
+- All subsequent bits are inverted
+
+In state S0 (no 1 seen): z = x. If x=0, output 0, stay S0. If x=1, output 1, transition to S1.
+In state S1: z = NOT x. Stay S1.
+
+This matches all four specifications. The only difference is rule R1's wording in items 3 and 4 ("for trailing zeros only"), but the example still shows z=1 when x=1 in S0, so functionally identical.
+
+Now, the key question: how does the reference function process vectors? Each vector row has `areset` and `x`. The output `z` is computed combinationally based on current state and x (with reset override). State updates happen at posedge (end of cycle, affecting next cycle).
+
+Let me write the reference function:
+
+```python
+def reference(vectors):
+    results = []
+    state = 0  # S0
+    for v in vectors:
+        areset = v.get('areset', 0)
+        x = v.get('x', 0)
+        if areset:
+            # async reset: state forced to S0, z=0
+            state = 0
+            z = 0
+        else:
+            if state == 0:
+                z = x
+            else:
+                z = 1 - x
+        results.append({'z': z})
+        # posedge update (only if not in reset)
+        if not areset:
+            if state == 0 and x == 1:
+                state = 1
+            # S1 stays S1, S0 stays S0 if x=0
+    return results
+```
+
+Wait — need to think about reset timing. The spec says "asynchronous reset asserted: state forced to S0 and z=0 regardless of clock." So when areset=1, z=0 and state=S0 immediately. When areset=0, normal operation.
+
+But there's a subtlety: "The first posedge after areset is deasserted: state is S0 and z=x combinationally that cycle; S0->S1 if x=1 at that edge." This confirms: when areset goes from 1 to 0, the state is S0 (from reset), and z=x combinationally, then at posedge S0→S1 if x=1.
+
+My code handles this: when areset=0, we use current state (which was forced to S0 during reset), compute z, then update state at posedge.
+
+But wait — what if areset=1 in a cycle? Then state is forced to S0 and z=0. At the posedge of that cycle, does the state update happen? The spec says "update_during_reset: false" for both states, meaning state doesn't update during reset. So if areset=1, no state transition occurs at posedge. My code handles this with `if not areset:` guard.
+
+Let me double-check with the examples:
+
+**Item 1, R1 example:** vectors: [{areset:0,x:0},{areset:0,x:1},{areset:0,x:0}], expected: [{z:0},{z:1},{z:1}]
+- Cycle 1: areset=0, state=S0, x=0 → z=0. Posedge: state stays S0 (x=0).
+- Cycle 2: areset=0, state=S0, x=1 → z=1. Posedge: state→S1.
+- Cycle 3: areset=0, state=S1, x=0 → z=1. ✓
+
+**Item 1, R2 example:** vectors: [{areset:0,x:1},{areset:0,x:0},{areset:0,x:1}], expected: [{z:1},{z:1},{z:0}]
+- Cycle 1: state=S0, x=1 → z=1. Posedge: state→S1.
+- Cycle 2: state=S1, x=0 → z=1. ✓
+- Cycle 3: state=S1, x=1 → z=0. ✓
+
+**Item 1, R4 example:** vectors: [{areset:1,x:1},{areset:0,x:1},{areset:0,x:0}], expected: [{z:0},{z:1},{z:1}]
+- Cycle 1: areset=1 → z=0, state=S0. No posedge update.
+- Cycle 2: areset=0, state=S0, x=1 → z=1. Posedge: state→S1.
+- Cycle 3: areset=0, state=S1, x=0 → z=1. ✓
+
+All examples check out. The four items are functionally identical, so the same reference function works for all. But the task says "implement its exact state semantics independently" — since the semantics are identical, the same code is correct for all four.
+
+Let me write the final JSON with the same reference function for all four IDs:
+
+```json
+{"models":{"2333548f80353273d1":"def reference(vectors):\n    results = []\n    state = 0\n    for v in vectors:\n        areset = v.get('areset', 0)\n        x = v.get('x', 0)\n        if areset:\n            state = 0\n            z = 0\n        else:\n            if state == 0:\n                z = x\n            else:\n                z = 1 - x\n        results.append({'z': z})\n        if not areset:\n            if state == 0 and x == 1:\n                state = 1\n    return results","3fd7076a0472453491":"def reference(vectors):\n    results = []\n    state = 0\n    for v in vectors:\n        areset = v.get('areset', 0)\n        x = v.get('x', 0)\n        if areset:\n            state = 0\n            z = 0\n        else:\n            if state == 0:\n                z = x\n            else:\n                z = 1 - x\n        results.append({'z': z})\n        if not areset:\n            if state == 0 and x == 1:\n                state = 1\n    return results","a48e341f91320822bd":"def reference(vectors):\n    results = []\n    state = 0\n    for v in vectors:\n        areset = v.get('areset', 0)\n        x = v.get('x', 0)\n        if areset:\n            state = 0\n            z = 0\n        else:\n            if state == 0:\n                z = x\n            else:\n                z = 1 - x\n        results.append({'z': z})\n        if not areset:\n            if state == 0 and x == 1:\n                state = 1\n    return results","340430a72c09a8ac4d":"def reference(vectors):\n    results = []\n    state = 0\n    for v in vectors:\n        areset = v.get('areset', 0)\n        x = v.get('x', 0)\n        if areset:\n            state = 0\n            z = 0\n        else:\n            if state == 0:\n                z = x\n            else:\n                z = 1 - x\n        results.append({'z': z})\n        if not areset:\n            if state == 0 and x == 1:\n                state = 1\n    return results"}}
+```
+
+Wait — I should double check the "mid" input changes note: "Optional mid-cycle input changes occur after the sampling edge and are carried to the start of the next row; they do not affect the current row's sampled values." This means the vectors already represent the sampled values at each cycle, so we don't need to handle mid-cycle changes specially. Good.
+
+Also need to verify: the output should be "every width-valid output each cycle" — so we return a list of dicts with 'z' key for each cycle. ✓
+
+One more consideration: what if areset is asserted mid-sequence and then released? My code handles this: during areset, state forced to S0, z=0, no posedge update. After release, state is S0, normal operation resumes. ✓
+
+The code has no imports, no I/O, no executable top-level code (just a function definition). ✓
+
+Final answer:

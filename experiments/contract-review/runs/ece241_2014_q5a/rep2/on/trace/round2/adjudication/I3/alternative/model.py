@@ -1,0 +1,89 @@
+def reference(vectors):
+    # state: 0=S0, 1=S1, 2=S2
+    state = 0
+    z = 0
+    inputs = {"areset": 0, "x": 0}
+    results = []
+
+    for row in vectors:
+        # Drive row values before the sampled posedge
+        if "areset" in row:
+            inputs["areset"] = row["areset"]
+        if "x" in row:
+            inputs["x"] = row["x"]
+
+        # async_reset_z0: active-high asynchronous reset forces state S0.
+        # Override interpretation: while areset=1, z holds its previous value.
+        if inputs["areset"] == 1:
+            state = 0
+
+        # Sample after posedge when reset is not asserted.
+        if inputs["areset"] == 0:
+            if state == 0:
+                # s0_x0
+                if inputs["x"] == 0:
+                    state = 0
+                    z = 0
+                else:
+                    # s0_x1
+                    state = 1
+                    z = 1
+            elif state == 1:
+                # s1_x0
+                if inputs["x"] == 0:
+                    state = 1
+                    z = 1
+                else:
+                    # s1_x1
+                    state = 2
+                    z = 0
+            else:
+                # s2_x0
+                if inputs["x"] == 0:
+                    state = 1
+                    z = 1
+                else:
+                    # s2_x1
+                    state = 2
+                    z = 0
+        # global: same-cycle Moore output after the sampled posedge.
+
+        results.append({"z": z})
+
+        # mid changes occur after sampling and before the next clock edge.
+        if "mid" in row:
+            mid = row["mid"]
+            is_map = 0
+            try:
+                items = mid.items()
+                is_map = 1
+            except:
+                is_map = 0
+
+            if is_map:
+                for k, v in items:
+                    inputs[k] = v
+                    if k == "areset" and v == 1:
+                        state = 0  # async_reset_z0
+            else:
+                for m in mid:
+                    m_is_map = 0
+                    try:
+                        mitems = m.items()
+                        m_is_map = 1
+                    except:
+                        m_is_map = 0
+
+                    if m_is_map:
+                        for k, v in mitems:
+                            inputs[k] = v
+                            if k == "areset" and v == 1:
+                                state = 0  # async_reset_z0
+                    else:
+                        k = m[0]
+                        v = m[1]
+                        inputs[k] = v
+                        if k == "areset" and v == 1:
+                            state = 0  # async_reset_z0
+
+    return results

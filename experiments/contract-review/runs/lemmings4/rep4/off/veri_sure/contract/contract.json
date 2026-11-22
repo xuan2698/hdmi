@@ -1,0 +1,107 @@
+{
+  "module_name": "top_module",
+  "io": [
+    {
+      "name": "clk",
+      "dir": "input",
+      "width": 1,
+      "description": "Clock; positive edge samples state."
+    },
+    {
+      "name": "areset",
+      "dir": "input",
+      "width": 1,
+      "description": "Asynchronous positive-edge reset; resets Lemming to walk_left."
+    },
+    {
+      "name": "bump_left",
+      "dir": "input",
+      "width": 1,
+      "description": "Bump on left side; causes direction switch to walk right when walking."
+    },
+    {
+      "name": "bump_right",
+      "dir": "input",
+      "width": 1,
+      "description": "Bump on right side; causes direction switch to walk left when walking."
+    },
+    {
+      "name": "ground",
+      "dir": "input",
+      "width": 1,
+      "description": "Ground present (1) or absent (0)."
+    },
+    {
+      "name": "dig",
+      "dir": "input",
+      "width": 1,
+      "description": "Command to dig when walking on ground."
+    },
+    {
+      "name": "walk_left",
+      "dir": "output",
+      "width": 1,
+      "description": "Lemming is walking left."
+    },
+    {
+      "name": "walk_right",
+      "dir": "output",
+      "width": 1,
+      "description": "Lemming is walking right."
+    },
+    {
+      "name": "aaah",
+      "dir": "output",
+      "width": 1,
+      "description": "Lemming is falling."
+    },
+    {
+      "name": "digging",
+      "dir": "output",
+      "width": 1,
+      "description": "Lemming is digging."
+    }
+  ],
+  "clocking": {
+    "clock": {
+      "name": "clk",
+      "edge": "posedge"
+    },
+    "reset": {
+      "name": "areset",
+      "active": "high",
+      "kind": "asynchronous"
+    }
+  },
+  "timing": {
+    "outputs": {
+      "walk_left": {
+        "latency_cycles": 0
+      },
+      "walk_right": {
+        "latency_cycles": 0
+      },
+      "aaah": {
+        "latency_cycles": 0
+      },
+      "digging": {
+        "latency_cycles": 0
+      }
+    }
+  },
+  "functional_summary": {
+    "overview": "Moore FSM modeling a Lemming that walks left/right, switches direction on bumps, falls when ground=0, digs when instructed while walking on ground, and splatters after falling more than 20 cycles then landing. Reset asynchronously to walk_left.",
+    "rules": [
+      "Reset: areset high asynchronously forces state to WALK_LEFT with outputs walk_left=1, others 0.",
+      "Walking: in WALK_LEFT or WALK_RIGHT with ground=1, if dig=1 begin digging; else if bumped (bump_left and/or bump_right) switch direction; else continue same direction.",
+      "Bump semantics: bump_left causes walk right; bump_right causes walk left; simultaneous bumps still switch direction.",
+      "Falling: if ground=0 while walking or digging, enter falling (aaah=1) and increment fall counter each cycle; direction is remembered.",
+      "During fall: bumps and dig are ignored; fall counter increments each cycle while ground=0.",
+      "Landing: when ground=1 while falling, if fall duration > 20 cycles splatter (all outputs 0 forever); else resume walking in remembered direction.",
+      "Digging: entered from walking on ground when dig=1; digging continues while ground=1; when ground=0, transition to falling (aaah=1) with remembered direction.",
+      "Precedence: fall (ground=0) > dig > direction switch.",
+      "Splatter: after splattering, all outputs remain 0 until reset.",
+      "Outputs are Moore-type, determined by current state."
+    ]
+  }
+}

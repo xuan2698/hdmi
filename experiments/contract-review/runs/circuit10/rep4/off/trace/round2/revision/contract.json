@@ -1,0 +1,130 @@
+{
+  "ports": {
+    "inputs": {
+      "a": 1,
+      "b": 1
+    },
+    "outputs": {
+      "q": 1,
+      "state": 1
+    },
+    "clock": "clk"
+  },
+  "states": [
+    {
+      "name": "state",
+      "meaning": "single flip-flop storing the next value of q",
+      "update_time": "posedge",
+      "update_during_reset": false
+    }
+  ],
+  "rules": [
+    {
+      "id": "R1",
+      "outputs": [
+        "state"
+      ],
+      "condition": "state <= a XOR b",
+      "edge": "posedge",
+      "visible": "next_cycle",
+      "priority": 1,
+      "spec_quote": "one bit of memory (i.e., one flip-flop)",
+      "uncertain": false,
+      "example": {
+        "vectors": [
+          {
+            "a": 0,
+            "b": 1
+          },
+          {
+            "a": 1,
+            "b": 0
+          },
+          {
+            "a": 1,
+            "b": 1
+          }
+        ],
+        "expected": [
+          {
+            "state": 1
+          },
+          {
+            "state": 1
+          },
+          {
+            "state": 0
+          }
+        ]
+      }
+    },
+    {
+      "id": "R2",
+      "outputs": [
+        "q"
+      ],
+      "condition": "q = a XOR b (combinational next-state)",
+      "edge": "posedge",
+      "visible": "next_cycle",
+      "priority": 1,
+      "spec_quote": "The output of the flip-flop has been made observable through the output state.",
+      "uncertain": false,
+      "example": {
+        "vectors": [
+          {
+            "a": 0,
+            "b": 0
+          },
+          {
+            "a": 0,
+            "b": 1
+          },
+          {
+            "a": 1,
+            "b": 1
+          }
+        ],
+        "expected": [
+          {
+            "q": 0
+          },
+          {
+            "q": 1
+          },
+          {
+            "q": 0
+          }
+        ]
+      }
+    }
+  ],
+  "reset": {
+    "kind": "none",
+    "name": null,
+    "active": "none",
+    "values": {
+      "q": null,
+      "state": null
+    },
+    "first_released_cycle": "0ns"
+  },
+  "mid": "Optional mid input changes occur AFTER sampling, before the other edge, and are carried to the start of the next row.",
+  "uncertain": [
+    {
+      "rule_id": "R1",
+      "note": "Next-state function inferred from waveform; spec quote only establishes one flip-flop of memory, not the exact next-state function.",
+      "candidates": [
+        "state <= a XOR b",
+        "state <= a AND b"
+      ]
+    },
+    {
+      "rule_id": "R2",
+      "note": "q relationship inferred from waveform; spec quote only says flip-flop output is observable through state, not whether q is combinational or registered.",
+      "candidates": [
+        "q = a XOR b (combinational next-state)",
+        "q = state after posedge (registered output of flip-flop)"
+      ]
+    }
+  ]
+}

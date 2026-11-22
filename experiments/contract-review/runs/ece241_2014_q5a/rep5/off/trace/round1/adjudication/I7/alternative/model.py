@@ -1,0 +1,45 @@
+def reference(vectors):
+    # Contract implementation for a serial 2's complementer Moore FSM.
+    # States: S0 (no 1 seen yet, pass-through), S1 (1 seen, complement).
+    # Reset is asynchronous, active high, forces state S0 and z=0.
+    # Outputs are combinational based on current state and x (same cycle).
+    # State updates on posedge clk.
+
+    # Initialize state to S0 (power-up unspecified, but reset will handle it).
+    state = "S0"
+
+    results = []
+
+    for row in vectors:
+        areset = row.get("areset", 0)
+        x = row.get("x", 0)
+
+        # R5: Asynchronous reset asserted forces state to S0 and z=0 immediately.
+        if areset == 1:
+            state = "S0"
+            z = 0
+            results.append({"z": z})
+            continue
+
+        # Combinational output based on current state and x.
+        # R1: In state S0, z = x (pass through).
+        # R2: In state S1, z = NOT x (complement).
+        if state == "S0":
+            z = x & 1  # R1
+        else:  # state == "S1"
+            z = (~x) & 1  # R2
+
+        results.append({"z": z})
+
+        # State transition on posedge (sampled after edge settles).
+        # R3: In S0, if x=1 -> S1; if x=0 stay S0.
+        # R4: In S1, stay S1 regardless of x.
+        if state == "S0":
+            if x == 1:
+                state = "S1"  # R3
+            else:
+                state = "S0"  # R3
+        else:  # state == "S1"
+            state = "S1"  # R4
+
+    return results

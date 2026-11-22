@@ -1,0 +1,27 @@
+def reference(vectors):
+    # Contract implementation.
+    # State: COUNT (current decade count 0..9), updated at posedge clk.
+    # Output q reflects COUNT after the sampled posedge.
+    # reset is active-high synchronous: at posedge, if reset==1 -> COUNT=0.
+    # Otherwise COUNT advances by 1, wrapping 9 -> 0 (period 10).
+    # Mid changes occur AFTER sampling, before the other edge, carried to next row.
+
+    count = 0  # power-up unspecified; use 0 as concrete value
+    out = []
+
+    for row in vectors:
+        reset = row.get("reset", 0)
+        # Sample at posedge: apply synchronous reset / count update.
+        # R1: reset == 1 -> q = 0 (priority 1)
+        if reset == 1:
+            count = 0
+        else:
+            # R2: reset == 0 && q < 9 -> q = q + 1
+            # R3: reset == 0 && q == 9 -> q = 0
+            if count < 9:
+                count = count + 1
+            else:
+                count = 0
+        out.append({"q": count & 0xF})
+
+    return out

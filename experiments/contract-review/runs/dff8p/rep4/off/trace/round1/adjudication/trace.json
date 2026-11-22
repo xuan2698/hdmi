@@ -1,0 +1,54 @@
+[
+  {
+    "issue": {
+      "issue_id": "I3",
+      "rule_id": "R1_sync_reset",
+      "type": "ambiguity",
+      "severity": "low",
+      "detail": "Spec says synchronous reset but does not state reset value visibility timing; contract asserts same_cycle at negedge. Alternative: reset value visible only after the negedge (next cycle).",
+      "spec_evidence": "active high synchronous reset",
+      "alternative": "Reset value 0x34 becomes visible on q one cycle after the negedge where reset==1, not on that same negedge.",
+      "sequence": [
+        {
+          "d": 0,
+          "reset": 1
+        },
+        {
+          "d": 0,
+          "reset": 0
+        }
+      ]
+    },
+    "status": "effect",
+    "issue_id": "I3",
+    "outputs": {
+      "original": [
+        {
+          "q": 52
+        },
+        {
+          "q": 0
+        }
+      ],
+      "alternative": [
+        {
+          "q": 52
+        },
+        {
+          "q": 52
+        }
+      ]
+    },
+    "differences": [
+      {
+        "cycle": 2,
+        "original": {
+          "q": 0
+        },
+        "alternative": {
+          "q": 52
+        }
+      }
+    ]
+  }
+]

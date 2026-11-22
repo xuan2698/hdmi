@@ -1,0 +1,51 @@
+{
+  "responses": [
+    {
+      "issue_id": "I1",
+      "decision": "accept",
+      "reason": "The example's first-cycle q=0 depends on an unstated initial value; clarify initial state in the state meaning rather than inventing a reset kind.",
+      "spec_quote": "active high synchronous reset setting the output to zero",
+      "edits": [
+        {
+          "path": [
+            "states",
+            "q_reg",
+            "meaning"
+          ],
+          "value": "8-bit flip-flop output register holding q; initial value before any posedge clk is unspecified (example assumes q=0)"
+        }
+      ]
+    },
+    {
+      "issue_id": "I2",
+      "decision": "accept",
+      "reason": "The first-cycle capture in the example presumes an initial value; clarify that the initial value is unspecified and the example assumes q=0.",
+      "spec_quote": "Create 8 D flip-flops",
+      "edits": [
+        {
+          "path": [
+            "states",
+            "q_reg",
+            "meaning"
+          ],
+          "value": "8-bit flip-flop output register holding q; initial value before any posedge clk is unspecified (example assumes q=0)"
+        }
+      ],
+      "already_applied_by_earlier_issue": true
+    },
+    {
+      "issue_id": "I4",
+      "decision": "rebut",
+      "reason": "The contract already sets reset priority 1 over capture priority 2, matching the spec's active-high synchronous reset rule.",
+      "spec_quote": "active high synchronous reset setting the output to zero",
+      "edits": []
+    },
+    {
+      "issue_id": "I5",
+      "decision": "rebut",
+      "reason": "The contract examples already express the sync reset and capture behavior; no additional spec waveform is required.",
+      "spec_quote": "Create 8 D flip-flops",
+      "edits": []
+    }
+  ]
+}

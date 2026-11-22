@@ -1,0 +1,120 @@
+```python
+def reference(vectors):
+    # State: out is the 32-bit sticky capture register.
+    # prev_in is the 32-bit history of the previous sampled in value.
+    out = 0
+    prev_in = 0
+    cur_reset = 0
+    cur_in = 0
+    result = []
+
+    for row in vectors:
+        # Drive the row's sampled input values before the active posedge.
+        if isinstance(row, dict):
+            if 'reset' in row:
+                val = row['reset']
+                if isinstance(val, str):
+                    cur_reset = int(val, 0) & 1
+                else:
+                    cur_reset = int(val) & 1
+            if 'in' in row:
+                val = row['in']
+                if isinstance(val, str):
+                    cur_in = int(val, 0) & 0xFFFFFFFF
+                else:
+                    cur_in = int(val) & 0xFFFFFFFF
+            if 'inputs' in row and isinstance(row['inputs'], dict):
+                sub = row['inputs']
+                if 'reset' in sub:
+                    val = sub['reset']
+                    if isinstance(val, str):
+                        cur_reset = int(val, 0) & 1
+                    else:
+                        cur_reset = int(val) & 1
+                if 'in' in sub:
+                    val = sub['in']
+                    if isinstance(val, str):
+                        cur_in = int(val, 0) & 0xFFFFFFFF
+                    else:
+                        cur_in = int(val) & 0xFFFFFFFF
+
+        # Sample the active posedge input values.
+        sampled_reset = cur_reset & 1
+        sampled_in = cur_in & 0xFFFFFFFF
+
+        # Rule synchronous_active_high_reset: reset == 1 forces out to 0,
+        # independent of in and prior out.
+        if sampled_reset:
+            out = 0
+        else:
+            # Rule falling_edge_capture_and_hold: capture 1->0 transitions,
+            # preserve existing 1s until reset.
+            out = (out | (prev_in & (~sampled_in))) & 0xFFFFFFFF
+
+        # prev_in is updated to the sampled in after each posedge,
+        # including reset cycles.
+        prev_in = sampled_in
+        result.append({'out': out & 0xFFFFFFFF})
+
+        # Optional mid input changes occur after sampling and are carried
+        # to the start of the next row.
+        if isinstance(row, dict):
+            if 'mid' in row:
+                mid = row['mid']
+                if isinstance(mid, dict):
+                    if 'reset' in mid:
+                        val = mid['reset']
+                        if isinstance(val, str):
+                            cur_reset = int(val, 0) & 1
+                        else:
+                            cur_reset = int(val) & 1
+                    if 'in' in mid:
+                        val = mid['in']
+                        if isinstance(val, str):
+                            cur_in = int(val, 0) & 0xFFFFFFFF
+                        else:
+                            cur_in = int(val) & 0xFFFFFFFF
+                    if 'inputs' in mid and isinstance(mid['inputs'], dict):
+                        sub = mid['inputs']
+                        if 'reset' in sub:
+                            val = sub['reset']
+                            if isinstance(val, str):
+                                cur_reset = int(val, 0) & 1
+                            else:
+                                cur_reset = int(val) & 1
+                        if 'in' in sub:
+                            val = sub['in']
+                            if isinstance(val, str):
+                                cur_in = int(val, 0) & 0xFFFFFFFF
+                            else:
+                                cur_in = int(val) & 0xFFFFFFFF
+                elif isinstance(mid, (list, tuple)):
+                    for m in mid:
+                        if isinstance(m, dict):
+                            if 'reset' in m:
+                                val = m['reset']
+                                if isinstance(val, str):
+                                    cur_reset = int(val, 0) & 1
+                                else:
+                                    cur_reset = int(val) & 1
+                            if 'in' in m:
+                                val = m['in']
+                                if isinstance(val, str):
+                                    cur_in = int(val, 0) & 0xFFFFFFFF
+                                else:
+                                    cur_in = int(val) & 0xFFFFFFFF
+            if 'mid_reset' in row:
+                val = row['mid_reset']
+                if isinstance(val, str):
+                    cur_reset = int(val, 0) & 1
+                else:
+                    cur_reset = int(val) & 1
+            if 'mid_in' in row:
+                val = row['mid_in']
+                if isinstance(val, str):
+                    cur_in = int(val, 0) & 0xFFFFFFFF
+                else:
+                    cur_in = int(val) & 0xFFFFFFFF
+
+    return result
+```

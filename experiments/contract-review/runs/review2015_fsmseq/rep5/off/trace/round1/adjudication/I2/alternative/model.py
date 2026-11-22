@@ -1,0 +1,58 @@
+def reference(vectors):
+    # FSM states
+    S0, S1, S2, S3, S4 = 0, 1, 2, 3, 4
+
+    # State registers (power-up unspecified -> default to S0)
+    state = S0
+    start_shifting = 0
+
+    results = []
+
+    for vec in vectors:
+        reset = vec["reset"] & 1
+        data = vec["data"] & 1
+
+        # ---- Compute next state from current state and data ----
+        if state == S0:
+            nxt = S1 if data == 1 else S0
+        elif state == S1:
+            nxt = S2 if data == 1 else S0
+        elif state == S2:
+            nxt = S3 if data == 0 else S2
+        elif state == S3:
+            nxt = S4 if data == 1 else S0
+        else:  # S4
+            nxt = S4
+
+        # ---- R1: reset == 1 -> start_shifting = 0 (priority 1) ----
+        # R2: reset == 0 and state == S4 -> start_shifting = 1 (priority 2)
+        # R3: reset == 0 and state != S4 and next_state == S4 -> registered,
+        #     visible next cycle (priority 3)
+        # R4: reset == 0 and state != S4 and next_state != S4 -> 0 (priority 4)
+        if reset == 1:
+            # R1
+            new_start_shifting = 0
+            new_state = S0
+        else:
+            if state == S4:
+                # R2
+                new_start_shifting = 1
+            else:
+                # R3/R4: output is registered, reflects state after edge
+                if nxt == S4:
+                    new_start_shifting = 1  # R3 (next_cycle)
+                else:
+                    new_start_shifting = 0  # R4
+            new_state = nxt
+
+        # Output visible for this cycle is the registered value BEFORE the edge
+        # (same_cycle semantics for R1, R2, R4; R3 is next_cycle).
+        # Since R3 is registered, the value sampled at this edge becomes
+        # visible on the NEXT cycle. So we output the current register value.
+        results.append({"start_shifting": start_shifting & 1})
+
+        # Apply edge updates
+        state = new_state
+        start_shifting = new_start_shifting
+
+    return results

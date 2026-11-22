@@ -1,0 +1,67 @@
+def reference(vectors):
+    # Contract rules implemented:
+    # R1_reset: synchronous active-high reset -> q=0, ena=0 on posedge when reset==1
+    # R2_ones_increment: ones digit increments each cycle when not reset
+    # R3_ena_tens: ena[0] set when ones==9
+    # R4_ena_hundreds: ena[1] set when ones==9 and tens==9
+    # R5_ena_thousands: ena[2] set when ones==9 and tens==9 and hundreds==9
+    # R6_bcd_rollover: BCD rollover on each digit
+    # State: counter (16-bit BCD), updated on posedge clk
+    # Outputs visible same cycle (combinational from current state after edge)
+    # Mid changes occur AFTER sampling, before other edge, carried to next row
+
+    q = 0  # counter state (16-bit BCD)
+    results = []
+
+    for vec in vectors:
+        reset = vec.get('reset', 0)
+
+        # Compute outputs based on current state (visible same cycle)
+        # R1_reset: reset forces outputs to 0
+        if reset == 1:
+            out_q = 0
+            out_ena = 0
+        else:
+            out_q = q
+            ones = q & 0xF
+            tens = (q >> 4) & 0xF
+            hundreds = (q >> 8) & 0xF
+            # R3_ena_tens, R4_ena_hundreds, R5_ena_thousands
+            ena = 0
+            if ones == 9:
+                ena |= 1  # tens enable
+                if tens == 9:
+                    ena |= 2  # hundreds enable
+                    if hundreds == 9:
+                        ena |= 4  # thousands enable
+            out_ena = ena
+
+        results.append({'q': out_q, 'ena': out_ena})
+
+        # Update state on posedge (synchronous)
+        if reset == 1:
+            # R1_reset: synchronous reset
+            q = 0
+        else:
+            # R2_ones_increment, R6_bcd_rollover
+            ones = q & 0xF
+            tens = (q >> 4) & 0xF
+            hundreds = (q >> 8) & 0xF
+            thousands = (q >> 12) & 0xF
+
+            ones += 1
+            if ones == 10:
+                ones = 0
+                tens += 1
+                if tens == 10:
+                    tens = 0
+                    hundreds += 1
+                    if hundreds == 10:
+                        hundreds = 0
+                        thousands += 1
+                        if thousands == 10:
+                            thousands = 0
+
+            q = (thousands << 12) | (hundreds << 8) | (tens << 4) | ones
+
+    return results

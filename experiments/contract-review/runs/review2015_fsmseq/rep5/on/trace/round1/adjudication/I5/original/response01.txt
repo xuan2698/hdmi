@@ -1,0 +1,71 @@
+def reference(vectors):
+    # State encoding: 0:S0, 1:S1, 2:S11, 3:S110, 4:FOUND
+    state = 0
+    current_inputs = {"reset": 0, "data": 0}
+    outputs = []
+    for row in vectors:
+        # Effective inputs before sampled posedge: carried values overridden by row's explicit values
+        effective = dict(current_inputs)
+        if "reset" in row:
+            effective["reset"] = row["reset"]
+        if "data" in row:
+            effective["data"] = row["data"]
+        reset = effective.get("reset", 0)
+        data = effective.get("data", 0)
+
+        # Sample posedge: compute next state
+        if reset == 1:
+            # R_RESET_CLEAR: synchronous reset forces FSM state S0 and start_shifting=0
+            next_state = 0
+        else:
+            if state == 0:  # S0
+                if data == 1:
+                    next_state = 1  # S1
+                else:
+                    next_state = 0  # S0
+            elif state == 1:  # S1
+                if data == 1:
+                    next_state = 2  # S11
+                else:
+                    next_state = 0  # S0
+            elif state == 2:  # S11
+                if data == 1:
+                    next_state = 2  # S11 (overlapping 1s)
+                else:
+                    next_state = 3  # S110
+            elif state == 3:  # S110
+                if data == 1:
+                    next_state = 4  # FOUND
+                else:
+                    next_state = 0  # S0
+            elif state == 4:  # FOUND
+                # R_SET_OR_HOLD_1101: remains FOUND for either data value (sticky)
+                next_state = 4
+            else:
+                next_state = 0
+
+        # Output after settled edge: start_shifting=1 iff state is FOUND
+        # R_RESET_CLEAR gives 0 on reset; R_SET_OR_HOLD_1101 gives 1 if FOUND;
+        # R_KEEP_ZERO_UNTIL_FOUND gives 0 otherwise.
+        start_shifting = 1 if next_state == 4 else 0
+        outputs.append({"start_shifting": start_shifting})
+
+        # Update state for next row
+        state = next_state
+
+        # After sampling, update carried inputs to effective values
+        current_inputs = effective.copy()
+
+        # Process optional mid input changes that occur AFTER sampling, before other edge,
+        # and are carried to the start of the next row.
+        if "mid" in row and isinstance(row["mid"], dict):
+            for k, v in row["mid"].items():
+                if k in current_inputs:
+                    current_inputs[k] = v
+        # Also support keys of the form <input>_mid
+        for name in ["reset", "data"]:
+            mid_key = name + "_mid"
+            if mid_key in row:
+                current_inputs[name] = row[mid_key]
+
+    return outputs

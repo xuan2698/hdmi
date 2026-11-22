@@ -1,0 +1,1307 @@
+[
+  {
+    "issue_id": "i1",
+    "before": {
+      "ports": {
+        "inputs": {
+          "a": 1,
+          "b": 1
+        },
+        "outputs": {
+          "q": 1,
+          "state": 1
+        },
+        "clock": "clk"
+      },
+      "states": [
+        {
+          "name": "state",
+          "meaning": "single flip-flop storing the next value of q",
+          "update_time": "posedge",
+          "update_during_reset": false
+        }
+      ],
+      "rules": [
+        {
+          "id": "r1",
+          "outputs": [
+            "q"
+          ],
+          "condition": "q is the registered value of state (q equals state after each posedge)",
+          "edge": "posedge",
+          "visible": "next_cycle",
+          "priority": 1,
+          "spec_quote": "one bit of memory (i.e., one flip-flop)",
+          "uncertain": false,
+          "example": {
+            "vectors": [
+              {
+                "a": 0,
+                "b": 0
+              },
+              {
+                "a": 0,
+                "b": 1
+              },
+              {
+                "a": 1,
+                "b": 0
+              }
+            ],
+            "expected": [
+              {
+                "q": 0,
+                "state": 0
+              },
+              {
+                "q": 0,
+                "state": 0
+              },
+              {
+                "q": 1,
+                "state": 0
+              }
+            ]
+          }
+        },
+        {
+          "id": "r2",
+          "outputs": [
+            "state"
+          ],
+          "condition": "next state = (a XOR b) XOR state",
+          "edge": "posedge",
+          "visible": "next_cycle",
+          "priority": 2,
+          "spec_quote": "The circuit consists of combinational logic and one bit of memory",
+          "uncertain": true,
+          "example": {
+            "vectors": [
+              {
+                "a": 0,
+                "b": 1
+              },
+              {
+                "a": 1,
+                "b": 0
+              },
+              {
+                "a": 1,
+                "b": 1
+              }
+            ],
+            "expected": [
+              {
+                "q": 1,
+                "state": 0
+              },
+              {
+                "q": 1,
+                "state": 0
+              },
+              {
+                "q": 0,
+                "state": 0
+              }
+            ]
+          }
+        }
+      ],
+      "reset": {
+        "kind": "none",
+        "name": null,
+        "active": "none",
+        "values": {
+          "q": null,
+          "state": null
+        },
+        "first_released_cycle": "0ns"
+      },
+      "mid": "optional mid input changes occur AFTER sampling, before the other edge, and are carried to the start of the next row",
+      "uncertain": [
+        {
+          "rule_id": "r2",
+          "note": "Next-state function inferred from waveform; no explicit equation in spec text.",
+          "candidates": [
+            "state_next = a XOR b XOR state",
+            "state_next = (a AND b) XOR state",
+            "state_next = a XOR b"
+          ]
+        }
+      ]
+    },
+    "after": {
+      "ports": {
+        "inputs": {
+          "a": 1,
+          "b": 1
+        },
+        "outputs": {
+          "q": 1,
+          "state": 1
+        },
+        "clock": "clk"
+      },
+      "states": [
+        {
+          "name": "state",
+          "meaning": "single flip-flop storing the next value of q",
+          "update_time": "posedge",
+          "update_during_reset": false
+        }
+      ],
+      "rules": [
+        {
+          "id": "r1",
+          "outputs": [
+            "q"
+          ],
+          "condition": "q is the registered value of state (q equals state after each posedge)",
+          "edge": "posedge",
+          "visible": "next_cycle",
+          "priority": 1,
+          "spec_quote": "one bit of memory (i.e., one flip-flop)",
+          "uncertain": false,
+          "example": {
+            "vectors": [
+              {
+                "a": 0,
+                "b": 0
+              },
+              {
+                "a": 0,
+                "b": 1
+              },
+              {
+                "a": 1,
+                "b": 0
+              }
+            ],
+            "expected": [
+              {
+                "q": 0,
+                "state": 0
+              },
+              {
+                "q": 0,
+                "state": 0
+              },
+              {
+                "q": 1,
+                "state": 0
+              }
+            ]
+          }
+        },
+        {
+          "id": "r2",
+          "outputs": [
+            "state"
+          ],
+          "condition": "next state is determined by the waveform; observed transitions include state_next = a XOR b for rows where state=0 (e.g., 45ns: a=0,b=1,state=0 -> state=1 at 50ns)",
+          "edge": "posedge",
+          "visible": "next_cycle",
+          "priority": 2,
+          "spec_quote": "// 45ns            1               0               1               0               1",
+          "uncertain": true,
+          "example": {
+            "vectors": [
+              {
+                "a": 0,
+                "b": 1
+              },
+              {
+                "a": 1,
+                "b": 0
+              },
+              {
+                "a": 1,
+                "b": 1
+              }
+            ],
+            "expected": [
+              {
+                "q": 1,
+                "state": 0
+              },
+              {
+                "q": 1,
+                "state": 0
+              },
+              {
+                "q": 0,
+                "state": 0
+              }
+            ]
+          }
+        }
+      ],
+      "reset": {
+        "kind": "none",
+        "name": null,
+        "active": "none",
+        "values": {
+          "q": null,
+          "state": null
+        },
+        "first_released_cycle": "0ns"
+      },
+      "mid": "optional mid input changes occur AFTER sampling, before the other edge, and are carried to the start of the next row",
+      "uncertain": [
+        {
+          "rule_id": "r2",
+          "note": "Next-state function inferred from waveform; no explicit equation in spec text.",
+          "candidates": [
+            "state_next = a XOR b XOR state",
+            "state_next = (a AND b) XOR state",
+            "state_next = a XOR b"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "issue_id": "i2",
+    "before": {
+      "ports": {
+        "inputs": {
+          "a": 1,
+          "b": 1
+        },
+        "outputs": {
+          "q": 1,
+          "state": 1
+        },
+        "clock": "clk"
+      },
+      "states": [
+        {
+          "name": "state",
+          "meaning": "single flip-flop storing the next value of q",
+          "update_time": "posedge",
+          "update_during_reset": false
+        }
+      ],
+      "rules": [
+        {
+          "id": "r1",
+          "outputs": [
+            "q"
+          ],
+          "condition": "q is the registered value of state (q equals state after each posedge)",
+          "edge": "posedge",
+          "visible": "next_cycle",
+          "priority": 1,
+          "spec_quote": "one bit of memory (i.e., one flip-flop)",
+          "uncertain": false,
+          "example": {
+            "vectors": [
+              {
+                "a": 0,
+                "b": 0
+              },
+              {
+                "a": 0,
+                "b": 1
+              },
+              {
+                "a": 1,
+                "b": 0
+              }
+            ],
+            "expected": [
+              {
+                "q": 0,
+                "state": 0
+              },
+              {
+                "q": 0,
+                "state": 0
+              },
+              {
+                "q": 1,
+                "state": 0
+              }
+            ]
+          }
+        },
+        {
+          "id": "r2",
+          "outputs": [
+            "state"
+          ],
+          "condition": "next state is determined by the waveform; observed transitions include state_next = a XOR b for rows where state=0 (e.g., 45ns: a=0,b=1,state=0 -> state=1 at 50ns)",
+          "edge": "posedge",
+          "visible": "next_cycle",
+          "priority": 2,
+          "spec_quote": "// 45ns            1               0               1               0               1",
+          "uncertain": true,
+          "example": {
+            "vectors": [
+              {
+                "a": 0,
+                "b": 1
+              },
+              {
+                "a": 1,
+                "b": 0
+              },
+              {
+                "a": 1,
+                "b": 1
+              }
+            ],
+            "expected": [
+              {
+                "q": 1,
+                "state": 0
+              },
+              {
+                "q": 1,
+                "state": 0
+              },
+              {
+                "q": 0,
+                "state": 0
+              }
+            ]
+          }
+        }
+      ],
+      "reset": {
+        "kind": "none",
+        "name": null,
+        "active": "none",
+        "values": {
+          "q": null,
+          "state": null
+        },
+        "first_released_cycle": "0ns"
+      },
+      "mid": "optional mid input changes occur AFTER sampling, before the other edge, and are carried to the start of the next row",
+      "uncertain": [
+        {
+          "rule_id": "r2",
+          "note": "Next-state function inferred from waveform; no explicit equation in spec text.",
+          "candidates": [
+            "state_next = a XOR b XOR state",
+            "state_next = (a AND b) XOR state",
+            "state_next = a XOR b"
+          ]
+        }
+      ]
+    },
+    "after": {
+      "ports": {
+        "inputs": {
+          "a": 1,
+          "b": 1
+        },
+        "outputs": {
+          "q": 1,
+          "state": 1
+        },
+        "clock": "clk"
+      },
+      "states": [
+        {
+          "name": "state",
+          "meaning": "single flip-flop storing the next value of q",
+          "update_time": "posedge",
+          "update_during_reset": false
+        }
+      ],
+      "rules": [
+        {
+          "id": "r1",
+          "outputs": [
+            "q"
+          ],
+          "condition": "q is the registered value of state (q equals state after each posedge)",
+          "edge": "posedge",
+          "visible": "next_cycle",
+          "priority": 1,
+          "spec_quote": "one bit of memory (i.e., one flip-flop)",
+          "uncertain": false,
+          "example": {
+            "vectors": [
+              {
+                "a": 0,
+                "b": 0
+              },
+              {
+                "a": 0,
+                "b": 1
+              },
+              {
+                "a": 1,
+                "b": 0
+              }
+            ],
+            "expected": [
+              {
+                "q": 0,
+                "state": 0
+              },
+              {
+                "q": 0,
+                "state": 0
+              },
+              {
+                "q": 1,
+                "state": 0
+              }
+            ]
+          }
+        },
+        {
+          "id": "r2",
+          "outputs": [
+            "state"
+          ],
+          "condition": "next state is determined by the waveform; observed transitions include state_next = a XOR b for rows where state=0 (e.g., 45ns: a=0,b=1,state=0 -> state=1 at 50ns)",
+          "edge": "posedge",
+          "visible": "next_cycle",
+          "priority": 2,
+          "spec_quote": "// 45ns            1               0               1               0               1",
+          "uncertain": true,
+          "example": {
+            "vectors": [
+              {
+                "a": 0,
+                "b": 1
+              },
+              {
+                "a": 1,
+                "b": 0
+              },
+              {
+                "a": 1,
+                "b": 1
+              }
+            ],
+            "expected": [
+              {
+                "q": 1,
+                "state": 1
+              },
+              {
+                "q": 1,
+                "state": 1
+              },
+              {
+                "q": 0,
+                "state": 0
+              }
+            ]
+          }
+        }
+      ],
+      "reset": {
+        "kind": "none",
+        "name": null,
+        "active": "none",
+        "values": {
+          "q": null,
+          "state": null
+        },
+        "first_released_cycle": "0ns"
+      },
+      "mid": "optional mid input changes occur AFTER sampling, before the other edge, and are carried to the start of the next row",
+      "uncertain": [
+        {
+          "rule_id": "r2",
+          "note": "Next-state function inferred from waveform; no explicit equation in spec text.",
+          "candidates": [
+            "state_next = a XOR b XOR state",
+            "state_next = (a AND b) XOR state",
+            "state_next = a XOR b"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "issue_id": "i3",
+    "before": {
+      "ports": {
+        "inputs": {
+          "a": 1,
+          "b": 1
+        },
+        "outputs": {
+          "q": 1,
+          "state": 1
+        },
+        "clock": "clk"
+      },
+      "states": [
+        {
+          "name": "state",
+          "meaning": "single flip-flop storing the next value of q",
+          "update_time": "posedge",
+          "update_during_reset": false
+        }
+      ],
+      "rules": [
+        {
+          "id": "r1",
+          "outputs": [
+            "q"
+          ],
+          "condition": "q is the registered value of state (q equals state after each posedge)",
+          "edge": "posedge",
+          "visible": "next_cycle",
+          "priority": 1,
+          "spec_quote": "one bit of memory (i.e., one flip-flop)",
+          "uncertain": false,
+          "example": {
+            "vectors": [
+              {
+                "a": 0,
+                "b": 0
+              },
+              {
+                "a": 0,
+                "b": 1
+              },
+              {
+                "a": 1,
+                "b": 0
+              }
+            ],
+            "expected": [
+              {
+                "q": 0,
+                "state": 0
+              },
+              {
+                "q": 0,
+                "state": 0
+              },
+              {
+                "q": 1,
+                "state": 0
+              }
+            ]
+          }
+        },
+        {
+          "id": "r2",
+          "outputs": [
+            "state"
+          ],
+          "condition": "next state is determined by the waveform; observed transitions include state_next = a XOR b for rows where state=0 (e.g., 45ns: a=0,b=1,state=0 -> state=1 at 50ns)",
+          "edge": "posedge",
+          "visible": "next_cycle",
+          "priority": 2,
+          "spec_quote": "// 45ns            1               0               1               0               1",
+          "uncertain": true,
+          "example": {
+            "vectors": [
+              {
+                "a": 0,
+                "b": 1
+              },
+              {
+                "a": 1,
+                "b": 0
+              },
+              {
+                "a": 1,
+                "b": 1
+              }
+            ],
+            "expected": [
+              {
+                "q": 1,
+                "state": 1
+              },
+              {
+                "q": 1,
+                "state": 1
+              },
+              {
+                "q": 0,
+                "state": 0
+              }
+            ]
+          }
+        }
+      ],
+      "reset": {
+        "kind": "none",
+        "name": null,
+        "active": "none",
+        "values": {
+          "q": null,
+          "state": null
+        },
+        "first_released_cycle": "0ns"
+      },
+      "mid": "optional mid input changes occur AFTER sampling, before the other edge, and are carried to the start of the next row",
+      "uncertain": [
+        {
+          "rule_id": "r2",
+          "note": "Next-state function inferred from waveform; no explicit equation in spec text.",
+          "candidates": [
+            "state_next = a XOR b XOR state",
+            "state_next = (a AND b) XOR state",
+            "state_next = a XOR b"
+          ]
+        }
+      ]
+    },
+    "after": {
+      "ports": {
+        "inputs": {
+          "a": 1,
+          "b": 1
+        },
+        "outputs": {
+          "q": 1,
+          "state": 1
+        },
+        "clock": "clk"
+      },
+      "states": [
+        {
+          "name": "state",
+          "meaning": "single flip-flop storing the next value of q",
+          "update_time": "posedge",
+          "update_during_reset": false
+        }
+      ],
+      "rules": [
+        {
+          "id": "r1",
+          "outputs": [
+            "q"
+          ],
+          "condition": "q is the registered value of state (q equals state after each posedge)",
+          "edge": "posedge",
+          "visible": "next_cycle",
+          "priority": 1,
+          "spec_quote": "one bit of memory (i.e., one flip-flop)",
+          "uncertain": false,
+          "example": {
+            "vectors": [
+              {
+                "a": 0,
+                "b": 0
+              },
+              {
+                "a": 0,
+                "b": 1
+              },
+              {
+                "a": 1,
+                "b": 0
+              }
+            ],
+            "expected": [
+              {
+                "q": 0,
+                "state": 0
+              },
+              {
+                "q": 1,
+                "state": 1
+              },
+              {
+                "q": 1,
+                "state": 1
+              }
+            ]
+          }
+        },
+        {
+          "id": "r2",
+          "outputs": [
+            "state"
+          ],
+          "condition": "next state is determined by the waveform; observed transitions include state_next = a XOR b for rows where state=0 (e.g., 45ns: a=0,b=1,state=0 -> state=1 at 50ns)",
+          "edge": "posedge",
+          "visible": "next_cycle",
+          "priority": 2,
+          "spec_quote": "// 45ns            1               0               1               0               1",
+          "uncertain": true,
+          "example": {
+            "vectors": [
+              {
+                "a": 0,
+                "b": 1
+              },
+              {
+                "a": 1,
+                "b": 0
+              },
+              {
+                "a": 1,
+                "b": 1
+              }
+            ],
+            "expected": [
+              {
+                "q": 1,
+                "state": 1
+              },
+              {
+                "q": 1,
+                "state": 1
+              },
+              {
+                "q": 0,
+                "state": 0
+              }
+            ]
+          }
+        }
+      ],
+      "reset": {
+        "kind": "none",
+        "name": null,
+        "active": "none",
+        "values": {
+          "q": null,
+          "state": null
+        },
+        "first_released_cycle": "0ns"
+      },
+      "mid": "optional mid input changes occur AFTER sampling, before the other edge, and are carried to the start of the next row",
+      "uncertain": [
+        {
+          "rule_id": "r2",
+          "note": "Next-state function inferred from waveform; no explicit equation in spec text.",
+          "candidates": [
+            "state_next = a XOR b XOR state",
+            "state_next = (a AND b) XOR state",
+            "state_next = a XOR b"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "issue_id": "i4",
+    "before": {
+      "ports": {
+        "inputs": {
+          "a": 1,
+          "b": 1
+        },
+        "outputs": {
+          "q": 1,
+          "state": 1
+        },
+        "clock": "clk"
+      },
+      "states": [
+        {
+          "name": "state",
+          "meaning": "single flip-flop storing the next value of q",
+          "update_time": "posedge",
+          "update_during_reset": false
+        }
+      ],
+      "rules": [
+        {
+          "id": "r1",
+          "outputs": [
+            "q"
+          ],
+          "condition": "q is the registered value of state (q equals state after each posedge)",
+          "edge": "posedge",
+          "visible": "next_cycle",
+          "priority": 1,
+          "spec_quote": "one bit of memory (i.e., one flip-flop)",
+          "uncertain": false,
+          "example": {
+            "vectors": [
+              {
+                "a": 0,
+                "b": 0
+              },
+              {
+                "a": 0,
+                "b": 1
+              },
+              {
+                "a": 1,
+                "b": 0
+              }
+            ],
+            "expected": [
+              {
+                "q": 0,
+                "state": 0
+              },
+              {
+                "q": 1,
+                "state": 1
+              },
+              {
+                "q": 1,
+                "state": 1
+              }
+            ]
+          }
+        },
+        {
+          "id": "r2",
+          "outputs": [
+            "state"
+          ],
+          "condition": "next state is determined by the waveform; observed transitions include state_next = a XOR b for rows where state=0 (e.g., 45ns: a=0,b=1,state=0 -> state=1 at 50ns)",
+          "edge": "posedge",
+          "visible": "next_cycle",
+          "priority": 2,
+          "spec_quote": "// 45ns            1               0               1               0               1",
+          "uncertain": true,
+          "example": {
+            "vectors": [
+              {
+                "a": 0,
+                "b": 1
+              },
+              {
+                "a": 1,
+                "b": 0
+              },
+              {
+                "a": 1,
+                "b": 1
+              }
+            ],
+            "expected": [
+              {
+                "q": 1,
+                "state": 1
+              },
+              {
+                "q": 1,
+                "state": 1
+              },
+              {
+                "q": 0,
+                "state": 0
+              }
+            ]
+          }
+        }
+      ],
+      "reset": {
+        "kind": "none",
+        "name": null,
+        "active": "none",
+        "values": {
+          "q": null,
+          "state": null
+        },
+        "first_released_cycle": "0ns"
+      },
+      "mid": "optional mid input changes occur AFTER sampling, before the other edge, and are carried to the start of the next row",
+      "uncertain": [
+        {
+          "rule_id": "r2",
+          "note": "Next-state function inferred from waveform; no explicit equation in spec text.",
+          "candidates": [
+            "state_next = a XOR b XOR state",
+            "state_next = (a AND b) XOR state",
+            "state_next = a XOR b"
+          ]
+        }
+      ]
+    },
+    "after": {
+      "ports": {
+        "inputs": {
+          "a": 1,
+          "b": 1
+        },
+        "outputs": {
+          "q": 1,
+          "state": 1
+        },
+        "clock": "clk"
+      },
+      "states": [
+        {
+          "name": "state",
+          "meaning": "single flip-flop storing the next value of q",
+          "update_time": "posedge",
+          "update_during_reset": false
+        }
+      ],
+      "rules": [
+        {
+          "id": "r1",
+          "outputs": [
+            "q"
+          ],
+          "condition": "q is the registered value of state (q equals state after each posedge)",
+          "edge": "posedge",
+          "visible": "next_cycle",
+          "priority": 1,
+          "spec_quote": "one bit of memory (i.e., one flip-flop)",
+          "uncertain": false,
+          "example": {
+            "vectors": [
+              {
+                "a": 0,
+                "b": 0
+              },
+              {
+                "a": 0,
+                "b": 1
+              },
+              {
+                "a": 1,
+                "b": 0
+              }
+            ],
+            "expected": [
+              {
+                "q": 0,
+                "state": 0
+              },
+              {
+                "q": 1,
+                "state": 1
+              },
+              {
+                "q": 1,
+                "state": 1
+              }
+            ]
+          }
+        },
+        {
+          "id": "r2",
+          "outputs": [
+            "state"
+          ],
+          "condition": "next state is determined by the waveform; observed transitions include state_next = a XOR b for rows where state=0 (e.g., 45ns: a=0,b=1,state=0 -> state=1 at 50ns)",
+          "edge": "posedge",
+          "visible": "next_cycle",
+          "priority": 2,
+          "spec_quote": "// 45ns            1               0               1               0               1",
+          "uncertain": true,
+          "example": {
+            "vectors": [
+              {
+                "a": 0,
+                "b": 1
+              },
+              {
+                "a": 1,
+                "b": 0
+              },
+              {
+                "a": 1,
+                "b": 1
+              }
+            ],
+            "expected": [
+              {
+                "q": 1,
+                "state": 1
+              },
+              {
+                "q": 1,
+                "state": 1
+              },
+              {
+                "q": 0,
+                "state": 0
+              }
+            ]
+          }
+        }
+      ],
+      "reset": {
+        "kind": "none",
+        "name": null,
+        "active": "none",
+        "values": {
+          "q": null,
+          "state": null
+        },
+        "first_released_cycle": "0ns"
+      },
+      "mid": "optional mid input changes occur AFTER sampling, before the other edge, and are carried to the start of the next row",
+      "uncertain": [
+        {
+          "rule_id": "r2",
+          "note": "Next-state function inferred from waveform; no explicit equation in spec text.",
+          "candidates": [
+            "state_next = a XOR b",
+            "state_next = (a AND b) XOR state",
+            "state_next = a XOR b XOR state"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "issue_id": "i13",
+    "before": {
+      "ports": {
+        "inputs": {
+          "a": 1,
+          "b": 1
+        },
+        "outputs": {
+          "q": 1,
+          "state": 1
+        },
+        "clock": "clk"
+      },
+      "states": [
+        {
+          "name": "state",
+          "meaning": "single flip-flop storing the next value of q",
+          "update_time": "posedge",
+          "update_during_reset": false
+        }
+      ],
+      "rules": [
+        {
+          "id": "r1",
+          "outputs": [
+            "q"
+          ],
+          "condition": "q is the registered value of state (q equals state after each posedge)",
+          "edge": "posedge",
+          "visible": "next_cycle",
+          "priority": 1,
+          "spec_quote": "one bit of memory (i.e., one flip-flop)",
+          "uncertain": false,
+          "example": {
+            "vectors": [
+              {
+                "a": 0,
+                "b": 0
+              },
+              {
+                "a": 0,
+                "b": 1
+              },
+              {
+                "a": 1,
+                "b": 0
+              }
+            ],
+            "expected": [
+              {
+                "q": 0,
+                "state": 0
+              },
+              {
+                "q": 1,
+                "state": 1
+              },
+              {
+                "q": 1,
+                "state": 1
+              }
+            ]
+          }
+        },
+        {
+          "id": "r2",
+          "outputs": [
+            "state"
+          ],
+          "condition": "next state is determined by the waveform; observed transitions include state_next = a XOR b for rows where state=0 (e.g., 45ns: a=0,b=1,state=0 -> state=1 at 50ns)",
+          "edge": "posedge",
+          "visible": "next_cycle",
+          "priority": 2,
+          "spec_quote": "// 45ns            1               0               1               0               1",
+          "uncertain": true,
+          "example": {
+            "vectors": [
+              {
+                "a": 0,
+                "b": 1
+              },
+              {
+                "a": 1,
+                "b": 0
+              },
+              {
+                "a": 1,
+                "b": 1
+              }
+            ],
+            "expected": [
+              {
+                "q": 1,
+                "state": 1
+              },
+              {
+                "q": 1,
+                "state": 1
+              },
+              {
+                "q": 0,
+                "state": 0
+              }
+            ]
+          }
+        }
+      ],
+      "reset": {
+        "kind": "none",
+        "name": null,
+        "active": "none",
+        "values": {
+          "q": null,
+          "state": null
+        },
+        "first_released_cycle": "0ns"
+      },
+      "mid": "optional mid input changes occur AFTER sampling, before the other edge, and are carried to the start of the next row",
+      "uncertain": [
+        {
+          "rule_id": "r2",
+          "note": "Next-state function inferred from waveform; no explicit equation in spec text.",
+          "candidates": [
+            "state_next = a XOR b",
+            "state_next = (a AND b) XOR state",
+            "state_next = a XOR b XOR state"
+          ]
+        }
+      ]
+    },
+    "after": {
+      "ports": {
+        "inputs": {
+          "a": 1,
+          "b": 1
+        },
+        "outputs": {
+          "q": 1,
+          "state": 1
+        },
+        "clock": "clk"
+      },
+      "states": [
+        {
+          "name": "state",
+          "meaning": "single flip-flop storing the next value of q",
+          "update_time": "posedge",
+          "update_during_reset": false
+        }
+      ],
+      "rules": [
+        {
+          "id": "r1",
+          "outputs": [
+            "q"
+          ],
+          "condition": "q is the registered value of state (q equals state after each posedge)",
+          "edge": "posedge",
+          "visible": "next_cycle",
+          "priority": 1,
+          "spec_quote": "one bit of memory (i.e., one flip-flop)",
+          "uncertain": false,
+          "example": {
+            "vectors": [
+              {
+                "a": 0,
+                "b": 0
+              },
+              {
+                "a": 0,
+                "b": 1
+              },
+              {
+                "a": 1,
+                "b": 0
+              }
+            ],
+            "expected": [
+              {
+                "q": 0,
+                "state": 0
+              },
+              {
+                "q": 1,
+                "state": 1
+              },
+              {
+                "q": 1,
+                "state": 1
+              }
+            ]
+          }
+        },
+        {
+          "id": "r2",
+          "outputs": [
+            "state"
+          ],
+          "condition": "next state is determined by the waveform; observed transitions include state_next = a XOR b for rows where state=0 (e.g., 45ns: a=0,b=1,state=0 -> state=1 at 50ns)",
+          "edge": "posedge",
+          "visible": "next_cycle",
+          "priority": 2,
+          "spec_quote": "// 45ns            1               0               1               0               1",
+          "uncertain": true,
+          "example": {
+            "vectors": [
+              {
+                "a": 0,
+                "b": 1
+              },
+              {
+                "a": 1,
+                "b": 0
+              },
+              {
+                "a": 1,
+                "b": 1
+              }
+            ],
+            "expected": [
+              {
+                "q": 1,
+                "state": 1
+              },
+              {
+                "q": 1,
+                "state": 1
+              },
+              {
+                "q": 0,
+                "state": 0
+              }
+            ]
+          }
+        }
+      ],
+      "reset": {
+        "kind": "none",
+        "name": null,
+        "active": "none",
+        "values": {
+          "q": null,
+          "state": null
+        },
+        "first_released_cycle": "0ns"
+      },
+      "mid": "optional mid input changes occur AFTER sampling, before the other edge, and are carried to the start of the next row",
+      "uncertain": [
+        {
+          "rule_id": "r2",
+          "note": "Next-state function inferred from waveform; no explicit equation in spec text. Waveform rows with identical (a,b,state) appear to yield different next states, so no single deterministic function fits all rows.",
+          "candidates": [
+            "state_next = a XOR b",
+            "state_next = (a AND b) XOR state",
+            "state_next = a XOR b XOR state"
+          ]
+        }
+      ]
+    }
+  }
+]

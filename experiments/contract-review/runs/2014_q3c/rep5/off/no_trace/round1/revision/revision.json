@@ -1,0 +1,56 @@
+{
+  "responses": [
+    {
+      "issue_id": "I1",
+      "decision": "rebut",
+      "reason": "The issue itself confirms no contradiction; R_Y0 example already matches the table for all listed vectors.",
+      "spec_quote": "// 000 | 000, 001 | 0",
+      "edits": []
+    },
+    {
+      "issue_id": "I2",
+      "decision": "rebut",
+      "reason": "The issue confirms R_z example is consistent with the table; no change needed.",
+      "spec_quote": "// 011 | 001, 010 | 1",
+      "edits": []
+    },
+    {
+      "issue_id": "I3",
+      "decision": "accept",
+      "reason": "Undefined present states 101,110,111 have no specified next state or output; contract should record this ambiguity explicitly.",
+      "spec_quote": "// 100 | 011, 100 | 1",
+      "edits": [
+        {
+          "path": [
+            "uncertain"
+          ],
+          "value": [
+            {
+              "rule_id": "global",
+              "note": "Present states 101,110,111 are not defined in the state-assigned table; next state and z for these states are unspecified.",
+              "candidates": [
+                "Treat undefined states as don't-care producing Y0=0,z=0",
+                "Treat undefined states as producing Y0=1,z=0",
+                "Treat undefined states as producing Y0=0,z=1"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "issue_id": "I4",
+      "decision": "rebut",
+      "reason": "The condition already expresses the bit-0 mapping and the spec_quote is the exact table header; the example already demonstrates the rule.",
+      "spec_quote": "Next state Y[2:0] x=0, Next state Y[2:0] x=1",
+      "edits": []
+    },
+    {
+      "issue_id": "I5",
+      "decision": "rebut",
+      "reason": "No mismatch found; existing examples already express the derived outputs.",
+      "spec_quote": "Output z",
+      "edits": []
+    }
+  ]
+}

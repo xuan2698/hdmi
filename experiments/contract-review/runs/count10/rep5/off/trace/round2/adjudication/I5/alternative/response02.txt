@@ -1,0 +1,40 @@
+```python
+def reference(vectors):
+    # Contract rules:
+    # R1: reset == 1 on posedge -> q = 0 (sync active high reset, priority 1)
+    # R2: reset == 0 && q < 9 on posedge -> q = q + 1 (priority 2)
+    # R3: reset == 0 && q == 9 on posedge -> q = 0 (priority 3)
+    # Mid changes occur AFTER sampling, before the other edge, carried to next row.
+    # Power-up state: q = 0 (concrete unsigned value within 4-bit width).
+    # Note: candidate alternative (wrap 8->0) is NOT applied; contract R3 governs.
+
+    q = 0  # named state: 4-bit counter value
+    out = []
+
+    for row in vectors:
+        # Sample inputs for this row (driven before the sampled posedge)
+        reset = row.get("reset", 0)
+        if isinstance(reset, bool):
+            reset = 1 if reset else 0
+        reset = int(reset) & 0x1
+
+        # R1: synchronous active-high reset -> q = 0
+        if reset == 1:
+            q = 0
+        else:
+            # R2: count up while q < 9
+            if q < 9:
+                q = q + 1
+            else:
+                # R3: wrap from 9 to 0
+                q = 0
+
+        # Output visible same cycle after posedge settles
+        out.append({"q": q & 0xF})
+
+        # Mid changes occur AFTER sampling; carried to next row.
+        # Since we read row inputs at the start of each iteration, mid changes
+        # are naturally applied to the next row's inputs. No extra action needed.
+
+    return out
+```

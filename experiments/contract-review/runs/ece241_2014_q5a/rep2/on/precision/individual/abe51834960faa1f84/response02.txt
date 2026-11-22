@@ -1,0 +1,75 @@
+def reference(vectors):
+    # State encoding: S0 = no 1 received since reset release; S1 = z=1 after first 1; S2 = z=0 after first 1.
+    state = "S0"
+    areset = 0
+    x = 0
+    z = 0
+    result = []
+
+    for row in vectors:
+        # Drive row inputs before the sampled posedge.
+        if "areset" in row:
+            areset = row["areset"]
+        if "x" in row:
+            x = row["x"]
+
+        # async_reset_z0: active-high asynchronous reset forces S0 and z=0 while asserted.
+        if areset == 1:
+            state = "S0"
+            z = 0
+        else:
+            # Sampled posedge transitions; Moore output is from the next state after the edge.
+            if state == "S0":
+                # s0_x0: S0, x=0 -> S0, z=0
+                # s0_x1: S0, x=1 -> S1, z=1
+                if x == 0:
+                    state = "S0"
+                    z = 0
+                else:
+                    state = "S1"
+                    z = 1
+            elif state == "S1":
+                # s1_x0: S1, x=0 -> S1, z=1
+                # s1_x1: S1, x=1 -> S2, z=0
+                if x == 0:
+                    state = "S1"
+                    z = 1
+                else:
+                    state = "S2"
+                    z = 0
+            else:
+                # s2_x0: S2, x=0 -> S1, z=1
+                # s2_x1: S2, x=1 -> S2, z=0
+                if x == 0:
+                    state = "S1"
+                    z = 1
+                else:
+                    state = "S2"
+                    z = 0
+
+        # Sample output after the posedge has settled.
+        result.append({"z": int(z)})
+
+        # Process optional mid changes after sampling, before the next edge.
+        mid = row.get("mid", {})
+        if mid is not None:
+            mids = []
+            if isinstance(mid, dict):
+                mids = [mid]
+            elif isinstance(mid, list):
+                mids = mid
+            for m in mids:
+                if not isinstance(m, dict):
+                    continue
+                for k in m:
+                    val = m[k]
+                    if k == "areset":
+                        areset = val
+                        # async_reset_z0: mid-cycle reset assertion asynchronously forces S0 and z=0.
+                        if areset == 1:
+                            state = "S0"
+                            z = 0
+                    elif k == "x":
+                        x = val
+
+    return result

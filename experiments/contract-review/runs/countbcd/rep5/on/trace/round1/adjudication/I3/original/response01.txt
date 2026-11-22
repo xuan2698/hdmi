@@ -1,0 +1,58 @@
+def reference(vectors):
+    def bcd_inc(v):
+        ones = v & 0xF
+        tens = (v >> 4) & 0xF
+        hundreds = (v >> 8) & 0xF
+        thousands = (v >> 12) & 0xF
+        ones += 1
+        if ones == 10:
+            ones = 0
+            tens += 1
+            if tens == 10:
+                tens = 0
+                hundreds += 1
+                if hundreds == 10:
+                    hundreds = 0
+                    thousands += 1
+                    if thousands == 10:
+                        thousands = 0
+        return ones | (tens << 4) | (hundreds << 8) | (thousands << 12)
+
+    q = 0
+    held = {}
+    outs = []
+    for row in vectors:
+        direct = row
+        if isinstance(row, dict) and 'inputs' in row and isinstance(row['inputs'], dict):
+            direct = row['inputs']
+
+        if isinstance(direct, dict):
+            for k, v in direct.items():
+                if k != 'mid':
+                    held[k] = v
+
+        reset = held.get('reset', 0)
+
+        # Rule sync_reset: reset==1 at posedge clears q to 0 and overrides increment.
+        if reset == 1:
+            q = 0
+        else:
+            # Rule bcd_increment: increment 4-digit BCD modulo 10000.
+            q = bcd_inc(q)
+
+        # Rule upper_digit_enables: combinational enables from current q.
+        ones = q & 0xF
+        tens = (q >> 4) & 0xF
+        hundreds = (q >> 8) & 0xF
+        b0 = 1 if ones == 9 else 0
+        b1 = 1 if ones == 9 and tens == 9 else 0
+        b2 = 1 if ones == 9 and tens == 9 and hundreds == 9 else 0
+        ena = b0 + 2 * b1 + 4 * b2
+
+        outs.append({'q': q, 'ena': ena})
+
+        if isinstance(row, dict) and 'mid' in row and isinstance(row['mid'], dict):
+            for k, v in row['mid'].items():
+                held[k] = v
+
+    return outs

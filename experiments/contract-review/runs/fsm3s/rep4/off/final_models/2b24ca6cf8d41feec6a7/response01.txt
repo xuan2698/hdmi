@@ -1,0 +1,40 @@
+```python
+def reference(vectors):
+    # State encoding: A=0, B=1, C=2, D=3
+    # Output is combinational from state: D -> 1, else 0
+    # Synchronous active-high reset forces state A on posedge.
+    # Each row: values driven before the sampled posedge; output reflects
+    # the state *after* that posedge (Moore output, same_cycle visible).
+    # Mid changes occur AFTER sampling, before the other edge, and are
+    # carried to the start of the next row.
+
+    state = 0  # power-up unspecified; start at A (reset default)
+
+    def out_of(s):
+        # R1/R2/R3/R4: combinational output from state
+        return 1 if s == 3 else 0
+
+    results = []
+    for row in vectors:
+        inp = row.get('in', 0) & 1
+        rst = row.get('reset', 0) & 1
+
+        # R5: synchronous active high reset -> state A on posedge
+        if rst == 1:
+            state = 0
+        else:
+            # R6-R9: explicit transitions on posedge
+            if state == 0:      # A
+                state = 1 if inp == 1 else 0   # R6
+            elif state == 1:    # B
+                state = 1 if inp == 1 else 2   # R7
+            elif state == 2:    # C
+                state = 3 if inp == 1 else 0   # R8
+            else:               # D
+                state = 1 if inp == 1 else 2   # R9
+
+        # Output visible same cycle as the (post-edge) state
+        results.append({'out': out_of(state)})
+
+    return results
+```

@@ -1,0 +1,52 @@
+def reference(vectors):
+    START = 0
+    INV0 = 1
+    INV1 = 2
+
+    state = START
+    cur_areset = 1  # active-low reset: 1 released, 0 asserted
+    cur_x = 0
+    outputs = []
+
+    for row in vectors:
+        if 'areset' in row:
+            cur_areset = 1 if row['areset'] else 0
+        if 'x' in row:
+            cur_x = 1 if row['x'] else 0
+
+        # R_RESET: active-low areset=0 asynchronously forces START and z=0.
+        if cur_areset == 0:
+            state = START
+        else:
+            # R_CONVERT: posedge sampling and 2's-complement serial conversion.
+            if state == START:
+                if cur_x == 0:
+                    state = START
+                else:
+                    state = INV1
+            elif state == INV0:
+                if cur_x == 0:
+                    state = INV1
+                else:
+                    state = INV0
+            else:  # INV1
+                if cur_x == 0:
+                    state = INV1
+                else:
+                    state = INV0
+
+        z = 1 if state == INV1 else 0
+        outputs.append({'z': z})
+
+        # Mid changes occur after the sampled edge and carry to the next row.
+        if 'mid' in row and isinstance(row['mid'], dict):
+            mid = row['mid']
+            if 'x' in mid:
+                cur_x = 1 if mid['x'] else 0
+            if 'areset' in mid:
+                cur_areset = 1 if mid['areset'] else 0
+                if cur_areset == 0:
+                    # R_RESET: asynchronous assertion after sampling.
+                    state = START
+
+    return outputs

@@ -1,0 +1,29 @@
+def reference(vectors):
+    # State encoding: A=0, B=1, C=2, D=3
+    # R1-R4: Moore outputs are combinational functions of state (same_cycle)
+    # R5: synchronous active high reset forces state A on posedge
+    # R6-R9: state transitions on posedge
+    # R1 unresolved: assume initial state A (power-up)
+    state = 0  # assume initial state A (R1 candidate interpretation)
+    out_vals = [0, 0, 0, 1]  # R1, R2, R3, R4
+    results = []
+    for vec in vectors:
+        inp = vec.get('in', 0)
+        rst = vec.get('reset', 0)
+        # R1-R4: combinational output based on current state (same_cycle)
+        out = out_vals[state]
+        results.append({'out': out})
+        # R5: synchronous reset on posedge -> state A
+        if rst == 1:
+            state = 0
+        else:
+            # R6-R9: next state transitions
+            if state == 0:  # A
+                state = 1 if inp == 1 else 0  # R6
+            elif state == 1:  # B
+                state = 1 if inp == 1 else 2  # R7
+            elif state == 2:  # C
+                state = 3 if inp == 1 else 0  # R8
+            elif state == 3:  # D
+                state = 1 if inp == 1 else 2  # R9
+    return results

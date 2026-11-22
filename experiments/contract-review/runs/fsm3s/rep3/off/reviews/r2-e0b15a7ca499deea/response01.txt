@@ -1,0 +1,122 @@
+{
+  "coverage": {
+    "S01": ["R1", "R2", "R4", "R5", "R6", "R7"],
+    "S02": ["R1", "R2", "R3", "R4", "R5", "R6", "R7"],
+    "S03": ["R3"],
+    "S04": ["R1", "R2", "R4", "R5", "R6", "R7"],
+    "S05": ["R1", "R4"],
+    "S06": ["R1", "R5"],
+    "S07": ["R1", "R6"],
+    "S08": ["R2", "R7"]
+  },
+  "issues": [
+    {
+      "issue_id": "I1",
+      "rule_id": "R3",
+      "type": "consistency",
+      "severity": "medium",
+      "detail": "R3 claims output is next_cycle and reset==1, but its example expects out=0 on the same cycle as reset=1; for a Moore output this is same_cycle, not next_cycle.",
+      "spec_evidence": "Include a synchronous active high reset that resets the FSM to state A.",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I2",
+      "rule_id": "R1",
+      "type": "grounding",
+      "severity": "low",
+      "detail": "R1 spec_quote only covers state A output 0, not B or C; quote does not verbatim support the combined condition.",
+      "spec_evidence": "// A | A, B | 0",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I3",
+      "rule_id": "R2",
+      "type": "grounding",
+      "severity": "low",
+      "detail": "R2 spec_quote includes next-state transitions, not just the output condition for state D.",
+      "spec_evidence": "// D | C, B | 1",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I4",
+      "rule_id": "R4",
+      "type": "grounding",
+      "severity": "low",
+      "detail": "R4 spec_quote includes output column but not the full transition semantics; quote is partial.",
+      "spec_evidence": "// A | A, B | 0",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I5",
+      "rule_id": "R5",
+      "type": "grounding",
+      "severity": "low",
+      "detail": "R5 spec_quote includes output column but not the full transition semantics; quote is partial.",
+      "spec_evidence": "// B | C, B | 0",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I6",
+      "rule_id": "R6",
+      "type": "grounding",
+      "severity": "low",
+      "detail": "R6 spec_quote includes output column but not the full transition semantics; quote is partial.",
+      "spec_evidence": "// C | A, D | 0",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I7",
+      "rule_id": "R7",
+      "type": "grounding",
+      "severity": "low",
+      "detail": "R7 spec_quote includes output column but not the full transition semantics; quote is partial.",
+      "spec_evidence": "// D | C, B | 1",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I8",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec does not state initial state before first reset; contract asserts A even before reset release, which is an extra assumption.",
+      "spec_evidence": "Include a synchronous active high reset that resets the FSM to state A.",
+      "alternative": "Initial state is undefined until first synchronous reset; outputs before first reset may be unknown or arbitrary.",
+      "sequence": [
+        {"in": 0, "reset": 0},
+        {"in": 1, "reset": 0},
+        {"in": 0, "reset": 0}
+      ]
+    },
+    {
+      "issue_id": "I9",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "low",
+      "detail": "Spec does not define output during reset; contract forces out=0 during reset, which is an extra assumption.",
+      "spec_evidence": "Include a synchronous active high reset that resets the FSM to state A.",
+      "alternative": "Output during reset may follow state A (out=0) or be don't-care; contract chooses out=0.",
+      "sequence": [
+        {"in": 1, "reset": 1},
+        {"in": 0, "reset": 0},
+        {"in": 1, "reset": 0}
+      ]
+    },
+    {
+      "issue_id": "I10",
+      "rule_id": "R6",
+      "type": "spec_example",
+      "severity": "low",
+      "detail": "R6 example expected outputs [0,0,1] are consistent with Moore outputs for states A,C,D, but the example does not explicitly show state; no contradiction found.",
+      "spec_evidence": "// C | A, D | 0",
+      "alternative": "",
+      "sequence": []
+    }
+  ]
+}

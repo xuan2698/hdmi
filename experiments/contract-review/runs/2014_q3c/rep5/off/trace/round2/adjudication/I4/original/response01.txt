@@ -1,0 +1,41 @@
+```python
+def reference(vectors):
+    # Contract implementation.
+    # R_Y0: Y0 = next-state bit 0 as function of y and x per state-assigned table.
+    # R_z: z = 1 for present states 011 and 100, else 0.
+    # State update on posedge clk; combinational outputs visible same cycle.
+    # Mid input changes occur AFTER sampling, before the other edge, carried to next row.
+
+    def next_state(y, x):
+        # State-assigned table: (y, x) -> Y[2:0]
+        table = {
+            (0b000, 0): 0b000, (0b000, 1): 0b001,
+            (0b001, 0): 0b001, (0b001, 1): 0b100,
+            (0b010, 0): 0b010, (0b010, 1): 0b001,
+            (0b011, 0): 0b001, (0b011, 1): 0b010,
+            (0b100, 0): 0b011, (0b100, 1): 0b100,
+        }
+        return table[(y, x)]
+
+    def compute_z(y):
+        # R_z
+        return 1 if y in (0b011, 0b100) else 0
+
+    results = []
+    # present_state starts unspecified; use 0 as concrete value (power-up unspecified).
+    y = 0
+    for vec in vectors:
+        x = vec['x'] & 0x1
+        # If vector provides y explicitly, use it as present state for this row.
+        if 'y' in vec:
+            y = vec['y'] & 0x7
+        # R_Y0: combinational next-state bit 0
+        ns = next_state(y, x)
+        Y0 = ns & 0x1
+        # R_z: combinational output from present state
+        z = compute_z(y)
+        results.append({'Y0': Y0, 'z': z})
+        # State update on posedge clk: present_state <- next_state
+        y = ns
+    return results
+```

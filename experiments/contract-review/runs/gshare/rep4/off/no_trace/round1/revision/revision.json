@@ -1,0 +1,126 @@
+{
+  "responses": [
+    {
+      "issue_id": "I1",
+      "decision": "accept",
+      "reason": "Spec says training takes precedence over prediction whenever both occur, not only on misprediction; R2 condition should exclude all train_valid cases.",
+      "spec_quote": "When this happens, training takes precedence, because the branch being predicted will be discarded anyway.",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R2_predict_ghr_update",
+            "condition"
+          ],
+          "value": "predict_valid == 1 and train_valid == 0: GHR shifts in predicted direction at posedge"
+        }
+      ]
+    },
+    {
+      "issue_id": "I2",
+      "decision": "accept",
+      "reason": "Spec says recover to state immediately after the mispredicting branch completes, which is train_history (already post-branch), not shifted again.",
+      "spec_quote": "recover the branch history register to the state immediately after the mispredicting branch completes execution.",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R4_train_mispredict_ghr_recover",
+            "condition"
+          ],
+          "value": "train_valid == 1 and train_mispredicted == 1: GHR restored to train_history at posedge; takes precedence over prediction GHR update"
+        }
+      ]
+    },
+    {
+      "issue_id": "I3",
+      "decision": "accept",
+      "reason": "Spec does not specify PHT update policy; record ambiguity via uncertain field rather than asserting saturating increment.",
+      "spec_quote": "Update the pattern history table (PHT) to train the branch predictor to predict this branch more accurately next time.",
+      "edits": [
+        {
+          "path": [
+            "uncertain"
+          ],
+          "value": [
+            {
+              "rule_id": "R3_train_pht_update",
+              "note": "PHT counter update policy unspecified: saturating increment/decrement toward train_taken vs direct set to 2'b11/2'b00",
+              "candidates": [
+                "saturating increment/decrement toward train_taken",
+                "set directly to 2'b11 if train_taken else 2'b00"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "issue_id": "I4",
+      "decision": "accept",
+      "reason": "Spec does not define predict_taken encoding for 2-bit counter; record ambiguity.",
+      "spec_quote": "produces the predicted branch direction",
+      "edits": [
+        {
+          "path": [
+            "uncertain"
+          ],
+          "value": [
+            {
+              "rule_id": "R1_predict_outputs",
+              "note": "predict_taken encoding from 2-bit counter unspecified: MSB vs counter>=2",
+              "candidates": [
+                "predict_taken = PHT[index][1] (MSB)",
+                "predict_taken = (PHT[index] >= 2)"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "issue_id": "I5",
+      "decision": "rebut",
+      "reason": "Contract already states GHR shifts in predicted direction, matching the proposed alternative; no change needed.",
+      "spec_quote": "The branch history register is then updated (at the next positive clock edge) for the predicted branch.",
+      "edits": []
+    },
+    {
+      "issue_id": "I6",
+      "decision": "accept",
+      "reason": "Spec does not specify reset values for PHT/GHR; record ambiguity about reset state.",
+      "spec_quote": "Reset is asynchronous active-high.",
+      "edits": [
+        {
+          "path": [
+            "uncertain"
+          ],
+          "value": [
+            {
+              "rule_id": "R6_async_reset",
+              "note": "Reset values for PHT/GHR unspecified: zeros vs GHR=0 with PHT all 2'b01",
+              "candidates": [
+                "GHR=0, all PHT entries=2'b00",
+                "GHR=0, all PHT entries=2'b01"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "issue_id": "I7",
+      "decision": "rebut",
+      "reason": "Spec references a timing diagram but provides no waveform; contract already encodes the rule that prediction sees pre-training PHT state via combinational read and posedge PHT update, so no edit is needed.",
+      "spec_quote": "If training and prediction of the same PHT entry happen at the same time, the prediction sees the PHT state before training because training only modifies the PHT at the next positive clock edge.",
+      "edits": []
+    },
+    {
+      "issue_id": "I8",
+      "decision": "rebut",
+      "reason": "Example values are illustrative; spec does not mandate nonzero example values, and the rule text already grounds the behavior.",
+      "spec_quote": "When a branch prediction is requested (predict_valid = 1) for a given pc, the branch predictor produces the predicted branch direction and state of the branch history register used to make the prediction.",
+      "edits": []
+    }
+  ]
+}

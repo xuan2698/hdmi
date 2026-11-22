@@ -1,0 +1,25 @@
+```python
+def reference(vectors):
+    # Contract implementation.
+    # State: out (32-bit sticky), prev_in (32-bit previous sampled input).
+    # R2_capture_falling: prev_in initialized to 0 before first sampled cycle.
+    out = 0
+    prev_in = 0
+    results = []
+    for row in vectors:
+        reset = row.get('reset', 0) & 1
+        inp = row.get('in', 0) & 0xFFFFFFFF
+        # Sampled edge: compute next state from current inputs and prev_in.
+        if reset == 1:
+            # R1_reset_clear: synchronous reset clears out.
+            out = 0
+        else:
+            # R2_capture_falling: set sticky bits on 1->0 transitions.
+            falling = prev_in & (~inp) & 0xFFFFFFFF
+            out = (out | falling) & 0xFFFFFFFF
+            # R3_hold: bits without falling transition remain unchanged (implicit).
+        # Update prev_in to current sampled input for next cycle.
+        prev_in = inp
+        results.append({'out': out & 0xFFFFFFFF})
+    return results
+```

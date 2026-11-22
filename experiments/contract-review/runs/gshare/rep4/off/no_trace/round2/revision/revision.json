@@ -1,0 +1,333 @@
+{
+  "responses": [
+    {
+      "issue_id": "I1",
+      "decision": "accept",
+      "reason": "Rule example does not demonstrate shift-in of 1; add a vector showing predict_taken=1 shifts a 1 into GHR.",
+      "spec_quote": "The branch history register is then updated (at the next positive clock edge) for the predicted branch.",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R2_predict_ghr_update",
+            "example"
+          ],
+          "value": {
+            "vectors": [
+              {
+                "areset": 0,
+                "predict_valid": 1,
+                "predict_pc": 3,
+                "train_valid": 0,
+                "train_taken": 0,
+                "train_mispredicted": 0,
+                "train_history": 0,
+                "train_pc": 0
+              },
+              {
+                "areset": 0,
+                "predict_valid": 0,
+                "predict_pc": 0,
+                "train_valid": 0,
+                "train_taken": 0,
+                "train_mispredicted": 0,
+                "train_history": 0,
+                "train_pc": 0
+              },
+              {
+                "areset": 0,
+                "predict_valid": 0,
+                "predict_pc": 0,
+                "train_valid": 0,
+                "train_taken": 0,
+                "train_mispredicted": 0,
+                "train_history": 0,
+                "train_pc": 0
+              }
+            ],
+            "expected": [
+              {
+                "predict_taken": 1,
+                "predict_history": 0
+              },
+              {
+                "predict_taken": 0,
+                "predict_history": 1
+              },
+              {
+                "predict_taken": 0,
+                "predict_history": 1
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "issue_id": "I2",
+      "decision": "accept",
+      "reason": "Example contradicts rule: training taken=1 from counter 0 should yield predict_taken=1 next cycle.",
+      "spec_quote": "Update the pattern history table (PHT) to train the branch predictor to predict this branch more accurately next time.",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R3_train_pht_update",
+            "example"
+          ],
+          "value": {
+            "vectors": [
+              {
+                "areset": 0,
+                "predict_valid": 0,
+                "predict_pc": 0,
+                "train_valid": 1,
+                "train_taken": 1,
+                "train_mispredicted": 0,
+                "train_history": 0,
+                "train_pc": 0
+              },
+              {
+                "areset": 0,
+                "predict_valid": 1,
+                "predict_pc": 0,
+                "train_valid": 0,
+                "train_taken": 0,
+                "train_mispredicted": 0,
+                "train_history": 0,
+                "train_pc": 0
+              },
+              {
+                "areset": 0,
+                "predict_valid": 0,
+                "predict_pc": 0,
+                "train_valid": 0,
+                "train_taken": 0,
+                "train_mispredicted": 0,
+                "train_history": 0,
+                "train_pc": 0
+              }
+            ],
+            "expected": [
+              {
+                "predict_taken": 0,
+                "predict_history": 0
+              },
+              {
+                "predict_taken": 1,
+                "predict_history": 0
+              },
+              {
+                "predict_taken": 1,
+                "predict_history": 0
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "issue_id": "I3",
+      "decision": "accept",
+      "reason": "Example contradicts rule: GHR should be restored to train_history=2 next cycle.",
+      "spec_quote": "if the branch being trained is mispredicted, also recover the branch history register to the state immediately after the mispredicting branch completes execution.",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R4_train_mispredict_ghr_recover",
+            "example"
+          ],
+          "value": {
+            "vectors": [
+              {
+                "areset": 0,
+                "predict_valid": 0,
+                "predict_pc": 0,
+                "train_valid": 1,
+                "train_taken": 1,
+                "train_mispredicted": 1,
+                "train_history": 2,
+                "train_pc": 4
+              },
+              {
+                "areset": 0,
+                "predict_valid": 0,
+                "predict_pc": 0,
+                "train_valid": 0,
+                "train_taken": 0,
+                "train_mispredicted": 0,
+                "train_history": 0,
+                "train_pc": 0
+              },
+              {
+                "areset": 0,
+                "predict_valid": 0,
+                "predict_pc": 0,
+                "train_valid": 0,
+                "train_taken": 0,
+                "train_mispredicted": 0,
+                "train_history": 0,
+                "train_pc": 0
+              }
+            ],
+            "expected": [
+              {
+                "predict_taken": 0,
+                "predict_history": 0
+              },
+              {
+                "predict_taken": 0,
+                "predict_history": 2
+              },
+              {
+                "predict_taken": 0,
+                "predict_history": 2
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "issue_id": "I4",
+      "decision": "accept",
+      "reason": "Example contradicts rule: training precedence should restore GHR to train_history=1 next cycle.",
+      "spec_quote": "When this happens, training takes precedence, because the branch being predicted will be discarded anyway.",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R5_train_precedence_over_predict",
+            "example"
+          ],
+          "value": {
+            "vectors": [
+              {
+                "areset": 0,
+                "predict_valid": 1,
+                "predict_pc": 7,
+                "train_valid": 1,
+                "train_taken": 0,
+                "train_mispredicted": 1,
+                "train_history": 1,
+                "train_pc": 2
+              },
+              {
+                "areset": 0,
+                "predict_valid": 0,
+                "predict_pc": 0,
+                "train_valid": 0,
+                "train_taken": 0,
+                "train_mispredicted": 0,
+                "train_history": 0,
+                "train_pc": 0
+              },
+              {
+                "areset": 0,
+                "predict_valid": 0,
+                "predict_pc": 0,
+                "train_valid": 0,
+                "train_taken": 0,
+                "train_mispredicted": 0,
+                "train_history": 0,
+                "train_pc": 0
+              }
+            ],
+            "expected": [
+              {
+                "predict_taken": 0,
+                "predict_history": 0
+              },
+              {
+                "predict_taken": 0,
+                "predict_history": 1
+              },
+              {
+                "predict_taken": 0,
+                "predict_history": 1
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "issue_id": "I5",
+      "decision": "accept",
+      "reason": "Reset PHT initial value is unspecified; keep uncertain candidates but clarify state meaning to note both plausible reset values.",
+      "spec_quote": "Reset is asynchronous active-high.",
+      "edits": [
+        {
+          "path": [
+            "states",
+            "pht",
+            "meaning"
+          ],
+          "value": "128-entry pattern history table of 2-bit saturating counters, indexed by (pc[6:0] xor history[6:0]); reset value unspecified (all 2'b00 or all 2'b01)"
+        }
+      ]
+    },
+    {
+      "issue_id": "I6",
+      "decision": "rebut",
+      "reason": "Contract already specifies GHR shifts in predicted direction at posedge for prediction; the alternative is a different interpretation not supported by the spec text.",
+      "spec_quote": "The branch history register is then updated (at the next positive clock edge) for the predicted branch.",
+      "edits": []
+    },
+    {
+      "issue_id": "I7",
+      "decision": "accept",
+      "reason": "Spec only explicitly grants precedence for misprediction training; non-mispredict training+predict same-cycle GHR behavior is ambiguous. Add uncertain entry.",
+      "spec_quote": "If training for a misprediction and a prediction (for a different, younger instruction) occurs in the same cycle, both operations will want to modify the branch history register.",
+      "edits": [
+        {
+          "path": [
+            "uncertain"
+          ],
+          "value": [
+            {
+              "rule_id": "R6_async_reset",
+              "note": "Reset values for PHT/GHR unspecified: zeros vs GHR=0 with PHT all 2'b01",
+              "candidates": [
+                "GHR=0, all PHT entries=2'b00",
+                "GHR=0, all PHT entries=2'b01"
+              ]
+            },
+            {
+              "rule_id": "R5_train_precedence_over_predict",
+              "note": "Spec only explicitly grants precedence for misprediction training; non-mispredict train_valid+predict_valid same-cycle GHR behavior ambiguous",
+              "candidates": [
+                "Only train_mispredicted=1 takes precedence; non-mispredict training does not update GHR",
+                "Any train_valid=1 takes precedence over prediction GHR update"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "issue_id": "I8",
+      "decision": "rebut",
+      "reason": "Contract already uses train_history for PHT index, matching the spec statement that the branch predictor is told the branch history register value for the branch being trained.",
+      "spec_quote": "the branch predictor is told the pc and branch history register value for the branch that is being trained",
+      "edits": []
+    },
+    {
+      "issue_id": "I9",
+      "decision": "accept",
+      "reason": "Priority field mixes combinational and edge rules; set R1 priority to 0 to reflect combinational read precedence.",
+      "spec_quote": "",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R1_predict_outputs",
+            "priority"
+          ],
+          "value": 0
+        }
+      ]
+    }
+  ]
+}

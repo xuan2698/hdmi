@@ -1,0 +1,363 @@
+{
+  "coverage": {
+    "S01": [
+      "unrelated"
+    ],
+    "S02": [
+      "unrelated"
+    ],
+    "S03": [
+      "R2_walk_outputs"
+    ],
+    "S04": [
+      "R6_walk_bump_switch",
+      "R7_walk_bump_both_switch"
+    ],
+    "S05": [
+      "R6_walk_bump_switch"
+    ],
+    "S06": [
+      "R6_walk_bump_switch"
+    ],
+    "S07": [
+      "R7_walk_bump_both_switch"
+    ],
+    "S08": [
+      "R3_fall_outputs",
+      "R9_walk_fall"
+    ],
+    "S09": [
+      "R10_fall_land"
+    ],
+    "S10": [
+      "R10_fall_land",
+      "R15_fall_continue"
+    ],
+    "S11": [
+      "R4_dig_outputs",
+      "R8_walk_start_dig"
+    ],
+    "S12": [
+      "R8_walk_start_dig",
+      "R12_dig_continue"
+    ],
+    "S13": [
+      "R13_dig_to_fall",
+      "R10_fall_land"
+    ],
+    "S14": [
+      "R8_walk_start_dig",
+      "R12_dig_continue",
+      "R13_dig_to_fall"
+    ],
+    "S15": [
+      "R8_walk_start_dig",
+      "R9_walk_fall"
+    ],
+    "S16": [
+      "unrelated"
+    ],
+    "S17": [
+      "R11_fall_splat"
+    ],
+    "S18": [
+      "R11_fall_splat",
+      "R5_splat_outputs",
+      "R14_splat_hold"
+    ],
+    "S19": [
+      "R15_fall_continue"
+    ],
+    "S20": [
+      "R15_fall_continue"
+    ],
+    "S21": [
+      "R1_reset"
+    ]
+  },
+  "issues": [
+    {
+      "issue_id": "I1",
+      "rule_id": "R5_splat_outputs",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "R5 example never enters SPLAT; expected row 3 shows aaah=1, contradicting SPLAT all-zero outputs.",
+      "spec_evidence": "it will splatter and cease walking, falling, or digging (all 4 outputs become 0), forever",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I2",
+      "rule_id": "R11_fall_splat",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "R11 example only falls 2 cycles, so it should land not splat; expected row 3 all-zero is inconsistent with fall counter >20 condition.",
+      "spec_evidence": "if a Lemming falls for more than 20 clock cycles then hits the ground, it will splatter",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I3",
+      "rule_id": "R10_fall_land",
+      "type": "consistency",
+      "severity": "medium",
+      "detail": "R10 example row 3 has dig=1 and bump both=1 on landing; expected resumes walking left, but R8 says dig=1 on ground starts digging, so expected should be DIG_LEFT.",
+      "spec_evidence": "A Lemming can dig if it is currently walking on ground (ground=1 and not falling)",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I4",
+      "rule_id": "R12_dig_continue",
+      "type": "consistency",
+      "severity": "medium",
+      "detail": "R12 example row 2 has bump both=1 while digging; expected stays digging, consistent with S14, but R12 condition omits bump immunity; rule field incomplete.",
+      "spec_evidence": "As with falling, being bumped while digging has no effect",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I5",
+      "rule_id": "R1_reset",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec says positive edge triggered asynchronous reset; contract models active-high level async reset. Alternative: reset only on rising edge of areset, not level-held.",
+      "spec_evidence": "areset is positive edge triggered asynchronous reseting the Lemming machine to walk left",
+      "alternative": "Reset asserts only on rising edge of areset; holding areset=1 does not continuously reset.",
+      "sequence": [
+        {
+          "areset": 0,
+          "bump_left": 0,
+          "bump_right": 0,
+          "ground": 1,
+          "dig": 0
+        },
+        {
+          "areset": 1,
+          "bump_left": 0,
+          "bump_right": 0,
+          "ground": 1,
+          "dig": 0
+        },
+        {
+          "areset": 1,
+          "bump_left": 1,
+          "bump_right": 0,
+          "ground": 1,
+          "dig": 0
+        },
+        {
+          "areset": 0,
+          "bump_left": 0,
+          "bump_right": 0,
+          "ground": 1,
+          "dig": 0
+        }
+      ]
+    },
+    {
+      "issue_id": "I6",
+      "rule_id": "R10_fall_land",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Fall counter threshold boundary: spec says more than 20 cycles splatters; contract uses <=20 land, >20 splat, but counter increment timing (including entry cycle) is unspecified.",
+      "spec_evidence": "if a Lemming falls for more than 20 clock cycles then hits the ground, it will splatter",
+      "alternative": "Fall counter counts only full cycles in FALL state, excluding the entry cycle; landing after exactly 20 full fall cycles splatters.",
+      "sequence": [
+        {
+          "areset": 0,
+          "bump_left": 0,
+          "bump_right": 0,
+          "ground": 1,
+          "dig": 0
+        },
+        {
+          "areset": 0,
+          "bump_left": 0,
+          "bump_right": 0,
+          "ground": 0,
+          "dig": 0
+        },
+        {
+          "areset": 0,
+          "bump_left": 0,
+          "bump_right": 0,
+          "ground": 0,
+          "dig": 0
+        },
+        {
+          "areset": 0,
+          "bump_left": 0,
+          "bump_right": 0,
+          "ground": 0,
+          "dig": 0
+        },
+        {
+          "areset": 0,
+          "bump_left": 0,
+          "bump_right": 0,
+          "ground": 0,
+          "dig": 0
+        },
+        {
+          "areset": 0,
+          "bump_left": 0,
+          "bump_right": 0,
+          "ground": 0,
+          "dig": 0
+        },
+        {
+          "areset": 0,
+          "bump_left": 0,
+          "bump_right": 0,
+          "ground": 0,
+          "dig": 0
+        },
+        {
+          "areset": 0,
+          "bump_left": 0,
+          "bump_right": 0,
+          "ground": 0,
+          "dig": 0
+        },
+        {
+          "areset": 0,
+          "bump_left": 0,
+          "bump_right": 0,
+          "ground": 0,
+          "dig": 0
+        },
+        {
+          "areset": 0,
+          "bump_left": 0,
+          "bump_right": 0,
+          "ground": 0,
+          "dig": 0
+        },
+        {
+          "areset": 0,
+          "bump_left": 0,
+          "bump_right": 0,
+          "ground": 0,
+          "dig": 0
+        },
+        {
+          "areset": 0,
+          "bump_left": 0,
+          "bump_right": 0,
+          "ground": 0,
+          "dig": 0
+        },
+        {
+          "areset": 0,
+          "bump_left": 0,
+          "bump_right": 0,
+          "ground": 0,
+          "dig": 0
+        },
+        {
+          "areset": 0,
+          "bump_left": 0,
+          "bump_right": 0,
+          "ground": 0,
+          "dig": 0
+        },
+        {
+          "areset": 0,
+          "bump_left": 0,
+          "bump_right": 0,
+          "ground": 0,
+          "dig": 0
+        },
+        {
+          "areset": 0,
+          "bump_left": 0,
+          "bump_right": 0,
+          "ground": 0,
+          "dig": 0
+        },
+        {
+          "areset": 0,
+          "bump_left": 0,
+          "bump_right": 0,
+          "ground": 0,
+          "dig": 0
+        },
+        {
+          "areset": 0,
+          "bump_left": 0,
+          "bump_right": 0,
+          "ground": 0,
+          "dig": 0
+        },
+        {
+          "areset": 0,
+          "bump_left": 0,
+          "bump_right": 0,
+          "ground": 0,
+          "dig": 0
+        },
+        {
+          "areset": 0,
+          "bump_left": 0,
+          "bump_right": 0,
+          "ground": 0,
+          "dig": 0
+        },
+        {
+          "areset": 0,
+          "bump_left": 0,
+          "bump_right": 0,
+          "ground": 0,
+          "dig": 0
+        },
+        {
+          "areset": 0,
+          "bump_left": 0,
+          "bump_right": 0,
+          "ground": 0,
+          "dig": 0
+        },
+        {
+          "areset": 0,
+          "bump_left": 0,
+          "bump_right": 0,
+          "ground": 1,
+          "dig": 0
+        }
+      ]
+    },
+    {
+      "issue_id": "I7",
+      "rule_id": "R8_walk_start_dig",
+      "type": "ambiguity",
+      "severity": "low",
+      "detail": "Dig start when ground=1 and dig=1: spec says starts digging when dig=1; contract requires walking state. Alternative: dig=1 while walking but ground=0 same cycle should fall (precedence) — contract already does this; ambiguity is whether dig=1 held during fall then ground=1 resumes walking or starts digging.",
+      "spec_evidence": "being told to dig when falling or when there is no ground is ignored",
+      "alternative": "If dig=1 is held during fall and ground returns, dig is ignored on landing and walking resumes; contract R10 does this, but spec could be read as dig starts immediately on landing.",
+      "sequence": [
+        {
+          "areset": 0,
+          "bump_left": 0,
+          "bump_right": 0,
+          "ground": 1,
+          "dig": 0
+        },
+        {
+          "areset": 0,
+          "bump_left": 0,
+          "bump_right": 0,
+          "ground": 0,
+          "dig": 1
+        },
+        {
+          "areset": 0,
+          "bump_left": 0,
+          "bump_right": 0,
+          "ground": 1,
+          "dig": 1
+        }
+      ]
+    }
+  ]
+}

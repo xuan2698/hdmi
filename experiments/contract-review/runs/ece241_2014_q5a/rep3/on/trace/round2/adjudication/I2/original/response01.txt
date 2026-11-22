@@ -1,0 +1,73 @@
+def reference(vectors):
+    # async_reset: asserted high forces state A and z=0 asynchronously, with priority 0.
+    # serial_twos_complement: on each active posedge, sample x and update the Moore state.
+    # State meanings: A -> z=0/carry 0; B -> z=1/carry 1; C -> z=0/carry 1.
+    state = 'A'
+    sig = {'areset': 0, 'x': 0}
+    result = []
+
+    if isinstance(vectors, dict) and 'vectors' in vectors:
+        vectors = vectors['vectors']
+
+    for row in vectors:
+        # Drive row inputs before the sampled posedge.
+        if 'areset' in row:
+            sig['areset'] = row['areset'] & 1
+        if 'x' in row:
+            sig['x'] = row['x'] & 1
+
+        # async_reset: asynchronous reset has priority and forces z=0.
+        if sig['areset']:
+            state = 'A'
+
+        # serial_twos_complement: posedge update unless reset is asserted.
+        if sig['areset']:
+            state = 'A'
+            z = 0
+        else:
+            x = sig['x']
+            if state == 'A':
+                state = 'B' if x else 'A'
+            elif state == 'B':
+                state = 'C' if x else 'B'
+            else:  # state == 'C'
+                state = 'C' if x else 'B'
+            z = 1 if state == 'B' else 0
+
+        result.append({'z': z & 1})
+
+        # Process optional mid input changes after sampling; they do not affect this row.
+        mid = {}
+        if 'mid' in row:
+            m = row['mid']
+            if isinstance(m, dict):
+                for k in ('areset', 'x'):
+                    if k in m:
+                        mid[k] = m[k]
+            elif isinstance(m, (list, tuple)):
+                for item in m:
+                    if isinstance(item, dict):
+                        for k in ('areset', 'x'):
+                            if k in item:
+                                mid[k] = item[k]
+
+        for k in row:
+            if k == 'mid':
+                continue
+            if k.endswith('_mid'):
+                base = k[:-4]
+                if base in ('areset', 'x'):
+                    mid[base] = row[k]
+            elif k.startswith('mid_'):
+                base = k[4:]
+                if base in ('areset', 'x'):
+                    mid[base] = row[k]
+
+        for k, v in mid.items():
+            sig[k] = v & 1
+
+        # async_reset: a reset asserted by a mid change immediately resets state.
+        if sig['areset']:
+            state = 'A'
+
+    return result

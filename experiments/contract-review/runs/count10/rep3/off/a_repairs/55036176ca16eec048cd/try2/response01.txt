@@ -1,0 +1,32 @@
+```python
+def reference(vectors):
+    # Contract implementation.
+    # State: count (0..9), initial unspecified -> use 0 for determinism.
+    # R1: reset==1 on posedge -> q=0 (sync, priority 1).
+    # R2: reset==0 && q==9 on posedge -> q=0 (wrap, priority 2).
+    # R3: reset==0 && q!=9 on posedge -> q=q+1 (priority 3).
+    # Mid changes occur AFTER sampling, before next edge; carried to next row.
+    # Each row: values driven before sampled edge; sample after posedge settled.
+    # We model: for each row, apply current inputs at posedge, compute next state,
+    # then apply mid changes (none given here) for next row.
+
+    count = 0  # initial unspecified; choose 0
+    out = []
+
+    for row in vectors:
+        reset = row.get("reset", 0)
+        # Sample at posedge: compute next state based on current count and reset
+        # R1
+        if reset == 1:
+            count = 0
+        # R2
+        elif count == 9:
+            count = 0
+        # R3
+        else:
+            count = count + 1
+        # Output visible same cycle (after edge settles)
+        out.append({"q": count & 0xF})
+
+    return out
+```

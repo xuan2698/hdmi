@@ -1,0 +1,46 @@
+def reference(vectors):
+    # Power-up state: concrete choice 0, consistent with first_released_cycle.
+    q = 0
+    outputs = []
+
+    for row in vectors:
+        reset = 0
+        if "reset" in row:
+            reset = row["reset"]
+
+        # Rule sync_reset: synchronous active-high reset, priority over increment.
+        if reset == 1:
+            q = 0
+        else:
+            # Rule bcd_increment: increment 4-digit BCD modulo 10000 on posedge.
+            ones = q & 0xF
+            tens = (q >> 4) & 0xF
+            hundreds = (q >> 8) & 0xF
+            thousands = (q >> 12) & 0xF
+
+            value = thousands * 1000 + hundreds * 100 + tens * 10 + ones
+            value = (value + 1) % 10000
+
+            d0 = value % 10
+            value = value // 10
+            d1 = value % 10
+            value = value // 10
+            d2 = value % 10
+            value = value // 10
+            d3 = value % 10
+
+            q = (d3 << 12) | (d2 << 8) | (d1 << 4) | d0
+
+        # Rule upper_digit_enables: combinational from current q after the sampled edge.
+        ones = q & 0xF
+        tens = (q >> 4) & 0xF
+        hundreds = (q >> 8) & 0xF
+
+        bit0 = 1 if ones == 9 else 0
+        bit1 = 1 if (ones == 9 and tens == 9) else 0
+        bit2 = 1 if (ones == 9 and tens == 9 and hundreds == 9) else 0
+        ena = bit0 + 2 * bit1 + 4 * bit2
+
+        outputs.append({"q": q, "ena": ena})
+
+    return outputs

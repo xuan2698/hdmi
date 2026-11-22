@@ -1,0 +1,40 @@
+def reference(vectors):
+    # State: count (0..9), initial unspecified -> use 0 as concrete power-up value.
+    # R1: reset==1 at posedge -> q=0 (sync, active high, priority 1)
+    # R2: reset==0 && q==9 at posedge -> q=0 (priority 2)
+    # R3: reset==0 && q!=9 at posedge -> q=q+1 (priority 3)
+    # Candidate interpretation (global): on reset release, counter resumes from
+    #   value held before reset rather than restarting at 0.
+    #   -> We keep a "saved" value across reset; when reset is released, count
+    #      resumes from saved value (then normal counting applies).
+    # Mid changes occur AFTER sampling, before next edge, carried to next row.
+
+    count = 0          # concrete power-up value (unspecified in spec)
+    saved = 0          # value held before reset, for resume-on-release
+    in_reset = False   # whether we were in reset on previous sampled edge
+    results = []
+
+    for row in vectors:
+        reset = row.get('reset', 0)
+        # Sample at posedge: compute next state based on current inputs/state.
+        if reset == 1:
+            # R1: synchronous reset -> q=0
+            saved = count  # remember pre-reset value for resume interpretation
+            count = 0
+            in_reset = True
+        else:
+            if in_reset:
+                # Candidate interpretation: resume from value held before reset
+                count = saved
+                in_reset = False
+            # Now apply normal counting rules
+            if count == 9:
+                # R2
+                count = 0
+            else:
+                # R3
+                count = count + 1
+        # Output visible same cycle (after posedge settles)
+        results.append({'q': count & 0xF})
+
+    return results

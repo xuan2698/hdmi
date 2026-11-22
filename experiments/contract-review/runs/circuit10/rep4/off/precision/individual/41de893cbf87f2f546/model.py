@@ -1,0 +1,37 @@
+def reference(vectors):
+    # Contract implementation.
+    # R1: state <= NOT state (toggle each posedge) -- priority 1
+    # R2: q <= a AND b -- priority 1
+    # Reset: none; power-up unspecified -> start with concrete 0 values.
+    # Mid changes occur AFTER sampling, before other edge, carried to next row.
+    # We process each row: sample at posedge using current inputs, then
+    # apply any mid changes (which affect the next row's inputs).
+
+    # Named state: single flip-flop storing next value of q (per spec quote),
+    # but R1 says state toggles each posedge. We follow R1 for 'state'.
+    state = 0  # power-up unspecified; concrete default
+    q = 0      # power-up unspecified; concrete default
+
+    results = []
+    for row in vectors:
+        a = row.get('a', 0)
+        b = row.get('b', 0)
+
+        # Sample at posedge: compute next values from current inputs and state.
+        # R2: q <= a AND b
+        next_q = a & b
+        # R1: state <= NOT state (toggle each posedge)
+        next_state = 1 - state
+
+        # Update flip-flops (visible next cycle)
+        state = next_state
+        q = next_q
+
+        # Outputs after posedge settle
+        results.append({'q': q & 1, 'state': state & 1})
+
+        # Mid changes: optional input changes AFTER sampling, before other edge,
+        # carried to start of next row. We apply them to the row dict for next iter.
+        # (No explicit mid data provided in vectors; handled by next row's values.)
+
+    return results

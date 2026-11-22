@@ -1,0 +1,71 @@
+```python
+def reference(vectors):
+    # Initial state follows the reset values (12:00:00 AM).
+    pm = 0
+    hh = 0x12
+    mm = 0x00
+    ss = 0x00
+    cur_reset = 0
+    cur_ena = 0
+    out = []
+
+    def bcd_inc(val):
+        low = val & 0x0F
+        high = val >> 4
+        low += 1
+        if low == 0x0A:
+            low = 0
+            high += 1
+        return (high << 4) | low
+
+    for row in vectors:
+        if 'reset' in row:
+            cur_reset = row['reset']
+        if 'ena' in row:
+            cur_ena = row['ena']
+
+        if cur_reset:
+            # reset_priority: synchronous reset forces 12:00:00 AM.
+            pm = 0
+            hh = 0x12
+            mm = 0x00
+            ss = 0x00
+        elif cur_ena:
+            # increment_clock: advance one second in BCD with 12-hour carry.
+            if ss == 0x59:
+                ss = 0x00
+                if mm == 0x59:
+                    mm = 0x00
+                    if hh == 0x11:
+                        hh = 0x12
+                        pm = 1 - pm
+                    elif hh == 0x12:
+                        hh = 0x01
+                    else:
+                        hh = bcd_inc(hh)
+                else:
+                    mm = bcd_inc(mm)
+            else:
+                ss = bcd_inc(ss)
+        else:
+            # hold_clock: reset == 0 and ena == 0, hold all outputs.
+            pass
+
+        out.append({'pm': pm, 'hh': hh, 'mm': mm, 'ss': ss})
+
+        mid = row.get('mid')
+        if isinstance(mid, dict):
+            if 'reset' in mid:
+                cur_reset = mid['reset']
+            if 'ena' in mid:
+                cur_ena = mid['ena']
+        elif isinstance(mid, (list, tuple)):
+            for change in mid:
+                if isinstance(change, dict):
+                    if 'reset' in change:
+                        cur_reset = change['reset']
+                    if 'ena' in change:
+                        cur_ena = change['ena']
+
+    return out
+```

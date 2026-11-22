@@ -1,0 +1,83 @@
+{
+  "responses": [
+    {
+      "issue_id": "I1",
+      "decision": "rebut",
+      "reason": "The R_Y0 example already matches the table-derived Y0 values for y=0 and y=3; no contradiction exists to fix.",
+      "spec_quote": "Next state Y[2:0] x=0, Next state Y[2:0] x=1"
+    },
+    {
+      "issue_id": "I2",
+      "decision": "rebut",
+      "reason": "The R_z example already matches the table-derived z values for y=2,3,4,0; no contradiction exists to fix.",
+      "spec_quote": "Output z"
+    },
+    {
+      "issue_id": "I3",
+      "decision": "accept",
+      "reason": "Enumerate Y0 per present-state row so the rule is grounded in row-level table values rather than only the generic header.",
+      "spec_quote": "Next state Y[2:0] x=0, Next state Y[2:0] x=1",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R_Y0",
+            "condition"
+          ],
+          "value": "Y0 = next-state bit 0 of Y[2:0] per state-assigned table: y=000 -> x=0:0, x=1:1; y=001 -> x=0:1, x=1:0; y=010 -> x=0:0, x=1:1; y=011 -> x=0:1, x=1:0; y=100 -> x=0:1, x=1:0"
+        }
+      ]
+    },
+    {
+      "issue_id": "I4",
+      "decision": "accept",
+      "reason": "Strengthen grounding by quoting the table rows that set z=1 for states 011 and 100.",
+      "spec_quote": "Output z",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R_z",
+            "condition"
+          ],
+          "value": "z = 1 when present state y[2:0] is 011 or 100 (table rows 011 -> z=1 and 100 -> z=1), else 0 (Moore output from table)"
+        }
+      ]
+    },
+    {
+      "issue_id": "I5",
+      "decision": "accept",
+      "reason": "Spec table leaves states 101,110,111 undefined; record this ambiguity explicitly rather than leaving it silent.",
+      "spec_quote": "Output z",
+      "edits": [
+        {
+          "path": [
+            "uncertain"
+          ],
+          "value": [
+            {
+              "rule_id": "global",
+              "note": "Spec table does not define next state or z for present states 101,110,111; behavior for these states is unspecified.",
+              "candidates": [
+                "Undefined states 101,110,111 output Y0=0,z=0",
+                "Undefined states 101,110,111 are don't-cares with unspecified Y0,z"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "issue_id": "I6",
+      "decision": "rebut",
+      "reason": "The R_Y0 example is already consistent with the table-derived Y0 values; no edit needed.",
+      "spec_quote": "Next state Y[2:0] x=0, Next state Y[2:0] x=1"
+    },
+    {
+      "issue_id": "I7",
+      "decision": "rebut",
+      "reason": "The R_z example is already consistent with the table-derived z values; no edit needed.",
+      "spec_quote": "Output z"
+    }
+  ]
+}

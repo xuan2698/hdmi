@@ -1,0 +1,120 @@
+def reference(vectors):
+    hh = 0x12
+    mm = 0x00
+    ss = 0x00
+    pm = 0
+    cur_reset = 0
+    cur_ena = 0
+    result = []
+
+    def bcd_inc(v):
+        lo = v & 0x0F
+        hi = (v >> 4) & 0x0F
+        lo += 1
+        if lo == 10:
+            lo = 0
+            hi += 1
+            if hi == 10:
+                hi = 0
+        return (hi << 4) | lo
+
+    for row in vectors:
+        # Inputs driven before the sampled posedge.
+        if isinstance(row, dict):
+            if 'reset' in row:
+                cur_reset = int(row['reset']) & 1
+            if 'ena' in row:
+                cur_ena = int(row['ena']) & 1
+            if 'inputs' in row and isinstance(row['inputs'], dict):
+                inp = row['inputs']
+                if 'reset' in inp:
+                    cur_reset = int(inp['reset']) & 1
+                if 'ena' in inp:
+                    cur_ena = int(inp['ena']) & 1
+
+        # Posedge state update.
+        if cur_reset == 1:
+            # rule reset_all
+            pm = 0
+            hh = 0x12
+            mm = 0x00
+            ss = 0x00
+        elif cur_ena == 0:
+            # rule hold_when_not_enabled
+            pass
+        else:
+            if ss == 0x59:
+                if mm == 0x59:
+                    if hh == 0x11:
+                        # rule hour_11_to_12_toggle_pm
+                        ss = 0x00
+                        mm = 0x00
+                        hh = 0x12
+                        pm = pm ^ 1
+                    else:
+                        # rule minute_rollover_to_hour_no_pm_toggle
+                        ss = 0x00
+                        mm = 0x00
+                        if hh == 0x12:
+                            hh = 0x01
+                        else:
+                            hh = bcd_inc(hh)
+                        # pm holds
+                else:
+                    # rule second_rollover_to_minute
+                    ss = 0x00
+                    mm = bcd_inc(mm)
+                    # hh and pm hold
+            else:
+                # rule second_increment
+                ss = bcd_inc(ss)
+                # mm, hh and pm hold
+
+        result.append({
+            'pm': pm & 1,
+            'hh': hh & 0xFF,
+            'mm': mm & 0xFF,
+            'ss': ss & 0xFF
+        })
+
+        # Optional mid input changes after sampling, carried to next row.
+        if isinstance(row, dict):
+            mid = row.get('mid', None)
+            if mid is not None:
+                if isinstance(mid, dict):
+                    mids = [mid]
+                elif isinstance(mid, (list, tuple)):
+                    mids = list(mid)
+                else:
+                    mids = [mid]
+                for item in mids:
+                    if isinstance(item, dict):
+                        m = item.get('inputs', item) if 'inputs' in item else item
+                        if 'reset' in m:
+                            cur_reset = int(m['reset']) & 1
+                        if 'ena' in m:
+                            cur_ena = int(m['ena']) & 1
+                    elif isinstance(item, (list, tuple)):
+                        if len(item) == 2:
+                            sig, val = item
+                            if sig == 'reset':
+                                cur_reset = int(val) & 1
+                            elif sig == 'ena':
+                                cur_ena = int(val) & 1
+                        elif len(item) >= 3:
+                            if isinstance(item[0], str) and item[0] in ('reset', 'ena'):
+                                sig, val = item[0], item[1]
+                            elif isinstance(item[1], str) and item[1] in ('reset', 'ena'):
+                                sig, val = item[1], item[2]
+                            else:
+                                continue
+                            if sig == 'reset':
+                                cur_reset = int(val) & 1
+                            elif sig == 'ena':
+                                cur_ena = int(val) & 1
+            if 'mid_reset' in row:
+                cur_reset = int(row['mid_reset']) & 1
+            if 'mid_ena' in row:
+                cur_ena = int(row['mid_ena']) & 1
+
+    return result

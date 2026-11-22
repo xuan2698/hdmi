@@ -1,0 +1,34 @@
+def reference(vectors):
+    # Registered output q, concrete initial value 0.
+    q = 0
+    # Carried input state for optional mid changes.
+    cur_d = 0
+    cur_r = 0
+    result = []
+
+    for row in vectors:
+        # Drive this row's input values before the sampled posedge.
+        if 'd' in row:
+            cur_d = int(row['d']) & 1
+        if 'r' in row:
+            cur_r = int(row['r']) & 1
+
+        # Rule sync_active_high_reset: active-high synchronous reset has priority;
+        # at posedge with r == 1, q becomes 0.
+        # Rule d_update_when_not_reset: at posedge with r == 0, q becomes d.
+        if cur_r == 1:
+            q = 0
+        else:
+            q = cur_d & 1
+
+        result.append({'q': q})
+
+        # Mid changes happen after sampling and persist to the start of the next row.
+        if 'mid' in row and isinstance(row['mid'], dict):
+            mid = row['mid']
+            if 'd' in mid:
+                cur_d = int(mid['d']) & 1
+            if 'r' in mid:
+                cur_r = int(mid['r']) & 1
+
+    return result

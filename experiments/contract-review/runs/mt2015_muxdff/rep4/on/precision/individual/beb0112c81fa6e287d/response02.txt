@@ -1,0 +1,53 @@
+```python
+def reference(vectors):
+    # Q_posedge_update: At each posedge after settlement, Q becomes r_in when L=1;
+    # otherwise Q becomes q_in. Between edges Q holds.
+    Q_state = 0  # power-up unspecified; not reported before the first sampled edge
+    carried = {}  # inputs at the start of the next row after optional mid changes
+    outputs = []
+
+    for row in vectors:
+        # Each row's values are driven before the sampled edge.
+        L = carried.get('L', 0)
+        q_in = carried.get('q_in', 0)
+        r_in = carried.get('r_in', 0)
+
+        if 'L' in row:
+            L = row['L']
+        if 'q_in' in row:
+            q_in = row['q_in']
+        if 'r_in' in row:
+            r_in = row['r_in']
+
+        # Q_posedge_update: explicit transition after posedge has settled.
+        if L == 1:
+            Q_state = r_in & 1
+        else:
+            Q_state = q_in & 1
+
+        outputs.append({'Q': Q_state})
+
+        # Mid changes occur after sampling and are carried to the start of the next row.
+        carried['L'] = L
+        carried['q_in'] = q_in
+        carried['r_in'] = r_in
+        if 'mid' in row:
+            mid = row['mid']
+            if 'L' in mid or 'q_in' in mid or 'r_in' in mid:
+                if 'L' in mid:
+                    carried['L'] = mid['L']
+                if 'q_in' in mid:
+                    carried['q_in'] = mid['q_in']
+                if 'r_in' in mid:
+                    carried['r_in'] = mid['r_in']
+            else:
+                for m in mid:
+                    if 'L' in m:
+                        carried['L'] = m['L']
+                    if 'q_in' in m:
+                        carried['q_in'] = m['q_in']
+                    if 'r_in' in m:
+                        carried['r_in'] = m['r_in']
+
+    return outputs
+```

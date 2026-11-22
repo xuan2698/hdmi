@@ -1,0 +1,27 @@
+def reference(vectors):
+    # Contract rule R_Q_POSEDGE implemented here:
+    # On posedge clk, Q updates to L ? r_in : q_in.
+    outputs = []
+    current_inputs = {'L': 0, 'q_in': 0, 'r_in': 0}
+    for row in vectors:
+        # Inputs driven before the sampled posedge edge.
+        effective = current_inputs.copy()
+        for key in ('L', 'q_in', 'r_in'):
+            if key in row:
+                effective[key] = row[key] & 1
+
+        # R_Q_POSEDGE: registered mux output sampled after posedge.
+        L = effective.get('L', 0)
+        q_in = effective.get('q_in', 0)
+        r_in = effective.get('r_in', 0)
+        Q = r_in if L else q_in
+        outputs.append({'Q': Q & 1})
+
+        # Mid-cycle changes occur after sampling and carry to the next row.
+        current_inputs = effective.copy()
+        if 'mid' in row and isinstance(row['mid'], dict):
+            for key, value in row['mid'].items():
+                if key in ('L', 'q_in', 'r_in'):
+                    current_inputs[key] = value & 1
+
+    return outputs

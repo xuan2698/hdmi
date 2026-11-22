@@ -1,0 +1,70 @@
+def reference(vectors):
+    # State encoding
+    S0, S1, S11, S110, FOUND = 0, 1, 2, 3, 4
+    state = S0
+    start_shifting_reg = 0
+    current_inputs = {'reset': 0, 'data': 0}
+    results = []
+
+    for row in vectors:
+        # Drive row inputs before the sampled posedge
+        for key, value in row.items():
+            if key == 'mid':
+                continue
+            current_inputs[key] = value
+
+        # Sample inputs at posedge
+        reset = current_inputs.get('reset', 0) & 1
+        data = current_inputs.get('data', 0) & 1
+
+        if reset == 1:
+            # R_RESET_CLEAR: synchronous reset forces FSM state S0 and start_shifting=0 on settled edge
+            next_state = S0
+            next_start_shifting = 0
+        else:
+            # Explicit state transitions
+            if state == S0:
+                if data == 1:
+                    next_state = S1
+                else:
+                    next_state = S0
+            elif state == S1:
+                if data == 1:
+                    next_state = S11
+                else:
+                    next_state = S0
+            elif state == S11:
+                if data == 1:
+                    next_state = S11
+                else:
+                    next_state = S110
+            elif state == S110:
+                if data == 1:
+                    next_state = FOUND
+                else:
+                    next_state = S0
+            elif state == FOUND:
+                next_state = FOUND
+            else:
+                next_state = S0
+
+            # Candidate interpretation: start_shifting is registered one clock after detection.
+            # It remains 0 on the row completing 1101 and becomes 1 on the following row.
+            # R_SET_OR_HOLD_1101: set/hold when current state is FOUND (delayed by one cycle)
+            # R_KEEP_ZERO_UNTIL_FOUND: keep 0 until then
+            if state == FOUND:
+                next_start_shifting = 1
+            else:
+                next_start_shifting = 0
+
+        # Update state and output register to settled values after edge
+        state = next_state
+        start_shifting_reg = next_start_shifting
+        results.append({'start_shifting': start_shifting_reg})
+
+        # Process mid input changes AFTER sampling, carried to start of next row
+        if 'mid' in row and isinstance(row['mid'], dict):
+            for key, value in row['mid'].items():
+                current_inputs[key] = value
+
+    return results

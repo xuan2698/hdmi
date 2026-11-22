@@ -1,0 +1,24 @@
+def reference(vectors):
+    # Contract rules:
+    # r1: q is the next-state (combinational) value; state is the registered value updated at posedge.
+    #     q visible next_cycle. q = state_next (combinational).
+    # r2: state_next is uncertain; candidates:
+    #     state_next = a XOR b XOR state
+    #     state_next = a XOR b
+    #     state_next = (a AND b) XOR state
+    #     We select state_next = a XOR b XOR state (consistent with example A: (0,0)->0, (0,1)->1, (1,0)->0).
+    # reset: none; power-up state unspecified -> treat as 0.
+    # mid: optional mid input changes occur AFTER sampling, before the other edge, carried to next row.
+    #      We process each row's inputs as given (they are the values driven before the sampled edge).
+    state = 0
+    out = []
+    for row in vectors:
+        a = row.get('a', 0) & 1
+        b = row.get('b', 0) & 1
+        # r1: q is combinational next-state
+        nxt = (a ^ b ^ state) & 1  # r2 selected candidate
+        q = nxt
+        # r1: state is registered value updated at posedge (visible next cycle)
+        out.append({'q': q, 'state': state})
+        state = nxt
+    return out

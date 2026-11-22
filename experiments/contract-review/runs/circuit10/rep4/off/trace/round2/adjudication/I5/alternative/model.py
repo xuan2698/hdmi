@@ -1,0 +1,35 @@
+def reference(vectors):
+    # Contract implementation.
+    # R1 (overridden): state <= a XOR b on posedge clk.
+    # R2: q = state after posedge (registered output of flip-flop).
+    # No reset; power-up state is unspecified -> treat as 0 for concrete output.
+    # Mid input changes occur AFTER sampling, before the other edge, and are
+    # carried to the start of the next row. We process each row's inputs as
+    # driven before the sampled posedge; mid changes are applied after sampling
+    # and persist into the next row.
+
+    state = 0  # power-up unspecified; concrete default
+    q = 0
+    results = []
+
+    for row in vectors:
+        # Inputs driven before the sampled posedge edge.
+        a = row.get('a', 0)
+        b = row.get('b', 0)
+
+        # R1: state <= a XOR b on posedge (visible next cycle).
+        next_state = (a ^ b) & 1
+
+        # R2: q = state after posedge (registered output of flip-flop).
+        # The sampled edge updates state; q reflects the new state.
+        state = next_state
+        q = state
+
+        results.append({'q': q & 1, 'state': state & 1})
+
+        # Mid changes (if any) occur AFTER sampling, before the other edge,
+        # and are carried to the start of the next row. Since our model only
+        # samples at posedge and inputs are provided per-row, mid changes
+        # would be reflected in the next row's 'a'/'b' values already.
+
+    return results

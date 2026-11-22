@@ -1,0 +1,45 @@
+```python
+def reference(vectors):
+    # Contract implementation.
+    # State: COUNT (4-bit q). Synchronous active-high reset.
+    # Sampling occurs after posedge clk has settled.
+    # Mid changes occur AFTER sampling, before the other edge,
+    # and are carried to the start of the next row.
+
+    q = 0  # power-up unspecified; use 0 as concrete value
+    out = []
+
+    for row in vectors:
+        # Determine reset value for this row: mid changes from previous row
+        # were already applied to `row` by the harness (carried to start of row).
+        reset = row.get('reset', 0)
+
+        # R1: reset == 1 -> q = 0 (synchronous, same cycle visible)
+        # R2: reset == 0 && q < 9 -> q = q + 1
+        # R3: reset == 0 && q == 9 -> q = 0
+        if reset == 1:
+            # R1
+            q = 0
+        else:
+            if q < 9:
+                # R2
+                q = q + 1
+            else:
+                # R3
+                q = 0
+
+        # Output visible same cycle after posedge
+        out.append({'q': q & 0xF})
+
+        # Apply mid changes AFTER sampling, carried to next row.
+        # The harness passes mid changes as part of the next row's inputs,
+        # so nothing to do here explicitly; but if a 'mid' key exists,
+        # it would be applied after sampling. We keep it simple: mid changes
+        # are already reflected in the next row's reset value.
+        if 'mid' in row:
+            # mid changes occur after sampling; they affect next row's inputs.
+            # Since next row already carries them, no action needed here.
+            pass
+
+    return out
+```

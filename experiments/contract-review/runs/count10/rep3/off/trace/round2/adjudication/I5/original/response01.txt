@@ -1,0 +1,21 @@
+```python
+def reference(vectors):
+    # State: count (0..9), initial value unspecified -> use 0 as concrete power-up
+    count = 0
+    out = []
+    for row in vectors:
+        # R1: reset == 1 -> synchronous reset to 0 on posedge (priority 1)
+        # R2: reset == 0 && q == 9 -> wrap to 0 (priority 2)
+        # R3: reset == 0 && q != 9 -> increment (priority 3)
+        # Sampling occurs after posedge settles; mid changes applied after sampling.
+        reset = row.get('reset', 0)
+        if reset == 1:
+            count = 0  # R1
+        else:
+            if count == 9:
+                count = 0  # R2
+            else:
+                count = (count + 1) & 0xF  # R3
+        out.append({'q': count & 0xF})
+    return out
+```

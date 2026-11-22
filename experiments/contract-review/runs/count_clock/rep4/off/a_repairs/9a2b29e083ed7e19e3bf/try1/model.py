@@ -1,0 +1,94 @@
+def reference(vectors):
+    # Contract rules:
+    # R1_reset: synchronous active-high reset -> 12:00 AM (pm=0, hh=0x12, mm=0, ss=0)
+    # R2_hold: reset==0 && ena==0 -> hold all outputs
+    # R3_seconds: ena && ss != 0x59 -> increment ss (BCD)
+    # R4_seconds_roll: ena && ss==0x59 && mm!=0x59 -> ss=0, mm++ (BCD)
+    # R5_minutes_roll: ena && ss==0x59 && mm==0x59 && hh!=0x12 -> ss=0,mm=0,hh++ (BCD)
+    # R6_hour_roll_am_pm: ena && ss==0x59 && mm==0x59 && hh==0x12 -> ss=0,mm=0,hh=1,pm^=1
+    # R7_hour_roll_12: ena && ss==0x59 && mm==0x59 && hh==0x11 -> ss=0,mm=0,hh=0x12,pm^=1
+
+    # State: BCD digits
+    ss_lo = 0
+    ss_hi = 0
+    mm_lo = 0
+    mm_hi = 0
+    hh_lo = 2  # 12 -> hh_hi=1, hh_lo=2
+    hh_hi = 1
+    pm_reg = 0
+
+    def bcd(hi, lo):
+        return (hi << 4) | lo
+
+    def inc_bcd(hi, lo, hi_max):
+        # increment BCD digit pair
+        if lo == 9:
+            lo = 0
+            if hi == hi_max:
+                hi = 0
+            else:
+                hi += 1
+        else:
+            lo += 1
+        return hi, lo
+
+    results = []
+    for v in vectors:
+        reset = v.get('reset', 0)
+        ena = v.get('ena', 0)
+
+        # R1_reset: synchronous reset has priority
+        if reset == 1:
+            ss_lo = 0; ss_hi = 0
+            mm_lo = 0; mm_hi = 0
+            hh_lo = 2; hh_hi = 1
+            pm_reg = 0
+        elif ena == 1:
+            # R2_hold handled by else branch (ena==0 -> hold)
+            ss = bcd(ss_hi, ss_lo)
+            mm = bcd(mm_hi, mm_lo)
+            hh = bcd(hh_hi, hh_lo)
+
+            if ss != 0x59:
+                # R3_seconds
+                ss_hi, ss_lo = inc_bcd(ss_hi, ss_lo, 5)
+            elif mm != 0x59:
+                # R4_seconds_roll
+                ss_hi = 0; ss_lo = 0
+                mm_hi, mm_lo = inc_bcd(mm_hi, mm_lo, 5)
+            elif hh == 0x12:
+                # R6_hour_roll_am_pm
+                ss_hi = 0; ss_lo = 0
+                mm_hi = 0; mm_lo = 0
+                hh_hi = 0; hh_lo = 1
+                pm_reg = 1 - pm_reg
+            elif hh == 0x11:
+                # R7_hour_roll_12
+                ss_hi = 0; ss_lo = 0
+                mm_hi = 0; mm_lo = 0
+                hh_hi = 1; hh_lo = 2
+                pm_reg = 1 - pm_reg
+            else:
+                # R5_minutes_roll
+                ss_hi = 0; ss_lo = 0
+                mm_hi = 0; mm_lo = 0
+                hh_hi, hh_lo = inc_bcd(hh_hi, hh_lo, 1)
+                # BCD hour increment: 09->10, 10->11, 11->12 handled above
+                # For hh_lo==9 with hh_hi==0 -> 10; hh_lo==0 with hh_hi==1 -> 11
+                # inc_bcd with hi_max=1: lo 9->0, hi 0->1 gives 10; lo 0->1 gives 11
+                # But 12 is special (handled by R7). 11->12 via R7.
+                # So here hh goes 01..11, never 12.
+                # Fix: if hh_lo==9 and hh_hi==0 -> hh=10; if hh_lo==0 and hh_hi==1 -> hh=11
+                # inc_bcd(0,9,1) -> hi=1,lo=0 = 10 correct
+                # inc_bcd(1,0,1) -> lo=1 = 11 correct
+                # inc_bcd(1,1,1) -> lo=2 = 12 but that's R7 territory, not reached
+                pass
+
+        results.append({
+            'pm': pm_reg,
+            'hh': bcd(hh_hi, hh_lo),
+            'mm': bcd(mm_hi, mm_lo),
+            'ss': bcd(ss_hi, ss_lo),
+        })
+
+    return results

@@ -1,0 +1,74 @@
+{
+  "responses": [
+    {
+      "issue_id": "I01",
+      "decision": "rebut",
+      "reason": "The contract already records this ambiguity in the uncertain entry for bcd_increment, whose candidates include down-counting or unspecified direction/modulus/timing, so the proposed alternative is already represented.",
+      "spec_quote": "Build a 4-digit BCD (binary-coded decimal) counter.",
+      "edits": []
+    },
+    {
+      "issue_id": "I02",
+      "decision": "rebut",
+      "reason": "The contract already records reset value and priority ambiguity in the uncertain entry for sync_reset, including a non-zero/unspecified reset-value candidate.",
+      "spec_quote": "Include a synchronous active-high reset.",
+      "edits": []
+    },
+    {
+      "issue_id": "I03",
+      "decision": "rebut",
+      "reason": "The contract already records enable packing/timing ambiguity in the uncertain entry for upper_digit_enables, including the registered-on-posedge candidate.",
+      "spec_quote": "For digits [3:1], also output an enable signal indicating when each of the upper three digits should be incremented.",
+      "edits": []
+    },
+    {
+      "issue_id": "I04",
+      "decision": "accept",
+      "reason": "The example assumed an unshown initial q=996, which is not reachable from the reset-cleared state in four cycles. Replace it with a reset-cleared reachable four-cycle sequence while preserving the example schema.",
+      "spec_quote": "For digits [3:1], also output an enable signal indicating when each of the upper three digits should be incremented.",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "upper_digit_enables",
+            "example"
+          ],
+          "value": {
+            "vectors": [
+              {
+                "reset": 1
+              },
+              {
+                "reset": 0
+              },
+              {
+                "reset": 0
+              },
+              {
+                "reset": 0
+              }
+            ],
+            "expected": [
+              {
+                "q": 0,
+                "ena": 0
+              },
+              {
+                "q": 1,
+                "ena": 0
+              },
+              {
+                "q": 2,
+                "ena": 0
+              },
+              {
+                "q": 3,
+                "ena": 0
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

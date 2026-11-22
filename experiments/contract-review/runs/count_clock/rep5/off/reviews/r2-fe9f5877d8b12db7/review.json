@@ -1,0 +1,190 @@
+{
+  "coverage": {
+    "S01": [
+      "R1_reset",
+      "R2_seconds",
+      "R3_seconds_rollover",
+      "R4_minutes_rollover",
+      "R5_hour_rollover_am_pm",
+      "R6_hold"
+    ],
+    "S02": [
+      "R2_seconds",
+      "R3_seconds_rollover",
+      "R4_minutes_rollover",
+      "R5_hour_rollover_am_pm",
+      "R6_hold"
+    ],
+    "S03": [
+      "R1_reset",
+      "R2_seconds",
+      "R3_seconds_rollover",
+      "R4_minutes_rollover",
+      "R5_hour_rollover_am_pm"
+    ],
+    "S04": [
+      "R1_reset"
+    ]
+  },
+  "issues": [
+    {
+      "issue_id": "I1",
+      "rule_id": "R1_reset",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "Reset example expects hh=18 (0x12) but spec says reset to 12:00 AM; 0x12 is BCD for 12, not decimal 18. Example output hh=18 contradicts BCD encoding.",
+      "spec_evidence": "resets the clock to \"12:00 AM.\"",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I2",
+      "rule_id": "R2_seconds",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "R2 example starts from hh=18 and increments ss; hh=18 is not a valid BCD hour (valid 0x01-0x12). Example state is invalid per spec.",
+      "spec_evidence": "hh, mm, and ss are two BCD (Binary-Coded Decimal) digits each for hours (01-12)",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I3",
+      "rule_id": "R3_seconds_rollover",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "R3 example uses hh=18 (invalid BCD hour) and mm=0, ss=59; expected mm=1, ss=0. Invalid starting hh contradicts spec hour range.",
+      "spec_evidence": "hours (01-12)",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I4",
+      "rule_id": "R4_minutes_rollover",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "R4 example uses hh=17 (invalid BCD hour) and expects hh=17 after minute rollover; contradicts BCD hour encoding and spec range.",
+      "spec_evidence": "hours (01-12)",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I5",
+      "rule_id": "R5_hour_rollover_am_pm",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "R5 condition uses hh==8'h11 (BCD 11) but example starts with hh=18 and expects hh=18 after rollover; condition and example are inconsistent and hh=18 invalid.",
+      "spec_evidence": "hours (01-12)",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I6",
+      "rule_id": "R6_hold",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "R6 example holds hh=18 (invalid BCD hour) and then increments ss; contradicts spec BCD hour range.",
+      "spec_evidence": "hours (01-12)",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I7",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "high",
+      "detail": "Contract marks hh encoding uncertain: BCD 12-hour (0x12=12) vs binary 0-23 (18=6PM). Spec explicitly says BCD and hours 01-12, so binary 0-23 alternative contradicts spec; uncertainty is not grounded.",
+      "spec_evidence": "hh, mm, and ss are two BCD (Binary-Coded Decimal) digits each for hours (01-12)",
+      "alternative": "hh is binary 0-23 where 18 means 6 PM",
+      "sequence": [
+        {
+          "reset": 0,
+          "ena": 1
+        },
+        {
+          "reset": 0,
+          "ena": 1
+        },
+        {
+          "reset": 0,
+          "ena": 0
+        }
+      ]
+    },
+    {
+      "issue_id": "I8",
+      "rule_id": "R5_hour_rollover_am_pm",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "R5 condition hh==8'h11 (BCD 11) rolls to hh=18 (0x12) and toggles pm; but spec says 12-hour clock with AM/PM. Transition from 11:59:59 to 12:00:00 should toggle pm, yet example output hh=18 is invalid BCD and pm toggling from AM to PM at 11->12 is plausible but not explicitly stated for both directions.",
+      "spec_evidence": "The signal \"pm\" is asserted if the clock is PM, or is otherwise AM.",
+      "alternative": "At 11:59:59 AM, next is 12:00:00 PM (pm=1); at 11:59:59 PM, next is 12:00:00 AM (pm=0).",
+      "sequence": [
+        {
+          "reset": 0,
+          "ena": 1
+        },
+        {
+          "reset": 0,
+          "ena": 1
+        },
+        {
+          "reset": 0,
+          "ena": 0
+        }
+      ]
+    },
+    {
+      "issue_id": "I9",
+      "rule_id": "R4_minutes_rollover",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "R4 condition hh != 8'h12 but example uses hh=17; no rule covers hh==8'h12 (12) minute rollover to 01:00. Spec requires 12-hour wrap from 12:59:59 to 01:00:00, but no rule explicitly handles hh==0x12 with minute rollover.",
+      "spec_evidence": "hours (01-12)",
+      "alternative": "When hh==0x12, mm==0x59, ss==0x59, ena=1, next state should be hh=0x01, mm=0x00, ss=0x00, pm unchanged.",
+      "sequence": [
+        {
+          "reset": 0,
+          "ena": 1
+        },
+        {
+          "reset": 0,
+          "ena": 1
+        },
+        {
+          "reset": 0,
+          "ena": 0
+        }
+      ]
+    },
+    {
+      "issue_id": "I10",
+      "rule_id": "R1_reset",
+      "type": "grounding",
+      "severity": "medium",
+      "detail": "R1 reset example expected hh=18 (0x12) is not verbatim grounded; spec says 12:00 AM and BCD hours 01-12, so hh should be 0x12 (decimal 18) only if interpreted as BCD, but example uses decimal 18 which is ambiguous/inconsistent with BCD encoding.",
+      "spec_evidence": "resets the clock to \"12:00 AM.\"",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I11",
+      "rule_id": "global",
+      "type": "coverage",
+      "severity": "medium",
+      "detail": "No rule explicitly covers hour increment when ss==59, mm==59, hh!=0x11 and hh!=0x12 (e.g., 01:59:59 -> 02:00:00). R4 only covers hh!=0x12 with minute rollover, but R4 outputs mm,hh and condition hh!=0x12; however R4 example uses hh=17 and expects hh=17, not increment. Missing explicit hour increment rule for non-rollover hours.",
+      "spec_evidence": "hours (01-12)",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I12",
+      "rule_id": "R5_hour_rollover_am_pm",
+      "type": "spec_example",
+      "severity": "high",
+      "detail": "Derived from R5 example: starting hh=18 (invalid), ss=59, mm=59, ena=1, reset=0, pm=0. Expected next pm=1, hh=18, mm=0, ss=0. But hh=18 is not BCD 12; correct BCD 12 is 0x12 (decimal 18). If hh is BCD, 0x12=18 decimal, so hh=18 decimal is actually 0x12 BCD? Ambiguous: example uses decimal 18 which equals 0x12, so may be BCD 12. But then R4 example hh=17 decimal is 0x11 BCD=11, not 17. Inconsistent encoding across examples.",
+      "spec_evidence": "hh, mm, and ss are two BCD (Binary-Coded Decimal) digits each for hours (01-12)",
+      "alternative": "",
+      "sequence": []
+    }
+  ]
+}

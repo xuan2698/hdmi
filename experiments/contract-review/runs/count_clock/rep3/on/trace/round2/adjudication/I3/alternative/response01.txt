@@ -1,0 +1,80 @@
+```python
+def reference(vectors):
+    # initial state (power-up assumed reset value for deterministic reference)
+    pm = 0
+    hh = 0x12
+    mm = 0x00
+    ss = 0x00
+
+    cur = {"reset": 0, "ena": 0}
+    outputs = []
+
+    for row in vectors:
+        pre = {}
+        mid = {}
+
+        # Parse row: support plain dict, nested inputs/mid, or pair
+        if isinstance(row, dict):
+            if "inputs" in row and isinstance(row["inputs"], dict):
+                pre.update(row["inputs"])
+                if "mid" in row and isinstance(row["mid"], dict):
+                    mid.update(row["mid"])
+            else:
+                for k, v in row.items():
+                    if k == "mid":
+                        if isinstance(v, dict):
+                            mid.update(v)
+                    elif k.endswith("_mid"):
+                        mid[k[:-4]] = v
+                    else:
+                        pre[k] = v
+        elif isinstance(row, (list, tuple)):
+            if len(row) >= 1 and isinstance(row[0], dict):
+                pre.update(row[0])
+            if len(row) >= 2 and isinstance(row[1], dict):
+                mid.update(row[1])
+
+        # Apply pre-edge input changes (driven before sampled edge)
+        for k, v in pre.items():
+            if k in ("reset", "ena"):
+                cur[k] = v
+
+        reset_val = cur.get("reset", 0)
+        ena_val = cur.get("ena", 0)
+
+        # reset_priority: synchronous reset has priority over ena
+        if reset_val:
+            pm = 0
+            hh = 0x12
+            mm = 0x00
+            ss = 0x00
+        else:
+            # increment_clock: advance one displayed second when ena=1
+            if ena_val:
+                # Candidate interpretation override:
+                # when ss=0x59, wrap to 0x00 but do not increment mm.
+                if ss == 0x59:
+                    ss = 0x00
+                else:
+                    low = ss & 0x0F
+                    high = (ss >> 4) & 0x0F
+                    if low == 9:
+                        low = 0
+                        high += 1
+                    else:
+                        low += 1
+                    ss = (high << 4) | low
+                # mm, hh, pm remain unchanged (no carry due to override)
+            else:
+                # hold_clock: keep current state
+                pass
+
+        outputs.append({"pm": pm, "hh": hh, "mm": mm, "ss": ss})
+
+        # Apply mid changes after sampling, carried to next row
+        for k, v in mid.items():
+            if k in ("reset", "ena"):
+                cur[k] = v
+
+    return outputs
+```

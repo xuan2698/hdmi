@@ -1,0 +1,48 @@
+def reference(vectors):
+    MASK = (1 << 32) - 1
+    out_reg = 0
+    prev_in = 0
+    input_state = {"reset": 0, "in": 0}
+    results = []
+
+    def apply_mid_change(change):
+        if isinstance(change, dict):
+            if "reset" in change:
+                input_state["reset"] = change["reset"]
+            if "in" in change:
+                input_state["in"] = change["in"]
+
+    for row in vectors:
+        # Values in the row are driven before the sampled posedge.
+        if isinstance(row, dict):
+            if "reset" in row:
+                input_state["reset"] = row["reset"]
+            if "in" in row:
+                input_state["in"] = row["in"]
+
+        reset_val = int(input_state.get("reset", 0)) & 1
+        in_val = int(input_state.get("in", 0)) & MASK
+
+        if reset_val:
+            # rule sync_active_high_reset: synchronous active-high reset clears out with priority.
+            out_reg = 0
+        else:
+            # rule capture_sticky_one_to_zero: sticky capture for prev_in bit 1 and current in bit 0.
+            capture = prev_in & ((~in_val) & MASK)
+            out_reg = (out_reg | capture) & MASK
+
+        # prev_in updates on every posedge, including reset cycles.
+        prev_in = in_val
+
+        results.append({"out": out_reg & MASK})
+
+        # Optional mid changes occur after sampling and are carried to the next row.
+        if isinstance(row, dict) and "mid" in row:
+            mids = row["mid"]
+            if isinstance(mids, dict):
+                apply_mid_change(mids)
+            elif isinstance(mids, (list, tuple)):
+                for change in mids:
+                    apply_mid_change(change)
+
+    return results

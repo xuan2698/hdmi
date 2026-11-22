@@ -1,0 +1,33 @@
+def reference(vectors):
+    # Contract implementation.
+    # State: q (3-bit counter). No reset. Power-up unspecified -> candidate
+    # interpretation: on first posedge, q loads 4 regardless of a.
+    # Rule hold_when_a_high (priority 1): on posedge, if a==1, q holds.
+    # Rule increment_when_a_low (priority 1): on posedge, if a==0, q increments.
+    # Mid changes occur after sampling, before other edge, carried to next row.
+    # We process each row: apply mid changes from previous row (already applied
+    # at end of previous row), then sample posedge.
+
+    q = None  # unspecified power-up
+    first_posedge = True
+    out = []
+
+    for row in vectors:
+        a = row.get('a', 0)
+        # Mid changes from previous row were already applied at end of prev row.
+        # Sample posedge now.
+        if first_posedge:
+            # Candidate interpretation: first posedge loads 4 regardless of a.
+            q = 4
+            first_posedge = False
+        else:
+            if a == 1:
+                # hold_when_a_high
+                pass
+            else:
+                # increment_when_a_low
+                q = (q + 1) & 0x7
+        out.append({'q': q})
+        # Mid changes occur AFTER sampling, before other edge, carried to next row.
+        # (No mid changes specified in this contract beyond the general note.)
+    return out

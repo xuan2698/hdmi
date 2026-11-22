@@ -1,0 +1,60 @@
+{
+  "module_name": "top_module",
+  "io": [
+    {
+      "name": "clk",
+      "dir": "input",
+      "width": 1,
+      "description": "Clock signal; state transitions occur on the positive edge."
+    },
+    {
+      "name": "reset",
+      "dir": "input",
+      "width": 1,
+      "description": "Synchronous active-high reset; when asserted at a positive clock edge, the FSM is forced to state A."
+    },
+    {
+      "name": "in",
+      "dir": "input",
+      "width": 1,
+      "description": "Single-bit input controlling the next-state transition."
+    },
+    {
+      "name": "out",
+      "dir": "output",
+      "width": 1,
+      "description": "Moore output; depends only on the current state (1 in state D, 0 otherwise)."
+    }
+  ],
+  "clocking": {
+    "clock": {
+      "name": "clk",
+      "edge": "posedge"
+    },
+    "reset": {
+      "name": "reset",
+      "active": "high",
+      "kind": "synchronous"
+    }
+  },
+  "timing": {
+    "outputs": {
+      "out": {
+        "latency_cycles": 0
+      }
+    }
+  },
+  "functional_summary": {
+    "overview": "Moore finite state machine with four states (A, B, C, D), one input (in), one output (out), and a synchronous active-high reset to state A. The output is a function of the current state only: out=1 in state D, out=0 in states A, B, and C.",
+    "rules": [
+      "On a positive clock edge with reset asserted, the next state is A regardless of in.",
+      "On a positive clock edge with reset deasserted, the next state is determined by the current state and in according to the transition table.",
+      "State A: if in=0 next state is A; if in=1 next state is B.",
+      "State B: if in=0 next state is C; if in=1 next state is B.",
+      "State C: if in=0 next state is A; if in=1 next state is D.",
+      "State D: if in=0 next state is C; if in=1 next state is B.",
+      "The output out is 1 when the current state is D and 0 when the current state is A, B, or C.",
+      "The output reflects the current state (Moore behavior) and is stable for the duration of the state."
+    ]
+  }
+}

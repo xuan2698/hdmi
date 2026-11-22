@@ -1,0 +1,46 @@
+def reference(vectors):
+    pm=0; hh=0x12; mm=0; ss=0
+    reset=0; ena=0
+    out=[]
+    for row in vectors:
+        if 'reset' in row: reset=row['reset']
+        if 'ena' in row: ena=row['ena']
+        if reset:
+            pm=0; hh=0x12; mm=0; ss=0
+        elif ena:
+            lo=ss&0xF; hi=(ss>>4)&0xF
+            if lo==9:
+                lo=0
+                if hi==5:
+                    hi=0
+                    mlo=mm&0xF; mhi=(mm>>4)&0xF
+                    if mlo==9:
+                        mlo=0
+                        if mhi==5:
+                            mhi=0
+                            if hh==0x11:
+                                hh=0x12; pm^=1
+                            elif hh==0x12:
+                                hh=0x01
+                            else:
+                                hlo=hh&0xF; hhi=(hh>>4)&0xF
+                                if hlo==9:
+                                    hlo=0; hhi+=1
+                                else:
+                                    hlo+=1
+                                hh=(hhi<<4)|hlo
+                        else:
+                            mhi+=1
+                    else:
+                        mlo+=1
+                    mm=(mhi<<4)|mlo
+                else:
+                    hi+=1
+            else:
+                lo+=1
+            ss=(hi<<4)|lo
+        out.append({'pm':pm&1,'hh':hh&0xFF,'mm':mm&0xFF,'ss':ss&0xFF})
+        mid=row.get('mid',{})
+        if 'reset' in mid: reset=mid['reset']
+        if 'ena' in mid: ena=mid['ena']
+    return out

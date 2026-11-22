@@ -1,0 +1,17 @@
+def reference(vectors):
+    # Sequential circuit: one flip-flop, posedge clk triggered.
+    # next = (a & ~b) | (a & state) | (b & ~state) | (~a & b & state)
+    # q = state (registered output, latency 1 cycle)
+    # No reset; initial state unknown -> use 0 as concrete value.
+    out = []
+    state = 0  # concrete initial value (unknown in spec)
+    for row in vectors:
+        clk = row.get('clk', 0)
+        a = row.get('a', 0)
+        b = row.get('b', 0)
+        # Sample on posedge: compute next state from inputs and current state
+        if clk == 1:
+            nxt = ((a & (1 - b)) | (a & state) | (b & (1 - state)) | ((1 - a) & b & state)) & 1
+            state = nxt
+        out.append({'q': state & 1, 'state': state & 1})
+    return out

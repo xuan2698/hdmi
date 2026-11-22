@@ -1,0 +1,83 @@
+def reference(vectors):
+    # async_reset: active-high asynchronous reset forces state A and z=0 independent of clk.
+    # serial_twos_complement: LSB-first Moore FSM state update on posedge.
+    state = 0  # 0=A, 1=B, 2=C
+    cur_areset = 0
+    cur_x = 0
+    out_vectors = []
+
+    for row in vectors:
+        # Drive row inputs before the sampled edge.
+        if 'areset' in row:
+            cur_areset = row['areset'] & 1
+        if 'x' in row:
+            cur_x = row['x'] & 1
+
+        # async_reset
+        if cur_areset:
+            state = 0
+            z = 0
+        else:
+            # serial_twos_complement
+            if state == 0:
+                if cur_x == 0:
+                    state = 0
+                    z = 0
+                else:
+                    state = 1
+                    z = 1
+            elif state == 1:
+                if cur_x == 0:
+                    state = 1
+                    z = 1
+                else:
+                    state = 2
+                    z = 0
+            else:  # state == 2 (C)
+                if cur_x == 0:
+                    state = 1
+                    z = 1
+                else:
+                    state = 2
+                    z = 0
+
+        out_vectors.append({'z': z})
+
+        # mid changes occur after the sampled posedge; they do not affect this row's z,
+        # but areset=1 asynchronously resets state for the next row.
+        if 'mid' in row:
+            mid = row['mid']
+            try:
+                # dict mapping signal name -> value
+                for k in mid:
+                    v = mid[k]
+                    if k == 'areset':
+                        cur_areset = v & 1
+                        if cur_areset:
+                            state = 0  # async_reset mid
+                    elif k == 'x':
+                        cur_x = v & 1
+            except:
+                try:
+                    # list of dict changes
+                    for change in mid:
+                        for k in change:
+                            v = change[k]
+                            if k == 'areset':
+                                cur_areset = v & 1
+                                if cur_areset:
+                                    state = 0  # async_reset mid
+                            elif k == 'x':
+                                cur_x = v & 1
+                except:
+                    pass
+
+        # Alternate mid key naming support.
+        if 'mid_areset' in row:
+            cur_areset = row['mid_areset'] & 1
+            if cur_areset:
+                state = 0  # async_reset mid
+        if 'mid_x' in row:
+            cur_x = row['mid_x'] & 1
+
+    return out_vectors

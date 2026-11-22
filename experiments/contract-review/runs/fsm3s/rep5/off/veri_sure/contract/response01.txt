@@ -1,0 +1,32 @@
+```json
+{
+  "module_name": "top_module",
+  "io": [
+    {"name": "clk", "dir": "input", "width": 1, "description": "Clock signal; state samples on posedge."},
+    {"name": "reset", "dir": "input", "width": 1, "description": "Synchronous active-high reset; resets FSM to state A."},
+    {"name": "in", "dir": "input", "width": 1, "description": "Single-bit input controlling state transitions."},
+    {"name": "out", "dir": "output", "width": 1, "description": "Moore output; 1 only in state D, else 0."}
+  ],
+  "clocking": {
+    "clock": {"name": "clk", "edge": "posedge"},
+    "reset": {"name": "reset", "active": "high", "kind": "synchronous"}
+  },
+  "timing": {
+    "outputs": {
+      "out": {"latency_cycles": 0}
+    }
+  },
+  "functional_summary": {
+    "overview": "Four-state Moore FSM (A, B, C, D) with one input and one output. Synchronous active-high reset forces state A. Output is 1 only in state D and 0 otherwise. State transitions occur on the rising clock edge.",
+    "rules": [
+      "On posedge clk with reset=1, next state is A.",
+      "On posedge clk with reset=0: from A, next state is A if in=0 else B.",
+      "From B, next state is C if in=0 else B.",
+      "From C, next state is A if in=0 else D.",
+      "From D, next state is C if in=0 else B.",
+      "Output out is 1 when current state is D, and 0 when current state is A, B, or C.",
+      "Output is a Moore output depending only on current state, with zero-cycle latency relative to the state."
+    ]
+  }
+}
+```

@@ -1,0 +1,21 @@
+def reference(vectors):
+    # Rule async_reset: asynchronous reset clears history to zero.
+    # Rule mispredict_load: train_mispredicted loads train_history concatenated with train_taken.
+    # Rule predict_shift: predict_valid shifts in predict_taken.
+    # Rule hold (overridden interpretation): idle cycles shift left and insert 0.
+    state = 0
+    out = []
+    for row in vectors:
+        areset = row["areset"]
+        if areset == 1:
+            state = 0
+        else:
+            if row["train_mispredicted"] == 1:
+                state = ((row["train_history"] << 1) & 0xFFFFFFFF) | (row["train_taken"] & 1)
+            elif row["predict_valid"] == 1:
+                state = ((state << 1) & 0xFFFFFFFF) | (row["predict_taken"] & 1)
+            else:
+                state = (state << 1) & 0xFFFFFFFF
+        state &= 0xFFFFFFFF
+        out.append({"predict_history": state})
+    return out

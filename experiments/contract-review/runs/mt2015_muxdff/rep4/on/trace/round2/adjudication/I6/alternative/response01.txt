@@ -1,0 +1,36 @@
+```python
+def reference(vectors):
+    # Q_posedge_update: At each posedge of clk, after settlement, Q becomes r_in when L=1.
+    # Candidate interpretation for Q_posedge_update: L=0 holds Q (q_in is current-state feedback, not external data).
+    Q = 0
+    inputs = {'L': 0, 'q_in': 0, 'r_in': 0}
+    outputs = []
+    for row in vectors:
+        mid = {}
+        for k, v in row.items():
+            if k == 'mid' and isinstance(v, dict):
+                for mk, mv in v.items():
+                    mid[mk] = mv
+            elif isinstance(k, str) and k.endswith('_mid'):
+                mid[k[:-4]] = v
+            elif isinstance(k, str) and k.startswith('mid_'):
+                mid[k[4:]] = v
+            else:
+                inputs[k] = v
+        # Sample on posedge after settlement
+        L = inputs.get('L', 0) & 1
+        r_in = inputs.get('r_in', 0) & 1
+        # q_in is current-state feedback, ignored per candidate
+        if L:
+            Q = r_in
+        # else Q holds
+        Q &= 1
+        outputs.append({'Q': Q})
+        # After sampling, apply mid changes for next row
+        for k, v in mid.items():
+            if k in inputs:
+                inputs[k] = v & 1
+            else:
+                inputs[k] = v
+    return outputs
+```

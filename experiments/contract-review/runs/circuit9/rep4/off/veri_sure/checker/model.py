@@ -1,0 +1,18 @@
+def reference(vectors):
+    # Sequential 3-bit counter with hold/increment control.
+    # On each posedge clk: if a==1 hold q; if a==0 q = (q+1) mod 8.
+    # Power-up q is unspecified; we use 0 as concrete initial value.
+    q = 0
+    out = []
+    for row in vectors:
+        clk = row.get('clk', 0)
+        a = row.get('a', 0)
+        # Sample on posedge (clk transitions to 1). We treat each row as
+        # representing the state at the sampling edge; if clk==1, update.
+        if clk == 1:
+            if a == 1:
+                pass  # hold
+            else:
+                q = (q + 1) & 0x7
+        out.append({'q': q & 0x7})
+    return out

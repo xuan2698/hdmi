@@ -1,0 +1,67 @@
+def reference(vectors):
+    # Handle possible wrapper dict containing a 'vectors' list.
+    try:
+        if vectors.get('vectors') is not None:
+            vectors = vectors['vectors']
+    except AttributeError:
+        pass
+
+    # Named state: out_reg (sticky capture), prev_in (previous sampled in)
+    out_reg = 0
+    prev_in = 0
+    # Carried input values for the start of the next row.
+    carried = {'reset': 0, 'in': 0}
+    results = []
+
+    for row in vectors:
+        # Build the input values driven before this sampled posedge:
+        # start from carried values, then override with this row's main values.
+        current = {}
+        for k in carried:
+            current[k] = carried[k]
+        for k in row:
+            if k != 'mid':
+                current[k] = row[k]
+
+        reset_val = current.get('reset', 0) & 1
+        in_val = current.get('in', 0) & 0xFFFFFFFF
+
+        # Rule sync_active_high_reset: at a sampled posedge, reset==1 clears out_reg.
+        if reset_val == 1:
+            out_reg = 0
+        else:
+            # Rule capture_sticky_one_to_zero: sticky capture of per-bit 1-to-0 transitions.
+            # out_reg[i] becomes 1 when prev_in[i]==1 and in[i]==0, and stays 1 until reset.
+            out_reg = out_reg | (prev_in & (~in_val & 0xFFFFFFFF))
+            out_reg = out_reg & 0xFFFFFFFF
+
+        # prev_in updates at every posedge, including reset cycles.
+        prev_in = in_val
+
+        # Output is visible same cycle after the sampled posedge.
+        results.append({'out': out_reg & 0xFFFFFFFF})
+
+        # After sampling, compute carried inputs for the start of the next row.
+        # Start with the values just used for the edge, then apply optional mid changes.
+        next_carried = {}
+        for k in current:
+            next_carried[k] = current[k]
+
+        mid = row.get('mid')
+        if mid is not None:
+            # mid may be a dictionary of input changes.
+            try:
+                for k, v in mid.items():
+                    next_carried[k] = v
+            except AttributeError:
+                # mid may be a list of change dictionaries.
+                try:
+                    for change in mid:
+                        for k, v in change.items():
+                            next_carried[k] = v
+                except (AttributeError, TypeError):
+                    pass
+
+        carried = next_carried
+
+    return results

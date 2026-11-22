@@ -1,0 +1,145 @@
+{
+  "coverage": {
+    "S01": ["hold_when_a_high", "increment_when_a_low"],
+    "S02": ["hold_when_a_high", "increment_when_a_low"],
+    "S03": ["hold_when_a_high", "increment_when_a_low"],
+    "S04": ["hold_when_a_high", "increment_when_a_low"],
+    "S05": ["hold_when_a_high", "increment_when_a_low"],
+    "S06": ["hold_when_a_high", "increment_when_a_low"],
+    "S07": ["hold_when_a_high", "increment_when_a_low"],
+    "S08": ["hold_when_a_high", "increment_when_a_low"],
+    "S09": ["hold_when_a_high", "increment_when_a_low"],
+    "S10": ["hold_when_a_high", "increment_when_a_low"],
+    "S11": ["hold_when_a_high", "increment_when_a_low"],
+    "S12": ["hold_when_a_high", "increment_when_a_low"],
+    "S13": ["hold_when_a_high", "increment_when_a_low"],
+    "S14": ["hold_when_a_high", "increment_when_a_low"],
+    "S15": ["increment_when_a_low"],
+    "S16": ["hold_when_a_high", "increment_when_a_low"],
+    "S17": ["increment_when_a_low"],
+    "S18": ["hold_when_a_high", "increment_when_a_low"],
+    "S19": ["increment_when_a_low"],
+    "S20": ["hold_when_a_high", "increment_when_a_low"],
+    "S21": ["increment_when_a_low"],
+    "S22": ["hold_when_a_high", "increment_when_a_low"]
+  },
+  "issues": [
+    {
+      "issue_id": "I1",
+      "rule_id": "hold_when_a_high",
+      "type": "grounding",
+      "severity": "high",
+      "detail": "Rule condition 'a==1 or previous a==0' is not supported by the quoted spec line; the quote shows a=0 at a posedge with q holding, which is consistent with hold but does not establish the 'previous a==0' clause.",
+      "spec_evidence": "// 45ns            1               0               4",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I2",
+      "rule_id": "increment_when_a_low",
+      "type": "grounding",
+      "severity": "high",
+      "detail": "Rule condition 'a==0 and previous a==1' is not verbatim in the quoted spec line; the quote shows a=0 at a posedge with q incrementing, but does not state the previous-a requirement.",
+      "spec_evidence": "// 55ns            1               0               5",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I3",
+      "rule_id": "hold_when_a_high",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "Rule condition includes 'previous a==0' as a hold case, but the example vectors [a=1,a=1,a=1] never exercise previous a==0; the example does not validate the full condition.",
+      "spec_evidence": "",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I4",
+      "rule_id": "increment_when_a_low",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "Rule condition requires previous a==1, but the example vectors [a=1,a=0,a=0] expect q=5 on the second vector and q=5 on the third; the third vector has previous a==0, so under the stated condition it should hold at 5, which matches, but the example does not distinguish from a simpler 'increment whenever a==0' rule.",
+      "spec_evidence": "",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I5",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec waveform shows q=x at time 0 and q=4 at 5ns after first posedge with a=1; contract says no reset and initial q unspecified, but does not specify whether first posedge with a=1 should load 4 or hold x. Alternative: first posedge with a=1 loads q=4 (as if initial previous a=0 and count starts at 3).",
+      "spec_evidence": "// 0ns             0               1               x\n// 5ns             1               1               4",
+      "alternative": "First posedge with a=1 sets q=4 regardless of prior state (initial count=3).",
+      "sequence": [
+        {"clk": 0, "a": 1},
+        {"clk": 1, "a": 1}
+      ]
+    },
+    {
+      "issue_id": "I6",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Contract condition uses 'previous a' but does not define sampling at posedge vs before edge; alternative: increment on posedge when current a==0 and a was 1 at the immediately preceding clock edge (same as contract) vs increment when a falls between edges (asynchronous).",
+      "spec_evidence": "",
+      "alternative": "Increment asynchronously on falling edge of a, not on posedge clk.",
+      "sequence": [
+        {"clk": 0, "a": 1},
+        {"clk": 0, "a": 0},
+        {"clk": 1, "a": 0}
+      ]
+    },
+    {
+      "issue_id": "I7",
+      "rule_id": "global",
+      "type": "spec_example",
+      "severity": "high",
+      "detail": "Derived outputs from contract rules do not match spec waveform at 5ns: spec shows q=4 after first posedge with a=1, but contract has no reset and initial q unspecified; if initial q=x, first posedge with a=1 holds x, not 4.",
+      "spec_evidence": "// 0ns             0               1               x\n// 5ns             1               1               4",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I8",
+      "rule_id": "global",
+      "type": "spec_example",
+      "severity": "high",
+      "detail": "Derived outputs from contract rules do not match spec waveform at 55ns: spec shows q=5 after posedge with a=0 following a=0 at 45ns; contract requires previous a==1 to increment, but previous a at 45ns is 0, so contract would hold q=4, not 5.",
+      "spec_evidence": "// 45ns            1               0               4\n// 55ns            1               0               5",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I9",
+      "rule_id": "global",
+      "type": "spec_example",
+      "severity": "high",
+      "detail": "Derived outputs from contract rules do not match spec waveform at 65ns: spec shows q=6 after posedge with a=0 following a=0 at 55ns; contract requires previous a==1, so would hold q=5, not 6.",
+      "spec_evidence": "// 55ns            1               0               5\n// 65ns            1               0               6",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I10",
+      "rule_id": "global",
+      "type": "spec_example",
+      "severity": "high",
+      "detail": "Derived outputs from contract rules do not match spec waveform at 75ns: spec shows q=0 after posedge with a=0 following a=0 at 65ns; contract would hold q=6, not wrap to 0.",
+      "spec_evidence": "// 65ns            1               0               6\n// 75ns            1               0               0",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I11",
+      "rule_id": "global",
+      "type": "spec_example",
+      "severity": "high",
+      "detail": "Derived outputs from contract rules do not match spec waveform at 85ns: spec shows q=1 after posedge with a=0 following a=0 at 75ns; contract would hold q=0, not increment to 1.",
+      "spec_evidence": "// 75ns            1               0               0\n// 85ns            1               0               1",
+      "alternative": "",
+      "sequence": []
+    }
+  ]
+}

@@ -1,0 +1,78 @@
+```python
+def reference(vectors):
+    # R_Q_POSEDGE: Q is the one-bit registered output updated on posedge clk.
+    # No reset: every sampled posedge overwrites Q, so a concrete initial value is safe.
+    Q = 0
+
+    # Current input values, including values carried from mid-cycle changes.
+    current = {"L": 0, "q_in": 0, "r_in": 0}
+
+    def get_input(row, name, default):
+        if not isinstance(row, dict):
+            return default
+        if name in row:
+            return int(row[name]) & 1
+        for wrapper in ("inputs", "in"):
+            d = row.get(wrapper)
+            if isinstance(d, dict) and name in d:
+                return int(d[name]) & 1
+        return default
+
+    def apply_mid(row, cur):
+        if not isinstance(row, dict):
+            return
+
+        mid = row.get("mid")
+        if mid is None:
+            mid = row.get("mid_cycle")
+        if mid is None:
+            mid = row.get("after")
+
+        def apply_item(item):
+            if isinstance(item, dict):
+                for name in ("L", "q_in", "r_in"):
+                    if name in item:
+                        cur[name] = int(item[name]) & 1
+                if "signal" in item and "value" in item:
+                    name = item["signal"]
+                    if name in cur:
+                        cur[name] = int(item["value"]) & 1
+            elif isinstance(item, (list, tuple)) and len(item) >= 2:
+                name = item[0]
+                if name in cur:
+                    cur[name] = int(item[1]) & 1
+
+        if isinstance(mid, dict):
+            apply_item(mid)
+        elif isinstance(mid, (list, tuple)):
+            for item in mid:
+                apply_item(item)
+
+        # Also support explicit post-edge keys such as L_mid.
+        for name in ("L", "q_in", "r_in"):
+            key = name + "_mid"
+            if key in row:
+                cur[name] = int(row[key]) & 1
+
+    result = []
+
+    for row in vectors:
+        # Inputs driven before the sampled posedge.
+        current["L"] = get_input(row, "L", current["L"])
+        current["q_in"] = get_input(row, "q_in", current["q_in"])
+        current["r_in"] = get_input(row, "r_in", current["r_in"])
+
+        # R_Q_POSEDGE: On posedge clk, Q <= L ? r_in : q_in.
+        if current["L"] & 1:
+            Q = current["r_in"] & 1
+        else:
+            Q = current["q_in"] & 1
+        Q &= 1
+
+        result.append({"Q": Q})
+
+        # Mid-cycle changes occur after sampling and are carried to the next row.
+        apply_mid(row, current)
+
+    return result
+```

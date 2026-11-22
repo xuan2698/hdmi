@@ -1,0 +1,42 @@
+```python
+def reference(vectors):
+    # State-assigned table:
+    # y=000: x=0 -> Y=000, x=1 -> Y=001
+    # y=001: x=0 -> Y=001, x=1 -> Y=100
+    # y=010: x=0 -> Y=010, x=1 -> Y=001
+    # y=011: x=0 -> Y=001, x=1 -> Y=010
+    # y=100: x=0 -> Y=011, x=1 -> Y=100
+    # Undefined 101,110,111 -> Y0=0, z=0
+
+    # Next-state bit 0 (Y0) as function of (y, x)
+    # y=000: x=0 -> 0, x=1 -> 1
+    # y=001: x=0 -> 1, x=1 -> 0
+    # y=010: x=0 -> 0, x=1 -> 1
+    # y=011: x=0 -> 1, x=1 -> 0
+    # y=100: x=0 -> 1, x=1 -> 0
+    # undefined -> 0
+    Y0_table = {
+        0: {0: 0, 1: 1},
+        1: {0: 1, 1: 0},
+        2: {0: 0, 1: 1},
+        3: {0: 1, 1: 0},
+        4: {0: 1, 1: 0},
+    }
+
+    # z = 1 when y is 011 or 100
+    z_table = {3: 1, 4: 1}
+
+    results = []
+    for vec in vectors:
+        x = vec.get('x', 0) & 1
+        y = vec.get('y', 0) & 7
+        # R_Y0: combinational next-state bit 0
+        if y in Y0_table:
+            Y0 = Y0_table[y][x]
+        else:
+            Y0 = 0  # global: undefined states output Y0=0
+        # R_z: Moore output from present state
+        z = z_table.get(y, 0)  # global: undefined states output z=0
+        results.append({'Y0': Y0, 'z': z})
+    return results
+```

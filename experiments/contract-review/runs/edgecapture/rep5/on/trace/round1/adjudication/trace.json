@@ -1,0 +1,54 @@
+[
+  {
+    "issue": {
+      "issue_id": "I1",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec does not define whether a 1-to-0 transition spanning a reset cycle is captured. Contract updates prev_in during reset, so a reset-cycle 1 followed by post-release 0 captures out=1; the falling-edge rule only states prev_in update when reset==0, leaving reset-cycle history inconsistent.",
+      "spec_evidence": "\"Capture\" means that the output will remain 1 until the register is reset (active high synchronous reset).",
+      "alternative": "Reset clears/suppresses prev_in history, so a 1 sampled during reset followed by 0 after reset release is not captured.",
+      "sequence": [
+        {
+          "reset": 1,
+          "in": 1
+        },
+        {
+          "reset": 0,
+          "in": 0
+        }
+      ]
+    },
+    "status": "effect",
+    "issue_id": "I1",
+    "outputs": {
+      "original": [
+        {
+          "out": 0
+        },
+        {
+          "out": 1
+        }
+      ],
+      "alternative": [
+        {
+          "out": 0
+        },
+        {
+          "out": 0
+        }
+      ]
+    },
+    "differences": [
+      {
+        "cycle": 2,
+        "original": {
+          "out": 1
+        },
+        "alternative": {
+          "out": 0
+        }
+      }
+    ]
+  }
+]

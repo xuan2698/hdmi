@@ -1,0 +1,42 @@
+def reference(vectors):
+    # R_Q_POSEDGE: On posedge clk, Q updates to L ? r_in : Q.
+    # Per candidate interpretation, q_in is current Q feedback, so when L=0 Q holds.
+    Q = 0  # power-up unspecified; concrete value chosen as 0
+    carried = {}
+    result = []
+
+    for row in vectors:
+        # Drive row inputs before the sampled posedge.
+        # Row values override any carried mid-cycle state.
+        for k in row:
+            if k != "mid":
+                carried[k] = row[k]
+
+        L = carried.get("L", 0)
+        r_in = carried.get("r_in", 0)
+
+        # R_Q_POSEDGE: explicit state transition
+        if L:
+            Q = r_in & 1
+        else:
+            Q = Q & 1
+
+        result.append({"Q": Q})
+
+        # Apply optional mid changes AFTER sampling; they carry to next row.
+        if "mid" in row:
+            mid = row["mid"]
+            if type(mid) == dict:
+                for k in mid:
+                    carried[k] = mid[k]
+            elif type(mid) == list:
+                for item in mid:
+                    if type(item) == dict:
+                        for k in item:
+                            carried[k] = item[k]
+                    elif type(item) in (list, tuple) and len(item) >= 2 and type(item[1]) == dict:
+                        changes = item[1]
+                        for k in changes:
+                            carried[k] = changes[k]
+
+    return result

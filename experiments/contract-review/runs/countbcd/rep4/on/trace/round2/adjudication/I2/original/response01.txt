@@ -1,0 +1,46 @@
+def reference(vectors):
+    q = 0
+    out = []
+    for v in vectors:
+        reset = v.get('reset', 0) if isinstance(v, dict) else 0
+
+        # sync_active_high_reset: synchronous active-high reset has priority
+        if reset:
+            q = 0
+        else:
+            # bcd_counter_increment: increment four BCD digits modulo 10000
+            d0 = q & 0xF
+            d1 = (q >> 4) & 0xF
+            d2 = (q >> 8) & 0xF
+            d3 = (q >> 12) & 0xF
+
+            d0 += 1
+            if d0 == 10:
+                d0 = 0
+                d1 += 1
+                if d1 == 10:
+                    d1 = 0
+                    d2 += 1
+                    if d2 == 10:
+                        d2 = 0
+                        d3 += 1
+                        if d3 == 10:
+                            d3 = 0
+
+            q = (d3 << 12) | (d2 << 8) | (d1 << 4) | d0
+
+        # upper_digit_enables: combinational same-cycle enable based on current q
+        d0 = q & 0xF
+        d1 = (q >> 4) & 0xF
+        d2 = (q >> 8) & 0xF
+        ena = 0
+        if d0 == 9:
+            ena |= 1
+            if d1 == 9:
+                ena |= 2
+                if d2 == 9:
+                    ena |= 4
+
+        out.append({'q': q & 0xFFFF, 'ena': ena & 0x7})
+
+    return out

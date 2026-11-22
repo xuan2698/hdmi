@@ -1,0 +1,42 @@
+def reference(vectors):
+    # Contract implementation.
+    # State: count (3-bit), initialized flag.
+    # Rule hold_when_a_high (priority 1): on posedge, if initialized and prev_a==1, hold q.
+    # Rule increment_when_a_low: on posedge, if initialized and prev_a==0, q = (q+1) & 7.
+    # First posedge: q = 4 regardless of a (uncertain global note).
+    # Mid changes occur after sampling, carried to next row's prev_a.
+
+    q = None
+    initialized = False
+    prev_a = None  # a value seen at previous posedge (carried from mid changes)
+    out = []
+
+    for row in vectors:
+        a = row['a']
+        # Determine a used at this posedge: if we have a carried prev_a from mid, use it;
+        # otherwise use current row's a. The contract says each row's values are driven
+        # before the sampled edge, and mid changes are carried to start of next row.
+        # So the a at this posedge is the carried value if present, else row's a.
+        if prev_a is not None:
+            a_at_edge = prev_a
+        else:
+            a_at_edge = a
+
+        # Posedge update
+        if not initialized:
+            q = 4
+            initialized = True
+        else:
+            if a_at_edge == 1:
+                # hold_when_a_high
+                pass
+            else:
+                # increment_when_a_low
+                q = (q + 1) & 7
+
+        out.append({'q': q})
+
+        # After sampling, mid changes: row's a becomes the carried value for next posedge.
+        prev_a = a
+
+    return out

@@ -1,0 +1,17 @@
+def reference(vectors):
+    # Contract implementation.
+    # r1: q is the registered value of state (q equals state after each posedge).
+    # r2: next state = (a XOR b) XOR state, sampled at posedge.
+    # Power-up state is unspecified; use 0 as concrete initial value.
+    state = 0
+    q = 0
+    out = []
+    for v in vectors:
+        a = v.get('a', 0) & 1
+        b = v.get('b', 0) & 1
+        # r1: q reflects current registered state
+        q = state
+        out.append({'q': q & 1, 'state': state & 1})
+        # r2: compute next state at posedge
+        state = (a ^ b ^ state) & 1
+    return out

@@ -1,0 +1,21 @@
+def reference(vectors):
+    # State: out (32-bit sticky flag), prev_in (32-bit previous input)
+    # R2_capture_falling: prev_in initialized to 0 before first sampled cycle
+    out = 0
+    prev_in = 0
+    results = []
+    for row in vectors:
+        reset = row['reset'] & 1
+        inp = row['in'] & 0xFFFFFFFF
+        # R1_reset_clear: reset==1 -> out cleared (priority 1, same cycle)
+        if reset == 1:
+            out = 0
+        else:
+            # R2_capture_falling: set bits where prev_in=1 and in=0
+            falling = prev_in & (~inp) & 0xFFFFFFFF
+            out = (out | falling) & 0xFFFFFFFF
+            # R3_hold: bits not falling remain unchanged (implicit in OR)
+        # Update prev_in for next cycle (mid changes carried to next row start)
+        prev_in = inp
+        results.append({'out': out & 0xFFFFFFFF})
+    return results

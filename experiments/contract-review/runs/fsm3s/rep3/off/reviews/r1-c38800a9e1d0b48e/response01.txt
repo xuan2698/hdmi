@@ -1,0 +1,131 @@
+{
+  "coverage": {
+    "S01": ["unrelated"],
+    "S02": ["unrelated"],
+    "S03": ["R3"],
+    "S04": ["unrelated"],
+    "S05": ["R1", "R4"],
+    "S06": ["R5"],
+    "S07": ["R6"],
+    "S08": ["R2", "R7"]
+  },
+  "issues": [
+    {
+      "issue_id": "I1",
+      "rule_id": "R1",
+      "type": "grounding",
+      "severity": "medium",
+      "detail": "R1 spec_quote 'A | A, B | 0' only covers state A, not B or C as its condition claims.",
+      "spec_evidence": "// A | A, B | 0",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I2",
+      "rule_id": "R2",
+      "type": "grounding",
+      "severity": "medium",
+      "detail": "R2 spec_quote 'D | C, B | 1' is a transition row, not output-only evidence for state D.",
+      "spec_evidence": "// D | C, B | 1",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I3",
+      "rule_id": "R3",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "R3 is a reset rule with edge posedge and visible next_cycle, but reset is synchronous and output is Moore; reset should affect state at posedge and out combinationally same cycle after state update.",
+      "spec_evidence": "Include a synchronous active high reset that resets the FSM to state A.",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I4",
+      "rule_id": "R4",
+      "type": "consistency",
+      "severity": "medium",
+      "detail": "R4 example expected outputs do not exercise state B; all zeros are consistent with A/B/C but not distinguishing.",
+      "spec_evidence": "// A | A, B | 0",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I5",
+      "rule_id": "R5",
+      "type": "consistency",
+      "severity": "medium",
+      "detail": "R5 example starts in unknown state; expected all zeros cannot verify B->C or B->B transitions.",
+      "spec_evidence": "// B | C, B | 0",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I6",
+      "rule_id": "R6",
+      "type": "consistency",
+      "severity": "medium",
+      "detail": "R6 example expected [0,0,1] assumes starting state A and in=0 then in=1 reaches D, but does not show state C output explicitly.",
+      "spec_evidence": "// C | A, D | 0",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I7",
+      "rule_id": "R7",
+      "type": "consistency",
+      "severity": "medium",
+      "detail": "R7 example expected [0,1,1] assumes starting state A and in=1 then in=1 reaches D then B, but D output 1 is shown only after second cycle.",
+      "spec_evidence": "// D | C, B | 1",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I8",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "high",
+      "detail": "Spec does not define output during reset release cycle; contract says reset values out=0 and first_released_cycle first posedge with reset==0, but Moore output after reset to A should be 0 same cycle.",
+      "spec_evidence": "Include a synchronous active high reset that resets the FSM to state A.",
+      "alternative": "Output may be 0 during reset and remain 0 in first released cycle because state A output is 0; alternative is output undefined until next posedge.",
+      "sequence": [
+        {"in": 0, "reset": 1},
+        {"in": 0, "reset": 0},
+        {"in": 1, "reset": 0}
+      ]
+    },
+    {
+      "issue_id": "I9",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec does not specify initial state before first reset; contract assumes reset state A but no explicit power-on state.",
+      "spec_evidence": "The following is the state transition table for a Moore state machine with one input, one output, and four states.",
+      "alternative": "FSM may start in any state until reset asserted; alternative is start in A by default.",
+      "sequence": [
+        {"in": 0, "reset": 0},
+        {"in": 1, "reset": 0},
+        {"in": 0, "reset": 0}
+      ]
+    },
+    {
+      "issue_id": "I10",
+      "rule_id": "global",
+      "type": "spec_example",
+      "severity": "high",
+      "detail": "Derived waveform from spec: reset=1 -> A out0; reset=0,in=0 -> A out0; in=1 -> B out0; in=0 -> C out0; in=1 -> D out1; in=0 -> C out0; in=1 -> D out1; in=1 -> B out0. Contract examples do not cover full sequence and some expected values are inconsistent with Moore output timing.",
+      "spec_evidence": "// A | A, B | 0; // B | C, B | 0; // C | A, D | 0; // D | C, B | 1",
+      "alternative": "",
+      "sequence": [
+        {"in": 0, "reset": 1},
+        {"in": 0, "reset": 0},
+        {"in": 1, "reset": 0},
+        {"in": 0, "reset": 0},
+        {"in": 1, "reset": 0},
+        {"in": 0, "reset": 0},
+        {"in": 1, "reset": 0},
+        {"in": 1, "reset": 0}
+      ]
+    }
+  ]
+}

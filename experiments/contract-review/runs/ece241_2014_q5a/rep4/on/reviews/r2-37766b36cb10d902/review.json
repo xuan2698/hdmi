@@ -1,0 +1,85 @@
+{
+  "coverage": {
+    "S01": [
+      "R_CONVERT",
+      "R_RESET"
+    ],
+    "S02": [
+      "R_CONVERT"
+    ],
+    "S03": [
+      "R_CONVERT"
+    ],
+    "S04": [
+      "R_RESET",
+      "R_CONVERT"
+    ],
+    "S05": [
+      "R_RESET",
+      "R_CONVERT"
+    ]
+  },
+  "issues": [
+    {
+      "issue_id": "I1",
+      "rule_id": "R_RESET",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Reset active level is unspecified; contract example assumes active-high areset=1.",
+      "spec_evidence": "The circuit requires a positive edge triggered asynchronous reset.",
+      "alternative": "active-low areset: asserted=0, released=1, with z=0 while asserted.",
+      "sequence": [
+        {
+          "areset": 1,
+          "x": 0
+        },
+        {
+          "areset": 0,
+          "x": 0
+        },
+        {
+          "areset": 1,
+          "x": 1
+        }
+      ]
+    },
+    {
+      "issue_id": "I2",
+      "rule_id": "R_RESET",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec does not state output value while reset is asserted; contract assumes z=0.",
+      "spec_evidence": "The conversion begins when Reset is released and stops when Reset is asserted.",
+      "alternative": "On reset assertion, state returns to START but z retains its previous value (here 1) instead of forcing z=0.",
+      "sequence": [
+        {
+          "areset": 0,
+          "x": 1
+        },
+        {
+          "areset": 1,
+          "x": 0
+        }
+      ]
+    },
+    {
+      "issue_id": "I3",
+      "rule_id": "R_CONVERT",
+      "type": "ambiguity",
+      "severity": "low",
+      "detail": "Output sampling phase is not specified; contract marks Moore output same-cycle after posedge.",
+      "spec_evidence": "You are to design a one-input one-output serial 2's complementer Moore state machine.",
+      "alternative": "Observe z before the posedge (pre-edge state), so the first converted bit appears one observation cycle later.",
+      "sequence": [
+        {
+          "areset": 0,
+          "x": 1
+        },
+        {
+          "areset": 0,
+          "x": 0
+        }
+      ]
+    }
+  ]
+}

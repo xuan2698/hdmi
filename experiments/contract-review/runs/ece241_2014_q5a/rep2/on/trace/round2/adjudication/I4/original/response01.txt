@@ -1,0 +1,75 @@
+def reference(vectors):
+    # Rule IDs implemented: async_reset_z0, s0_x0, s0_x1, s1_x0, s1_x1, s2_x0, s2_x1, reset, mid.
+    state = 'S0'
+    z = 0
+    inputs = {'areset': 0, 'x': 0}
+    out = []
+    for row in vectors:
+        # Drive row inputs before the sampled posedge; mid changes from the prior row are already in inputs.
+        if 'areset' in row:
+            inputs['areset'] = row['areset']
+        if 'x' in row:
+            inputs['x'] = row['x']
+
+        # Sample after the posedge has settled.
+        if inputs['areset'] == 1:
+            # async_reset_z0: asynchronously force S0 and z=0 while reset is asserted.
+            state = 'S0'
+            z = 0
+        else:
+            # Moore output is same-cycle after the sampled posedge, based on the next state.
+            if state == 'S0':
+                if inputs['x'] == 0:
+                    # s0_x0: stay S0, z=0.
+                    state = 'S0'
+                    z = 0
+                else:
+                    # s0_x1: go S1, z=1.
+                    state = 'S1'
+                    z = 1
+            elif state == 'S1':
+                if inputs['x'] == 0:
+                    # s1_x0: stay S1, z=1.
+                    state = 'S1'
+                    z = 1
+                else:
+                    # s1_x1: go S2, z=0.
+                    state = 'S2'
+                    z = 0
+            elif state == 'S2':
+                if inputs['x'] == 0:
+                    # s2_x0: go S1, z=1.
+                    state = 'S1'
+                    z = 1
+                else:
+                    # s2_x1: stay S2, z=0.
+                    state = 'S2'
+                    z = 0
+            else:
+                # Concrete fallback for unspecified power-up.
+                state = 'S0'
+                z = 0
+
+        out.append({'z': z & 1})
+
+        # mid: changes after the current sampled posedge and before the next edge; carried to the next row.
+        if 'mid' in row and row['mid'] is not None:
+            mid = row['mid']
+            if isinstance(mid, dict):
+                mid_list = [mid]
+            elif isinstance(mid, list):
+                mid_list = mid
+            else:
+                mid_list = []
+
+            for m in mid_list:
+                if isinstance(m, dict):
+                    for k, v in m.items():
+                        if k in ('areset', 'x'):
+                            inputs[k] = v
+                    # async_reset_z0: areset becoming 1 during mid resets asynchronously.
+                    if m.get('areset') == 1:
+                        state = 'S0'
+                        z = 0
+
+    return out

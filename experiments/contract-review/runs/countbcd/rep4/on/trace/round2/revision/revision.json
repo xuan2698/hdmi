@@ -1,0 +1,85 @@
+{
+  "responses": [
+    {
+      "issue_id": "I1",
+      "decision": "accept",
+      "reason": "The public spec only requires a synchronous active-high reset and does not define q or ena reset values; flag the assumed clear-to-zero behavior as uncertain.",
+      "spec_quote": "Include a synchronous active-high reset.",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "sync_active_high_reset",
+            "uncertain"
+          ],
+          "value": true
+        },
+        {
+          "path": [
+            "uncertain"
+          ],
+          "value": [
+            {
+              "rule_id": "upper_digit_enables",
+              "note": "Spec does not state ena timing; contract currently assumes combinational same-cycle enable based on current q.",
+              "candidates": [
+                "Combinational same-cycle enable based on current q (contract default).",
+                "Registered active-high enable visible one cycle after the carry condition is met."
+              ]
+            },
+            {
+              "rule_id": "sync_active_high_reset",
+              "note": "Spec only requires a synchronous active-high reset and does not define q or ena values during/after reset; contract assumes both become 0.",
+              "candidates": [
+                "Reset clears q to 0 and ena to 0 (contract default).",
+                "Reset only mandates synchronous active-high reset; q and ena values under reset are unspecified/don't-care.",
+                "Reset clears q to 0 but leaves ena unspecified."
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "issue_id": "I2",
+      "decision": "accept",
+      "reason": "The public spec does not define ena bit ordering; add the reverse mapping as a plausible interpretation while retaining the contract default.",
+      "spec_quote": "For digits [3:1], also output an enable signal indicating when each of the upper three digits should be incremented.",
+      "edits": [
+        {
+          "path": [
+            "uncertain"
+          ],
+          "value": [
+            {
+              "rule_id": "sync_active_high_reset",
+              "note": "Spec only requires a synchronous active-high reset and does not define q or ena values during/after reset; contract assumes both become 0.",
+              "candidates": [
+                "Reset clears q to 0 and ena to 0 (contract default).",
+                "Reset only mandates synchronous active-high reset; q and ena values under reset are unspecified/don't-care.",
+                "Reset clears q to 0 but leaves ena unspecified."
+              ]
+            },
+            {
+              "rule_id": "upper_digit_enables",
+              "note": "Spec does not state ena timing or ena bit ordering; contract assumes combinational same-cycle enable based on current q with ena[0]=tens, ena[1]=hundreds, ena[2]=thousands.",
+              "candidates": [
+                "Combinational same-cycle enable based on current q, with ena[0]=tens, ena[1]=hundreds, ena[2]=thousands (contract default).",
+                "Combinational same-cycle enable based on current q, with reversed bit order: ena[2]=tens, ena[1]=hundreds, ena[0]=thousands.",
+                "Registered active-high enable visible one cycle after the carry condition is met, with ena[0]=tens, ena[1]=hundreds, ena[2]=thousands.",
+                "Registered active-high enable visible one cycle after the carry condition is met, with reversed bit order."
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "issue_id": "I3",
+      "decision": "rebut",
+      "reason": "The contract already flags ena timing as uncertain and includes the registered-carry alternative; no edit is needed.",
+      "spec_quote": "For digits [3:1], also output an enable signal indicating when each of the upper three digits should be incremented.",
+      "edits": []
+    }
+  ]
+}

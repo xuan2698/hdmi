@@ -1,0 +1,144 @@
+{
+  "coverage": {
+    "S01": [
+      "R1",
+      "R2",
+      "R3",
+      "R4"
+    ],
+    "S02": [
+      "R1",
+      "R2",
+      "R3"
+    ],
+    "S03": [
+      "R3"
+    ],
+    "S04": [
+      "R4"
+    ],
+    "S05": [
+      "R4"
+    ]
+  },
+  "issues": [
+    {
+      "issue_id": "I1",
+      "rule_id": "R1",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "R1 says S0 passes x through, but 2's complement LSB-first must pass trailing zeros and invert at/after first 1; first 1 should output 1 (pass) only if x=1, yet R1 example outputs z=1 for x=1 in S0 which is pass-through, consistent with pass; however R1 condition 'pass through trailing zeros and the first 1' conflicts with R2 starting complement after first 1—actually first 1 pass is correct. Real conflict: R1 example third vector x=0 expected z=1 implies S0 still after x=1? No, transition at posedge means same-cycle z=x, so z=0 for x=0 in S0. Example expected z=1 is wrong.",
+      "spec_evidence": "the output (Z) is the 2's complement of the input",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I2",
+      "rule_id": "R3",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "R3 example reuses R1 vectors/expected with z values, but R3 is a state transition rule; expected z=1 on third vector contradicts combinational S0 z=x=0. Also transition timing unclear: S0->S1 on posedge when x=1 means first 1 sampled in S0 outputs pass, next cycle S1.",
+      "spec_evidence": "beginning with the least-significant bit of the number",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I3",
+      "rule_id": "R4",
+      "type": "consistency",
+      "severity": "medium",
+      "detail": "R4 example third row areset=0,x=0 expected z=0; after reset release state S0, z=x=0, consistent, but first released cycle semantics not shown. No contradiction, but example does not demonstrate conversion start.",
+      "spec_evidence": "The conversion begins when Reset is released",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I4",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "high",
+      "detail": "Spec says conversion begins when Reset is released; contract does not specify whether the first posedge after release samples x in S0 (pass) or whether S0 is entered and first bit processed same cycle. Alternative: first released cycle is S0 and z=x same cycle.",
+      "spec_evidence": "The conversion begins when Reset is released and stops when Reset is asserted.",
+      "alternative": "On first posedge after areset deassert, state is S0 and z=x combinationally; S0->S1 if x=1 at that edge.",
+      "sequence": [
+        {
+          "areset": 0,
+          "x": 1
+        },
+        {
+          "areset": 0,
+          "x": 0
+        }
+      ]
+    },
+    {
+      "issue_id": "I5",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec says stops when Reset asserted; contract forces z=0 during reset, but does not state whether state must be S0 immediately on async assert (it does via R4) and whether output during reset is 0 vs last value. Alternative: z held last value during reset.",
+      "spec_evidence": "stops when Reset is asserted",
+      "alternative": "During areset=1, z retains previous value instead of forced 0.",
+      "sequence": [
+        {
+          "areset": 0,
+          "x": 1
+        },
+        {
+          "areset": 1,
+          "x": 0
+        }
+      ]
+    },
+    {
+      "issue_id": "I6",
+      "rule_id": "R1",
+      "type": "spec_example",
+      "severity": "high",
+      "detail": "Derived 2's complement for LSB-first input bits 0,1,0 (number 2) should output bits 0,1,0? 2's complement of 2 is ...1110, LSB-first output 0,1,1. Contract R1 example expects 0,1,1 for x=0,1,0, which is correct for pass-then-complement: S0 x=0 z=0; S0 x=1 z=1 transition to S1; S1 x=0 z=1. So R1 example is actually correct; I1 was mistaken. Re-evaluate: R1 example third vector x=0 expected z=1 requires state S1 after second vector, but R1 is combinational same-cycle and transition at posedge; if vectors are consecutive cycles, after second posedge state S1, third cycle z=NOT 0=1. So R1 example mixes stateful behavior into combinational rule. Issue: R1 example expected depends on R3 transition, not pure S0.",
+      "spec_evidence": "the output (Z) is the 2's complement of the input",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I7",
+      "rule_id": "R2",
+      "type": "spec_example",
+      "severity": "medium",
+      "detail": "R2 example vectors x=1,0,1 expected z=0,1,0 assumes starting in S1; if starting S0, first z=1 not 0. Rule condition says in S1, so example is valid only if initial state S1, but reset state is S0. Ambiguous initial condition for example.",
+      "spec_evidence": "the output (Z) is the 2's complement of the input",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I8",
+      "rule_id": "R3",
+      "type": "grounding",
+      "severity": "medium",
+      "detail": "R3 spec_quote 'beginning with the least-significant bit' does not support state transition rule; quote is about input order, not transition. Grounding weak.",
+      "spec_evidence": "beginning with the least-significant bit of the number",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I9",
+      "rule_id": "R4",
+      "type": "grounding",
+      "severity": "low",
+      "detail": "R4 quote 'positive edge triggered asynchronous reset' supports async reset but not z=0 during reset; spec does not state output value during reset.",
+      "spec_evidence": "positive edge triggered asynchronous reset",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I10",
+      "rule_id": "global",
+      "type": "coverage",
+      "severity": "medium",
+      "detail": "S03 arbitrary length is covered only implicitly by S1 self-loop; no explicit rule for arbitrary length or overflow. Acceptable but weak.",
+      "spec_evidence": "The machine will accept input numbers of arbitrary length.",
+      "alternative": "",
+      "sequence": []
+    }
+  ]
+}

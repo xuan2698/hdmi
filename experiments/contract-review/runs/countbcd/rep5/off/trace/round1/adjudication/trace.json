@@ -1,0 +1,410 @@
+[
+  {
+    "issue": {
+      "issue_id": "I6",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "high",
+      "detail": "ena bit mapping to digits [3:1] unspecified; could be ena[0]=tens,ena[1]=hundreds,ena[2]=thousands or reversed.",
+      "spec_evidence": "For digits [3:1], also output an enable signal indicating when each of the upper three digits should be incremented.",
+      "alternative": "ena[0]=thousands, ena[1]=hundreds, ena[2]=tens (reversed mapping)",
+      "sequence": [
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        }
+      ]
+    },
+    "status": "effect",
+    "issue_id": "I6",
+    "outputs": {
+      "original": [
+        {
+          "q": 0,
+          "ena": 0
+        },
+        {
+          "q": 1,
+          "ena": 0
+        },
+        {
+          "q": 2,
+          "ena": 0
+        },
+        {
+          "q": 3,
+          "ena": 0
+        },
+        {
+          "q": 4,
+          "ena": 0
+        },
+        {
+          "q": 5,
+          "ena": 0
+        },
+        {
+          "q": 6,
+          "ena": 0
+        },
+        {
+          "q": 7,
+          "ena": 0
+        },
+        {
+          "q": 8,
+          "ena": 0
+        },
+        {
+          "q": 9,
+          "ena": 1
+        }
+      ],
+      "alternative": [
+        {
+          "q": 0,
+          "ena": 0
+        },
+        {
+          "q": 1,
+          "ena": 0
+        },
+        {
+          "q": 2,
+          "ena": 0
+        },
+        {
+          "q": 3,
+          "ena": 0
+        },
+        {
+          "q": 4,
+          "ena": 0
+        },
+        {
+          "q": 5,
+          "ena": 0
+        },
+        {
+          "q": 6,
+          "ena": 0
+        },
+        {
+          "q": 7,
+          "ena": 0
+        },
+        {
+          "q": 8,
+          "ena": 0
+        },
+        {
+          "q": 9,
+          "ena": 4
+        }
+      ]
+    },
+    "differences": [
+      {
+        "cycle": 10,
+        "original": {
+          "q": 9,
+          "ena": 1
+        },
+        "alternative": {
+          "q": 9,
+          "ena": 4
+        }
+      }
+    ]
+  },
+  {
+    "issue": {
+      "issue_id": "I7",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "ena timing: whether enable indicates increment on same edge (combinational from current q) or registered output; rules say same_cycle but examples ambiguous.",
+      "spec_evidence": "",
+      "alternative": "ena registered one cycle after q[3:0]==9",
+      "sequence": [
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        }
+      ]
+    },
+    "status": "no_effect",
+    "issue_id": "I7",
+    "outputs": {
+      "original": [
+        {
+          "q": 1,
+          "ena": 0
+        },
+        {
+          "q": 2,
+          "ena": 0
+        },
+        {
+          "q": 3,
+          "ena": 0
+        },
+        {
+          "q": 4,
+          "ena": 0
+        },
+        {
+          "q": 5,
+          "ena": 0
+        },
+        {
+          "q": 6,
+          "ena": 0
+        },
+        {
+          "q": 7,
+          "ena": 0
+        },
+        {
+          "q": 8,
+          "ena": 0
+        },
+        {
+          "q": 9,
+          "ena": 0
+        },
+        {
+          "q": 16,
+          "ena": 1
+        }
+      ],
+      "alternative": [
+        {
+          "q": 1,
+          "ena": 0
+        },
+        {
+          "q": 2,
+          "ena": 0
+        },
+        {
+          "q": 3,
+          "ena": 0
+        },
+        {
+          "q": 4,
+          "ena": 0
+        },
+        {
+          "q": 5,
+          "ena": 0
+        },
+        {
+          "q": 6,
+          "ena": 0
+        },
+        {
+          "q": 7,
+          "ena": 0
+        },
+        {
+          "q": 8,
+          "ena": 0
+        },
+        {
+          "q": 9,
+          "ena": 0
+        },
+        {
+          "q": 16,
+          "ena": 1
+        }
+      ]
+    },
+    "differences": []
+  },
+  {
+    "issue": {
+      "issue_id": "I9",
+      "rule_id": "R2_ones_increment",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Increment condition for ones digit unspecified (always increment vs only when not rolling over); affects whether q[3:0] wraps 9->0.",
+      "spec_evidence": "",
+      "alternative": "ones digit increments every cycle including 9->0 wrap",
+      "sequence": [
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        }
+      ]
+    },
+    "status": "no_effect",
+    "issue_id": "I9",
+    "outputs": {
+      "original": [
+        {
+          "q": 0,
+          "ena": 0
+        },
+        {
+          "q": 1,
+          "ena": 0
+        },
+        {
+          "q": 2,
+          "ena": 0
+        },
+        {
+          "q": 3,
+          "ena": 0
+        },
+        {
+          "q": 4,
+          "ena": 0
+        },
+        {
+          "q": 5,
+          "ena": 0
+        },
+        {
+          "q": 6,
+          "ena": 0
+        },
+        {
+          "q": 7,
+          "ena": 0
+        },
+        {
+          "q": 8,
+          "ena": 0
+        },
+        {
+          "q": 9,
+          "ena": 1
+        }
+      ],
+      "alternative": [
+        {
+          "q": 0,
+          "ena": 0
+        },
+        {
+          "q": 1,
+          "ena": 0
+        },
+        {
+          "q": 2,
+          "ena": 0
+        },
+        {
+          "q": 3,
+          "ena": 0
+        },
+        {
+          "q": 4,
+          "ena": 0
+        },
+        {
+          "q": 5,
+          "ena": 0
+        },
+        {
+          "q": 6,
+          "ena": 0
+        },
+        {
+          "q": 7,
+          "ena": 0
+        },
+        {
+          "q": 8,
+          "ena": 0
+        },
+        {
+          "q": 9,
+          "ena": 1
+        }
+      ]
+    },
+    "differences": []
+  }
+]

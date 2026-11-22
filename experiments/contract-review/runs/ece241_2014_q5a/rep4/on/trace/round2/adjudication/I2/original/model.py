@@ -1,0 +1,65 @@
+def reference(vectors):
+    # State encoding: 0=START, 1=INV0, 2=INV1
+    state = 0
+    z = 0
+    cur_areset = 0
+    cur_x = 0
+    result = []
+
+    for row in vectors:
+        # Drive row input values before the sampled posedge.
+        if "areset" in row:
+            cur_areset = int(row["areset"]) & 1
+        if "x" in row:
+            cur_x = int(row["x"]) & 1
+
+        # R_RESET: asynchronous asserted reset forces START and z=0.
+        if cur_areset == 1:
+            state = 0
+            z = 0
+
+        # Sampled posedge behavior.
+        if cur_areset == 1:
+            # R_RESET has priority over conversion.
+            state = 0
+            z = 0
+        else:
+            # R_CONVERT: serial 2's-complement conversion, LSB first.
+            if state == 0:          # START: z=0, no 1 seen yet
+                if cur_x == 0:
+                    state = 0       # START, z=0
+                    z = 0
+                else:
+                    state = 2       # INV1, z=1
+                    z = 1
+            elif state == 1:        # INV0: z=0, a 1 has been seen
+                if cur_x == 0:
+                    state = 2       # INV1, z=1
+                    z = 1
+                else:
+                    state = 1       # INV0, z=0
+                    z = 0
+            else:                   # INV1: z=1, a 1 has been seen
+                if cur_x == 0:
+                    state = 2       # INV1, z=1
+                    z = 1
+                else:
+                    state = 1       # INV0, z=0
+                    z = 0
+
+        # Moore output after the sampled posedge has settled.
+        result.append({"z": z & 1})
+
+        # Optional mid input changes occur after sampling and before the next edge.
+        if "mid" in row and row["mid"]:
+            mid = row["mid"]
+            if "areset" in mid:
+                cur_areset = int(mid["areset"]) & 1
+                # R_RESET: asynchronous reset assertion after sampling.
+                if cur_areset == 1:
+                    state = 0
+                    z = 0
+            if "x" in mid:
+                cur_x = int(mid["x"]) & 1
+
+    return result

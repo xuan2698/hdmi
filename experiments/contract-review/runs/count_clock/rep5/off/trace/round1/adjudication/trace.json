@@ -1,0 +1,204 @@
+[
+  {
+    "issue": {
+      "issue_id": "I7",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "high",
+      "detail": "Spec says hh is two BCD digits for hours 01-12, but contract reset value hh=18 (0x12) and examples use hh=18; alternative interpretation: hh output is binary 0-23 or 1-12 rather than BCD, or 0x12 means decimal 18.",
+      "spec_evidence": "hh, mm, and ss are two BCD (Binary-Coded Decimal) digits each for hours (01-12)",
+      "alternative": "hh is binary hour 0-23, so 18 means 6 PM; reset to 12:00 AM would be hh=12 binary, not 18.",
+      "sequence": [
+        {
+          "reset": 1,
+          "ena": 0
+        },
+        {
+          "reset": 0,
+          "ena": 0
+        },
+        {
+          "reset": 0,
+          "ena": 1
+        }
+      ]
+    },
+    "status": "effect",
+    "issue_id": "I7",
+    "outputs": {
+      "original": [
+        {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 0
+        },
+        {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 0
+        },
+        {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 0
+        }
+      ],
+      "alternative": [
+        {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 0
+        },
+        {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 0
+        },
+        {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 1
+        }
+      ]
+    },
+    "differences": [
+      {
+        "cycle": 3,
+        "original": {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 0
+        },
+        "alternative": {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 1
+        }
+      }
+    ]
+  },
+  {
+    "issue": {
+      "issue_id": "I8",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec says pm asserted if PM; contract R5 toggles pm only on 12->1 rollover, but alternative: pm should toggle at 11:59:59->12:00:00 (noon/midnight) rather than 12:59:59->1:00:00.",
+      "spec_evidence": "The signal \"pm\" is asserted if the clock is PM, or is otherwise AM.",
+      "alternative": "pm toggles when hour rolls from 11 to 12, not from 12 to 1.",
+      "sequence": [
+        {
+          "reset": 0,
+          "ena": 1
+        },
+        {
+          "reset": 0,
+          "ena": 1
+        },
+        {
+          "reset": 0,
+          "ena": 1
+        }
+      ]
+    },
+    "status": "effect",
+    "issue_id": "I8",
+    "outputs": {
+      "original": [
+        {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 1
+        },
+        {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 2
+        },
+        {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 3
+        }
+      ],
+      "alternative": [
+        {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 0
+        },
+        {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 1
+        },
+        {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 2
+        }
+      ]
+    },
+    "differences": [
+      {
+        "cycle": 1,
+        "original": {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 1
+        },
+        "alternative": {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 0
+        }
+      },
+      {
+        "cycle": 2,
+        "original": {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 2
+        },
+        "alternative": {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 1
+        }
+      },
+      {
+        "cycle": 3,
+        "original": {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 3
+        },
+        "alternative": {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 2
+        }
+      }
+    ]
+  }
+]

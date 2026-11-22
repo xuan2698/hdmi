@@ -1,0 +1,70 @@
+def reference(vectors):
+    # Rule async_reset: active-low per candidate interpretation; areset=0 asynchronously forces state A and z=0.
+    # Rule serial_twos_complement: LSB-first two's complement Moore FSM.
+    state = 'A'
+    z_map = {'A': 0, 'B': 1, 'C': 0}
+    current = {'areset': 1, 'x': 0}
+    results = []
+    for row in vectors:
+        inp = {}
+        mid = None
+        if isinstance(row, dict):
+            if 'inputs' in row and isinstance(row['inputs'], dict):
+                inp.update(row['inputs'])
+            elif 'in' in row and isinstance(row['in'], dict):
+                inp.update(row['in'])
+            else:
+                for k in ('areset', 'x'):
+                    if k in row:
+                        inp[k] = row[k]
+            for k in ('areset', 'x'):
+                if k in row:
+                    inp[k] = row[k]
+            for k, v in row.items():
+                if isinstance(v, dict) and 'mid' in str(k).lower():
+                    mid = v
+                    break
+        else:
+            if isinstance(row, (list, tuple)):
+                if len(row) > 0:
+                    inp['areset'] = row[0]
+                if len(row) > 1:
+                    inp['x'] = row[1]
+            elif hasattr(row, 'get'):
+                for k in ('areset', 'x'):
+                    if row.get(k) is not None:
+                        inp[k] = row.get(k)
+        for k in ('areset', 'x'):
+            if k in inp:
+                current[k] = int(inp[k])
+        ar = current.get('areset', 1)
+        xv = current.get('x', 0)
+        # Rule async_reset: asynchronous reset (active-low) before sampled posedge.
+        if ar == 0:
+            state = 'A'
+        else:
+            # Rule serial_twos_complement: posedge state update from A, B, C.
+            if state == 'A':
+                if xv == 0:
+                    state = 'A'
+                else:
+                    state = 'B'
+            elif state == 'B':
+                if xv == 0:
+                    state = 'B'
+                else:
+                    state = 'C'
+            elif state == 'C':
+                if xv == 0:
+                    state = 'B'
+                else:
+                    state = 'C'
+        results.append({'z': z_map[state]})
+        # Rule async_reset: mid changes occur after sampling; may asynchronously reset for next row.
+        if mid is not None:
+            for k, v in mid.items():
+                if k in ('areset', 'x'):
+                    current[k] = int(v)
+            if 'areset' in mid and int(mid['areset']) == 0:
+                state = 'A'
+    return results

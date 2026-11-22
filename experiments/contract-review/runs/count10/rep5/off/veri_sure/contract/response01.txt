@@ -1,0 +1,53 @@
+```json
+{
+  "module_name": "top_module",
+  "io": [
+    {
+      "name": "clk",
+      "dir": "input",
+      "width": 1,
+      "description": "Clock input; counter advances on the positive edge."
+    },
+    {
+      "name": "reset",
+      "dir": "input",
+      "width": 1,
+      "description": "Active-high synchronous reset; when high at a positive clock edge, q is set to 0."
+    },
+    {
+      "name": "q",
+      "dir": "output",
+      "width": 4,
+      "description": "Decade counter output, counting 0 through 9 inclusive with period 10."
+    }
+  ],
+  "clocking": {
+    "clock": {
+      "name": "clk",
+      "edge": "posedge"
+    },
+    "reset": {
+      "name": "reset",
+      "active": "high",
+      "kind": "synchronous"
+    }
+  },
+  "timing": {
+    "outputs": {
+      "q": {
+        "latency_cycles": 1
+      }
+    }
+  },
+  "functional_summary": {
+    "overview": "A 4-bit decade counter that counts from 0 to 9 inclusive and wraps back to 0, giving a period of 10. The active-high synchronous reset forces the counter to 0 on the positive clock edge.",
+    "rules": [
+      "On each positive clock edge, if reset is high, q is set to 0.",
+      "On each positive clock edge, if reset is low and q is 9, q is set to 0.",
+      "On each positive clock edge, if reset is low and q is less than 9, q is incremented by 1.",
+      "q only takes values 0 through 9; values 10 through 15 never occur in normal operation.",
+      "The output q reflects the counter value after the positive clock edge has settled."
+    ]
+  }
+}
+```

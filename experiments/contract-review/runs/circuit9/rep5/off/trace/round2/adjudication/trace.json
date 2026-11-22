@@ -1,0 +1,79 @@
+[
+  {
+    "issue": {
+      "issue_id": "I5",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "high",
+      "detail": "Alternative semantics: q increments on posedge when a==0 regardless of previous a (not falling-edge). This fits 55ns increment (a=0 prev a=0) and 45ns hold (a=0 prev a=1 would increment under this alternative, so actually contradicts). Better alternative: increment on posedge when a==0 and previous a==0? Check 55ns prev a=0 yes, 45ns prev a=1 no hold, 65ns prev a=0 increment, 75ns prev a=0 increment to 0 (wrap), 85ns prev a=0 increment to 1. Fits all.",
+      "spec_evidence": "// 55ns            1               0               5",
+      "alternative": "increment when a==0 and previous a==0 (i.e., second consecutive low), hold otherwise",
+      "sequence": [
+        {
+          "a": 1
+        },
+        {
+          "a": 0
+        },
+        {
+          "a": 0
+        },
+        {
+          "a": 0
+        }
+      ]
+    },
+    "status": "effect",
+    "issue_id": "I5",
+    "outputs": {
+      "original": [
+        {
+          "q": 0
+        },
+        {
+          "q": 1
+        },
+        {
+          "q": 1
+        },
+        {
+          "q": 1
+        }
+      ],
+      "alternative": [
+        {
+          "q": 0
+        },
+        {
+          "q": 0
+        },
+        {
+          "q": 1
+        },
+        {
+          "q": 2
+        }
+      ]
+    },
+    "differences": [
+      {
+        "cycle": 2,
+        "original": {
+          "q": 1
+        },
+        "alternative": {
+          "q": 0
+        }
+      },
+      {
+        "cycle": 4,
+        "original": {
+          "q": 1
+        },
+        "alternative": {
+          "q": 2
+        }
+      }
+    ]
+  }
+]

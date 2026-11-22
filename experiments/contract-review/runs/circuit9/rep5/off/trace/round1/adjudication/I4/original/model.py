@@ -1,0 +1,16 @@
+def reference(vectors):
+    # State: 3-bit accumulator q. Power-up unspecified; use 4 to match the
+    # observed waveform (first sampled posedge at 5ns shows q=4 with a=1).
+    q = 4
+
+    out = []
+    for vec in vectors:
+        a = vec.get('a', 0)
+        # Rule hold_when_a_high: on posedge, if a==1, q holds.
+        # Rule increment_when_a_low: on posedge, if a==0, q increments by 1 (mod 8).
+        if a == 1:
+            q = q  # hold_when_a_high
+        else:
+            q = (q + 1) & 0x7  # increment_when_a_low
+        out.append({'q': q & 0x7})
+    return out

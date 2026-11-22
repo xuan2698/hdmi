@@ -1,0 +1,129 @@
+{
+  "ports": {
+    "inputs": {
+      "x": 1,
+      "y": 3
+    },
+    "outputs": {
+      "Y0": 1,
+      "z": 1
+    },
+    "clock": "clk"
+  },
+  "states": [
+    {
+      "name": "state_register",
+      "meaning": "3-bit present-state register y[2:0] updated on posedge clk from next-state function Y[2:0]",
+      "update_time": "posedge clk",
+      "update_during_reset": false
+    }
+  ],
+  "rules": [
+    {
+      "id": "R_Y0",
+      "outputs": [
+        "Y0"
+      ],
+      "condition": "Y0 = next-state bit 0 of Y[2:0] as function of present state y[2:0] and input x, per state-assigned table",
+      "edge": "combinational",
+      "visible": "same_cycle",
+      "priority": 1,
+      "spec_quote": "Next state Y[2:0] x=0, Next state Y[2:0] x=1",
+      "uncertain": false,
+      "example": {
+        "vectors": [
+          {
+            "x": 0,
+            "y": 0
+          },
+          {
+            "x": 1,
+            "y": 0
+          },
+          {
+            "x": 0,
+            "y": 3
+          },
+          {
+            "x": 1,
+            "y": 3
+          }
+        ],
+        "expected": [
+          {
+            "Y0": 0
+          },
+          {
+            "Y0": 1
+          },
+          {
+            "Y0": 1
+          },
+          {
+            "Y0": 0
+          }
+        ]
+      }
+    },
+    {
+      "id": "R_z",
+      "outputs": [
+        "z"
+      ],
+      "condition": "z = 1 when present state y[2:0] is 011 or 100, else 0 (Moore output from table)",
+      "edge": "combinational",
+      "visible": "same_cycle",
+      "priority": 1,
+      "spec_quote": "Output z",
+      "uncertain": false,
+      "example": {
+        "vectors": [
+          {
+            "x": 0,
+            "y": 2
+          },
+          {
+            "x": 0,
+            "y": 3
+          },
+          {
+            "x": 1,
+            "y": 4
+          },
+          {
+            "x": 0,
+            "y": 0
+          }
+        ],
+        "expected": [
+          {
+            "z": 0
+          },
+          {
+            "z": 1
+          },
+          {
+            "z": 1
+          },
+          {
+            "z": 0
+          }
+        ]
+      }
+    }
+  ],
+  "reset": {
+    "kind": "none",
+    "name": null,
+    "active": "none",
+    "values": {
+      "Y0": null,
+      "z": null
+    },
+    "first_released_cycle": "not applicable"
+  },
+  "mid": "Optional mid input changes occur AFTER sampling, before the other edge, and are carried to the start of the next row.",
+  "uncertain": [],
+  "remaining_uncertain_fields": {},
+  "selected_interpretations": []
+}

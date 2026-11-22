@@ -1,0 +1,67 @@
+{
+  "responses": [
+    {
+      "issue_id": "I1",
+      "decision": "accept",
+      "reason": "Reset example expected[1] q=0 is wrong: at second posedge reset==0 so q captures d=85. Fix expected values to reflect synchronous reset semantics.",
+      "spec_quote": "active high synchronous reset setting the output to zero",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R1_sync_reset",
+            "example"
+          ],
+          "value": {
+            "vectors": [
+              {
+                "d": 170,
+                "reset": 1
+              },
+              {
+                "d": 85,
+                "reset": 0
+              },
+              {
+                "d": 15,
+                "reset": 0
+              }
+            ],
+            "expected": [
+              {
+                "q": 0
+              },
+              {
+                "q": 85
+              },
+              {
+                "q": 15
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "issue_id": "I2",
+      "decision": "rebut",
+      "reason": "The current contract already includes reset=0 in every R2_dff_capture vector, so the example is width-valid and no change is needed.",
+      "spec_quote": "Create 8 D flip-flops",
+      "edits": []
+    },
+    {
+      "issue_id": "I3",
+      "decision": "rebut",
+      "reason": "Spec states active high synchronous reset setting the output to zero, which establishes reset priority over D capture; contract already encodes this via R1 priority 1 over R2 priority 2.",
+      "spec_quote": "active high synchronous reset setting the output to zero",
+      "edits": []
+    },
+    {
+      "issue_id": "I5",
+      "decision": "rebut",
+      "reason": "The example is derivable from the spec: synchronous reset forces q=0 on the posedge where reset==1, and D flip-flops capture d otherwise.",
+      "spec_quote": "active high synchronous reset setting the output to zero",
+      "edits": []
+    }
+  ]
+}

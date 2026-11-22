@@ -1,0 +1,69 @@
+def reference(vectors):
+    # Initial state; power-up concrete choice is S0 with z=0.
+    state = "S0"
+    z = 0
+    inputs = {"areset": 0, "x": 0}
+    result = []
+
+    for row in vectors:
+        # Each row's values are driven before the sampled posedge.
+        if "areset" in row:
+            inputs["areset"] = 1 if row["areset"] else 0
+        if "x" in row:
+            inputs["x"] = 1 if row["x"] else 0
+
+        # async_reset_z0: active-high asynchronous reset forces S0.
+        # Candidate interpretation: z holds its previous value while areset=1.
+        if inputs["areset"]:
+            state = "S0"
+            # z is held: no assignment here.
+        else:
+            x = inputs["x"] & 1
+            if state == "S0":
+                if x == 0:
+                    # s0_x0
+                    state = "S0"
+                    z = 0
+                else:
+                    # s0_x1
+                    state = "S1"
+                    z = 1
+            elif state == "S1":
+                if x == 0:
+                    # s1_x0
+                    state = "S1"
+                    z = 1
+                else:
+                    # s1_x1
+                    state = "S2"
+                    z = 0
+            elif state == "S2":
+                if x == 0:
+                    # s2_x0
+                    state = "S1"
+                    z = 1
+                else:
+                    # s2_x1
+                    state = "S2"
+                    z = 0
+
+        result.append({"z": z & 1})
+
+        # Mid changes occur after sampling and carry to the next row.
+        if "mid" in row and row["mid"] is not None:
+            mid = row["mid"]
+            if isinstance(mid, list):
+                mids = mid
+            else:
+                mids = [mid]
+            for m in mids:
+                if "x" in m:
+                    inputs["x"] = 1 if m["x"] else 0
+                if "areset" in m:
+                    inputs["areset"] = 1 if m["areset"] else 0
+                    if inputs["areset"]:
+                        # async_reset_z0: asynchronous assertion forces S0 and holds z.
+                        state = "S0"
+                        # z is held: no assignment here.
+
+    return result

@@ -1,0 +1,31 @@
+Looking at the waveform:
+
+- At 5ns (first posedge), q becomes 4 regardless of a=1.
+- While a=1, q stays at 4.
+- At 45ns, a becomes 0 (before posedge at 55ns), q becomes 5.
+- At 65ns, q becomes 6.
+- At 75ns, q wraps to 0.
+- At 85ns, q becomes 1.
+
+So: q initializes to 4 on first posedge, then increments by 1 (mod 8) on each posedge where the *current* a=0, holds when a=1. The a value used is the one present at the posedge (sampled value).
+
+Let me verify: at 45ns a=0, posedge at 55ns → q=5. At 55ns a=0, posedge at 65ns → q=6. At 65ns a=0, posedge at 75ns → q=0. At 75ns a=0, posedge at 85ns → q=1. Yes, uses current a at posedge.
+
+```python
+def reference(vectors):
+    q = None
+    out = []
+    for v in vectors:
+        a = v['a']
+        if q is None:
+            q = 4
+        else:
+            if a == 0:
+                q = (q + 1) & 7
+        out.append({'q': q})
+    return out
+```
+
+```json
+{"models":{"6522482454d192ecf9":"def reference(vectors):\n    q = None\n    out = []\n    for v in vectors:\n        a = v['a']\n        if q is None:\n            q = 4\n        else:\n            if a == 0:\n                q = (q + 1) & 7\n        out.append({'q': q})\n    return out\n","106f5c1c9094218e56":"def reference(vectors):\n    q = None\n    out = []\n    for v in vectors:\n        a = v['a']\n        if q is None:\n            q = 4\n        else:\n            if a == 0:\n                q = (q + 1) & 7\n        out.append({'q': q})\n    return out\n","9f508c6fc1a691f7ef":"def reference(vectors):\n    q = None\n    out = []\n    for v in vectors:\n        a = v['a']\n        if q is None:\n            q = 4\n        else:\n            if a == 0:\n                q = (q + 1) & 7\n        out.append({'q': q})\n    return out\n","f90c99c8572912cf9a":"def reference(vectors):\n    q = None\n    out = []\n    for v in vectors:\n        a = v['a']\n        if q is None:\n            q = 4\n        else:\n            if a == 0:\n                q = (q + 1) & 7\n        out.append({'q': q})\n    return out\n"}}
+```

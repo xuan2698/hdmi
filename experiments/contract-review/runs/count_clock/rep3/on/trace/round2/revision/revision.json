@@ -1,0 +1,60 @@
+{
+  "responses": [
+    {
+      "issue_id": "I1",
+      "decision": "accept",
+      "reason": "The reset rule quote omitted the active-high, synchronous, and priority wording; replace it with the full reset sentence.",
+      "spec_quote": "Reset is the active high synchronous signal that resets the clock to \"12:00 AM.\" Reset has higher priority than enable and can occur even when not enabled.",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "reset_priority",
+            "spec_quote"
+          ],
+          "value": "Reset is the active high synchronous signal that resets the clock to \"12:00 AM.\" Reset has higher priority than enable and can occur even when not enabled."
+        }
+      ]
+    },
+    {
+      "issue_id": "I2",
+      "decision": "accept",
+      "reason": "The hold rule quote omitted the clocked-by-clk and ena-pulse context; replace it with the full ena sentence.",
+      "spec_quote": "Your counters are clocked by a fast-running clk, with a pulse on ena whenever your clock should increment (i.e., once per second, while \"clk\" is much faster than once per second).",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "hold_clock",
+            "spec_quote"
+          ],
+          "value": "Your counters are clocked by a fast-running clk, with a pulse on ena whenever your clock should increment (i.e., once per second, while \"clk\" is much faster than once per second)."
+        }
+      ]
+    },
+    {
+      "issue_id": "I3",
+      "decision": "accept",
+      "reason": "The ambiguity remains unresolved by the specification; add the no-carry seconds-wrap alternative to the existing uncertain candidates while retaining the conventional interpretation.",
+      "spec_quote": "hh, mm, and ss are two BCD (Binary-Coded Decimal) digits each for hours (01-12), minutes (00-59), and seconds (00-59).",
+      "edits": [
+        {
+          "path": [
+            "uncertain"
+          ],
+          "value": [
+            {
+              "rule_id": "increment_clock",
+              "note": "The carry and AM/PM toggle sequence is inferred from the 12-hour-clock requirement; the specification enumerates BCD ranges but not every rollover transition.",
+              "candidates": [
+                "Conventional 12-hour BCD carry: seconds 59->00 carries minutes, minutes 59->00 carries hours, hours 12->01, pm toggles on 11->12.",
+                "When ss=0x59 and ena=1, ss wraps to 0x00 but mm is not incremented.",
+                "Alternative carry or AM/PM phase, such as toggling pm on 12->01 or at a different rollover boundary."
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

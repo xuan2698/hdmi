@@ -1,0 +1,20 @@
+```python
+def reference(vectors):
+    # Contract implementation.
+    # R1: state is a single flip-flop updated on posedge clk to a XOR b.
+    # R2: q = state OR (a XOR b) (combinational, same cycle).
+    # Reset: none; power-up state is unspecified -> we start at 0.
+    # Mid changes: inputs are sampled per row; we process each row's
+    #   inputs as the values present at the sampling edge.
+    state = 0
+    out = []
+    for v in vectors:
+        a = v.get('a', 0) & 1
+        b = v.get('b', 0) & 1
+        # R2: combinational output q = state OR (a XOR b)
+        q = (state | (a ^ b)) & 1
+        out.append({'q': q, 'state': state & 1})
+        # R1: posedge update: next state = a XOR b
+        state = (a ^ b) & 1
+    return out
+```

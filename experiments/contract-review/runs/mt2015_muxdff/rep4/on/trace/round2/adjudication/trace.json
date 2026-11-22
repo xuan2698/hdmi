@@ -1,0 +1,56 @@
+[
+  {
+    "issue": {
+      "issue_id": "I6",
+      "rule_id": "Q_posedge_update",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "q_in is absent from spec; plausible alternative is q_in is current-Q feedback/hold, with initial Q=0.",
+      "spec_evidence": "//         q <= {q[1] ^ q[2], q[0], q[2]};",
+      "alternative": "L=0 holds Q (q_in is current-state feedback, not external data).",
+      "sequence": [
+        {
+          "L": 0,
+          "q_in": 1,
+          "r_in": 0
+        },
+        {
+          "L": 0,
+          "q_in": 0,
+          "r_in": 0
+        }
+      ]
+    },
+    "status": "effect",
+    "issue_id": "I6",
+    "outputs": {
+      "original": [
+        {
+          "Q": 1
+        },
+        {
+          "Q": 0
+        }
+      ],
+      "alternative": [
+        {
+          "Q": 0
+        },
+        {
+          "Q": 0
+        }
+      ]
+    },
+    "differences": [
+      {
+        "cycle": 1,
+        "original": {
+          "Q": 1
+        },
+        "alternative": {
+          "Q": 0
+        }
+      }
+    ]
+  }
+]

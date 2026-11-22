@@ -1,0 +1,67 @@
+def reference(vectors):
+    # State encoding: 0=S0, 1=S1, 2=S11, 3=S110, 4=FOUND
+    state = 0
+    start_shifting = 0
+    current_reset = 0
+    current_data = 0
+    results = []
+
+    for row in vectors:
+        # R_KEEP_ZERO_UNTIL_FOUND: apply driven inputs before sampled posedge
+        if "reset" in row:
+            current_reset = row["reset"] & 1
+        if "data" in row:
+            current_data = row["data"] & 1
+
+        reset = current_reset
+        data = current_data
+
+        if reset == 1:
+            # R_RESET_CLEAR: synchronous active-high reset forces S0 and start_shifting=0
+            state = 0
+            start_shifting = 0
+        else:
+            # R_SET_OR_HOLD_1101: detection sets start_shifting=1 and FOUND holds it
+            if state == 4:  # FOUND
+                state = 4
+                start_shifting = 1
+            elif state == 3:  # S110
+                if data == 1:
+                    state = 4  # FOUND
+                    start_shifting = 1
+                else:
+                    state = 0  # S0
+                    start_shifting = 0
+            elif state == 2:  # S11
+                if data == 1:
+                    state = 2  # S11 (overlapping 1s)
+                else:
+                    state = 3  # S110
+                start_shifting = 0
+            elif state == 1:  # S1
+                if data == 1:
+                    state = 2  # S11
+                else:
+                    state = 0  # S0
+                start_shifting = 0
+            else:  # S0
+                if data == 1:
+                    state = 1  # S1
+                else:
+                    state = 0  # S0
+                start_shifting = 0
+
+        # R_KEEP_ZERO_UNTIL_FOUND: outputs are settled after the sampled posedge
+        results.append({"start_shifting": start_shifting & 1})
+
+        # Mid changes occur AFTER sampling, before the other edge, and carry to next row
+        if "mid" in row:
+            mid = row["mid"]
+            if mid is not None:
+                for k in mid:
+                    if k == "reset":
+                        current_reset = mid[k] & 1
+                    elif k == "data":
+                        current_data = mid[k] & 1
+
+    return results

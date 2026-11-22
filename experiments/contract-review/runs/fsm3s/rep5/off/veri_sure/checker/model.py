@@ -1,0 +1,50 @@
+def reference(vectors):
+    # Moore FSM: states A=0, B=1, C=2, D=3
+    # Output: 1 only in state D
+    # Synchronous active-high reset -> state A
+    # Transitions on posedge clk:
+    #   A: in=0 -> A, in=1 -> B
+    #   B: in=0 -> C, in=1 -> B
+    #   C: in=0 -> A, in=1 -> D
+    #   D: in=0 -> C, in=1 -> B
+    #
+    # Contract: each row's inputs are driven before the sampled posedge.
+    # Output is Moore, zero-cycle latency relative to current state.
+    # Mid input changes occur AFTER sampling, before the other edge,
+    # and are carried to the start of the next row.
+    #
+    # We model: state is the current state (post previous posedge).
+    # For each row: output = f(state). Then sample inputs at posedge -> next state.
+    # Mid changes after sampling affect the "in" value carried to next row,
+    # but since each row provides its own "in" value driven before the edge,
+    # we use the row's "in" for the transition. Mid changes are carried but
+    # overridden by the next row's driven value before its edge.
+
+    state = 0  # power-up unspecified; assume A (0) as concrete default
+    results = []
+
+    for row in vectors:
+        clk = row.get('clk', 0)
+        reset = row.get('reset', 0)
+        inp = row.get('in', 0)
+
+        # Output depends only on current state (Moore, zero latency)
+        out = 1 if state == 3 else 0
+
+        # On posedge, sample inputs and update state
+        if clk == 1:
+            if reset == 1:
+                state = 0
+            else:
+                if state == 0:
+                    state = 0 if inp == 0 else 1
+                elif state == 1:
+                    state = 2 if inp == 0 else 1
+                elif state == 2:
+                    state = 0 if inp == 0 else 3
+                elif state == 3:
+                    state = 2 if inp == 0 else 1
+
+        results.append({'out': out})
+
+    return results

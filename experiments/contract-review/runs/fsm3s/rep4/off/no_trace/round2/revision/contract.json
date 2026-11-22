@@ -1,0 +1,410 @@
+{
+  "ports": {
+    "inputs": {
+      "in": 1,
+      "reset": 1
+    },
+    "outputs": {
+      "out": 1
+    },
+    "clock": "clk"
+  },
+  "states": [
+    {
+      "name": "A",
+      "meaning": "state A, output 0; transition-rule examples assume starting state A",
+      "update_time": "posedge",
+      "update_during_reset": true
+    },
+    {
+      "name": "B",
+      "meaning": "state B, output 0; transition-rule examples assume starting state B",
+      "update_time": "posedge",
+      "update_during_reset": true
+    },
+    {
+      "name": "C",
+      "meaning": "state C, output 0; transition-rule examples assume starting state C",
+      "update_time": "posedge",
+      "update_during_reset": true
+    },
+    {
+      "name": "D",
+      "meaning": "state D, output 1; transition-rule examples assume starting state D",
+      "update_time": "posedge",
+      "update_during_reset": true
+    }
+  ],
+  "rules": [
+    {
+      "id": "R1",
+      "outputs": [
+        "out"
+      ],
+      "condition": "state == A",
+      "edge": "combinational",
+      "visible": "same_cycle",
+      "priority": 1,
+      "spec_quote": "A | A, B | 0",
+      "uncertain": false,
+      "example": {
+        "vectors": [
+          {
+            "in": 0,
+            "reset": 0
+          },
+          {
+            "in": 1,
+            "reset": 0
+          },
+          {
+            "in": 0,
+            "reset": 0
+          }
+        ],
+        "expected": [
+          {
+            "out": 0
+          },
+          {
+            "out": 0
+          },
+          {
+            "out": 0
+          }
+        ]
+      }
+    },
+    {
+      "id": "R2",
+      "outputs": [
+        "out"
+      ],
+      "condition": "state == B",
+      "edge": "combinational",
+      "visible": "same_cycle",
+      "priority": 1,
+      "spec_quote": "B | C, B | 0",
+      "uncertain": false,
+      "example": {
+        "vectors": [
+          {
+            "in": 0,
+            "reset": 0
+          },
+          {
+            "in": 1,
+            "reset": 0
+          },
+          {
+            "in": 0,
+            "reset": 0
+          }
+        ],
+        "expected": [
+          {
+            "out": 0
+          },
+          {
+            "out": 0
+          },
+          {
+            "out": 0
+          }
+        ]
+      }
+    },
+    {
+      "id": "R3",
+      "outputs": [
+        "out"
+      ],
+      "condition": "state == C",
+      "edge": "combinational",
+      "visible": "same_cycle",
+      "priority": 1,
+      "spec_quote": "C | A, D | 0",
+      "uncertain": false,
+      "example": {
+        "vectors": [
+          {
+            "in": 0,
+            "reset": 0
+          },
+          {
+            "in": 1,
+            "reset": 0
+          },
+          {
+            "in": 0,
+            "reset": 0
+          }
+        ],
+        "expected": [
+          {
+            "out": 0
+          },
+          {
+            "out": 0
+          },
+          {
+            "out": 0
+          }
+        ]
+      }
+    },
+    {
+      "id": "R4",
+      "outputs": [
+        "out"
+      ],
+      "condition": "state == D",
+      "edge": "combinational",
+      "visible": "same_cycle",
+      "priority": 1,
+      "spec_quote": "D | C, B | 1",
+      "uncertain": false,
+      "example": {
+        "vectors": [
+          {
+            "in": 0,
+            "reset": 0
+          },
+          {
+            "in": 1,
+            "reset": 0
+          },
+          {
+            "in": 0,
+            "reset": 0
+          }
+        ],
+        "expected": [
+          {
+            "out": 1
+          },
+          {
+            "out": 1
+          },
+          {
+            "out": 1
+          }
+        ]
+      }
+    },
+    {
+      "id": "R5",
+      "outputs": [
+        "out"
+      ],
+      "condition": "reset == 1 (synchronous active high reset forces state A)",
+      "edge": "posedge",
+      "visible": "next_cycle",
+      "priority": 0,
+      "spec_quote": "synchronous active high reset that resets the FSM to state A",
+      "uncertain": false,
+      "example": {
+        "vectors": [
+          {
+            "in": 0,
+            "reset": 1
+          },
+          {
+            "in": 1,
+            "reset": 0
+          },
+          {
+            "in": 0,
+            "reset": 0
+          }
+        ],
+        "expected": [
+          {
+            "out": 0
+          },
+          {
+            "out": 0
+          },
+          {
+            "out": 0
+          }
+        ]
+      }
+    },
+    {
+      "id": "R6",
+      "outputs": [
+        "out"
+      ],
+      "condition": "state == A && in == 0 -> A; state == A && in == 1 -> B",
+      "edge": "posedge",
+      "visible": "next_cycle",
+      "priority": 1,
+      "spec_quote": "A | A, B | 0",
+      "uncertain": false,
+      "example": {
+        "vectors": [
+          {
+            "in": 1,
+            "reset": 0
+          },
+          {
+            "in": 0,
+            "reset": 0
+          },
+          {
+            "in": 0,
+            "reset": 0
+          }
+        ],
+        "expected": [
+          {
+            "out": 0
+          },
+          {
+            "out": 0
+          },
+          {
+            "out": 0
+          }
+        ]
+      }
+    },
+    {
+      "id": "R7",
+      "outputs": [
+        "out"
+      ],
+      "condition": "state == B && in == 0 -> C; state == B && in == 1 -> B",
+      "edge": "posedge",
+      "visible": "next_cycle",
+      "priority": 1,
+      "spec_quote": "B | C, B | 0",
+      "uncertain": false,
+      "example": {
+        "vectors": [
+          {
+            "in": 1,
+            "reset": 0
+          },
+          {
+            "in": 1,
+            "reset": 0
+          },
+          {
+            "in": 0,
+            "reset": 0
+          }
+        ],
+        "expected": [
+          {
+            "out": 0
+          },
+          {
+            "out": 0
+          },
+          {
+            "out": 0
+          }
+        ]
+      }
+    },
+    {
+      "id": "R8",
+      "outputs": [
+        "out"
+      ],
+      "condition": "state == C && in == 0 -> A; state == C && in == 1 -> D",
+      "edge": "posedge",
+      "visible": "next_cycle",
+      "priority": 1,
+      "spec_quote": "C | A, D | 0",
+      "uncertain": false,
+      "example": {
+        "vectors": [
+          {
+            "in": 1,
+            "reset": 0
+          },
+          {
+            "in": 0,
+            "reset": 0
+          },
+          {
+            "in": 0,
+            "reset": 0
+          }
+        ],
+        "expected": [
+          {
+            "out": 0
+          },
+          {
+            "out": 1
+          },
+          {
+            "out": 0
+          }
+        ]
+      }
+    },
+    {
+      "id": "R9",
+      "outputs": [
+        "out"
+      ],
+      "condition": "state == D && in == 0 -> C; state == D && in == 1 -> B",
+      "edge": "posedge",
+      "visible": "next_cycle",
+      "priority": 1,
+      "spec_quote": "D | C, B | 1",
+      "uncertain": false,
+      "example": {
+        "vectors": [
+          {
+            "in": 0,
+            "reset": 0
+          },
+          {
+            "in": 0,
+            "reset": 0
+          },
+          {
+            "in": 1,
+            "reset": 0
+          }
+        ],
+        "expected": [
+          {
+            "out": 1
+          },
+          {
+            "out": 0
+          },
+          {
+            "out": 0
+          }
+        ]
+      }
+    }
+  ],
+  "reset": {
+    "kind": "sync",
+    "name": "reset",
+    "active": "high",
+    "values": {
+      "out": 0
+    },
+    "first_released_cycle": "first posedge with reset==0"
+  },
+  "mid": "Optional mid input changes occur AFTER sampling, before the other edge, and are carried to the start of the next row.",
+  "uncertain": [
+    {
+      "rule_id": "global",
+      "note": "Initial state before first posedge is assumed to be A with output 0.",
+      "candidates": [
+        "Assume initial state A and output 0 before first posedge"
+      ]
+    }
+  ]
+}

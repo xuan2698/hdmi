@@ -1,0 +1,238 @@
+[
+  {
+    "issue": {
+      "issue_id": "A1",
+      "rule_id": "R_SET_OR_HOLD_1101",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec does not fix same-cycle vs next-cycle setting; contract uses same_cycle.",
+      "spec_evidence": "When the sequence is found, it should set start_shifting to 1, forever, until reset.",
+      "alternative": "next_cycle: start_shifting remains 0 on the posedge that completes 1101 and becomes 1 on the following posedge.",
+      "sequence": [
+        {
+          "reset": 1,
+          "data": 0
+        },
+        {
+          "reset": 0,
+          "data": 1
+        },
+        {
+          "reset": 0,
+          "data": 1
+        },
+        {
+          "reset": 0,
+          "data": 0
+        },
+        {
+          "reset": 0,
+          "data": 1
+        },
+        {
+          "reset": 0,
+          "data": 0
+        }
+      ]
+    },
+    "status": "effect",
+    "issue_id": "A1",
+    "outputs": {
+      "original": [
+        {
+          "start_shifting": 0
+        },
+        {
+          "start_shifting": 0
+        },
+        {
+          "start_shifting": 0
+        },
+        {
+          "start_shifting": 0
+        },
+        {
+          "start_shifting": 1
+        },
+        {
+          "start_shifting": 1
+        }
+      ],
+      "alternative": [
+        {
+          "start_shifting": 0
+        },
+        {
+          "start_shifting": 0
+        },
+        {
+          "start_shifting": 0
+        },
+        {
+          "start_shifting": 0
+        },
+        {
+          "start_shifting": 0
+        },
+        {
+          "start_shifting": 1
+        }
+      ]
+    },
+    "differences": [
+      {
+        "cycle": 5,
+        "original": {
+          "start_shifting": 1
+        },
+        "alternative": {
+          "start_shifting": 0
+        }
+      }
+    ]
+  },
+  {
+    "issue": {
+      "issue_id": "A2",
+      "rule_id": "R_RESET_CLEAR",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec gives active-high sync reset but not reset target state/output value; contract assumes S0 and 0.",
+      "spec_evidence": "Reset is active high synchronous.",
+      "alternative": "reset clears start_shifting to 0 but leaves the search state unchanged, so a preserved FOUND state reasserts start_shifting after reset is released.",
+      "sequence": [
+        {
+          "reset": 1,
+          "data": 0
+        },
+        {
+          "reset": 0,
+          "data": 1
+        },
+        {
+          "reset": 0,
+          "data": 1
+        },
+        {
+          "reset": 0,
+          "data": 0
+        },
+        {
+          "reset": 0,
+          "data": 1
+        },
+        {
+          "reset": 1,
+          "data": 0
+        },
+        {
+          "reset": 0,
+          "data": 0
+        }
+      ]
+    },
+    "status": "effect",
+    "issue_id": "A2",
+    "outputs": {
+      "original": [
+        {
+          "start_shifting": 0
+        },
+        {
+          "start_shifting": 0
+        },
+        {
+          "start_shifting": 0
+        },
+        {
+          "start_shifting": 0
+        },
+        {
+          "start_shifting": 1
+        },
+        {
+          "start_shifting": 0
+        },
+        {
+          "start_shifting": 0
+        }
+      ],
+      "alternative": [
+        {
+          "start_shifting": 0
+        },
+        {
+          "start_shifting": 0
+        },
+        {
+          "start_shifting": 0
+        },
+        {
+          "start_shifting": 0
+        },
+        {
+          "start_shifting": 1
+        },
+        {
+          "start_shifting": 0
+        },
+        {
+          "start_shifting": 1
+        }
+      ]
+    },
+    "differences": [
+      {
+        "cycle": 7,
+        "original": {
+          "start_shifting": 0
+        },
+        "alternative": {
+          "start_shifting": 1
+        }
+      }
+    ]
+  },
+  {
+    "issue": {
+      "issue_id": "A3",
+      "rule_id": "R_KEEP_ZERO_UNTIL_FOUND",
+      "type": "ambiguity",
+      "severity": "low",
+      "detail": "Spec does not define start_shifting before first detection/reset; contract assumes 0.",
+      "spec_evidence": "When the sequence is found, it should set start_shifting to 1, forever, until reset.",
+      "alternative": "start_shifting is initially 1 and remains 1 before first reset, instead of being forced 0 before detection.",
+      "sequence": [
+        {
+          "reset": 0,
+          "data": 0
+        }
+      ]
+    },
+    "status": "effect",
+    "issue_id": "A3",
+    "outputs": {
+      "original": [
+        {
+          "start_shifting": 0
+        }
+      ],
+      "alternative": [
+        {
+          "start_shifting": 1
+        }
+      ]
+    },
+    "differences": [
+      {
+        "cycle": 1,
+        "original": {
+          "start_shifting": 0
+        },
+        "alternative": {
+          "start_shifting": 1
+        }
+      }
+    ]
+  }
+]

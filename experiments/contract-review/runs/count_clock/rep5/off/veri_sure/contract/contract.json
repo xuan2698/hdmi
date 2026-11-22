@@ -1,0 +1,85 @@
+{
+  "module_name": "top_module",
+  "io": [
+    {
+      "name": "clk",
+      "dir": "input",
+      "width": 1,
+      "description": "Fast-running clock; counters increment on posedge when ena is high."
+    },
+    {
+      "name": "reset",
+      "dir": "input",
+      "width": 1,
+      "description": "Active-high synchronous reset; resets clock to 12:00 AM. Has priority over ena."
+    },
+    {
+      "name": "ena",
+      "dir": "input",
+      "width": 1,
+      "description": "Enable pulse; when high (and reset low), the clock increments by one second."
+    },
+    {
+      "name": "pm",
+      "dir": "output",
+      "width": 1,
+      "description": "PM indicator: 1 if PM, 0 if AM."
+    },
+    {
+      "name": "hh",
+      "dir": "output",
+      "width": 8,
+      "description": "Two BCD digits for hours (01-12)."
+    },
+    {
+      "name": "mm",
+      "dir": "output",
+      "width": 8,
+      "description": "Two BCD digits for minutes (00-59)."
+    },
+    {
+      "name": "ss",
+      "dir": "output",
+      "width": 8,
+      "description": "Two BCD digits for seconds (00-59)."
+    }
+  ],
+  "clocking": {
+    "clock": {
+      "name": "clk",
+      "edge": "posedge"
+    },
+    "reset": {
+      "name": "reset",
+      "active": "high",
+      "kind": "synchronous"
+    }
+  },
+  "timing": {
+    "outputs": {
+      "pm": {
+        "latency_cycles": 1
+      },
+      "hh": {
+        "latency_cycles": 1
+      },
+      "mm": {
+        "latency_cycles": 1
+      },
+      "ss": {
+        "latency_cycles": 1
+      }
+    }
+  },
+  "functional_summary": {
+    "overview": "12-hour clock with AM/PM indicator. On each posedge of clk: if reset is high, outputs become 12:00 AM (pm=0, hh=0x12, mm=0x00, ss=0x00). Otherwise, if ena is high, the time advances by one second with BCD rollover: ss 00-59, mm 00-59, hh 01-12, and pm toggles when hours wrap from 11 to 12 (AM<->PM).",
+    "rules": [
+      "reset has priority over ena and is synchronous to clk posedge.",
+      "When reset is asserted, pm=0, hh=0x12, mm=0x00, ss=0x00 after the clock edge.",
+      "When ena is high and reset is low, ss increments by 1 in BCD; on ss overflow from 59 to 00, mm increments; on mm overflow from 59 to 00, hh increments.",
+      "Hours count 01,02,...,11,12,01,... in BCD; when hh transitions from 12 to 01, pm toggles.",
+      "When hh transitions from 11 to 12, pm toggles (AM->PM or PM->AM).",
+      "All outputs update with one-cycle latency relative to the sampled posedge."
+    ]
+  }
+}

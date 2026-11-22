@@ -1,0 +1,154 @@
+[
+  {
+    "issue": {
+      "issue_id": "I5",
+      "rule_id": "R1",
+      "type": "ambiguity",
+      "severity": "high",
+      "detail": "Spec waveform does not uniquely determine the next-state function; R1 asserts a specific behavior but an alternative next-state function (e.g., state toggles when a XOR b = 1) also fits many rows. Distinguishing sequence: apply inputs at posedges and observe state after each posedge.",
+      "spec_evidence": "// 75ns            1               0               0               1               1",
+      "alternative": "state_next = state XOR (a XOR b) on posedge clk",
+      "sequence": [
+        {
+          "a": 0,
+          "b": 1
+        },
+        {
+          "a": 1,
+          "b": 0
+        },
+        {
+          "a": 1,
+          "b": 1
+        },
+        {
+          "a": 0,
+          "b": 0
+        }
+      ]
+    },
+    "status": "effect",
+    "issue_id": "I5",
+    "outputs": {
+      "original": [
+        {
+          "q": 1,
+          "state": 0
+        },
+        {
+          "q": 1,
+          "state": 0
+        },
+        {
+          "q": 0,
+          "state": 0
+        },
+        {
+          "q": 0,
+          "state": 0
+        }
+      ],
+      "alternative": [
+        {
+          "q": 1,
+          "state": 0
+        },
+        {
+          "q": 1,
+          "state": 1
+        },
+        {
+          "q": 0,
+          "state": 0
+        },
+        {
+          "q": 0,
+          "state": 0
+        }
+      ]
+    },
+    "differences": [
+      {
+        "cycle": 2,
+        "original": {
+          "q": 1,
+          "state": 0
+        },
+        "alternative": {
+          "q": 1,
+          "state": 1
+        }
+      }
+    ]
+  },
+  {
+    "issue": {
+      "issue_id": "I6",
+      "rule_id": "R2",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "q's combinational function is not uniquely determined by the waveform; R2 asserts q = state OR (a XOR b), but an alternative q = state XOR (a XOR b) also fits several observed rows. Distinguishing sequence uses same-cycle inputs and observes q.",
+      "spec_evidence": "// 55ns            1               1               0               0               1",
+      "alternative": "q = state XOR (a XOR b)",
+      "sequence": [
+        {
+          "a": 1,
+          "b": 0
+        },
+        {
+          "a": 0,
+          "b": 1
+        },
+        {
+          "a": 1,
+          "b": 1
+        }
+      ]
+    },
+    "status": "effect",
+    "issue_id": "I6",
+    "outputs": {
+      "original": [
+        {
+          "q": 1,
+          "state": 0
+        },
+        {
+          "q": 1,
+          "state": 0
+        },
+        {
+          "q": 0,
+          "state": 0
+        }
+      ],
+      "alternative": [
+        {
+          "q": 1,
+          "state": 0
+        },
+        {
+          "q": 0,
+          "state": 1
+        },
+        {
+          "q": 0,
+          "state": 0
+        }
+      ]
+    },
+    "differences": [
+      {
+        "cycle": 2,
+        "original": {
+          "q": 1,
+          "state": 0
+        },
+        "alternative": {
+          "q": 0,
+          "state": 1
+        }
+      }
+    ]
+  }
+]

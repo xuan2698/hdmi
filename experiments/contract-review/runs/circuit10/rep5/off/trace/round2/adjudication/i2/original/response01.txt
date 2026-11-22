@@ -1,0 +1,47 @@
+Looking at the waveform, I need to determine the next-state function. Let me analyze the transitions at each posedge (sampled values):
+
+- 15ns: a=0,b=0,state=0 → state=0
+- 25ns: a=0,b=0,state=0 → state=0
+- 35ns: a=0,b=0,state=0 → state=0
+- 45ns: a=0,b=1,state=0 → state=1
+- 55ns: a=1,b=0,state=0 → state=1
+- 65ns: a=1,b=1,state=0 → state=0
+- 75ns: a=0,b=0,state=1 → state=1
+- 85ns: a=1,b=1,state=0 → state=0
+- 95ns: a=1,b=1,state=1 → state=1
+- 105ns: a=1,b=1,state=1 → state=1
+- 115ns: a=1,b=0,state=1 → state=0
+- 125ns: a=0,b=1,state=1 → state=0
+- 135ns: a=0,b=0,state=1 → state=1
+- 145ns: a=0,b=0,state=0 → state=0
+
+Let me check `state_next = a XOR b XOR state`:
+- (0,0,0)→0 ✓
+- (0,1,0)→1 ✓
+- (1,0,0)→1 ✓
+- (1,1,0)→0 ✓
+- (0,0,1)→1 ✓
+- (1,1,1)→1 ✓
+- (1,0,1)→0 ✓
+- (0,1,1)→0 ✓
+- (0,0,1)→1 ✓
+
+All match. So `state_next = a XOR b XOR state`, and `q = state` (registered).
+
+```python
+def reference(vectors):
+    # r1: q is the registered value of state (q equals state after each posedge)
+    # r2: next state = a XOR b XOR state (inferred from waveform)
+    # reset: none; power-up unspecified -> use 0
+    state = 0
+    out = []
+    for v in vectors:
+        a = v.get('a', 0) & 1
+        b = v.get('b', 0) & 1
+        # r1: q reflects current registered state
+        q = state & 1
+        out.append({'q': q, 'state': state & 1})
+        # r2: compute next state at posedge
+        state = (a ^ b ^ state) & 1
+    return out
+```

@@ -1,0 +1,104 @@
+{
+  "ports": {
+    "inputs": {
+      "a": 1
+    },
+    "outputs": {
+      "q": 3
+    },
+    "clock": "clk"
+  },
+  "states": [
+    {
+      "name": "count",
+      "meaning": "3-bit accumulator that increments by 1 on each posedge when a=0, and holds when a=1",
+      "update_time": "posedge",
+      "update_during_reset": false
+    }
+  ],
+  "rules": [
+    {
+      "id": "hold_when_a_high",
+      "outputs": [
+        "q"
+      ],
+      "condition": "a == 1",
+      "edge": "posedge",
+      "visible": "same_cycle",
+      "priority": 1,
+      "spec_quote": "// 5ns             1               1               4",
+      "uncertain": false,
+      "example": {
+        "vectors": [
+          {
+            "a": 1
+          },
+          {
+            "a": 1
+          },
+          {
+            "a": 1
+          }
+        ],
+        "expected": [
+          {
+            "q": 4
+          },
+          {
+            "q": 4
+          },
+          {
+            "q": 4
+          }
+        ]
+      }
+    },
+    {
+      "id": "increment_when_a_low",
+      "outputs": [
+        "q"
+      ],
+      "condition": "a == 0",
+      "edge": "posedge",
+      "visible": "same_cycle",
+      "priority": 1,
+      "spec_quote": "// 55ns            1               0               5",
+      "uncertain": false,
+      "example": {
+        "vectors": [
+          {
+            "a": 0
+          },
+          {
+            "a": 0
+          },
+          {
+            "a": 0
+          }
+        ],
+        "expected": [
+          {
+            "q": 5
+          },
+          {
+            "q": 6
+          },
+          {
+            "q": 0
+          }
+        ]
+      }
+    }
+  ],
+  "reset": {
+    "kind": "none",
+    "name": null,
+    "active": "none",
+    "values": {
+      "q": null
+    },
+    "first_released_cycle": "0"
+  },
+  "mid": "none",
+  "uncertain": []
+}

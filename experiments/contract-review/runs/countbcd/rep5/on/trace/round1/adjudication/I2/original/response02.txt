@@ -1,0 +1,53 @@
+def reference(vectors):
+    q = 0
+    current_reset = 0
+    result = []
+    for row in vectors:
+        # Determine reset value at this posedge: row value or carried from prior mid
+        if 'reset' in row:
+            reset_val = row['reset']
+        else:
+            reset_val = current_reset
+        current_reset = reset_val
+
+        # sync_reset: synchronous active-high reset clears q to 0 and overrides increment
+        if reset_val == 1:
+            q = 0
+        else:
+            # bcd_increment: increment 4-digit BCD modulo 10000
+            ones = q & 0xF
+            tens = (q >> 4) & 0xF
+            hundreds = (q >> 8) & 0xF
+            thousands = (q >> 12) & 0xF
+            ones += 1
+            if ones == 10:
+                ones = 0
+                tens += 1
+                if tens == 10:
+                    tens = 0
+                    hundreds += 1
+                    if hundreds == 10:
+                        hundreds = 0
+                        thousands += 1
+                        if thousands == 10:
+                            thousands = 0
+            q = (thousands << 12) | (hundreds << 8) | (tens << 4) | ones
+
+        # upper_digit_enables: combinational from current q
+        ones = q & 0xF
+        tens = (q >> 4) & 0xF
+        hundreds = (q >> 8) & 0xF
+        bit0 = 1 if ones == 9 else 0
+        bit1 = 1 if (ones == 9 and tens == 9) else 0
+        bit2 = 1 if (ones == 9 and tens == 9 and hundreds == 9) else 0
+        ena = bit0 | (bit1 << 1) | (bit2 << 2)
+
+        result.append({'q': q, 'ena': ena})
+
+        # Process optional mid-cycle input changes after sampling, carried to next row
+        if 'mid' in row:
+            mid = row['mid']
+            if type(mid) is dict:
+                if 'reset' in mid:
+                    current_reset = mid['reset']
+    return result

@@ -1,0 +1,62 @@
+{
+  "module_name": "top_module",
+  "io": [
+    {
+      "name": "clk",
+      "dir": "input",
+      "width": 1,
+      "description": "Clock; state sampled on posedge"
+    },
+    {
+      "name": "x",
+      "dir": "input",
+      "width": 1,
+      "description": "Input selecting next state"
+    },
+    {
+      "name": "y",
+      "dir": "input",
+      "width": 3,
+      "description": "Present state"
+    },
+    {
+      "name": "Y0",
+      "dir": "output",
+      "width": 1,
+      "description": "Bit 0 of next state Y"
+    },
+    {
+      "name": "z",
+      "dir": "output",
+      "width": 1,
+      "description": "Moore output"
+    }
+  ],
+  "clocking": {
+    "clock": {
+      "name": "clk",
+      "edge": "posedge"
+    },
+    "reset": null
+  },
+  "timing": {
+    "outputs": {
+      "Y0": {
+        "latency_cycles": 0
+      },
+      "z": {
+        "latency_cycles": 0
+      }
+    }
+  },
+  "functional_summary": {
+    "overview": "Moore FSM with 3-bit present state y and 1-bit input x. Outputs Y0 (LSB of next state Y) and z are combinational functions of y and x, sampled after posedge clk settles.",
+    "rules": [
+      "Y0 = 1 iff (y==3'b000 and x==1) or (y==3'b001 and x==1) or (y==3'b010 and x==1) or (y==3'b011 and x==0) or (y==3'b100 and x==0).",
+      "Equivalently Y0 = (y[2]==0 and x==1) or (y==3'b011 and x==0) or (y==3'b100 and x==0).",
+      "z = 1 iff y==3'b011 or y==3'b100; else z = 0.",
+      "Next-state table: y=000 -> Y=000 (x=0) / 001 (x=1); y=001 -> 001 / 100; y=010 -> 010 / 001; y=011 -> 001 / 010; y=100 -> 011 / 100.",
+      "Outputs are combinational (latency_cycles 0) and reflect inputs driven before the sampled posedge."
+    ]
+  }
+}

@@ -1,0 +1,43 @@
+{
+  "responses": [
+    {
+      "issue_id": "reset_polarity",
+      "decision": "accept",
+      "reason": "The specification requires an asynchronous reset but does not state its polarity; the current contract fixes active-high without recording that ambiguity. Add an uncertainty entry while preserving the existing reset output uncertainty.",
+      "spec_quote": "The circuit requires a positive edge triggered asynchronous reset.",
+      "edits": [
+        {
+          "path": [
+            "uncertain"
+          ],
+          "value": [
+            {
+              "rule_id": "async_reset_assert",
+              "note": "The specification gives an asynchronous reset and says conversion stops when reset is asserted, but it does not explicitly state the output value while reset is asserted. z=0 is inferred from forcing the no-first-1 reset state A.",
+              "candidates": [
+                "z=0 while areset=1 and state is reset to A",
+                "z retains its previous value while areset=1",
+                "z is unspecified while areset=1"
+              ]
+            },
+            {
+              "rule_id": "global",
+              "note": "The specification requires an asynchronous reset but does not state reset polarity; the contract currently fixes active-high.",
+              "candidates": [
+                "areset=1 asserts reset (active-high); areset=0 releases reset",
+                "areset=0 asserts reset (active-low); areset=1 releases reset"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "issue_id": "reset_output_value",
+      "decision": "rebut",
+      "reason": "The current contract already records this ambiguity and explicitly includes retaining prior z as a candidate interpretation.",
+      "spec_quote": "The conversion begins when Reset is released and stops when Reset is asserted.",
+      "edits": []
+    }
+  ]
+}

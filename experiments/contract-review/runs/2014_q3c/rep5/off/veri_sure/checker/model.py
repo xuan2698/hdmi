@@ -1,0 +1,33 @@
+def reference(vectors):
+    # Combinational Moore FSM outputs.
+    # y is 3-bit present state, x is 1-bit input.
+    # Y0 = LSB of next state Y[2:0] selected by (y, x).
+    # z = 1 for y in {3, 4} (011, 100), else 0.
+    #
+    # Next-state table:
+    #   y=0 (000): x=0 -> 000 (Y0=0), x=1 -> 001 (Y0=1)
+    #   y=1 (001): x=0 -> 001 (Y0=1), x=1 -> 100 (Y0=0)
+    #   y=2 (010): x=0 -> 010 (Y0=0), x=1 -> 001 (Y0=1)
+    #   y=3 (011): x=0 -> 001 (Y0=1), x=1 -> 010 (Y0=0)
+    #   y=4 (100): x=0 -> 011 (Y0=1), x=1 -> 100 (Y0=0)
+    #   y=5,6,7: unspecified; treat as 0 outputs.
+    next_y0 = {
+        0: {0: 0, 1: 1},
+        1: {0: 1, 1: 0},
+        2: {0: 0, 1: 1},
+        3: {0: 1, 1: 0},
+        4: {0: 1, 1: 0},
+    }
+    z_table = {0: 0, 1: 0, 2: 0, 3: 1, 4: 1}
+
+    results = []
+    for row in vectors:
+        y = row.get("y", 0) & 0x7
+        x = row.get("x", 0) & 0x1
+        if y in next_y0:
+            y0 = next_y0[y][x]
+        else:
+            y0 = 0
+        z = z_table.get(y, 0)
+        results.append({"Y0": y0, "z": z})
+    return results

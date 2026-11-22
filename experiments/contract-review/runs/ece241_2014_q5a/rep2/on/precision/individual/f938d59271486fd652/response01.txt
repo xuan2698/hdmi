@@ -1,0 +1,81 @@
+def reference(vectors):
+    # Initial power-up choice: concrete S0/z=0; async reset overrides when asserted.
+    state = "S0"
+    areset = 0
+    x = 0
+    result = []
+
+    for row in vectors:
+        # Inputs are driven before the sampled posedge.
+        if isinstance(row, dict):
+            if "areset" in row:
+                areset = int(row["areset"]) & 1
+            if "x" in row:
+                x = int(row["x"]) & 1
+
+        # async_reset_z0: active-high asynchronous reset forces S0 and z=0.
+        if areset == 1:
+            state = "S0"
+            z = 0
+        else:
+            # Posedge transitions with areset=0; Moore output is visible after the edge.
+            if state == "S0":
+                if x == 0:
+                    # s0_x0
+                    state = "S0"
+                else:
+                    # s0_x1
+                    state = "S1"
+            elif state == "S1":
+                if x == 0:
+                    # s1_x0
+                    state = "S1"
+                else:
+                    # s1_x1
+                    state = "S2"
+            else:  # state == "S2"
+                if x == 0:
+                    # s2_x0
+                    state = "S1"
+                else:
+                    # s2_x1
+                    state = "S2"
+
+            # Moore output: z=1 only in S1; z=0 in S0 and S2.
+            z = 1 if state == "S1" else 0
+
+        result.append({"z": int(z) & 1})
+
+        # mid changes occur after sampling, before the next clock edge,
+        # and carry into the next row.
+        if isinstance(row, dict) and "mid" in row:
+            mids = row["mid"]
+            if isinstance(mids, dict):
+                mids = [mids]
+            elif not isinstance(mids, (list, tuple)):
+                mids = []
+
+            for m in mids:
+                if not isinstance(m, dict):
+                    continue
+
+                if "areset" in m:
+                    areset = int(m["areset"]) & 1
+                    if areset == 1:
+                        # async_reset_z0: asynchronous assertion after sampling
+                        state = "S0"
+                if "x" in m:
+                    x = int(m["x"]) & 1
+
+                # Also accept a nested inputs object if present.
+                if "inputs" in m and isinstance(m["inputs"], dict):
+                    iv = m["inputs"]
+                    if "areset" in iv:
+                        areset = int(iv["areset"]) & 1
+                        if areset == 1:
+                            # async_reset_z0: asynchronous assertion after sampling
+                            state = "S0"
+                    if "x" in iv:
+                        x = int(iv["x"]) & 1
+
+    return result

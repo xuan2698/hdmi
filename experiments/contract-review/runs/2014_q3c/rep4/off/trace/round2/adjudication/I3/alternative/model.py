@@ -1,0 +1,31 @@
+def reference(vectors):
+    # State-assigned table: present state y -> (next state for x=0, next state for x=1)
+    # y=000 -> (000, 001)
+    # y=001 -> (001, 100)
+    # y=010 -> (010, 001)
+    # y=011 -> (001, 010)
+    # y=100 -> (011, 100)
+    next_state = {
+        0b000: (0b000, 0b001),
+        0b001: (0b001, 0b100),
+        0b010: (0b010, 0b001),
+        0b011: (0b001, 0b010),
+        0b100: (0b011, 0b100),
+    }
+
+    results = []
+    for vec in vectors:
+        x = vec.get('x', 0) & 0x1
+        y = vec.get('y', 0) & 0x7
+
+        # R_Y0: Y0 = next-state bit 0 of Y[2:0] per state-assigned table
+        # (candidate interpretation: bit 2/MSB instead of bit 0)
+        ns = next_state.get(y, (0b000, 0b000))[x]
+        Y0 = (ns >> 2) & 0x1  # candidate interpretation: MSB
+
+        # R_z: z = 1 when present state y is 011 or 100, else 0
+        z = 1 if y in (0b011, 0b100) else 0
+
+        results.append({'Y0': Y0, 'z': z})
+
+    return results

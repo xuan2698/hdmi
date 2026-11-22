@@ -1,0 +1,48 @@
+def reference(vectors):
+    # Contract rules implemented:
+    # R1: state A -> out 0 (combinational, same cycle)
+    # R2: state B -> out 0 (combinational, same cycle)
+    # R3: state C -> out 0 (combinational, same cycle)
+    # R4: state D -> out 1 (combinational, same cycle)
+    # R5: synchronous active high reset forces state A (posedge, next cycle)
+    # R6: A --in=0--> A; A --in=1--> B (posedge)
+    # R7: B --in=0--> C; B --in=1--> B (posedge)
+    # R8: C --in=0--> A; C --in=1--> D (posedge)
+    # R9: D --in=0--> C; D --in=1--> B (posedge)
+
+    # State encoding
+    A, B, C, D = 0, 1, 2, 3
+
+    # Output per state (Moore): R1-R4
+    out_map = {A: 0, B: 0, C: 0, D: 1}
+
+    # Next-state function (R6-R9)
+    def next_state(state, inp):
+        if state == A:
+            return B if inp else A  # R6
+        if state == B:
+            return B if inp else C  # R7
+        if state == C:
+            return D if inp else A  # R8
+        if state == D:
+            return B if inp else C  # R9
+        return A
+
+    # Power-up state: unspecified; use A as concrete default
+    state = A
+    results = []
+
+    for vec in vectors:
+        inp = vec.get("in", 0)
+        rst = vec.get("reset", 0)
+
+        # Output is combinational from current state (R1-R4), visible same cycle
+        results.append({"out": out_map[state] & 0x1})
+
+        # Posedge update: synchronous reset (R5) has priority
+        if rst:
+            state = A  # R5
+        else:
+            state = next_state(state, inp)  # R6-R9
+
+    return results

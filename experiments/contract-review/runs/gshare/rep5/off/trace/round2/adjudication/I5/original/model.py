@@ -1,0 +1,71 @@
+def reference(vectors):
+    # State
+    pht = [0] * 128          # R7: reset PHT counters to 0 (chosen candidate)
+    ghr = 0                  # R7: reset GHR to 0
+
+    out = []
+
+    for v in vectors:
+        areset = v.get('areset', 0)
+        predict_valid = v.get('predict_valid', 0)
+        predict_pc = v.get('predict_pc', 0) & 0x7F
+        train_valid = v.get('train_valid', 0)
+        train_taken = v.get('train_taken', 0)
+        train_mispredicted = v.get('train_mispredicted', 0)
+        train_history = v.get('train_history', 0) & 0x7F
+        train_pc = v.get('train_pc', 0) & 0x7F
+
+        # R7_async_reset: asynchronous active-high reset, visible same cycle
+        if areset:
+            pht = [0] * 128
+            ghr = 0
+            out.append({'predict_taken': 0, 'predict_history': 0})
+            continue
+
+        # R1_predict_outputs: when predict_valid, produce prediction using current PHT/GHR
+        # R6_predict_sees_pre_train_pht: prediction uses PHT state before this cycle's training
+        if predict_valid:
+            idx = (predict_pc ^ ghr) & 0x7F
+            counter = pht[idx]
+            predict_taken = 1 if counter >= 2 else 0
+            predict_history = ghr
+        else:
+            predict_taken = 0
+            predict_history = 0
+
+        out.append({'predict_taken': predict_taken, 'predict_history': predict_history})
+
+        # Compute next-state updates (applied at posedge)
+        new_pht = list(pht)
+        new_ghr = ghr
+
+        # R3_train_pht_update: train PHT counter for train_pc ^ train_history
+        if train_valid:
+            tidx = (train_pc ^ train_history) & 0x7F
+            c = new_pht[tidx]
+            if train_taken:
+                if c < 3:
+                    c += 1
+            else:
+                if c > 0:
+                    c -= 1
+            new_pht[tidx] = c
+
+        # R4_train_mispredict_ghr_recover: recover GHR to state after mispredicting branch
+        # R5_train_priority_over_predict_ghr: training takes precedence over prediction GHR update
+        if train_valid:
+            if train_mispredicted:
+                # Recover GHR: state immediately after the mispredicting branch completes
+                # = train_history shifted in with actual outcome
+                new_ghr = ((train_history << 1) | (train_taken & 1)) & 0x7F
+            else:
+                # Training without mispredict: GHR not modified by training
+                pass
+        elif predict_valid:
+            # R2_predict_ghr_update: update GHR for predicted branch (only if no training)
+            new_ghr = ((ghr << 1) | (predict_taken & 1)) & 0x7F
+
+        pht = new_pht
+        ghr = new_ghr
+
+    return out

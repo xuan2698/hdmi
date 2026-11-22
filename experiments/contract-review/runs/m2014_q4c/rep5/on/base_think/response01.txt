@@ -1,0 +1,19 @@
+def reference(vectors):
+    q = 0
+    state = {'d': 0, 'r': 0}
+    res = []
+    for row in vectors:
+        for k in ('d', 'r'):
+            if k in row:
+                state[k] = row[k] & 1
+        if state['r'] == 1:
+            q = 0
+        else:
+            q = state['d'] & 1
+        res.append({'q': q})
+        if 'mid' in row:
+            mid = row['mid']
+            for k in ('d', 'r'):
+                if k in mid:
+                    state[k] = mid[k] & 1
+    return res

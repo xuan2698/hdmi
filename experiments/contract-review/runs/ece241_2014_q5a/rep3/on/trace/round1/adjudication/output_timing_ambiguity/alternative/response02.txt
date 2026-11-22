@@ -1,0 +1,71 @@
+def reference(vectors):
+    # async_reset: areset high forces state A and z=0 asynchronously, highest priority.
+    # serial_twos_complement: Moore output reflects pre-edge state and lags one cycle per candidate interpretation.
+    state = 'A'  # A: reset/no 1 seen, z=0; B: carry=1 seen, z=1; C: carry=1 seen, z=0
+    cur_areset = 0
+    cur_x = 0
+    result = []
+
+    for row in vectors:
+        # Drive each row's values before the sampled edge.
+        if 'areset' in row:
+            cur_areset = 1 if (int(row['areset']) & 1) else 0
+        if 'x' in row:
+            cur_x = 1 if (int(row['x']) & 1) else 0
+
+        # async_reset: apply asynchronous reset before output when asserted.
+        if cur_areset == 1:
+            state = 'A'
+
+        # serial_twos_complement: pre-edge Moore output (lagged one cycle).
+        if cur_areset == 1:
+            z = 0
+        elif state == 'A':
+            z = 0
+        elif state == 'B':
+            z = 1
+        else:  # state == 'C'
+            z = 0
+
+        # serial_twos_complement: posedge state transition when not reset.
+        if cur_areset == 0:
+            if state == 'A':
+                if cur_x == 0:
+                    state = 'A'
+                else:
+                    state = 'B'
+            elif state == 'B':
+                if cur_x == 0:
+                    state = 'B'
+                else:
+                    state = 'C'
+            else:  # state == 'C'
+                if cur_x == 0:
+                    state = 'B'
+                else:
+                    state = 'C'
+        else:
+            state = 'A'
+
+        # Current row output is settled before optional mid changes.
+        result.append({'z': z & 1})
+
+        # Mid changes occur after sampling and do not affect this row's output.
+        if 'mid' in row and isinstance(row['mid'], dict):
+            mid = row['mid']
+            if 'areset' in mid:
+                cur_areset = 1 if (int(mid['areset']) & 1) else 0
+                if cur_areset == 1:
+                    state = 'A'
+            if 'x' in mid:
+                cur_x = 1 if (int(mid['x']) & 1) else 0
+
+        # Also support flattened mid_* keys.
+        if 'mid_areset' in row:
+            cur_areset = 1 if (int(row['mid_areset']) & 1) else 0
+            if cur_areset == 1:
+                state = 'A'
+        if 'mid_x' in row:
+            cur_x = 1 if (int(row['mid_x']) & 1) else 0
+
+    return result

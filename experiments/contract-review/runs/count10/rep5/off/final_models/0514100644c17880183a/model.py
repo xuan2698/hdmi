@@ -1,0 +1,37 @@
+def reference(vectors):
+    # Contract implementation.
+    # State: COUNT (4-bit counter q), power-up value 0.
+    # Clock: posedge clk. Sample after posedge settles.
+    # reset is active-high synchronous.
+    # Mid input changes occur AFTER sampling, before the other edge,
+    # and are carried to the start of the next row.
+
+    q = 0  # power-up state (COUNT initialized to 0)
+
+    results = []
+    for row in vectors:
+        # Inputs are driven before the sampled posedge.
+        reset = row.get("reset", 0)
+
+        # R1: reset == 1 -> q = 0 (synchronous, same cycle visible)
+        # R2: reset == 0 && q < 9 -> q = q + 1
+        # R3: reset == 0 && q == 9 -> q = 0
+        if reset == 1:
+            # R1
+            q = 0
+        else:
+            if q < 9:
+                # R2
+                q = q + 1
+            else:
+                # R3
+                q = 0
+
+        # Output q is 4-bit unsigned.
+        results.append({"q": q & 0xF})
+
+        # Mid changes (if any) occur after sampling; they affect the next row.
+        # Since inputs are read fresh from each row dict, mid changes are
+        # naturally carried to the start of the next row.
+
+    return results

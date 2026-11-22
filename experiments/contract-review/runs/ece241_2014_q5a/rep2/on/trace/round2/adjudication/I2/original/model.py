@@ -1,0 +1,87 @@
+def reference(vectors):
+    # Initial state S0, z=0 (concrete choice for unspecified power-up).
+    state = 0  # 0=S0, 1=S1, 2=S2
+    z = 0
+    cur_areset = 0
+    cur_x = 0
+    outputs = []
+
+    for row in vectors:
+        # Values driven before the sampled edge.
+        if 'areset' in row:
+            areset = row['areset']
+        else:
+            areset = cur_areset
+        if 'x' in row:
+            x = row['x']
+        else:
+            x = cur_x
+        cur_areset = areset
+        cur_x = x
+
+        # Sample after the posedge has settled.
+        # Rule global: same-cycle Moore output after the sampled posedge.
+        if areset == 1:
+            # Rule async_reset_z0: asynchronous reset forces state S0 and z=0.
+            state = 0
+            z = 0
+        else:
+            if state == 0:  # S0
+                if x == 0:
+                    # Rule s0_x0: S0 --x=0--> S0, z=0.
+                    state = 0
+                    z = 0
+                else:
+                    # Rule s0_x1: S0 --x=1--> S1, z=1.
+                    state = 1
+                    z = 1
+            elif state == 1:  # S1
+                if x == 0:
+                    # Rule s1_x0: S1 --x=0--> S1, z=1.
+                    state = 1
+                    z = 1
+                else:
+                    # Rule s1_x1: S1 --x=1--> S2, z=0.
+                    state = 2
+                    z = 0
+            else:  # S2
+                if x == 0:
+                    # Rule s2_x0: S2 --x=0--> S1, z=1.
+                    state = 1
+                    z = 1
+                else:
+                    # Rule s2_x1: S2 --x=1--> S2, z=0.
+                    state = 2
+                    z = 0
+
+        outputs.append({'z': z})
+
+        # Optional mid changes occur after sampling, before the next clock edge.
+        if 'mid' in row:
+            mid = row['mid']
+            try:
+                for k in mid:
+                    v = mid[k]
+                    if k == 'areset':
+                        cur_areset = v
+                        if v == 1:
+                            # Rule async_reset_z0: mid asynchronous reset forces S0 and z=0.
+                            state = 0
+                            z = 0
+                    elif k == 'x':
+                        cur_x = v
+            except:
+                # Support list-of-mid-objects form without isinstance.
+                for item in mid:
+                    for k in item:
+                        v = item[k]
+                        if k == 'areset':
+                            cur_areset = v
+                            if v == 1:
+                                # Rule async_reset_z0: mid asynchronous reset forces S0 and z=0.
+                                state = 0
+                                z = 0
+                        elif k == 'x':
+                            cur_x = v
+
+    return outputs

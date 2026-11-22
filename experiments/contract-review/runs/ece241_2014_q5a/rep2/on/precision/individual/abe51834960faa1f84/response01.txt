@@ -1,0 +1,89 @@
+def reference(vectors):
+    def output_for(state):
+        # Moore output: S1 -> z=1, S0/S2 -> z=0.
+        return 1 if state == "S1" else 0
+
+    def next_state(state, x):
+        if state == "S0":
+            if x == 0:
+                # s0_x0: S0 --x=0--> S0
+                return "S0"
+            else:
+                # s0_x1: S0 --x=1--> S1
+                return "S1"
+        elif state == "S1":
+            if x == 0:
+                # s1_x0: S1 --x=0--> S1
+                return "S1"
+            else:
+                # s1_x1: S1 --x=1--> S2
+                return "S2"
+        else:  # state == "S2"
+            if x == 0:
+                # s2_x0: S2 --x=0--> S1
+                return "S1"
+            else:
+                # s2_x1: S2 --x=1--> S2
+                return "S2"
+
+    # Power-up is handled concretely as S0; reset also forces S0.
+    state = "S0"
+    current_inputs = {"areset": 0, "x": 0}
+    outputs = []
+
+    def process_mid(obj):
+        nonlocal state
+
+        if obj is None:
+            return
+
+        if isinstance(obj, dict):
+            for name in ("areset", "x"):
+                if name in obj:
+                    current_inputs[name] = int(obj[name])
+                    if name == "areset" and current_inputs["areset"] == 1:
+                        # async_reset_z0: active-high asynchronous reset forces S0 and z=0.
+                        state = "S0"
+        elif isinstance(obj, (list, tuple)):
+            # Support a single (name, value) pair as well as a sequence of mid objects.
+            if len(obj) >= 2 and isinstance(obj[0], str) and obj[0] in ("areset", "x"):
+                name = obj[0]
+                current_inputs[name] = int(obj[1])
+                if name == "areset" and current_inputs["areset"] == 1:
+                    # async_reset_z0: active-high asynchronous reset forces S0 and z=0.
+                    state = "S0"
+            else:
+                for item in obj:
+                    process_mid(item)
+
+        if current_inputs["areset"] == 1:
+            # async_reset_z0: while areset remains asserted, state is forced to S0, z=0.
+            state = "S0"
+
+    for row in vectors:
+        # Drive the row's inputs before the sampled posedge.
+        if "areset" in row:
+            current_inputs["areset"] = int(row["areset"])
+        if "x" in row:
+            current_inputs["x"] = int(row["x"])
+
+        if current_inputs["areset"] == 1:
+            # async_reset_z0: active-high asynchronous reset has priority over state transitions.
+            state = "S0"
+
+        # Sample the posedge after it has settled.
+        if current_inputs["areset"] == 1:
+            # async_reset_z0: reset asserted, force S0 and z=0.
+            state = "S0"
+            z_value = 0
+        else:
+            state = next_state(state, current_inputs["x"])
+            z_value = output_for(state)
+
+        outputs.append({"z": int(z_value)})
+
+        # Optional mid changes occur after sampling, before the next edge, and carry forward.
+        if "mid" in row:
+            process_mid(row["mid"])
+
+    return outputs

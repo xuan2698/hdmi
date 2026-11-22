@@ -1,0 +1,58 @@
+def reference(vectors):
+    START = 0
+    INV0 = 1
+    INV1 = 2
+
+    state = START
+    current_areset = 0
+    current_x = 0
+    result = []
+
+    for row in vectors:
+        # Drive row inputs before the sampled edge.
+        if 'areset' in row:
+            current_areset = row['areset']
+        if 'x' in row:
+            current_x = row['x']
+
+        # R_RESET: asynchronous reset asserted forces START and z=0 with priority 0.
+        if current_areset == 1:
+            state = START
+
+        # R_CONVERT: observe z before the posedge (pre-edge state override).
+        if state == INV1:
+            z = 1
+        else:
+            z = 0
+
+        # R_RESET: z=0 while reset is asserted.
+        if current_areset == 1:
+            z = 0
+
+        result.append({'z': z})
+
+        # R_CONVERT: posedge samples x when reset is deasserted.
+        if current_areset == 0:
+            if state == START:
+                if current_x == 1:
+                    state = INV1
+            else:
+                if current_x == 1:
+                    state = INV0
+                else:
+                    state = INV1
+        # R_RESET: while asserted, state remains START and conversion is stopped.
+
+        # Mid changes occur after sampling and before the next edge.
+        if 'mid' in row:
+            mid = row['mid']
+            # R_RESET: asynchronous reset via mid takes effect immediately.
+            if 'areset' in mid:
+                current_areset = mid['areset']
+                if current_areset == 1:
+                    state = START
+            # R_CONVERT: carried x changes affect the next sampled posedge.
+            if 'x' in mid:
+                current_x = mid['x']
+
+    return result

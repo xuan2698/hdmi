@@ -1,0 +1,189 @@
+We need to implement a 2's complementer Moore state machine. The key insight: 2's complement of a number starting from LSB: copy bits until first 1 (inclusive), then complement all subsequent bits.
+
+State S0: no 1 seen yet → z = x (pass through)
+State S1: 1 seen → z = NOT x
+
+Reset is async, active high, forces S0.
+
+Let me write the reference function. The vectors are sampled after posedge settles. Each row's inputs are driven before the sampled edge. Reset is async.
+
+For each cycle:
+- If areset=1: state becomes S0 immediately (async), output z = x (since S0)
+- Else: output z based on current state (S0: z=x, S1: z=~x), then at posedge update state: if x=1 → S1, else stay.
+
+Wait, need to be careful about ordering. The output is combinational based on current state and current x. The state updates at posedge based on x.
+
+Since vectors are sampled after posedge settles, and inputs are driven before the sampled edge... Let me think about the timing model.
+
+"Each row's values are driven before the sampled edge." So for row i, inputs are set, then posedge occurs, then we sample. The output z is combinational from state and x.
+
+So the sequence per row:
+1. Inputs (areset, x) driven
+2. If areset=1: async reset → state = S0
+3. Posedge: state updates based on current state and x (if not in reset)
+4. Sample: z = f(state, x)
+
+Hmm, but if posedge updates state based on x, then after posedge the state reflects the new x. Then z is computed from new state and x.
+
+Wait, that's the standard Moore machine behavior: output depends on state only (in Moore), but here z depends on state AND x (it's actually a Mealy-like output but they call it Moore... actually z = x in S0 and z = ~x in S1, so z depends on both state and input).
+
+Let me reconsider. The rules say:
+- R1: In state S0, z = x (combinational, same_cycle)
+- R2: In state S1, z = NOT x (combinational, same_cycle)
+- R3: On posedge, if x=1 → next state S1; if x=0 stay S0
+- R4: On posedge, once in S1, stay S1
+- R5: Async reset → S0
+
+So the output is combinational from current state and current x. The state updates at posedge.
+
+Timing: inputs driven before posedge. At posedge, state updates. After posedge settles, we sample z.
+
+But z depends on state and x. If state updates at posedge based on x, then after posedge, state is the NEW state, and z = f(new_state, x).
+
+Hmm, but that would mean the output reflects the new state, which is weird for a "same_cycle" combinational output.
+
+Actually, let me reconsider. In a real circuit:
+- State register updates at posedge
+- Output is combinational from current state register value and current input
+
+If inputs are stable before posedge, then at posedge the state register updates. After posedge, the state register has the new value, and the combinational output reflects new state + current input.
+
+But the "same_cycle" designation suggests z is computed from the state BEFORE the posedge (the state at the start of the cycle).
+
+Hmm, this is ambiguous. Let me look at the examples.
+
+Example for R1: vectors [{areset:0,x:0},{areset:0,x:0},{areset:0,x:1}], expected [{z:0},{z:0},{z:1}]
+- Cycle 0: state=S0 (initial), x=0 → z=0. At posedge, x=0 so stay S0.
+- Cycle 1: state=S0, x=0 → z=0. At posedge, stay S0.
+- Cycle 2: state=S0, x=1 → z=1. At posedge, go to S1.
+Expected: 0,0,1. ✓ This matches z computed from state BEFORE posedge.
+
+Example for R3: vectors [{areset:0,x:0},{areset:0,x:1},{areset:0,x:0}], expected [{z:0},{z:1},{z:1}]
+- Cycle 0: state=S0, x=0 → z=0. Posedge: stay S0.
+- Cycle 1: state=S0, x=1 → z=1. Posedge: go S1.
+- Cycle 2: state=S1, x=0 → z=~0=1. Posedge: stay S1.
+Expected: 0,1,1. ✓
+
+So z is computed from state BEFORE the posedge (state at start of cycle), and x at that cycle. State updates at posedge for next cycle.
+
+Example for R5: vectors [{areset:1,x:1},{areset:1,x:0},{areset:0,x:0}], expected [{z:1},{z:0},{z:0}]
+- Cycle 0: areset=1 → state forced to S0. z = x = 1 (S0, x=1). ✓
+- Cycle 1: areset=1 → state S0. z = x = 0. ✓
+- Cycle 2: areset=0, state=S0 (from reset), x=0 → z=0. Posedge: stay S0. ✓
+
+Great, so the model is:
+- state starts at S0
+- For each cycle:
+  - If areset=1: state = S0 (async, immediate)
+  - Compute z from current state and x: S0 → z=x, S1 → z=~x
+  - At posedge (if areset=0): if state==S0 and x==1 → state=S1; if state==S1 → stay S1; if state==S0 and x==0 → stay S0
+
+Wait, but if areset=1, does posedge still update state? "update_during_reset": false, so no. State stays S0 during reset.
+
+Also, when areset=1, z is computed from S0 (forced state) and x.
+
+Let me also handle: what if areset goes from 1 to 0 mid-cycle? The spec says "Optional mid input changes occur AFTER sampling, before the other edge, and are carried to the start of the next row." So mid-cycle changes are just carried to next row. We don't need to model them separately.
+
+So the algorithm per row:
+1. Read areset, x
+2. If areset==1: state = 0 (S0)
+3. z = x if state==0 else (1-x)
+4. If areset==0: at posedge, if x==1: state=1; else state stays (if state==1, stays 1; if state==0, stays 0)
+   Actually: if x==1 → state=1; if x==0 → state stays same. That's the rule.
+
+Wait, R3 says "if x=1 then next state is S1; if x=0 state stays S0" — this is for S0. R4 says "once in S1, state remains S1 regardless of x". So combined: if x==1 → S1; if x==0 → stay in current state. That's correct.
+
+Let me verify: S0, x=0 → stay S0. S0, x=1 → S1. S1, x=0 → stay S1. S1, x=1 → stay S1. Yes, "if x==1 → S1, else stay".
+
+Now let me write the code. The function takes vectors (list of dicts with areset, x) and returns list of dicts with z.
+
+```python
+def reference(vectors):
+    state = 0  # S0
+    out = []
+    for v in vectors:
+        areset = v['areset']
+        x = v['x']
+        if areset == 1:
+            state = 0
+        # compute z from current state and x
+        if state == 0:
+            z = x
+        else:
+            z = 1 - x
+        out.append({'z': z})
+        # posedge update (only if not in reset)
+        if areset == 0:
+            if x == 1:
+                state = 1
+            # else stay
+    return out
+```
+
+Wait, but there's a subtlety. If areset=1, we set state=0, compute z, and then don't update at posedge. But what if areset was 1 in previous cycle and now 0? State is already 0 from reset. Good.
+
+But what about the case where areset=1 and we compute z from S0? Yes, that's what R5 says: "z follows R1/R2 from the resulting state" — resulting state is S0.
+
+Let me double check R5 example: [{areset:1,x:1},{areset:1,x:0},{areset:0,x:0}]
+- Cycle 0: areset=1 → state=0. z = x = 1. ✓
+- Cycle 1: areset=1 → state=0. z = x = 0. ✓
+- Cycle 2: areset=0, state=0. z = x = 0. Posedge: x=0, stay S0. ✓
+
+Now let me check the other examples.
+
+R2 example: [{areset:0,x:1},{areset:0,x:0},{areset:0,x:1}], expected [{z:1},{z:1},{z:0}]
+- Cycle 0: state=0, x=1 → z=1. Posedge: x=1 → state=1.
+- Cycle 1: state=1, x=0 → z=1. Posedge: x=0, stay S1.
+- Cycle 2: state=1, x=1 → z=0. Posedge: x=1, stay S1.
+Expected: 1,1,0. ✓
+
+R4 example: [{areset:0,x:1},{areset:0,x:0},{areset:0,x:0}], expected [{z:1},{z:1},{z:1}]
+- Cycle 0: state=0, x=1 → z=1. Posedge: state=1.
+- Cycle 1: state=1, x=0 → z=1. Stay S1.
+- Cycle 2: state=1, x=0 → z=1. Stay S1.
+Expected: 1,1,1. ✓
+
+All examples check out. Now let me write the final code.
+
+The output should be JSON with models keyed by id, each value being the Python source string.
+
+Let me write it cleanly:
+
+```python
+def reference(vectors):
+    state = 0
+    result = []
+    for v in vectors:
+        areset = v['areset']
+        x = v['x']
+        if areset == 1:
+            state = 0
+        if state == 0:
+            z = x
+        else:
+            z = 1 - x
+        result.append({'z': z})
+        if areset == 0 and x == 1:
+            state = 1
+    return result
+```
+
+This is clean. Let me verify once more with all examples... yes, all pass.
+
+Now format as JSON. The four IDs are:
+- f829224c4db6c98dc4
+- 56375bdd547c527dc8
+- 8136b7e781c813175e
+- 5930d9bb74e4388b7b
+
+All have the same spec (just different example vectors, but the reference function is the same). So all four get the same source string.
+
+Let me write the JSON:
+
+```json
+{"models":{"f829224c4db6c98dc4":"def reference(vectors):\n    state = 0\n    result = []\n    for v in vectors:\n        areset = v['areset']\n        x = v['x']\n        if areset == 1:\n            state = 0\n        if state == 0:\n            z = x\n        else:\n            z = 1 - x\n        result.append({'z': z})\n        if areset == 0 and x == 1:\n            state = 1\n    return result\n", ...}}
+```
+
+Let me make sure the code has no imports, no I/O, no executable top-level code. It's just a function definition. Good.
+
+Let me finalize.

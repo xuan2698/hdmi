@@ -1,0 +1,114 @@
+{
+  "coverage": {
+    "S01": [
+      "R3",
+      "R4"
+    ],
+    "S02": [
+      "R1",
+      "R2",
+      "R3"
+    ],
+    "S03": [
+      "R1"
+    ]
+  },
+  "issues": [
+    {
+      "issue_id": "I1",
+      "rule_id": "R3",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "R3 says visible next_cycle but example shows start_shifting=1 on same row as data=1 completing 1101, contradicting next_cycle visibility.",
+      "spec_evidence": "When the sequence is found, it should set start_shifting to 1",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I2",
+      "rule_id": "R3",
+      "type": "ambiguity",
+      "severity": "high",
+      "detail": "R3 condition uses next_state==S4 but visibility next_cycle; ambiguous whether output reflects current or next state.",
+      "spec_evidence": "When the sequence is found, it should set start_shifting to 1",
+      "alternative": "Output is registered and reflects state after the edge (next_cycle), so start_shifting goes high one cycle after the 1101-completing data bit.",
+      "sequence": [
+        {
+          "reset": 0,
+          "data": 1
+        },
+        {
+          "reset": 0,
+          "data": 1
+        },
+        {
+          "reset": 0,
+          "data": 0
+        },
+        {
+          "reset": 0,
+          "data": 1
+        },
+        {
+          "reset": 0,
+          "data": 0
+        }
+      ]
+    },
+    {
+      "issue_id": "I3",
+      "rule_id": "R2",
+      "type": "consistency",
+      "severity": "medium",
+      "detail": "R2 condition state==S4 with same_cycle visibility but example starts already in S4 without showing entry; combined with R3 next_cycle creates contradictory timing for first assertion.",
+      "spec_evidence": "it should set start_shifting to 1, forever, until reset",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I4",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec says forever until reset; contract lacks explicit rule that start_shifting stays 1 across cycles after S4 except via state==S4, and no rule covers state S4 with reset==0 vs data transitions.",
+      "spec_evidence": "forever, until reset",
+      "alternative": "Once S4 reached, start_shifting remains 1 regardless of subsequent data until synchronous reset asserted.",
+      "sequence": [
+        {
+          "reset": 0,
+          "data": 1
+        },
+        {
+          "reset": 0,
+          "data": 1
+        },
+        {
+          "reset": 0,
+          "data": 0
+        },
+        {
+          "reset": 0,
+          "data": 1
+        },
+        {
+          "reset": 0,
+          "data": 0
+        },
+        {
+          "reset": 0,
+          "data": 0
+        }
+      ]
+    },
+    {
+      "issue_id": "I5",
+      "rule_id": "R1",
+      "type": "grounding",
+      "severity": "low",
+      "detail": "R1 example expected outputs all 0 but does not demonstrate reset clearing a previously high start_shifting.",
+      "spec_evidence": "Reset is active high synchronous.",
+      "alternative": "",
+      "sequence": []
+    }
+  ]
+}

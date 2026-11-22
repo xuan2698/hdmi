@@ -1,0 +1,26 @@
+```python
+def reference(vectors):
+    # Contract implementation.
+    # r1: q is the registered value of state (q equals state after each posedge).
+    # r2: next state inferred from waveform. The waveform is inconsistent with a
+    #     single deterministic function of (a,b,state); the best-fitting candidate
+    #     given the observed transitions is state_next = a XOR b XOR state
+    #     (a toggle when a XOR b is 1). We use that.
+    # reset: none. Power-up state is unspecified; we start at 0.
+    # mid: mid input changes occur AFTER sampling, before the other edge, and are
+    #      carried to the start of the next row. We process each row's inputs as
+    #      the values driven before the sampled posedge.
+
+    state = 0  # power-up unspecified; concrete default
+    q = 0
+    out = []
+    for vec in vectors:
+        a = vec.get('a', 0) & 1
+        b = vec.get('b', 0) & 1
+        # r1: q reflects registered state (visible after posedge)
+        q = state & 1
+        out.append({'q': q, 'state': state & 1})
+        # r2: compute next state at posedge
+        state = (a ^ b ^ state) & 1
+    return out
+```

@@ -1,0 +1,194 @@
+{
+  "coverage": {
+    "S01": ["R1"],
+    "S02": ["R1"],
+    "S03": ["R2"],
+    "S04": ["unrelated"],
+    "S05": ["unrelated"],
+    "S06": ["unrelated"],
+    "S07": ["unrelated"],
+    "S08": ["unrelated"],
+    "S09": ["R1", "R2"],
+    "S10": ["R1", "R2"],
+    "S11": ["R1", "R2"],
+    "S12": ["R1", "R2"],
+    "S13": ["R1", "R2"],
+    "S14": ["R1", "R2"],
+    "S15": ["R1", "R2"],
+    "S16": ["R1", "R2"],
+    "S17": ["R1", "R2"],
+    "S18": ["R1", "R2"],
+    "S19": ["R1", "R2"],
+    "S20": ["R1", "R2"],
+    "S21": ["R1", "R2"],
+    "S22": ["R1", "R2"],
+    "S23": ["R1", "R2"],
+    "S24": ["R1", "R2"],
+    "S25": ["R1", "R2"],
+    "S26": ["R1", "R2"],
+    "S27": ["R1", "R2"],
+    "S28": ["R1", "R2"],
+    "S29": ["R1", "R2"],
+    "S30": ["R1", "R2"],
+    "S31": ["R1", "R2"],
+    "S32": ["R1", "R2"],
+    "S33": ["R1", "R2"],
+    "S34": ["R1", "R2"],
+    "S35": ["R1", "R2"],
+    "S36": ["R1", "R2"],
+    "S37": ["R1", "R2"],
+    "S38": ["R1", "R2"],
+    "S39": ["R1", "R2"],
+    "S40": ["R1", "R2"],
+    "S41": ["R1", "R2"],
+    "S42": ["R1", "R2"],
+    "S43": ["R1", "R2"],
+    "S44": ["R1", "R2"]
+  },
+  "issues": [
+    {
+      "issue_id": "I1",
+      "rule_id": "R1",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "R1 example expected state after (a=0,b=1) is 1, but spec waveform at 45ns shows state=0 after a=0,b=1 at 45ns posedge (state updates to 1 at 75ns).",
+      "spec_evidence": "// 45ns            1               0               1               0               1",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I2",
+      "rule_id": "R1",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "R1 example expected state after (a=1,b=0) is 1, but spec waveform at 55ns shows state=0 after a=1,b=0 at 55ns posedge (state updates to 1 at 75ns).",
+      "spec_evidence": "// 55ns            1               1               0               0               1",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I3",
+      "rule_id": "R1",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "R1 example expected state after (a=1,b=1) is 0, but spec waveform at 65ns shows state=0 after a=1,b=1 at 65ns posedge (state updates to 0 at 85ns).",
+      "spec_evidence": "// 65ns            1               1               1               0               0",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I4",
+      "rule_id": "R2",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "R2 example expected q after (a=0,b=1) is 1, but spec waveform at 45ns shows q=1 while state=0, contradicting q=state.",
+      "spec_evidence": "// 45ns            1               0               1               0               1",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I5",
+      "rule_id": "R2",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "R2 example expected q after (a=1,b=1) is 0, but spec waveform at 65ns shows q=0 while state=0, consistent; however at 75ns state=1 q=1, but R2 example uses (a=1,b=1) expecting q=0 which matches 65ns but not 75ns.",
+      "spec_evidence": "// 75ns            1               0               0               1               1",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I6",
+      "rule_id": "R1",
+      "type": "ambiguity",
+      "severity": "high",
+      "detail": "Spec waveform shows state updates on posedge to a^b, but R1 example expected values do not match the waveform's state sequence; alternative semantics: state updates to a^b on posedge, but initial state at 0ns is x and first update at 5ns?",
+      "spec_evidence": "// 5ns             1               1               x               x               x",
+      "alternative": "state updates on posedge to a^b, but initial state is x and first update at 5ns is x (since a=1,b=x), then at 15ns state=0 (a=0,b=0), at 25ns state=0, at 35ns state=0, at 45ns state=0 (a=0,b=1 -> should be 1 but is 0), so state does not update to a^b at 45ns; instead state updates to a^b only when both a and b are known? At 45ns a=0,b=1 known, but state remains 0, so not a^b.",
+      "sequence": [
+        {"a": 0, "b": 1},
+        {"a": 1, "b": 0},
+        {"a": 1, "b": 1}
+      ]
+    },
+    {
+      "issue_id": "I7",
+      "rule_id": "R1",
+      "type": "ambiguity",
+      "severity": "high",
+      "detail": "Spec waveform state sequence: 0 at 15ns, 0 at 25ns, 0 at 35ns, 0 at 45ns, 0 at 55ns, 0 at 65ns, 1 at 75ns, 0 at 85ns, 0 at 95ns, 1 at 105ns, 1 at 115ns, 1 at 125ns, 1 at 135ns, 1 at 145ns, 0 at 155ns, 0 at 165ns, 0 at 175ns, 0 at 185ns. This does not match a^b at each posedge: at 45ns a=0,b=1 -> a^b=1 but state=0; at 55ns a=1,b=0 -> a^b=1 but state=0; at 65ns a=1,b=1 -> a^b=0 but state=0 (matches); at 75ns a=0,b=0 -> a^b=0 but state=1 (mismatch); at 85ns a=1,b=1 -> a^b=0 but state=0 (matches); at 95ns a=1,b=1 -> a^b=0 but state=0 (matches); at 105ns a=1,b=1 -> a^b=0 but state=1 (mismatch); at 115ns a=1,b=0 -> a^b=1 but state=1 (matches); at 125ns a=0,b=1 -> a^b=1 but state=1 (matches); at 135ns a=0,b=0 -> a^b=0 but state=1 (mismatch); at 145ns a=0,b=0 -> a^b=0 but state=0 (matches); at 155ns a=0,b=0 -> a^b=0 but state=0 (matches); at 165ns a=0,b=0 -> a^b=0 but state=0 (matches); at 175ns a=0,b=0 -> a^b=0 but state=0 (matches); at 185ns a=0,b=0 -> a^b=0 but state=0 (matches). So state does not equal a^b at posedge.",
+      "spec_evidence": "// 45ns            1               0               1               0               1",
+      "alternative": "state updates on posedge to a^b only when a and b are both 1? At 65ns a=1,b=1 -> state=0 (a^b=0), at 85ns a=1,b=1 -> state=0, at 95ns a=1,b=1 -> state=0, at 105ns a=1,b=1 -> state=1 (mismatch). Not consistent.",
+      "sequence": [
+        {"a": 0, "b": 1},
+        {"a": 1, "b": 0},
+        {"a": 1, "b": 1},
+        {"a": 0, "b": 0}
+      ]
+    },
+    {
+      "issue_id": "I8",
+      "rule_id": "R2",
+      "type": "ambiguity",
+      "severity": "high",
+      "detail": "Spec waveform q does not always equal state: at 45ns state=0 q=1; at 55ns state=0 q=1; at 75ns state=1 q=1; at 85ns state=0 q=0; at 95ns state=0 q=0; at 105ns state=1 q=1; at 115ns state=1 q=1; at 125ns state=1 q=1; at 135ns state=1 q=1; at 145ns state=1 q=1; at 155ns state=0 q=0; at 165ns state=0 q=0; at 175ns state=0 q=0; at 185ns state=0 q=0. So q=state except at 45ns and 55ns where state=0 q=1. This suggests q may be a^b combinational? At 45ns a=0,b=1 -> a^b=1 q=1; at 55ns a=1,b=0 -> a^b=1 q=1; at 65ns a=1,b=1 -> a^b=0 q=0; at 75ns a=0,b=0 -> a^b=0 q=1 (mismatch). So not a^b.",
+      "spec_evidence": "// 45ns            1               0               1               0               1",
+      "alternative": "q = state OR (a XOR b)? At 45ns state=0, a^b=1 -> q=1; at 55ns state=0, a^b=1 -> q=1; at 65ns state=0, a^b=0 -> q=0; at 75ns state=1, a^b=0 -> q=1; at 85ns state=0, a^b=0 -> q=0; at 95ns state=0, a^b=0 -> q=0; at 105ns state=1, a^b=0 -> q=1; at 115ns state=1, a^b=1 -> q=1; at 125ns state=1, a^b=1 -> q=1; at 135ns state=1, a^b=0 -> q=1; at 145ns state=1, a^b=0 -> q=1; at 155ns state=0, a^b=0 -> q=0; at 165ns state=0, a^b=0 -> q=0; at 175ns state=0, a^b=0 -> q=0; at 185ns state=0, a^b=0 -> q=0. This matches all q values! So q = state OR (a XOR b) is a plausible alternative.",
+      "sequence": [
+        {"a": 0, "b": 1},
+        {"a": 1, "b": 0},
+        {"a": 1, "b": 1},
+        {"a": 0, "b": 0}
+      ]
+    },
+    {
+      "issue_id": "I9",
+      "rule_id": "global",
+      "type": "coverage",
+      "severity": "medium",
+      "detail": "Spec segments S06-S08 and S10-S14 etc. are waveform rows with x values; they are marked unrelated but contain state/q values that could inform initial behavior; however they are not mapped to rules.",
+      "spec_evidence": "// 0ns             0               1               x               x               x",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I10",
+      "rule_id": "R1",
+      "type": "grounding",
+      "severity": "medium",
+      "detail": "R1 spec_quote 'one bit of memory (i.e., one flip-flop)' does not verbatim support 'next state = a XOR b'; the XOR function is not stated in spec text, only inferred from waveform, but waveform contradicts XOR.",
+      "spec_evidence": "one bit of memory (i.e., one flip-flop)",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I11",
+      "rule_id": "R2",
+      "type": "grounding",
+      "severity": "medium",
+      "detail": "R2 spec_quote 'The output of the flip-flop has been made observable through the output state.' does not verbatim support 'q = state'; it says state is observable, not that q equals state.",
+      "spec_evidence": "The output of the flip-flop has been made observable through the output state.",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I12",
+      "rule_id": "R1",
+      "type": "spec_example",
+      "severity": "high",
+      "detail": "Derived state from spec waveform at each posedge (using a^b) does not match observed state; e.g., at 45ns a=0,b=1 -> a^b=1 but state=0; at 75ns a=0,b=0 -> a^b=0 but state=1; at 105ns a=1,b=1 -> a^b=0 but state=1; at 135ns a=0,b=0 -> a^b=0 but state=1.",
+      "spec_evidence": "// 45ns            1               0               1               0               1",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I13",
+      "rule_id": "R2",
+      "type": "spec_example",
+      "severity": "high",
+      "detail": "Derived q from spec waveform does not match q=state at 45ns and 55ns (state=0, q=1); also at 75ns state=1 q=1 matches, but at 45ns mismatch.",
+      "spec_evidence": "// 45ns            1               0               1               0               1",
+      "alternative": "",
+      "sequence": []
+    }
+  ]
+}

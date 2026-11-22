@@ -1,0 +1,51 @@
+def reference(vectors):
+    # State: Q is the registered output. Power-up is unspecified, so use concrete 0.
+    Q = 0
+    # Current input values, updated by row drives and carried mid changes.
+    cur = {'L': 0, 'q_in': 0, 'r_in': 0}
+    outputs = []
+
+    for row in vectors:
+        # Apply inputs driven before the sampled posedge.
+        if isinstance(row, dict) and isinstance(row.get('inputs'), dict):
+            for k in cur:
+                if k in row['inputs']:
+                    cur[k] = int(row['inputs'][k]) & 1
+        if isinstance(row, dict):
+            for k in cur:
+                if k in row:
+                    cur[k] = int(row[k]) & 1
+
+        # Q_posedge_update: At posedge after settlement, Q becomes r_in if L=1, else q_in.
+        Q = cur['r_in'] if cur['L'] else cur['q_in']
+        Q &= 1
+        outputs.append({'Q': Q})
+
+        # Mid changes occur after sampling and are carried to the start of the next row.
+        mids = []
+        if isinstance(row, dict):
+            for key in ('mid', 'mid_changes'):
+                if key in row:
+                    m = row[key]
+                    if isinstance(m, dict):
+                        mids.append(m)
+                    elif isinstance(m, list):
+                        for item in m:
+                            if isinstance(item, dict):
+                                mids.append(item)
+                            elif isinstance(item, (list, tuple)) and len(item) == 2:
+                                mids.append({item[0]: item[1]})
+                    elif isinstance(m, (list, tuple)) and len(m) == 2:
+                        mids.append({m[0]: m[1]})
+            for k, v in row.items():
+                if k.endswith('_mid'):
+                    mids.append({k[:-4]: v})
+                elif k.startswith('mid_'):
+                    mids.append({k[4:]: v})
+
+        for m in mids:
+            for k in cur:
+                if k in m:
+                    cur[k] = int(m[k]) & 1
+
+    return outputs

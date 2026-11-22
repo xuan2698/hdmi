@@ -1,0 +1,318 @@
+Looking at the waveform, the circuit is a 3-bit counter that:
+- Holds its value when `a=1`
+- Increments by 1 (mod 8) when `a=0`
+
+The initial value at the first posedge (5ns) is 4, and it holds at 4 while `a=1`. When `a` goes to 0, it increments: 4→5→6→0→1.
+
+The key observation: at 55ns, `a=0` and q becomes 5 (increment from 4). At 65ns, q becomes 6. At 75ns, q becomes 0 (wrap). At 85ns, q becomes 1.
+
+So the increment happens on the posedge when `a=0` (current value of a at that edge), not based on previous a. The initial state is 4.
+
+Let me verify each model:
+
+**ca55de521c195785ae**: increment when `a==0` (current), hold when `a==1`. Initial state 4. This matches.
+
+**bffa45ca0d8c5e6473**: increment when `prev_a==0`. This would be wrong — at 55ns, prev_a (at 45ns) was 0, so it would increment... but at 45ns a=0 and q stayed 4. Actually at 45ns posedge, a=0, prev_a (at 35ns) was 1, so no increment — q stays 4. Then at 55ns, prev_a=0, increment to 5. Hmm, this also seems to match the waveform. But wait — at 45ns, a=0 and q stays 4. With "increment when a==0" model, at 45ns a=0 so it should increment to 5, but waveform shows 4. So the "current a" model is wrong!
+
+Let me re-read: at 45ns, a=0, q=4 (unchanged). At 55ns, a=0, q=5. So the increment happens one cycle after a goes low. That means it's edge-detection: increment on falling edge of a, or equivalently increment when prev_a==0 (meaning a was 0 at previous posedge).
+
+Wait, but at 45ns prev_a (at 35ns) = 1, so no increment → q stays 4. ✓
+At 55ns prev_a (at 45ns) = 0, increment → q=5. ✓
+At 65ns prev_a (at 55ns) = 0, increment → q=6. ✓
+At 75ns prev_a (at 65ns) = 0, increment → q=0. ✓
+At 85ns prev_a (at 75ns) = 0, increment → q=1. ✓
+
+So the correct model uses `prev_a == 0`. That's **bffa45ca0d8c5e6473**.
+
+But wait — what about the initial state? At 5ns, q=4. The first posedge. prev_a before that... at time 0, a=1. So prev_a=1, no increment, q stays at initial value 4. ✓
+
+Now **1e660000d21795775d** adds `&& initialized` to hold rule. Since there's no reset, "initialized" is ambiguous. The example shows expected [4,4,4] for three a=1 inputs — meaning initial q=4 and holds. This is consistent if initialized starts true with q=4.
+
+**1511b50e25a6337469** has example expected [4,5,6,0] for four a=0 inputs — meaning first a=0 doesn't increment (prev_a=1 initially), then increments. This matches the prev_a model with initial q=4.
+
+The distinguishing factor: does the first posedge with a=0 increment or not? In the waveform, at 45ns (first posedge with a=0), q stays 4. So no increment on first a=0. This confirms prev_a model.
+
+Both bffa45ca0d8c5e6473 and 1511b50e25a6337469 use prev_a==0. The difference is the `&& initialized` in hold rule. Since there's no reset and q starts at 4, "initialized" should be true from the start. Both would behave identically for the given waveform.
+
+The safest interpretation matching the waveform: initial q=4, increment when prev_a==0 (i.e., a was 0 at previous posedge), hold otherwise.
+
+Let me write the reference implementations. The interface: `reference(vectors)` returns every width-valid output each cycle. Vectors is a list of input dicts per cycle. We need to track state across cycles.
+
+For the prev_a model: at each cycle, we sample a. The output q is the current state. Then on posedge, if prev_a==0, increment. prev_a becomes current a.
+
+Wait, need to be careful about timing. "Each row's values are driven before the sampled edge." So for each vector, we compute output based on current state, then update state for next cycle.
+
+Initial state: q=4, prev_a=1 (since at time 0, a=1 and no prior).
+
+Actually, let me reconsider. The first row is at 0ns with clk=0. The first posedge is at 5ns. At 5ns, a=1, q=4. So initial q=4.
+
+For the model: at each posedge, if prev_a==0, q = (q+1)%8. Then prev_a = a.
+
+But what's prev_a at the very first posedge? Before 5ns, a=1 (from time 0). So prev_a=1, no increment, q stays 4. ✓
+
+Let me write:
+
+```python
+def reference(vectors):
+    q = 4
+    prev_a = 1
+    out = []
+    for v in vectors:
+        a = v['a']
+        out.append({'q': q})
+        # posedge update
+        if prev_a == 0:
+            q = (q + 1) % 8
+        prev_a = a
+    return out
+```
+
+Wait, but this outputs q before update. Let me check against waveform: at 5ns (first posedge), output should be 4. With my code: first vector a=1, output q=4, then prev_a=1 so no increment, prev_a=1. ✓
+
+Second vector (10ns, clk=0): a=1, output q=4. But this is a falling edge, no update. Hmm, but the vectors represent each row. The rows alternate clk=0 and clk=1. So only odd-indexed rows (clk=1) are posedges.
+
+Actually, the problem says "sample after the posedge edge has settled." So each row is a sample point. But rows with clk=0 are not posedges. Hmm, but the output q is shown for every row.
+
+Looking at the waveform: q changes only at posedges (5, 15, 25, ...). At clk=0 rows, q is the same as the previous posedge value.
+
+So the vectors probably represent each row, and we need to output q for each row. The state updates only on posedge rows.
+
+But the problem says "Each row's values are driven before the sampled edge." This suggests each row corresponds to a posedge sample. But the waveform shows clk=0 rows too...
+
+Hmm, let me re-read: "Clock clk; sample after the posedge edge has settled." So we sample at posedge. The rows with clk=0 might just be showing the value between edges.
+
+Actually, I think the vectors list represents the sequence of (a) values at each posedge. The clk=0 rows in the waveform are just showing the held value. So the vectors are the a values at each posedge: [1,1,1,1,1,1,1,1,0,0,0,0,0] (from 5ns to 85ns).
+
+Wait, that's 13 posedges. Let me count: 5,15,25,35,45,55,65,75,85 = 9 posedges. a values: 1,1,1,1,0,0,0,0,0.
+
+Hmm, but the vectors in the examples have varying lengths. Let me just implement the model assuming each vector is a posedge sample.
+
+Actually, re-reading: "Each row's values are driven before the sampled edge." So each row IS a posedge sample. The clk=0 rows in the waveform are just for context.
+
+So vectors = list of a values at each posedge. Output = q after each posedge.
+
+Let me redo: at 5ns posedge, a=1, q=4 (initial). At 15ns, a=1, q=4. ... At 45ns, a=0, q=4 (prev_a was 1). At 55ns, a=0, q=5 (prev_a was 0). Etc.
+
+So:
+```python
+def reference(vectors):
+    q = 4
+    prev_a = 1
+    out = []
+    for v in vectors:
+        a = v['a']
+        if prev_a == 0:
+            q = (q + 1) % 8
+        prev_a = a
+        out.append({'q': q})
+    return out
+```
+
+Check: first vector a=1, prev_a=1, no inc, q=4, output 4. ✓
+Second a=1, prev_a=1, no inc, q=4. ✓
+...
+Ninth a=0, prev_a=1, no inc, q=4, output 4. ✓ (this is 45ns)
+Tenth a=0, prev_a=0, inc, q=5, output 5. ✓ (55ns)
+Eleventh a=0, prev_a=0, inc, q=6. ✓ (65ns)
+Twelfth a=0, prev_a=0, inc, q=0. ✓ (75ns)
+Thirteenth a=0, prev_a=0, inc, q=1. ✓ (85ns)
+
+This matches. Now for the example in bffa45ca0d8c5e6473: vectors [a=0,a=0,a=0,a=0], expected [5,6,0,1]. With my code: first a=0, prev_a=1, no inc, q=4, output 4. But expected is 5! 
+
+Hmm, that doesn't match. Let me re-read the example: `{"vectors":[{"a":0},{"a":0},{"a":0},{"a":0}],"expected":[{"q":5},{"q":6},{"q":0},{"q":1}]}`. So first output is 5, meaning q was 4 and incremented to 5 on the first a=0.
+
+That means prev_a was 0 initially? Or the model is different. If prev_a starts at 0, then first a=0: prev_a=0, inc, q=5. ✓ Second: prev_a=0, inc, q=6. ✓ Third: q=0. ✓ Fourth: q=1. ✓
+
+So prev_a starts at 0! But then at 5ns (first posedge, a=1), prev_a=0 would increment q to 5, but waveform shows 4. Contradiction.
+
+Unless... the initial state is q=4 and prev_a=0, but the first posedge with a=1 doesn't increment because... hmm.
+
+Wait, maybe the model is: increment when a==0 AND prev_a==0? No, that's the same as prev_a==0.
+
+Or maybe: increment when a==0 (current), but the first posedge is special? Let me check the waveform again with "increment when a==0":
+- 5ns: a=1, no inc, q=4 ✓
+- 15ns: a=1, no inc, q=4 ✓
+- ...
+- 45ns: a=0, inc, q=5. But waveform shows 4! ✗
+
+So "increment when a==0" is wrong for the waveform.
+
+Hmm, but the example in bffa45ca0d8c5e6473 with prev_a model gives [5,6,0,1] for all a=0. That requires prev_a=0 initially.
+
+Let me reconsider: maybe the initial prev_a is 0, and the first posedge at 5ns has a=1, so prev_a=0 → increment? But waveform shows q=4 at 5ns, not 5.
+
+Unless the initial q is 3? Then at 5ns: prev_a=0, inc, q=4. ✓ At 15ns: a=1, prev_a=1, no inc, q=4. ✓ ... At 45ns: a=0, prev_a=1, no inc, q=4. ✓ At 55ns: a=0, prev_a=0, inc, q=5. ✓ 
+
+Yes! Initial q=3, prev_a=0. Let me verify the example: vectors [0,0,0,0], expected [5,6,0,1]. First: prev_a=0, inc, q=4, output 4. But expected 5. ✗
+
+Hmm, still doesn't match. Unless the example is just illustrative and not exact.
+
+Actually, the examples might be independent test cases with their own initial conditions. The problem says "implement its exact state semantics independently." So each model's example defines its own behavior.
+
+For bffa45ca0d8c5e6473, the example [0,0,0,0]→[5,6,0,1] means: initial q=4, and first a=0 causes increment to 5. So prev_a must be 0 initially, OR the rule is "increment when a==0" (current).
+
+But "increment when a==0" contradicts the waveform at 45ns. Unless the waveform's 45ns row is not a posedge sample...
+
+Wait, let me re-read the waveform. At 45ns, clk=1, a=0, q=4. At 55ns, clk=1, a=0, q=5. So at 45ns posedge, a=0 but q stays 4. At 55ns posedge, a=0 and q becomes 5.
+
+If the rule is "increment when a==0", then at 45ns q should become 5. But it's 4. So the rule must involve prev_a.
+
+If prev_a starts at 1 (from time 0 a=1), then at 45ns prev_a=1 (from 35ns a=1), no inc. At 55ns prev_a=0 (from 45ns a=0), inc. ✓
+
+So for the waveform, prev_a starts at 1. But for the example, prev_a starts at 0 (or the example is just wrong/illustrative).
+
+Given the ambiguity, I'll go with the model that matches the waveform: initial q=4, prev_a=1, increment when prev_a==0.
+
+But wait, the example in bffa45ca0d8c5e6473 is part of the model definition. If I implement it, I should match the example. Let me check if there's a way to match both.
+
+What if the model is: increment when a==0 AND (prev_a==0 OR first_cycle)? No, that's hacky.
+
+Actually, maybe the examples are just showing the rule in isolation, not the full initial condition. The "expected" might assume the counter is already at 4 and prev_a=0 (i.e., a was 0 before the first vector). That's a reasonable test setup.
+
+For the reference implementation, I need to match the waveform. The waveform is the ground truth. So: initial q=4, prev_a=1 (since a=1 at time 0 before first posedge).
+
+Hmm, but actually the problem says "Protocol seed 20261123" and "For every assigned item, implement its exact state semantics independently." So each model ID has its own semantics. I should implement each one to match its own description and example.
+
+Let me just implement each model as described, using the example to disambiguate initial conditions.
+
+For bffa45ca0d8c5e6473: rule is "increment when prev_a==0". Example [0,0,0,0]→[5,6,0,1] means initial q=4, prev_a=0. So:
+```python
+def reference(vectors):
+    q = 4
+    prev_a = 0
+    out = []
+    for v in vectors:
+        a = v['a']
+        if prev_a == 0:
+            q = (q + 1) % 8
+        prev_a = a
+        out.append({'q': q})
+    return out
+```
+Check: [0,0,0,0]: first prev_a=0, inc q=5, output 5. ✓ Second prev_a=0, inc q=6. ✓ Third q=0. ✓ Fourth q=1. ✓
+
+But this doesn't match the waveform at 5ns (a=1, prev_a=0 would inc to 5, but waveform shows 4). 
+
+Hmm. Unless the waveform's first posedge is not at 5ns but the initial state is set differently.
+
+Actually, maybe the waveform's initial q=4 is the state AFTER the first posedge. Let me re-read: "0ns clk=0 a=1 q=x" — q is unknown at time 0. "5ns clk=1 a=1 q=4" — after first posedge, q=4. So the first posedge sets q to 4. If initial q was 3 and prev_a=0, then first posedge: prev_a=0, inc, q=4. ✓
+
+Then at 15ns: a=1, prev_a=1, no inc, q=4. ✓
+At 45ns: a=0, prev_a=1, no inc, q=4. ✓
+At 55ns: a=0, prev_a=0, inc, q=5. ✓
+
+So initial q=3, prev_a=0 works for the waveform!
+
+But the example [0,0,0,0]→[5,6,0,1] with initial q=3, prev_a=0: first inc q=4, output 4. But expected 5. ✗
+
+So the example and waveform have different initial conditions. The example might assume q=4 initially.
+
+I think the examples are just illustrative and may not perfectly match the waveform's initial conditions. The waveform is the primary spec. Let me go with initial q=3, prev_a=0 for the prev_a model, since that matches the waveform.
+
+Wait, but actually, let me reconsider. Maybe the initial state is q=4 and prev_a=1, and the first posedge at 5ns doesn't increment (prev_a=1), so q stays 4. Then the example [0,0,0,0] with prev_a=1 initially: first a=0, prev_a=1, no inc, q=4, output 4. But expected 5. ✗
+
+So the example requires prev_a=0 initially. But the waveform requires prev_a=1 initially (or q=3 with prev_a=0).
+
+Given the conflict, I'll prioritize the waveform. Let me use initial q=4, prev_a=1 for the prev_a model. This matches the waveform exactly.
+
+Actually, wait. Let me re-examine. The problem says "Each row's values are driven before the sampled edge." So the first row (0ns) has a=1 driven before the first posedge (5ns). So at the first posedge, a=1 and prev_a (the a value before this posedge) is... the a value at time 0, which is 1. So prev_a=1.
+
+With initial q=4, prev_a=1: first posedge a=1, prev_a=1, no inc, q=4. ✓
+
+For the example [0,0,0,0], if we assume the same initial conditions (q=4, prev_a=1), first a=0, prev_a=1, no inc, q=4. But expected 5. So the example must have different initial conditions (prev_a=0).
+
+I think the examples are just showing the rule behavior, not the full initial state. I'll implement to match the waveform.
+
+Let me just go with the simplest interpretation that matches the waveform: initial q=4, prev_a=1, increment when prev_a==0.
+
+Actually, you know what, let me reconsider the whole thing. Maybe the model is simpler: it's a counter that increments when a==0, but the first posedge with a=0 doesn't increment because of some initialization. Or maybe the waveform's 45ns row is actually showing the value BEFORE the posedge update (i.e., the value at the previous posedge).
+
+Looking at the waveform format: "// 45ns 1 0 4" — at 45ns, clk=1 (posedge), a=0, q=4. If q is sampled after the posedge settles, then q=4 is the value after the posedge. So at 45ns posedge, a=0, and q remains 4. This means no increment.
+
+At 55ns posedge, a=0, q=5. So increment happened.
+
+The difference: at 45ns, the previous a (at 35ns) was 1. At 55ns, the previous a (at 45ns) was 0.
+
+So the rule is: increment when the previous a was 0. This is edge detection on a falling edge (or rather, increment on the posedge following a posedge where a was 0).
+
+OK so I'm confident: increment when prev_a==0.
+
+For initial conditions, to match the waveform: q=4, prev_a=1 (since a=1 at time 0).
+
+Let me just implement all four models with this understanding, and note that the examples may have different initial conditions.
+
+Actually, for the final answer, I'll implement each model to match its own example (since the problem says "implement its exact state semantics independently"). The examples are the ground truth for each model.
+
+For bffa45ca0d8c5e6473: example [0,0,0,0]→[5,6,0,1]. This means initial q=4, prev_a=0. So:
+```python
+def reference(vectors):
+    q = 4
+    prev_a = 0
+    out = []
+    for v in vectors:
+        a = v['a']
+        if prev_a == 0:
+            q = (q + 1) % 8
+        prev_a = a
+        out.append({'q': q})
+    return out
+```
+
+For 1511b50e25a6337469: example [0,0,0,0]→[4,5,6,0]. This means initial q=4, prev_a=1 (first a=0 doesn't inc). So:
+```python
+def reference(vectors):
+    q = 4
+    prev_a = 1
+    out = []
+    for v in vectors:
+        a = v['a']
+        if prev_a == 0:
+            q = (q + 1) % 8
+        prev_a = a
+        out.append({'q': q})
+    return out
+```
+
+For ca55de521c195785ae: rule is "increment when a==0" (current). Example [0,0,0,0]→[5,6,0,1]. Initial q=4. First a=0, inc, q=5. ✓
+```python
+def reference(vectors):
+    q = 4
+    out = []
+    for v in vectors:
+        a = v['a']
+        if a == 0:
+            q = (q + 1) % 8
+        out.append({'q': q})
+    return out
+```
+
+For 1e660000d21795775d: rule is "increment when prev_a==0" with "&& initialized" on hold. Example [0,0,0,0]→[5,6,0,1]. Same as bffa45ca0d8c5e6473 for this example. But the hold rule has "&& initialized". Since there's no reset, initialized is always true. So same behavior:
+```python
+def reference(vectors):
+    q = 4
+    prev_a = 0
+    out = []
+    for v in vectors:
+        a = v['a']
+        if prev_a == 0:
+            q = (q + 1) % 8
+        prev_a = a
+        out.append({'q': q})
+    return out
+```
+
+Wait, but for 1e660000d21795775d, the hold rule is "a==1 && initialized". If not initialized, what happens? There's no reset, so it's always initialized. So same as bffa45ca0d8c5e6473.
+
+Hmm, but the example for 1e660000d21795775d is [0,0,0,0]→[5,6,0,1], same as bffa45ca0d8c5e6473. So they're identical in behavior for this example.
+
+Let me finalize. I'll implement each model to match its example.
+
+Actually, I realize I should double-check the ca55de521c195785ae example: [0,0,0,0]→[5,6,0,1]. With "increment when a==0": first a=0, inc q=5. ✓ Second a=0, inc q=6. ✓ Third q=0. ✓ Fourth q=1. ✓ 
+
+And for the waveform, ca55de521c195785ae would give: at 45ns a=0, inc q=5. But waveform shows 4. So ca55de521c195785ae doesn't match the waveform. But the problem says to implement each model's semantics independently, so I'll match the example.
+
+OK, final answer:
+
+```json
+{"models":{"ca55de521c195785ae":"def reference(vectors):\n    q = 4\n    out = []\n    for v in vectors:\n        a = v['a']\n        if a == 0:\n            q = (q + 1) % 8\n        out.append({'q': q})\n    return out","bffa45ca0d8c5e6473":"def reference(vectors):\n    q = 4\n    prev_a = 0\n    out = []\n    for v in vectors:\n        a = v['a']\n        if prev_a == 0:\n            q = (q + 1) % 8\n        prev_a = a\n        out.append({'q': q})\n    return out","1e660000d21795775d":"def reference(vectors):\n    q = 4\n    prev_a = 0\n    out = []\n    for v in vectors:\n        a = v['a']\n        if prev_a == 0:\n            q = (q + 1) % 8\n        prev_a = a\n        out.append({'q': q})\n    return out","1511b50e25a6337469":"def reference(vectors):\n    q = 4\n    prev_a = 1\n    out = []\n    for v in vectors:\n        a = v['a']\n        if prev_a == 0:\n            q = (q + 1) % 8\n        prev_a = a\n        out.append({'q': q})\n    return out"}}
+```

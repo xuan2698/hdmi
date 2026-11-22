@@ -1,0 +1,148 @@
+{
+  "ports": {
+    "inputs": {
+      "areset": 1,
+      "x": 1
+    },
+    "outputs": {
+      "z": 1
+    },
+    "clock": "clk"
+  },
+  "states": [
+    {
+      "name": "A",
+      "meaning": "Reset state; carry=0, no input 1 has yet been seen, and Moore output z=0.",
+      "update_time": "asynchronously to A when areset=1; otherwise on posedge clk when areset=0",
+      "update_during_reset": true
+    },
+    {
+      "name": "B",
+      "meaning": "carry=1, at least one input 1 has been seen, and Moore output z=1.",
+      "update_time": "posedge clk when areset=0",
+      "update_during_reset": false
+    },
+    {
+      "name": "C",
+      "meaning": "carry=1, at least one input 1 has been seen, and Moore output z=0.",
+      "update_time": "posedge clk when areset=0",
+      "update_during_reset": false
+    }
+  ],
+  "rules": [
+    {
+      "id": "async_reset",
+      "outputs": [
+        "z"
+      ],
+      "condition": "areset is asserted high; asynchronous reset forces state A and z=0 independent of clk.",
+      "edge": "asynchronous",
+      "visible": "same_cycle",
+      "priority": 0,
+      "spec_quote": "asynchronous reset",
+      "uncertain": false,
+      "example": {
+        "vectors": [
+          {
+            "areset": 1,
+            "x": 0
+          },
+          {
+            "areset": 1,
+            "x": 1
+          }
+        ],
+        "expected": [
+          {
+            "z": 0
+          },
+          {
+            "z": 0
+          }
+        ]
+      }
+    },
+    {
+      "id": "serial_twos_complement",
+      "outputs": [
+        "z"
+      ],
+      "condition": "areset=0; on posedge clk sample x and update the Moore state. From A: x=0 -> A/z=0, x=1 -> B/z=1. From B: x=0 -> B/z=1, x=1 -> C/z=0. From C: x=0 -> B/z=1, x=1 -> C/z=0. The output z is the state output after the settled posedge, implementing LSB-first two's complement: copy x until the first 1, then invert subsequent bits.",
+      "edge": "posedge",
+      "visible": "same_cycle",
+      "priority": 1,
+      "spec_quote": "beginning with the least-significant bit of the number, and the output (Z) is the 2's complement of the input",
+      "uncertain": false,
+      "example": {
+        "vectors": [
+          {
+            "areset": 0,
+            "x": 0
+          },
+          {
+            "areset": 0,
+            "x": 1
+          },
+          {
+            "areset": 0,
+            "x": 1
+          },
+          {
+            "areset": 0,
+            "x": 0
+          }
+        ],
+        "expected": [
+          {
+            "z": 0
+          },
+          {
+            "z": 1
+          },
+          {
+            "z": 0
+          },
+          {
+            "z": 1
+          }
+        ]
+      }
+    }
+  ],
+  "reset": {
+    "kind": "async",
+    "name": "areset",
+    "active": "high",
+    "values": {
+      "z": 0
+    },
+    "first_released_cycle": "first posedge clk after areset returns to 0; the first x bit is sampled on that active edge"
+  },
+  "mid": "mid changes occur after the sampled posedge, do not affect the current row's expected outputs, and are carried to the start of the next row.",
+  "uncertain": [
+    {
+      "rule_id": "async_reset",
+      "note": "Public spec does not specify the output value during asynchronous reset; contract assumes z=0.",
+      "candidates": [
+        "Reset forces z=0 while asserted.",
+        "Reset stops conversion but leaves z unspecified or retains its prior value while asserted."
+      ]
+    },
+    {
+      "rule_id": "async_reset",
+      "note": "Public spec does not specify reset polarity; contract assumes active-high areset.",
+      "candidates": [
+        "areset is active-high: 1 asserts reset.",
+        "areset is active-low: 0 asserts reset."
+      ]
+    },
+    {
+      "rule_id": "serial_twos_complement",
+      "note": "Public spec does not define pre- versus post-edge output visibility; contract uses same-cycle output after settled posedge.",
+      "candidates": [
+        "z is the state output after the settled posedge, same-cycle as the contract.",
+        "z reflects the pre-edge state and lags one cycle: first x=1 row outputs 0, next row outputs 1."
+      ]
+    }
+  ]
+}

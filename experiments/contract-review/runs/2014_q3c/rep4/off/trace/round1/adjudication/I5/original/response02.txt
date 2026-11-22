@@ -1,0 +1,30 @@
+```python
+def reference(vectors):
+    # R_Y0: Y0 = next-state bit 0 of Y[2:0] as function of present state y[2:0] and input x
+    # R_z: z = 1 when present state y[2:0] is 011 or 100, else 0
+    # state_register: 3-bit present-state register y[2:0] updated on posedge clk from next-state function Y[2:0]
+    # Table (present state -> (next state x=0, next state x=1)):
+    # 000 -> (000, 001)
+    # 001 -> (001, 100)
+    # 010 -> (010, 001)
+    # 011 -> (001, 010)
+    # 100 -> (011, 100)
+    next_state = {
+        (0, 0): 0, (0, 1): 1,
+        (1, 0): 1, (1, 1): 4,
+        (2, 0): 2, (2, 1): 1,
+        (3, 0): 1, (3, 1): 2,
+        (4, 0): 3, (4, 1): 4,
+    }
+    out = []
+    for v in vectors:
+        y = v["y"] & 0x7
+        x = v["x"] & 0x1
+        # R_Y0: next-state bit 0
+        ns = next_state[(y, x)]
+        Y0 = ns & 0x1
+        # R_z: Moore output from present state
+        z = 1 if (y == 3 or y == 4) else 0
+        out.append({"Y0": Y0, "z": z})
+    return out
+```

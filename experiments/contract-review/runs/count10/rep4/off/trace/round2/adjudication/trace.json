@@ -1,0 +1,172 @@
+[
+  {
+    "issue": {
+      "issue_id": "I4",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec says period 10 and counts 0..9; contract treats q as 4-bit with values 0..9 only. Alternative semantics: q may take 10..15 transiently or saturate. Distinguishing sequence: reset=1, then reset=0 repeated 10 times.",
+      "spec_evidence": "counts from 0 through 9, inclusive, with a period of 10",
+      "alternative": "Counter wraps 9->0 (period 10) vs saturates at 9 or uses full 4-bit 0..15.",
+      "sequence": [
+        {
+          "reset": 1
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        }
+      ]
+    },
+    "status": "no_effect",
+    "issue_id": "I4",
+    "outputs": {
+      "original": [
+        {
+          "q": 0
+        },
+        {
+          "q": 1
+        },
+        {
+          "q": 2
+        },
+        {
+          "q": 3
+        },
+        {
+          "q": 4
+        },
+        {
+          "q": 5
+        },
+        {
+          "q": 6
+        },
+        {
+          "q": 7
+        },
+        {
+          "q": 8
+        },
+        {
+          "q": 9
+        },
+        {
+          "q": 0
+        },
+        {
+          "q": 1
+        }
+      ],
+      "alternative": [
+        {
+          "q": 0
+        },
+        {
+          "q": 1
+        },
+        {
+          "q": 2
+        },
+        {
+          "q": 3
+        },
+        {
+          "q": 4
+        },
+        {
+          "q": 5
+        },
+        {
+          "q": 6
+        },
+        {
+          "q": 7
+        },
+        {
+          "q": 8
+        },
+        {
+          "q": 9
+        },
+        {
+          "q": 0
+        },
+        {
+          "q": 1
+        }
+      ]
+    },
+    "differences": []
+  },
+  {
+    "issue": {
+      "issue_id": "I5",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "low",
+      "detail": "'visible':'same_cycle' for posedge rules is ambiguous: does q update at the posedge (same cycle) or after? Alternative: registered output visible next cycle. Distinguishing sequence: reset=1 then reset=0.",
+      "spec_evidence": "",
+      "alternative": "q updates on posedge (same cycle) vs q visible one cycle later.",
+      "sequence": [
+        {
+          "reset": 1
+        },
+        {
+          "reset": 0
+        }
+      ]
+    },
+    "status": "no_effect",
+    "issue_id": "I5",
+    "outputs": {
+      "original": [
+        {
+          "q": 0
+        },
+        {
+          "q": 1
+        }
+      ],
+      "alternative": [
+        {
+          "q": 0
+        },
+        {
+          "q": 1
+        }
+      ]
+    },
+    "differences": []
+  }
+]

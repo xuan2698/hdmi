@@ -1,0 +1,22 @@
+def reference(vectors):
+    # State: 3-bit accumulator q. Power-up unspecified -> x until first posedge,
+    # then takes 4 (per candidate interpretation for global rule).
+    # Rule hold_when_a_high: on posedge, if a==1, q holds.
+    # Rule increment_when_a_low: on posedge, if a==0, q increments by 1 (mod 8).
+    q = None  # unspecified until first posedge
+    out = []
+    for v in vectors:
+        a = v.get('a', 0)
+        # posedge sampling: apply transition
+        if q is None:
+            # global: q is x until first posedge, then takes 4
+            q = 4
+        else:
+            if a == 1:
+                # hold_when_a_high
+                pass
+            else:
+                # increment_when_a_low
+                q = (q + 1) & 0x7
+        out.append({'q': q})
+    return out

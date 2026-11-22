@@ -1,0 +1,60 @@
+{
+  "module_name": "top_module",
+  "io": [
+    {
+      "name": "clk",
+      "dir": "input",
+      "width": 1,
+      "description": "Clock, rising-edge triggered"
+    },
+    {
+      "name": "a",
+      "dir": "input",
+      "width": 1,
+      "description": "Input a"
+    },
+    {
+      "name": "b",
+      "dir": "input",
+      "width": 1,
+      "description": "Input b"
+    },
+    {
+      "name": "state",
+      "dir": "output",
+      "width": 1,
+      "description": "Flip-flop state (observable)"
+    },
+    {
+      "name": "q",
+      "dir": "output",
+      "width": 1,
+      "description": "Combinational output"
+    }
+  ],
+  "clocking": {
+    "clock": {
+      "name": "clk",
+      "edge": "posedge"
+    },
+    "reset": null
+  },
+  "timing": {
+    "outputs": {
+      "state": {
+        "latency_cycles": 1
+      },
+      "q": {
+        "latency_cycles": 0
+      }
+    }
+  },
+  "functional_summary": {
+    "overview": "Single flip-flop sequential circuit. On each rising edge of clk, state updates to the next-state function of (a, b, state). Output q is a combinational function of (a, b, state).",
+    "rules": [
+      "state_next = (a & ~b) | (a & state) | (~b & state)  [i.e., state_next = a ? (b ? state : 1) : (b ? 0 : state)]",
+      "q = state ^ a  (combinational XOR of state and a)",
+      "state updates on posedge clk; q reflects current inputs and current state combinationally"
+    ]
+  }
+}

@@ -1,0 +1,40 @@
+```python
+def reference(vectors):
+    # Contract implementation.
+    # State register y[2:0] updates on posedge clk from next-state Y[2:0].
+    # Inputs x, y are driven before the sampled edge; mid changes occur after
+    # sampling and carry to the start of the next row.
+    #
+    # R_Y0: Y0 = next-state bit 0 of Y[2:0] per state-assigned table.
+    #   y=000 -> x=0:0, x=1:1
+    #   y=001 -> x=0:1, x=1:0
+    #   y=010 -> x=0:0, x=1:1
+    #   y=011 -> x=0:1, x=1:0
+    #   y=100 -> x=0:1, x=1:0
+    # R_z: z = 1 when present state y[2:0] is 011 or 100, else 0.
+
+    # Next-state bit 0 lookup: index by (y, x)
+    # Y0 table: rows y=0..4, columns x=0,1
+    Y0_TABLE = {
+        0: {0: 0, 1: 1},
+        1: {0: 1, 1: 0},
+        2: {0: 0, 1: 1},
+        3: {0: 1, 1: 0},
+        4: {0: 1, 1: 0},
+    }
+
+    results = []
+    for row in vectors:
+        x = row.get("x", 0) & 1
+        y = row.get("y", 0) & 7
+
+        # R_Y0: combinational next-state bit 0
+        Y0 = Y0_TABLE[y][x]
+
+        # R_z: Moore output from present state
+        z = 1 if (y == 3 or y == 4) else 0
+
+        results.append({"Y0": Y0, "z": z})
+
+    return results
+```

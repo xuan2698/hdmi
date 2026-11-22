@@ -1,0 +1,52 @@
+def reference(vectors):
+    # Initial state: power-up assumed 0 per contract.
+    q_val = 0          # decimal 0..9999, encoded to BCD on output
+    ena_val = 0        # registered enable output
+    input_state = {"reset": 0}
+    outputs = []
+
+    for row in vectors:
+        # Drive row's input values before the sampled posedge. "mid" is handled later.
+        for k, v in row.items():
+            if k != "mid":
+                input_state[k] = v
+
+        reset = input_state.get("reset", 0)
+        pre_q = q_val
+
+        # sync_reset: active-high synchronous reset has priority over increment.
+        if reset == 1:
+            q_val = 0
+            ena_val = 0
+        else:
+            # bcd_increment: increment by one as 4-digit BCD modulo 10000.
+            # upper_digit_enables: registered on posedge from pre-edge q.
+            ones = pre_q % 10
+            tens = (pre_q // 10) % 10
+            hundreds = (pre_q // 100) % 10
+
+            bit0 = 1 if ones == 9 else 0
+            bit1 = 1 if (ones == 9 and tens == 9) else 0
+            bit2 = 1 if (ones == 9 and tens == 9 and hundreds == 9) else 0
+            ena_val = bit0 + 2 * bit1 + 4 * bit2
+
+            q_val = (pre_q + 1) % 10000
+
+        # Encode q as 16-bit BCD:
+        # q[3:0]=ones, q[7:4]=tens, q[11:8]=hundreds, q[15:12]=thousands.
+        ones = q_val % 10
+        tens = (q_val // 10) % 10
+        hundreds = (q_val // 100) % 10
+        thousands = (q_val // 1000) % 10
+        q_out = ones | (tens << 4) | (hundreds << 8) | (thousands << 12)
+
+        outputs.append({"q": q_out, "ena": ena_val})
+
+        # Optional mid input changes occur after sampling and carry to next row.
+        if "mid" in row:
+            mid = row["mid"]
+            if isinstance(mid, dict):
+                for k, v in mid.items():
+                    input_state[k] = v
+
+    return outputs

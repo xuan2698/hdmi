@@ -1,0 +1,52 @@
+def reference(vectors):
+    # State: hh, mm, ss as BCD ints; pm as 0/1
+    hh = 0x12
+    mm = 0x00
+    ss = 0x00
+    pm = 0
+
+    def bcd_inc(val, limit):
+        # increment BCD value, return (new_val, rolled)
+        units = val & 0x0F
+        tens = (val >> 4) & 0x0F
+        units += 1
+        if units > 9:
+            units = 0
+            tens += 1
+        if tens * 10 + units > limit:
+            return 0, True
+        return (tens << 4) | units, False
+
+    results = []
+    for row in vectors:
+        # Apply inputs at this row's posedge
+        reset = row.get('reset', 0)
+        ena = row.get('ena', 0)
+        if reset:
+            hh = 0x12
+            mm = 0x00
+            ss = 0x00
+            pm = 0
+        elif ena:
+            ss, ss_roll = bcd_inc(ss, 59)
+            if ss_roll:
+                mm, mm_roll = bcd_inc(mm, 59)
+                if mm_roll:
+                    # increment hour
+                    h_units = hh & 0x0F
+                    h_tens = (hh >> 4) & 0x0F
+                    h_units += 1
+                    if h_units > 9:
+                        h_units = 0
+                        h_tens += 1
+                    new_h = (h_tens << 4) | h_units
+                    if new_h > 0x12:
+                        new_h = 0x01
+                    # pm toggle rules
+                    if hh == 0x12:
+                        pm ^= 1
+                    elif hh == 0x11:
+                        pass  # 11 -> 12, no toggle
+                    hh = new_h
+        results.append({'pm': pm, 'hh': hh, 'mm': mm, 'ss': ss})
+    return results
