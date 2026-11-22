@@ -1,0 +1,94 @@
+```python
+def reference(vectors):
+    # State: pm, hh, mm, ss (BCD values)
+    pm = 0
+    hh = 0x12
+    mm = 0x00
+    ss = 0x00
+
+    results = []
+    for row in vectors:
+        # Apply mid changes that occur AFTER sampling (before next edge)
+        # Per protocol: mid changes are carried to start of next row.
+        # We process them at end of this row's computation.
+        # First, compute outputs based on current state (before this edge's update)
+        # Actually: outputs have 1-cycle latency. So outputs reflect state BEFORE this posedge.
+        # The row's inputs are driven before the sampled edge.
+        # So: sample inputs, compute next state, but output = current state (pre-edge).
+        # Wait - latency_cycles=1 means output appears one cycle after input.
+        # Standard interpretation: at posedge, state updates; outputs are registered.
+        # So output for this row = state after previous edge = current state before this edge.
+        # Then apply this edge's update to state for next row.
+
+        out_pm = pm
+        out_hh = hh
+        out_mm = mm
+        out_ss = ss
+
+        results.append({
+            "pm": out_pm & 1,
+            "hh": out_hh & 0xFF,
+            "mm": out_mm & 0xFF,
+            "ss": out_ss & 0xFF,
+        })
+
+        # Now compute next state based on inputs at this edge
+        reset = row.get("reset", 0) & 1
+        ena = row.get("ena", 0) & 1
+
+        if reset:
+            pm = 0
+            hh = 0x12
+            mm = 0x00
+            ss = 0x00
+        elif ena:
+            # increment one second
+            ss_next = ss + 1
+            if (ss & 0x0F) == 0x09:
+                ss_next = (ss & 0xF0) + 0x10
+            else:
+                ss_next = ss + 1
+            if ss_next >= 0x60:
+                ss_next = 0x00
+                # increment minutes
+                if (mm & 0x0F) == 0x09:
+                    mm_next = (mm & 0xF0) + 0x10
+                else:
+                    mm_next = mm + 1
+                if mm_next >= 0x60:
+                    mm_next = 0x00
+                    # increment hours
+                    if hh == 0x11:
+                        hh_next = 0x12
+                        pm_next = 1 - pm
+                    elif hh == 0x12:
+                        hh_next = 0x01
+                        pm_next = 1 - pm
+                    else:
+                        # 01..10
+                        if (hh & 0x0F) == 0x09:
+                            hh_next = (hh & 0xF0) + 0x10
+                        else:
+                            hh_next = hh + 1
+                        pm_next = pm
+                    hh = hh_next
+                    pm = pm_next
+                mm = mm_next
+            ss = ss_next
+
+        # Apply mid changes (after sampling, before next edge) - carried to next row
+        # Mid changes modify inputs for next row; but inputs are given per row.
+        # Per protocol, mid changes occur AFTER sampling and are carried to start of next row.
+        # We need to apply them to the state? No - mid changes affect inputs, not state.
+        # Actually mid changes are input changes that happen between edges.
+        # Since we process row by row, and inputs are given per row, mid changes
+        # would be represented as changes to the next row's inputs. But the protocol
+        # says "Optional mid input changes occur AFTER sampling, before the other edge,
+        # and are carried to the start of the next row." This means the next row's
+        # input values already reflect the mid changes. So we don't need special handling
+        # beyond using the given row inputs. However, if a mid change affects reset/ena
+        # between edges, it could affect the next posedge. Since next row's inputs
+        # are given, we just use them directly.
+
+    return results
+```

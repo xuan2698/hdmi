@@ -1,0 +1,62 @@
+def reference(vectors):
+    state = 0  # S0
+    cur_reset = 0
+    cur_data = 0
+    out = []
+    for row in vectors:
+        # Drive row values before the sampled posedge.
+        if "reset" in row:
+            cur_reset = row["reset"]
+        if "data" in row:
+            cur_data = row["data"]
+
+        r = cur_reset
+        d = cur_data
+
+        # R_RESET: reset == 1 at posedge forces S0 and start_shifting = 0.
+        if r == 1:
+            start_shifting = 0
+            next_state = 0  # S0
+        else:
+            # R_ZERO_NOT_FOUND candidate interpretation:
+            # start_shifting is 1 before any 1101 detection.
+            # R_COMPLETE_1101 and R_HOLD_FOUND also produce start_shifting = 1.
+            start_shifting = 1
+
+            # Explicit state transitions.
+            if state == 0:  # S0
+                if d == 1:
+                    next_state = 1  # S1
+                else:
+                    next_state = 0  # S0
+            elif state == 1:  # S1
+                if d == 1:
+                    next_state = 2  # S11
+                else:
+                    next_state = 0  # S0
+            elif state == 2:  # S11
+                if d == 1:
+                    next_state = 2  # S11
+                else:
+                    next_state = 3  # S110
+            elif state == 3:  # S110
+                if d == 1:
+                    next_state = 4  # FOUND, R_COMPLETE_1101
+                else:
+                    next_state = 0  # S0
+            else:  # FOUND
+                next_state = 4  # R_HOLD_FOUND
+
+        state = next_state
+        out.append({"start_shifting": start_shifting})
+
+        # Mid input changes occur after sampling and carry to the next row.
+        if "mid" in row:
+            m = row["mid"]
+            if m:
+                if "reset" in m:
+                    cur_reset = m["reset"]
+                if "data" in m:
+                    cur_data = m["data"]
+
+    return out

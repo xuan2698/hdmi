@@ -1,0 +1,100 @@
+{
+  "ports": {
+    "inputs": {
+      "reset": 1
+    },
+    "outputs": {
+      "q": 4
+    },
+    "clock": "clk"
+  },
+  "states": [
+    {
+      "name": "q",
+      "meaning": "Current counter value, constrained to 0 through 9 and encoded as a 4-bit unsigned integer.",
+      "update_time": "posedge clk (after the edge has settled)",
+      "update_during_reset": true
+    }
+  ],
+  "rules": [
+    {
+      "id": "reset_sync_active_high",
+      "outputs": [
+        "q"
+      ],
+      "condition": "reset == 1 at posedge clk; q is assigned 0. Reset has priority over counting.",
+      "edge": "posedge",
+      "visible": "same_cycle",
+      "priority": 1,
+      "spec_quote": "reset input is active high synchronous, and should reset the counter to 0",
+      "uncertain": false,
+      "example": {
+        "vectors": [
+          {
+            "reset": 1
+          },
+          {
+            "reset": 1
+          }
+        ],
+        "expected": [
+          {
+            "q": 0
+          },
+          {
+            "q": 0
+          }
+        ]
+      }
+    },
+    {
+      "id": "count_decade_mod10",
+      "outputs": [
+        "q"
+      ],
+      "condition": "reset == 0 at posedge clk; q is assigned (q + 1) mod 10, so 9 increments to 0.",
+      "edge": "posedge",
+      "visible": "same_cycle",
+      "priority": 2,
+      "spec_quote": "counts from 0 through 9, inclusive, with a period of 10",
+      "uncertain": false,
+      "example": {
+        "vectors": [
+          {
+            "reset": 1
+          },
+          {
+            "reset": 0
+          },
+          {
+            "reset": 0
+          }
+        ],
+        "expected": [
+          {
+            "q": 0
+          },
+          {
+            "q": 1
+          },
+          {
+            "q": 2
+          }
+        ]
+      }
+    }
+  ],
+  "reset": {
+    "kind": "sync",
+    "name": "reset",
+    "active": "high",
+    "values": {
+      "q": 0
+    },
+    "first_released_cycle": "first posedge clk with reset==0; q follows the count rule from 0 on that edge"
+  },
+  "mid": "Inputs marked mid change after the posedge sample and before the next posedge; they affect the next sampled edge.",
+  "uncertain": [],
+  "remaining_uncertain_fields": {},
+  "selected_interpretations": []
+}

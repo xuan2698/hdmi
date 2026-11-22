@@ -1,0 +1,91 @@
+def reference(vectors):
+    # State encodings
+    S0 = 0
+    S1 = 1
+    S11 = 2
+    S110 = 3
+    FOUND = 4
+
+    state = S0
+    start_shifting = 0
+    carried = {'reset': 0, 'data': 0}
+    outputs = []
+
+    for row in vectors:
+        # Determine sampled inputs before the posedge
+        if 'reset' in row:
+            reset = row['reset']
+        else:
+            reset = carried['reset'] if 'reset' in carried else 0
+
+        if 'data' in row:
+            data = row['data']
+        else:
+            data = carried['data'] if 'data' in carried else 0
+
+        # Compute next state and output for this posedge
+        if reset == 1:
+            # R_RESET: start_shifting retains its previous 1 during reset high.
+            next_start_shifting = start_shifting
+            next_state = S0
+        else:
+            # Next state logic (reset == 0)
+            if state == S0:
+                if data == 1:
+                    next_state = S1
+                else:
+                    next_state = S0
+            elif state == S1:
+                if data == 1:
+                    next_state = S11
+                else:
+                    next_state = S0
+            elif state == S11:
+                if data == 1:
+                    next_state = S11
+                else:
+                    next_state = S110
+            elif state == S110:
+                if data == 1:
+                    next_state = FOUND
+                else:
+                    next_state = S0
+            else:  # FOUND
+                next_state = FOUND
+
+            # R_COMPLETE_1101 / R_HOLD_FOUND / R_ZERO_NOT_FOUND
+            if next_state == FOUND:
+                next_start_shifting = 1
+            else:
+                next_start_shifting = 0
+
+        # Update registers after the sampled edge
+        state = next_state
+        start_shifting = next_start_shifting
+
+        # Output visible same cycle (after edge settled)
+        outputs.append({'start_shifting': start_shifting})
+
+        # Carry explicit input values for the next row
+        if 'reset' in row:
+            carried['reset'] = row['reset']
+        if 'data' in row:
+            carried['data'] = row['data']
+
+        # Apply mid-cycle changes AFTER sampling, before the other edge.
+        for k in row:
+            if k[-4:] == '_mid':
+                carried[k[:-4]] = row[k]
+
+        # Also support an optional nested 'mid' dictionary
+        if 'mid' in row:
+            m = row['mid']
+            try:
+                if 'reset' in m:
+                    carried['reset'] = m['reset']
+                if 'data' in m:
+                    carried['data'] = m['data']
+            except:
+                pass
+
+    return outputs

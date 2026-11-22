@@ -1,0 +1,33 @@
+```python
+def reference(vectors):
+    # State: 3-bit counter q. Power-up unspecified; first posedge with a=1 loads 4.
+    # Rule hold_when_a_high: on posedge, if a==1, q holds (except initial load of 4).
+    # Rule increment_when_a_low: on posedge, if a==0, q = (q+1) mod 8.
+    # Mid changes occur after sampling, carried to next row.
+    q = None  # unspecified power-up
+    initialized = False
+    out = []
+    for row in vectors:
+        a = row.get('a', 0)
+        # posedge sampling
+        if not initialized:
+            if a == 1:
+                q = 4  # global: first posedge with a=1 loads 4
+                initialized = True
+            # if a==0 at first posedge, q remains unspecified; but contract
+            # implies increment applies only after init. Keep q as None -> treat as 0? 
+            # Given spec, first posedge always a=1 in waveform. For safety, if a==0
+            # before init, we still need concrete value; use 0 then increment.
+            else:
+                q = 0
+                q = (q + 1) % 8  # increment_when_a_low
+                initialized = True
+        else:
+            if a == 1:
+                pass  # hold_when_a_high
+            else:
+                q = (q + 1) % 8  # increment_when_a_low
+        out.append({'q': q & 0x7})
+        # mid changes: none specified in vectors beyond 'a' already used
+    return out
+```

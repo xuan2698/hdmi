@@ -1,0 +1,65 @@
+def reference(vectors):
+    # R_RESET: synchronous active-high reset forces S0 and start_shifting=0.
+    # State encoding: 0=S0, 1=S1, 2=S11, 3=S110, 4=FOUND
+    state = 0  # power-up assumption: S0 (deterministic for unspecified power-up)
+    cur_reset = 0
+    cur_data = 0
+    result = []
+
+    for row in vectors:
+        # Inputs driven before the sampled posedge.
+        if 'reset' in row:
+            cur_reset = row['reset'] & 1
+        if 'data' in row:
+            cur_data = row['data'] & 1
+
+        # Explicit state transitions sampled at posedge.
+        if cur_reset:
+            # R_RESET priority 0
+            next_state = 0
+        else:
+            if state == 0:          # S0
+                next_state = 1 if cur_data else 0
+            elif state == 1:        # S1
+                next_state = 2 if cur_data else 0
+            elif state == 2:        # S11
+                next_state = 3 if cur_data == 0 else 2
+            elif state == 3:        # S110
+                next_state = 4 if cur_data else 0
+            elif state == 4:        # FOUND
+                next_state = 4
+            else:
+                next_state = 0
+
+        # Output visible same cycle after posedge, based on updated state.
+        if cur_reset:
+            # R_RESET
+            out = 0
+        elif next_state == 4:
+            # R_COMPLETE_1101 (same-cycle detection) and R_HOLD_FOUND
+            out = 1
+        else:
+            # R_ZERO_NOT_FOUND
+            out = 0
+
+        result.append({'start_shifting': out & 1})
+        state = next_state
+
+        # Mid changes occur after sampling and carry to start of next row.
+        if 'mid' in row and isinstance(row['mid'], dict):
+            mid = row['mid']
+            if 'reset' in mid:
+                cur_reset = mid['reset'] & 1
+            if 'data' in mid:
+                cur_data = mid['data'] & 1
+
+        # Also support explicit mid_* keys.
+        for k in row:
+            if k.startswith('mid_'):
+                base = k[4:]
+                if base == 'reset':
+                    cur_reset = row[k] & 1
+                elif base == 'data':
+                    cur_data = row[k] & 1
+
+    return result

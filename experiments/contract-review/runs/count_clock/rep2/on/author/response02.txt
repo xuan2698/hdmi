@@ -1,0 +1,169 @@
+{
+  "ports": {
+    "inputs": {
+      "reset": 1,
+      "ena": 1
+    },
+    "outputs": {
+      "pm": 1,
+      "hh": 8,
+      "mm": 8,
+      "ss": 8
+    },
+    "clock": "clk"
+  },
+  "states": [
+    {
+      "name": "ss",
+      "meaning": "Seconds BCD counter, 00-59 (output ss).",
+      "update_time": "posedge clk",
+      "update_during_reset": true
+    },
+    {
+      "name": "mm",
+      "meaning": "Minutes BCD counter, 00-59 (output mm).",
+      "update_time": "posedge clk",
+      "update_during_reset": true
+    },
+    {
+      "name": "hh",
+      "meaning": "Hours BCD counter, 01-12 (output hh), reset to 12 (0x12).",
+      "update_time": "posedge clk",
+      "update_during_reset": true
+    },
+    {
+      "name": "pm",
+      "meaning": "AM/PM flag: 0=AM, 1=PM (output pm).",
+      "update_time": "posedge clk",
+      "update_during_reset": true
+    }
+  ],
+  "rules": [
+    {
+      "id": "R_RESET",
+      "outputs": [
+        "pm",
+        "hh",
+        "mm",
+        "ss"
+      ],
+      "condition": "reset==1",
+      "edge": "posedge",
+      "visible": "same_cycle",
+      "priority": 1,
+      "spec_quote": "Reset is the active high synchronous signal that resets the clock to \"12:00 AM.\"",
+      "uncertain": false,
+      "example": {
+        "vectors": [
+          {
+            "reset": 1,
+            "ena": 0
+          },
+          {
+            "reset": 1,
+            "ena": 1
+          }
+        ],
+        "expected": [
+          {
+            "pm": 0,
+            "hh": 18,
+            "mm": 0,
+            "ss": 0
+          },
+          {
+            "pm": 0,
+            "hh": 18,
+            "mm": 0,
+            "ss": 0
+          }
+        ]
+      }
+    },
+    {
+      "id": "R_NORMAL",
+      "outputs": [
+        "pm",
+        "hh",
+        "mm",
+        "ss"
+      ],
+      "condition": "reset==0: if ena==1 then apply one BCD second increment with carries: ss=ss+1 BCD; if ss was 0x59 then ss=0x00 and mm=mm+1 BCD; if ss was 0x59 and mm was 0x59 then mm=0x00 and hh=hh+1 BCD; hour wraps 12->01 after 12:59:59; pm toggles only on 11:59:59->12:00:00 (AM/PM changes), and pm is otherwise unchanged; if ena==0 then hold all outputs",
+      "edge": "posedge",
+      "visible": "same_cycle",
+      "priority": 10,
+      "spec_quote": "a pulse on ena whenever your clock should increment",
+      "uncertain": true,
+      "example": {
+        "vectors": [
+          {
+            "reset": 1,
+            "ena": 0
+          },
+          {
+            "reset": 0,
+            "ena": 1
+          },
+          {
+            "reset": 0,
+            "ena": 0
+          },
+          {
+            "reset": 0,
+            "ena": 1
+          }
+        ],
+        "expected": [
+          {
+            "pm": 0,
+            "hh": 18,
+            "mm": 0,
+            "ss": 0
+          },
+          {
+            "pm": 0,
+            "hh": 18,
+            "mm": 0,
+            "ss": 1
+          },
+          {
+            "pm": 0,
+            "hh": 18,
+            "mm": 0,
+            "ss": 1
+          },
+          {
+            "pm": 0,
+            "hh": 18,
+            "mm": 0,
+            "ss": 2
+          }
+        ]
+      }
+    }
+  ],
+  "reset": {
+    "kind": "sync",
+    "name": "reset",
+    "active": "high",
+    "values": {
+      "pm": 0,
+      "hh": 18,
+      "mm": 0,
+      "ss": 0
+    },
+    "first_released_cycle": "first posedge clk with reset==0; synchronous release takes effect at that sampled edge"
+  },
+  "mid": "Optional mid changes occur after sampling and before the other edge; they are carried to the start of the next row and do not alter already-sampled outputs.",
+  "uncertain": [
+    {
+      "rule_id": "R_NORMAL",
+      "note": "Enable edge and BCD ranges are specified, but the exact 12-hour wrap and PM-toggle point are inferred from '12-hour clock (with am/pm indicator)' rather than explicitly stated.",
+      "candidates": [
+        "Standard 12-hour clock convention: PM toggles at the 11:59:59<->12:00:00 boundary and hours wrap 12->01 after 12:59:59.",
+        "PM could toggle at the 12:59:59->01:00:00 boundary instead of at 12:00:00 under an unusual convention.",
+        "Hour rollover could be 12->01 immediately at 12:00:00 rather than after 12:59:59 under an unusual convention."
+      ]
+    }
+  ]
+}

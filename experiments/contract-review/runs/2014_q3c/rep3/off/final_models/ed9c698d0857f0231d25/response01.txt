@@ -1,0 +1,43 @@
+```python
+def reference(vectors):
+    # Contract implementation.
+    # R_Y0: Y0 = next-state bit 0, combinational from present state y and input x.
+    # R_z: z = 1 when present state y is 011 or 100, else 0 (Moore output).
+    # global: undefined states y=101,110,111 treated as don't-cares -> Y0=0, z=1.
+    # mid: mid input changes occur AFTER sampling, before the other edge, carried to next row.
+    # Clock clk; sample after posedge settled. Each row's values driven before sampled edge.
+
+    # State-assigned table: next state Y[2:0] for (y, x)
+    # y=000: x=0 -> 000, x=1 -> 001
+    # y=001: x=0 -> 001, x=1 -> 100
+    # y=010: x=0 -> 010, x=1 -> 001
+    # y=011: x=0 -> 001, x=1 -> 010
+    # y=100: x=0 -> 011, x=1 -> 100
+    # y=101,110,111: undefined -> don't-care, Y0=0, z=1
+
+    next_state = {
+        0: {0: 0b000, 1: 0b001},
+        1: {0: 0b001, 1: 0b100},
+        2: {0: 0b010, 1: 0b001},
+        3: {0: 0b001, 1: 0b010},
+        4: {0: 0b011, 1: 0b100},
+    }
+
+    results = []
+    for row in vectors:
+        x = row.get("x", 0) & 1
+        y = row.get("y", 0) & 0b111
+
+        if y in next_state:
+            ns = next_state[y][x]
+            Y0 = ns & 1
+            z = 1 if y in (0b011, 0b100) else 0
+        else:
+            # global: undefined states -> Y0=0, z=1
+            Y0 = 0
+            z = 1
+
+        results.append({"Y0": Y0 & 1, "z": z & 1})
+
+    return results
+```

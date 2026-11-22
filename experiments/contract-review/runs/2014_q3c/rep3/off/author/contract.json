@@ -1,0 +1,135 @@
+{
+  "ports": {
+    "inputs": {
+      "x": 1,
+      "y": 3
+    },
+    "outputs": {
+      "Y0": 1,
+      "z": 1
+    },
+    "clock": "clk"
+  },
+  "states": [
+    {
+      "name": "present_state",
+      "meaning": "Current state y[2:0] sampled on posedge clk; determines next state Y[2:0] and output z",
+      "update_time": "posedge clk",
+      "update_during_reset": false
+    }
+  ],
+  "rules": [
+    {
+      "id": "R_Y0",
+      "outputs": [
+        "Y0"
+      ],
+      "condition": "Y0 = next-state bit 0, computed combinationally from present state y and input x per the state-assigned table",
+      "edge": "combinational",
+      "visible": "same_cycle",
+      "priority": 1,
+      "spec_quote": "Given the state-assigned table shown below, implement the logic functions Y[0] and z.",
+      "uncertain": false,
+      "example": {
+        "vectors": [
+          {
+            "x": 0,
+            "y": 0
+          },
+          {
+            "x": 1,
+            "y": 0
+          },
+          {
+            "x": 0,
+            "y": 3
+          },
+          {
+            "x": 1,
+            "y": 3
+          }
+        ],
+        "expected": [
+          {
+            "Y0": 0,
+            "z": 0
+          },
+          {
+            "Y0": 1,
+            "z": 0
+          },
+          {
+            "Y0": 1,
+            "z": 1
+          },
+          {
+            "Y0": 0,
+            "z": 1
+          }
+        ]
+      }
+    },
+    {
+      "id": "R_z",
+      "outputs": [
+        "z"
+      ],
+      "condition": "z = 1 when present state y is 011 or 100, else 0 (Moore output from state-assigned table)",
+      "edge": "combinational",
+      "visible": "same_cycle",
+      "priority": 1,
+      "spec_quote": "// 011 | 001, 010 | 1",
+      "uncertain": false,
+      "example": {
+        "vectors": [
+          {
+            "x": 0,
+            "y": 2
+          },
+          {
+            "x": 0,
+            "y": 3
+          },
+          {
+            "x": 1,
+            "y": 4
+          },
+          {
+            "x": 0,
+            "y": 0
+          }
+        ],
+        "expected": [
+          {
+            "Y0": 0,
+            "z": 0
+          },
+          {
+            "Y0": 1,
+            "z": 1
+          },
+          {
+            "Y0": 0,
+            "z": 1
+          },
+          {
+            "Y0": 0,
+            "z": 0
+          }
+        ]
+      }
+    }
+  ],
+  "reset": {
+    "kind": "none",
+    "name": null,
+    "active": "none",
+    "values": {
+      "Y0": null,
+      "z": null
+    },
+    "first_released_cycle": "not applicable"
+  },
+  "mid": "Optional mid input changes occur AFTER sampling, before the other edge, and are carried to the start of the next row.",
+  "uncertain": []
+}

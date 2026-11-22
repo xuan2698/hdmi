@@ -1,0 +1,46 @@
+```python
+def reference(vectors):
+    # Initial concrete state for power-up unspecified (3-bit modulo-7 counter).
+    q = 0
+    # Carried input value for 'a' across cycles, including mid-cycle changes.
+    current_a = 0
+    results = []
+
+    for vec in vectors:
+        # Each row's values are driven before the sampled positive edge.
+        if 'a' in vec:
+            current_a = int(vec['a']) & 1
+        sampled_a = current_a
+
+        # Update q at the posedge clk.
+        if sampled_a == 1:
+            # Rule q_load4_when_a_high: synchronous load/reset q to 4 when a==1.
+            q = 4
+        else:
+            # Rule q_increment_mod7_when_a_low: increment by 1 modulo 7 when a==0.
+            q = (q + 1) % 7
+
+        # Keep q within the 3-bit unsigned output width.
+        q = q & 0x7
+        results.append({'q': q})
+
+        # Process optional mid-cycle input changes AFTER sampling.
+        # They are carried to the start of the next row.
+        mid = vec.get('mid')
+        if isinstance(mid, dict):
+            if 'a' in mid:
+                current_a = int(mid['a']) & 1
+        elif isinstance(mid, list):
+            for change in mid:
+                if isinstance(change, dict) and 'a' in change:
+                    current_a = int(change['a']) & 1
+
+        # Also accept direct mid keys such as 'a_mid' for robustness.
+        for k, v in vec.items():
+            if k.endswith('_mid'):
+                base = k[:-4]
+                if base == 'a':
+                    current_a = int(v) & 1
+
+    return results
+```

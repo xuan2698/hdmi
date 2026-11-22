@@ -1,0 +1,44 @@
+[
+  {
+    "issue": {
+      "issue_id": "I4",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec says output remains 1 until reset; contract R2 uses out<=out|fall (sticky) which matches, but R1 visible same_cycle vs R2 next_cycle creates ambiguity on reset-release cycle when a falling edge coincides.",
+      "spec_evidence": "the output will remain 1 until the register is reset (active high synchronous reset)",
+      "alternative": "On the first posedge with reset==0, if prev_in&~in is nonzero, capture the falling edge (out=fall) rather than clearing to 0.",
+      "sequence": [
+        {
+          "reset": 1,
+          "in": 4294967295
+        },
+        {
+          "reset": 0,
+          "in": 0
+        }
+      ]
+    },
+    "status": "no_effect",
+    "issue_id": "I4",
+    "outputs": {
+      "original": [
+        {
+          "out": 0
+        },
+        {
+          "out": 4294967295
+        }
+      ],
+      "alternative": [
+        {
+          "out": 0
+        },
+        {
+          "out": 4294967295
+        }
+      ]
+    },
+    "differences": []
+  }
+]

@@ -1,0 +1,46 @@
+```python
+def reference(vectors):
+    # Initial state A (power-up unspecified, but choose deterministic A)
+    state = 'A'
+    inputs = {'in': 0, 'reset': 0}
+    outputs = []
+
+    for row in vectors:
+        # Apply main input values driven before the sampled posedge edge
+        if 'in' in row:
+            inputs['in'] = row['in']
+        if 'reset' in row:
+            inputs['reset'] = row['reset']
+
+        # R_RESET: synchronous active high reset at posedge clk
+        # R_NEXT: normal transition when reset == 0
+        if inputs['reset'] == 1:
+            next_state = 'A'
+        else:
+            if state == 'A':
+                next_state = 'A' if inputs['in'] == 0 else 'B'
+            elif state == 'B':
+                next_state = 'C' if inputs['in'] == 0 else 'B'
+            elif state == 'C':
+                next_state = 'A' if inputs['in'] == 0 else 'D'
+            elif state == 'D':
+                next_state = 'C' if inputs['in'] == 0 else 'B'
+            else:
+                next_state = 'A'  # fallback for unspecified power-up
+
+        state = next_state
+
+        # Moore output after the posedge settles
+        # R_OUT_A, R_OUT_B, R_OUT_C, R_OUT_D
+        out = 1 if state == 'D' else 0
+        outputs.append({'out': out})
+
+        # Optional mid input changes occur AFTER sampling, before the other edge,
+        # and are carried to the start of the next row.
+        if 'mid' in row and isinstance(row['mid'], dict):
+            for k, v in row['mid'].items():
+                if k in ('in', 'reset'):
+                    inputs[k] = v
+
+    return outputs
+```

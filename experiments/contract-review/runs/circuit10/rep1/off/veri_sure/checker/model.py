@@ -1,0 +1,15 @@
+def reference(vectors):
+    # Sequential circuit: on each posedge clk, state <= a XOR b XOR state.
+    # q == state. No reset; initial state unspecified (treat as 0 for concrete output).
+    out = []
+    state = 0
+    for row in vectors:
+        clk = row.get('clk', 0)
+        a = row.get('a', 0)
+        b = row.get('b', 0)
+        # Sample on posedge (clk transitions 0->1). Rows are driven before the edge.
+        # We treat each row as the state at the sampling edge; if clk==1, update.
+        if clk == 1:
+            state = (a ^ b ^ state) & 1
+        out.append({'q': state & 1, 'state': state & 1})
+    return out

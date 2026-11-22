@@ -1,0 +1,88 @@
+{
+  "responses": [
+    {
+      "issue_id": "I1",
+      "decision": "accept",
+      "reason": "R2 example incorrectly shows q=d on the same posedge; a DFF samples d at the edge, so q should reflect d from the previous cycle. Fixing the example to demonstrate proper DFF sampling behavior.",
+      "spec_quote": "Create 8 D flip-flops",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R2",
+            "example"
+          ],
+          "value": {
+            "vectors": [
+              {
+                "d": 5,
+                "reset": 0
+              },
+              {
+                "d": 9,
+                "reset": 0
+              },
+              {
+                "d": 255,
+                "reset": 0
+              }
+            ],
+            "expected": [
+              {
+                "q": 0
+              },
+              {
+                "q": 5
+              },
+              {
+                "q": 9
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "issue_id": "I3",
+      "decision": "accept",
+      "reason": "R1 example uses d=0 throughout, so it cannot distinguish synchronous reset from d=0 pass-through. Changing d to nonzero values so reset behavior is independently evidenced.",
+      "spec_quote": "active high synchronous reset setting the output to zero",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R1",
+            "example"
+          ],
+          "value": {
+            "vectors": [
+              {
+                "d": 7,
+                "reset": 1
+              },
+              {
+                "d": 42,
+                "reset": 1
+              },
+              {
+                "d": 200,
+                "reset": 1
+              }
+            ],
+            "expected": [
+              {
+                "q": 0
+              },
+              {
+                "q": 0
+              },
+              {
+                "q": 0
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

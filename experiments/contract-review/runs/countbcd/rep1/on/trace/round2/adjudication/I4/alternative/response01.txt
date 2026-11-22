@@ -1,0 +1,69 @@
+```python
+def reference(vectors):
+    # State: registered 16-bit BCD counter value.
+    # Power-up value is unspecified; using 0 as a concrete choice.
+    q = 0
+    # Current input values carried between rows (start with reset low).
+    cur = {'reset': 0}
+    results = []
+
+    for row in vectors:
+        # Apply row's values driven before the sampled edge.
+        # These override any carried mid changes for the upcoming posedge.
+        if isinstance(row, dict):
+            for k, v in row.items():
+                if k == 'mid':
+                    continue
+                cur[k] = v
+
+        # Rule reset: synchronous active-high reset has priority.
+        rst = cur.get('reset', 0) & 1
+        if rst:
+            q = 0
+        else:
+            # Rule bcd_increment: BCD_add(q, 1) modulo 10000 with carry across nibbles.
+            d0 = q & 0xF
+            d1 = (q >> 4) & 0xF
+            d2 = (q >> 8) & 0xF
+            d3 = (q >> 12) & 0xF
+
+            d0 += 1
+            if d0 >= 10:
+                d0 = 0
+                d1 += 1
+                if d1 >= 10:
+                    d1 = 0
+                    d2 += 1
+                    if d2 >= 10:
+                        d2 = 0
+                        d3 += 1
+                        if d3 >= 10:
+                            d3 = 0
+            q = (d3 << 12) | (d2 << 8) | (d1 << 4) | d0
+
+        # Rule ena_combinational: reversed bit mapping.
+        # ena[2] = ones==9
+        # ena[1] = tens==9 && ones==9
+        # ena[0] = hundreds==9 && tens==9 && ones==9
+        ones = q & 0xF
+        tens = (q >> 4) & 0xF
+        hundreds = (q >> 8) & 0xF
+        ena = 0
+        if ones == 9:
+            ena |= 4  # ena[2]
+        if tens == 9 and ones == 9:
+            ena |= 2  # ena[1]
+        if hundreds == 9 and tens == 9 and ones == 9:
+            ena |= 1  # ena[0]
+
+        # Output after the sampled posedge has settled.
+        results.append({'q': q, 'ena': ena})
+
+        # Optional mid input changes occur AFTER sampling and are carried
+        # to the start of the next row.
+        if isinstance(row, dict) and isinstance(row.get('mid'), dict):
+            for k, v in row['mid'].items():
+                cur[k] = v
+
+    return results
+```

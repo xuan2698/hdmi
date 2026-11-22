@@ -1,0 +1,70 @@
+def reference(vectors):
+    # State: ss_lo, ss_hi, mm_lo, mm_hi, hh_lo, hh_hi, pm_reg
+    # Initialize to reset values: 12:00 AM -> hh=0x12, mm=0x00, ss=0x00, pm=0
+    ss_lo, ss_hi = 0, 0
+    mm_lo, mm_hi = 0, 0
+    hh_lo, hh_hi = 2, 1  # 0x12
+    pm_reg = 0
+
+    out = []
+    for row in vectors:
+        reset = row.get('reset', 0)
+        ena = row.get('ena', 0)
+
+        # Sample current outputs (before edge)
+        ss = (ss_hi << 4) | ss_lo
+        mm = (mm_hi << 4) | mm_lo
+        hh = (hh_hi << 4) | hh_lo
+        out.append({'pm': pm_reg, 'hh': hh, 'mm': mm, 'ss': ss})
+
+        # Compute next state at posedge
+        if reset:
+            # R1_reset: reset to 12:00 AM
+            ss_lo, ss_hi = 0, 0
+            mm_lo, mm_hi = 0, 0
+            hh_lo, hh_hi = 2, 1
+            pm_reg = 0
+        elif ena:
+            # R2_seconds / R3 / R4 / R5 / R6
+            if ss != 0x59:
+                # R2_seconds: increment seconds
+                if ss_lo == 9:
+                    ss_lo = 0
+                    ss_hi += 1
+                else:
+                    ss_lo += 1
+            else:
+                # ss == 0x59
+                ss_lo, ss_hi = 0, 0
+                if mm != 0x59:
+                    # R3_seconds_rollover: increment minutes
+                    if mm_lo == 9:
+                        mm_lo = 0
+                        mm_hi += 1
+                    else:
+                        mm_lo += 1
+                else:
+                    # mm == 0x59
+                    mm_lo, mm_hi = 0, 0
+                    if hh == 0x11 and pm_reg == 1:
+                        # R5_hour_rollover_am_pm: 11:59 PM -> 12:00 AM
+                        hh_lo, hh_hi = 2, 1
+                        pm_reg = 0
+                    elif hh == 0x12 and pm_reg == 1:
+                        # R6_hour_rollover_1159pm: 12:59 PM -> 01:00 PM
+                        hh_lo, hh_hi = 1, 0
+                        pm_reg = 1
+                    else:
+                        # R4_minutes_rollover: increment hours
+                        if hh == 0x12:
+                            # 12 -> 01, toggle pm
+                            hh_lo, hh_hi = 1, 0
+                            pm_reg = 1 - pm_reg
+                        elif hh_lo == 9:
+                            hh_lo = 0
+                            hh_hi += 1
+                        else:
+                            hh_lo += 1
+        # else: R7_hold (no change)
+
+    return out

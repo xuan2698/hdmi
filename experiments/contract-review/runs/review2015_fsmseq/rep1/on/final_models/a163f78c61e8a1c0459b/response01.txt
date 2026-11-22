@@ -1,0 +1,68 @@
+def reference(vectors):
+    # State encoding: 0=S0, 1=S1, 2=S11, 3=S110, 4=FOUND
+    # R_ZERO_NOT_FOUND: start_shifting defaults to 0 before detection.
+    state = 0
+    cur = {"reset": 0, "data": 0}
+    result = []
+
+    for row in vectors:
+        # Each row's values are driven before the sampled posedge.
+        if "reset" in row:
+            cur["reset"] = int(row["reset"]) & 1
+        if "data" in row:
+            cur["data"] = int(row["data"]) & 1
+
+        reset = cur["reset"]
+        data = cur["data"]
+
+        if reset == 1:
+            # R_RESET: active-high synchronous reset forces S0 and start_shifting=0.
+            next_state = 0
+            next_out = 0
+        else:
+            if state == 4:  # FOUND
+                # R_HOLD_FOUND: any data stays FOUND and start_shifting remains 1.
+                next_state = 4
+                next_out = 1
+            elif state == 3:  # S110
+                if data == 1:
+                    # R_COMPLETE_1101: sequence 1101 completed; same-cycle start_shifting=1.
+                    next_state = 4
+                    next_out = 1
+                else:
+                    # data == 0: longest matched suffix returns to S0.
+                    # R_ZERO_NOT_FOUND applies here.
+                    next_state = 0
+                    next_out = 0
+            elif state == 2:  # S11
+                if data == 1:
+                    next_state = 2  # stays S11
+                else:
+                    next_state = 3  # S110
+                # R_ZERO_NOT_FOUND: not found yet.
+                next_out = 0
+            elif state == 1:  # S1
+                if data == 1:
+                    next_state = 2  # S11
+                else:
+                    next_state = 0  # S0
+                # R_ZERO_NOT_FOUND: not found yet.
+                next_out = 0
+            else:  # S0
+                if data == 1:
+                    next_state = 1  # S1
+                else:
+                    next_state = 0  # S0
+                # R_ZERO_NOT_FOUND: not found yet.
+                next_out = 0
+
+        state = next_state
+        result.append({"start_shifting": next_out & 1})
+
+        # Optional mid input changes occur AFTER sampling and are carried to next row.
+        mid = row.get("mid")
+        if isinstance(mid, dict):
+            for key, value in mid.items():
+                cur[key] = int(value) & 1
+
+    return result

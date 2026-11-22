@@ -1,0 +1,100 @@
+def reference(vectors):
+    # State: 4 BCD digits, each 0..9. q packs digit0 (ones) in bits [3:0], etc.
+    # Contract rules implemented below with rule IDs in comments.
+    # Candidate interpretation for ena: registered, reflects enable for next edge.
+    # So ena at cycle t = combinational enable computed from q at cycle t,
+    # but since it's registered, it's the value computed at previous edge.
+    # We model: at each posedge, we sample inputs, compute next state and next ena,
+    # then outputs for this row are the current registered values (q, ena).
+    # Reset is synchronous active-high: on posedge with reset=1, q<=0, ena<=0.
+
+    # Initialize state (power-up unspecified, but we must return concrete values).
+    # Use 0 for q and ena as a concrete choice.
+    q = 0
+    ena = 0
+
+    results = []
+    for row in vectors:
+        reset = row.get('reset', 0)
+        # Outputs for this row are the current registered values (before this edge's update).
+        # R1_reset: reset==1 -> q=0, ena=0 visible same cycle (registered output after reset edge).
+        # But note: the row's values are driven before the sampled edge.
+        # The contract says: "Each row's values are driven before the sampled edge."
+        # So the inputs for this row are applied, then the posedge occurs, then outputs are sampled.
+        # Wait: "sample after the posedge edge has settled" -> outputs are after the edge.
+        # So we must compute the next state based on current state and inputs, then output that.
+        # Let's re-read: "Clock clk; sample after the posedge edge has settled. Each row's values are driven before the sampled edge."
+        # So for each row: inputs are set, then posedge occurs, then we sample outputs (which are the new registered values).
+        # Therefore outputs for row = state after applying this row's inputs at posedge.
+        # Mid changes occur AFTER sampling, before the other edge, carried to start of next row.
+        # So we process: given current state (from previous row's end), apply this row's inputs at posedge,
+        # compute new state, output new state. Then mid changes (if any) would affect next row's inputs,
+        # but mid is not in the input dict? The vectors only have 'reset'. Mid changes are optional and not provided.
+        # We'll ignore mid since not present.
+
+        # Compute next state based on current q and reset.
+        if reset == 1:
+            # R1_reset: synchronous reset, q=0, ena=0 after edge.
+            next_q = 0
+            next_ena = 0
+        else:
+            # Combinational enables based on current q (before edge).
+            # R9_ena_tens: ena[0] = (q[3:0]==9)
+            # R10_ena_hundreds: ena[1] = (q[3:0]==9 and q[7:4]==9)
+            # R11_ena_thousands: ena[2] = (q[3:0]==9 and q[7:4]==9 and q[11:8]==9)
+            d0 = q & 0xF
+            d1 = (q >> 4) & 0xF
+            d2 = (q >> 8) & 0xF
+            d3 = (q >> 12) & 0xF
+
+            ena0 = 1 if d0 == 9 else 0
+            ena1 = 1 if (d0 == 9 and d1 == 9) else 0
+            ena2 = 1 if (d0 == 9 and d1 == 9 and d2 == 9) else 0
+            comb_ena = (ena2 << 2) | (ena1 << 1) | ena0
+
+            # Next digit values (BCD increment with carry).
+            # R2_ones_count: if d0 != 9, d0' = d0+1
+            # R3_ones_wrap: if d0 == 9, d0' = 0
+            if d0 != 9:
+                nd0 = d0 + 1
+                nd1 = d1
+                nd2 = d2
+                nd3 = d3
+            else:
+                nd0 = 0
+                # R4_tens_increment: if d0==9 and d1!=9, d1' = d1+1
+                # R5_tens_wrap: if d0==9 and d1==9, d1'=0
+                if d1 != 9:
+                    nd1 = d1 + 1
+                    nd2 = d2
+                    nd3 = d3
+                else:
+                    nd1 = 0
+                    # R6_hundreds_increment: if d0==9 and d1==9 and d2!=9, d2'=d2+1
+                    # (and d2==9 -> wrap to 0, then thousands)
+                    if d2 != 9:
+                        nd2 = d2 + 1
+                        nd3 = d3
+                    else:
+                        nd2 = 0
+                        # R7_thousands_increment: if d0==9 and d1==9 and d2==9 and d3!=9, d3'=d3+1
+                        # R8_full_wrap: if all 9, d3'=0
+                        if d3 != 9:
+                            nd3 = d3 + 1
+                        else:
+                            nd3 = 0
+
+            next_q = (nd3 << 12) | (nd2 << 8) | (nd1 << 4) | nd0
+            # Candidate interpretation: ena is registered and reflects enable for next edge.
+            # So next_ena = comb_ena computed from current q (before edge).
+            # This means ena output after edge = comb_ena from before edge.
+            next_ena = comb_ena
+
+        # Update state
+        q = next_q
+        ena = next_ena
+
+        # Output for this row: q and ena (after edge)
+        results.append({'q': q, 'ena': ena})
+
+    return results

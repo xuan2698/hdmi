@@ -1,0 +1,74 @@
+{
+  "responses": [
+    {
+      "issue_id": "I1",
+      "decision": "accept",
+      "reason": "The current ena_combinational example is inconsistent: q cannot jump 2457->4096->4097 under a BCD counter and the ena values do not match the rule; replace it with a valid reset-then-increment sequence.",
+      "spec_quote": "Build a 4-digit BCD (binary-coded decimal) counter.",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "ena_combinational",
+            "example"
+          ],
+          "value": {
+            "vectors": [
+              {
+                "reset": 1
+              },
+              {
+                "reset": 0
+              },
+              {
+                "reset": 0
+              },
+              {
+                "reset": 0
+              }
+            ],
+            "expected": [
+              {
+                "q": 0,
+                "ena": 0
+              },
+              {
+                "q": 1,
+                "ena": 0
+              },
+              {
+                "q": 2,
+                "ena": 0
+              },
+              {
+                "q": 3,
+                "ena": 0
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "issue_id": "I2",
+      "decision": "rebut",
+      "reason": "The current contract already marks reset as uncertain and its global uncertain entry for reset explicitly lists clearing to zero, leaving unchanged, and unspecified reset state as candidates.",
+      "spec_quote": "Include a synchronous active-high reset.",
+      "edits": []
+    },
+    {
+      "issue_id": "I3",
+      "decision": "rebut",
+      "reason": "The current contract already marks the ena_combinational rule uncertain and the global uncertain entry includes the registered-on-posedge interpretation.",
+      "spec_quote": "For digits [3:1], also output an enable signal indicating when each of the upper three digits should be incremented.",
+      "edits": []
+    },
+    {
+      "issue_id": "I4",
+      "decision": "rebut",
+      "reason": "The current contract already includes the reverse ena bit mapping as an uncertain candidate for ena_combinational.",
+      "spec_quote": "For digits [3:1], also output an enable signal indicating when each of the upper three digits should be incremented.",
+      "edits": []
+    }
+  ]
+}

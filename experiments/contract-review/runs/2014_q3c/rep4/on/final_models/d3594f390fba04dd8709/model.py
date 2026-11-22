@@ -1,0 +1,26 @@
+def reference(vectors):
+    results = []
+    for v in vectors:
+        x = v['x'] & 1
+        y = v['y'] & 7
+        
+        # Rule implementations:
+        # Y0_z_S0_x0: y==0 and x==0 => Y0=0, z=0
+        # Y0_z_S0_x1: y==0 and x==1 => Y0=1, z=0
+        # Y0_z_S1_x0: y==1 and x==0 => Y0=1, z=0
+        # Y0_z_S1_x1: y==1 and x==1 => Y0=0, z=0
+        # Y0_z_S2_x0: y==2 and x==0 => Y0=0, z=0
+        # Y0_z_S2_x1: y==2 and x==1 => Y0=1, z=0
+        # Y0_z_S3_x0: y==3 and x==0 => Y0=1, z=1
+        # Y0_z_S3_x1: y==3 and x==1 => Y0=0, z=1
+        # Y0_z_S4_x0: y==4 and x==0 => Y0=1, z=1
+        # Y0_z_S4_x1: y==4 and x==1 => Y0=0, z=1
+        # Y0_z_unused: y>=5 => Y0=~x, z=1
+        # Combined combinational logic:
+        # Y0 = x ^ ((y>>2 & 1) | (y & 1))
+        # z  = 1 if y >= 3 else 0
+        Y0 = x ^ (((y >> 2) & 1) | (y & 1))
+        z = 1 if y >= 3 else 0
+        
+        results.append({'Y0': Y0 & 1, 'z': z & 1})
+    return results

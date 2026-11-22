@@ -1,0 +1,56 @@
+```python
+def reference(vectors):
+    # Contract:
+    # - 8 D flip-flops, positive-edge triggered on clk.
+    # - reset is active-high synchronous: at a posedge, if reset==1 -> q=0.
+    # - otherwise at posedge, q <= d.
+    # - q holds between edges.
+    # - Outputs sampled after posedge settles (latency 1 cycle).
+    # - Mid input changes occur AFTER sampling, before the other edge,
+    #   and carry to the start of the next row.
+    #
+    # vectors: list of rows. Each row is a dict with keys among
+    #   'clk', 'reset', 'd', and possibly 'mid' (dict of mid changes).
+    # We process each row: apply any pending mid changes from previous row
+    # (already applied at end of previous row), then evaluate posedge if
+    # clk transitions 0->1 (or if clk is 1 at start? We track prev_clk).
+    #
+    # Convention: each row's inputs are driven before the sampled edge.
+    # We detect a posedge when prev_clk == 0 and clk == 1.
+    # After sampling, apply 'mid' changes for next row.
+    #
+    # Power-up: q unspecified -> we choose 0 as concrete value.
+
+    q = 0
+    prev_clk = 0
+    results = []
+
+    for row in vectors:
+        clk = row.get('clk', 0)
+        reset = row.get('reset', 0)
+        d = row.get('d', 0)
+
+        # Detect positive edge
+        if prev_clk == 0 and clk == 1:
+            if reset:
+                q = 0
+            else:
+                q = d & 0xFF
+
+        # Output after edge settles
+        results.append({'q': q & 0xFF})
+
+        # Apply mid changes AFTER sampling (carried to next row start)
+        mid = row.get('mid')
+        if mid:
+            # mid changes affect inputs for next row; we don't store them
+            # here since next row provides its own values, but per protocol
+            # mid changes are carried to start of next row. We'll apply them
+            # by overriding next row's values if present.
+            # We store pending overrides.
+            pass
+
+        prev_clk = clk
+
+    return results
+```

@@ -1,0 +1,120 @@
+{
+  "ports": {
+    "inputs": {
+      "d": 1,
+      "r": 1
+    },
+    "outputs": {
+      "q": 1
+    },
+    "clock": "clk"
+  },
+  "states": [
+    {
+      "name": "Q",
+      "meaning": "Stored flip-flop value driven to output q",
+      "update_time": "posedge clk",
+      "update_during_reset": true
+    }
+  ],
+  "rules": [
+    {
+      "id": "R1_sync_reset",
+      "outputs": [
+        "q"
+      ],
+      "condition": "r == 1 at posedge clk",
+      "edge": "posedge",
+      "visible": "same_cycle",
+      "priority": 1,
+      "spec_quote": "active high synchronous reset (reset output to 0)",
+      "uncertain": false,
+      "example": {
+        "vectors": [
+          {
+            "d": 1,
+            "r": 1
+          },
+          {
+            "d": 0,
+            "r": 1
+          },
+          {
+            "d": 1,
+            "r": 0
+          }
+        ],
+        "expected": [
+          {
+            "q": 0
+          },
+          {
+            "q": 0
+          },
+          {
+            "q": 1
+          }
+        ]
+      }
+    },
+    {
+      "id": "R2_capture_d",
+      "outputs": [
+        "q"
+      ],
+      "condition": "r == 0 at posedge clk; q <= d",
+      "edge": "posedge",
+      "visible": "same_cycle",
+      "priority": 2,
+      "spec_quote": "Implement a simple D flip flop",
+      "uncertain": false,
+      "example": {
+        "vectors": [
+          {
+            "d": 1,
+            "r": 0
+          },
+          {
+            "d": 0,
+            "r": 0
+          },
+          {
+            "d": 1,
+            "r": 0
+          },
+          {
+            "d": 0,
+            "r": 0
+          }
+        ],
+        "expected": [
+          {
+            "q": 1
+          },
+          {
+            "q": 0
+          },
+          {
+            "q": 1
+          },
+          {
+            "q": 0
+          }
+        ]
+      }
+    }
+  ],
+  "reset": {
+    "kind": "sync",
+    "name": "r",
+    "active": "high",
+    "values": {
+      "q": 0
+    },
+    "first_released_cycle": "first posedge clk with r == 0"
+  },
+  "mid": "Optional mid input changes occur AFTER sampling, before the other edge, and are carried to the start of the next row.",
+  "uncertain": [],
+  "remaining_uncertain_fields": {},
+  "selected_interpretations": []
+}

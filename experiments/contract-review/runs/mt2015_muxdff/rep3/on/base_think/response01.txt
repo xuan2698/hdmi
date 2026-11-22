@@ -1,0 +1,15 @@
+def reference(vectors):
+    Q=0
+    st={'L':0,'q_in':0,'r_in':0}
+    res=[]
+    for v in vectors:
+        for k in st:
+            if k in v:
+                st[k]=v[k]&1
+        Q=(st['r_in'] if st['L'] else st['q_in'])&1
+        res.append({'Q':Q})
+        if 'mid' in v:
+            for k in st:
+                if k in v['mid']:
+                    st[k]=v['mid'][k]&1
+    return res

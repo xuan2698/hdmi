@@ -1,0 +1,61 @@
+def reference(vectors):
+    # State
+    ghr = 0
+    pht = [0] * 128  # 2-bit saturating counters, init 0
+
+    out = []
+
+    for v in vectors:
+        areset = v['areset']
+        predict_valid = v['predict_valid']
+        predict_pc = v['predict_pc']
+        train_valid = v['train_valid']
+        train_taken = v['train_taken']
+        train_mispredicted = v['train_mispredicted']
+        train_history = v['train_history']
+        train_pc = v['train_pc']
+
+        # R1_reset: asynchronous active-high reset -> outputs 0
+        if areset == 1:
+            # Reset state asynchronously
+            ghr = 0
+            pht = [0] * 128
+            out.append({'predict_taken': 0, 'predict_history': 0})
+            continue
+
+        # Combinational outputs (before posedge updates)
+        if predict_valid == 1:
+            # R2_predict: index = pc XOR ghr, output counter MSB and current ghr
+            idx = (predict_pc ^ ghr) & 0x7F
+            predict_taken = (pht[idx] >> 1) & 1
+            predict_history = ghr & 0x7F
+        else:
+            # R3_predict_no_valid: assumed predict_taken=0, predict_history=current ghr
+            predict_taken = 0
+            predict_history = ghr & 0x7F
+
+        out.append({'predict_taken': predict_taken, 'predict_history': predict_history})
+
+        # Sequential updates at posedge
+        # R6_pht_train: update PHT entry for training
+        if train_valid == 1:
+            tidx = (train_pc ^ train_history) & 0x7F
+            c = pht[tidx]
+            if train_taken == 1:
+                if c < 3:
+                    c += 1
+            else:
+                if c > 0:
+                    c -= 1
+            pht[tidx] = c
+
+        # GHR update priority: R5/R7 (train mispredicted) > R4 (predict)
+        if train_valid == 1 and train_mispredicted == 1:
+            # R5_ghr_update_train_mispredicted (candidate interpretation):
+            # Recovered GHR = (train_history << 1) | train_taken
+            ghr = ((train_history << 1) | train_taken) & 0x7F
+        elif predict_valid == 1:
+            # R4_ghr_update_predict: shift in predicted direction
+            ghr = ((ghr << 1) | predict_taken) & 0x7F
+
+    return out

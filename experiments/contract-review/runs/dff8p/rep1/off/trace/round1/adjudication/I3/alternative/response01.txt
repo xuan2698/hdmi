@@ -1,0 +1,25 @@
+```python
+def reference(vectors):
+    # State: q_state holds the 8-bit value stored in the D flip-flops.
+    # Initial value is unspecified at power-up; we start at the reset value 0x34
+    # so that the first sampled negedge produces a concrete value.
+    q_state = 0x34  # R1: reset value 0x34 (52)
+
+    results = []
+    for row in vectors:
+        d = row.get('d', 0)
+        reset = row.get('reset', 0)
+
+        # R1: active high synchronous reset on negedge -> q becomes 0x34
+        # R2: reset == 0 on negedge -> q becomes d
+        # Synchronous release: when reset deasserts at a negedge, d is loaded
+        # on that same negedge (candidate interpretation for global).
+        if reset == 1:
+            q_state = 0x34  # R1
+        else:
+            q_state = d & 0xFF  # R2
+
+        results.append({'q': q_state & 0xFF})
+
+    return results
+```

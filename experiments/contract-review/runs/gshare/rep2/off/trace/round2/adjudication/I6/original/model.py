@@ -1,0 +1,67 @@
+def reference(vectors):
+    # State
+    ghr = 0
+    pht = [0] * 128  # 2-bit saturating counters, init 0
+
+    out = []
+
+    for v in vectors:
+        areset = v.get('areset', 0)
+        predict_valid = v.get('predict_valid', 0)
+        predict_pc = v.get('predict_pc', 0)
+        train_valid = v.get('train_valid', 0)
+        train_taken = v.get('train_taken', 0)
+        train_mispredicted = v.get('train_mispredicted', 0)
+        train_history = v.get('train_history', 0)
+        train_pc = v.get('train_pc', 0)
+
+        # R1_reset: asynchronous active-high reset, visible same cycle
+        if areset == 1:
+            ghr = 0
+            pht = [0] * 128
+            out.append({'predict_taken': 0, 'predict_history': 0})
+            continue
+
+        # R2_predict: combinational prediction using current ghr and pht
+        # R3_predict_no_valid: when predict_valid=0, output predict_taken=0 and current ghr
+        if predict_valid == 1:
+            idx = (predict_pc & 0x7F) ^ (ghr & 0x7F)
+            ctr = pht[idx]
+            predict_taken = 1 if ctr >= 2 else 0
+            predict_history = ghr & 0x7F
+        else:
+            predict_taken = 0
+            predict_history = ghr & 0x7F
+
+        out.append({'predict_taken': predict_taken, 'predict_history': predict_history})
+
+        # Compute next-state updates (applied at posedge)
+        next_ghr = ghr
+        next_pht = list(pht)
+
+        # R6_pht_train: update PHT on train_valid
+        if train_valid == 1:
+            tidx = (train_pc & 0x7F) ^ (train_history & 0x7F)
+            c = next_pht[tidx]
+            if train_taken == 1:
+                if c < 3:
+                    c += 1
+            else:
+                if c > 0:
+                    c -= 1
+            next_pht[tidx] = c
+
+        # R5_ghr_update_train_mispredicted / R7_train_priority_over_predict:
+        # training mispredicted takes precedence over prediction for ghr update
+        if train_valid == 1 and train_mispredicted == 1:
+            # recover ghr to state immediately after mispredicting branch
+            next_ghr = ((train_history & 0x7F) << 1) & 0x7F
+            next_ghr = (next_ghr | (train_taken & 1)) & 0x7F
+        elif predict_valid == 1:
+            # R4_ghr_update_predict: shift in predicted direction
+            next_ghr = ((ghr << 1) & 0x7F) | (predict_taken & 1)
+
+        ghr = next_ghr
+        pht = next_pht
+
+    return out

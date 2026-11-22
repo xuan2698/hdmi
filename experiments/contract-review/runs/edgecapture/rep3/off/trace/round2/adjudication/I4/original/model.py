@@ -1,0 +1,40 @@
+def reference(vectors):
+    # Contract implementation.
+    # State: out_reg (32-bit), prev_in (32-bit) for falling-edge detection.
+    # Timing: sample at posedge clk. Each row's values are driven before the
+    # sampled edge. Mid changes occur AFTER sampling and carry to next row.
+    # R1_reset_clear: reset==1 -> out <= 0 (sync, same cycle visible).
+    # R2_capture_falling: reset==0 and (prev_in & ~in)!=0 -> out |= prev_in & ~in.
+    # R3_hold: reset==0 and no falling edge -> out unchanged.
+
+    out_reg = 0
+    prev_in = 0
+    results = []
+
+    for row in vectors:
+        reset = row.get("reset", 0) & 1
+        in_val = row.get("in", 0) & 0xFFFFFFFF
+
+        # Compute next state at posedge clk.
+        if reset == 1:
+            # R1_reset_clear
+            next_out = 0
+        else:
+            falling = prev_in & (~in_val & 0xFFFFFFFF)
+            if falling != 0:
+                # R2_capture_falling
+                next_out = (out_reg | falling) & 0xFFFFFFFF
+            else:
+                # R3_hold
+                next_out = out_reg
+
+        out_reg = next_out
+        prev_in = in_val
+
+        # Mid changes occur AFTER sampling; carried to start of next row.
+        # (No mid changes provided in this contract's vectors; prev_in already
+        # reflects the sampled input for the next row's falling-edge detection.)
+
+        results.append({"out": out_reg & 0xFFFFFFFF})
+
+    return results

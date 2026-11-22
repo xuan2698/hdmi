@@ -1,0 +1,77 @@
+def reference(vectors):
+    # Named FSM states for the 1101 sequence detector.
+    S0 = 0
+    S1 = 1
+    S11 = 2
+    S110 = 3
+    FOUND = 4
+
+    state = S0
+    start_shifting = 0
+    cur_reset = 0
+    cur_data = 0
+    result = []
+
+    for row in vectors:
+        # Contract: each row's values are driven before the sampled posedge.
+        if 'reset' in row:
+            cur_reset = row['reset']
+        if 'data' in row:
+            cur_data = row['data']
+
+        # Sample the posedge with the current settled inputs.
+        if cur_reset == 1:
+            # r_reset_clear: active-high synchronous reset has priority and forces
+            # start_shifting to 0 after this posedge.
+            next_state = S0
+            next_start_shifting = 0
+        else:
+            # Explicit state transitions for the 1101 detector.
+            if state == S0:
+                if cur_data == 1:
+                    next_state = S1
+                else:
+                    next_state = S0
+            elif state == S1:
+                if cur_data == 1:
+                    next_state = S11
+                else:
+                    next_state = S0
+            elif state == S11:
+                if cur_data == 0:
+                    next_state = S110
+                else:
+                    next_state = S11
+            elif state == S110:
+                if cur_data == 1:
+                    next_state = FOUND
+                else:
+                    next_state = S0
+            else:  # FOUND
+                next_state = FOUND
+
+            # r_set_or_hold: overridden interpretation says to assert
+            # start_shifting on the sampled posedge after the completing data bit.
+            # Therefore, assert only when FOUND was already active before this edge,
+            # and hold it thereafter until reset.
+            if state == FOUND or start_shifting == 1:
+                next_start_shifting = 1
+            else:
+                # r_default_clear: before detection, and on the completing edge,
+                # use concrete clear value 0.
+                next_start_shifting = 0
+
+        state = next_state
+        start_shifting = next_start_shifting
+        result.append({'start_shifting': int(start_shifting) & 1})
+
+        # Contract: optional mid changes happen after sampling, before the other edge,
+        # and are carried to the next row's pre-edge inputs.
+        if 'mid' in row and row['mid'] is not None:
+            mid = row['mid']
+            if 'reset' in mid:
+                cur_reset = mid['reset']
+            if 'data' in mid:
+                cur_data = mid['data']
+
+    return result

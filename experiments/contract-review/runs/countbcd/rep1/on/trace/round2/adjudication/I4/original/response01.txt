@@ -1,0 +1,66 @@
+```python
+def reference(vectors):
+    # rule reset: synchronous active-high reset has priority; q clears to 0 and ena becomes 0 after q settles.
+    # rule bcd_increment: increment 16-bit BCD counter by 1 modulo 10000 (wrap 0x9999 -> 0x0000).
+    # rule ena_combinational: ena[0]=ones==9; ena[1]=tens==9&&ones==9; ena[2]=hundreds==9&&tens==9&&ones==9.
+    # mid contract: optional mid changes after sampling are applied after outputs and carried to next row.
+    def bcd_inc(q):
+        ones = (q & 0xF) + 1
+        carry = 0
+        if ones > 9:
+            ones = 0
+            carry = 1
+        tens = ((q >> 4) & 0xF) + carry
+        carry = 0
+        if tens > 9:
+            tens = 0
+            carry = 1
+        hundreds = ((q >> 8) & 0xF) + carry
+        carry = 0
+        if hundreds > 9:
+            hundreds = 0
+            carry = 1
+        thousands = ((q >> 12) & 0xF) + carry
+        if thousands > 9:
+            thousands = 0
+        return (thousands << 12) | (hundreds << 8) | (tens << 4) | ones
+
+    q = 0
+    input_state = {'reset': 0}
+    results = []
+    for row in vectors:
+        if isinstance(row, dict):
+            if 'reset' in row:
+                input_state['reset'] = row['reset']
+        reset_val = input_state.get('reset', 0)
+        # rule reset priority + bcd_increment
+        if reset_val:
+            q = 0
+        else:
+            q = bcd_inc(q)
+        # rule ena_combinational (computed from settled q)
+        ones = q & 0xF
+        tens = (q >> 4) & 0xF
+        hundreds = (q >> 8) & 0xF
+        ena = 0
+        if ones == 9:
+            ena |= 1
+        if tens == 9 and ones == 9:
+            ena |= 2
+        if hundreds == 9 and tens == 9 and ones == 9:
+            ena |= 4
+        results.append({'q': q, 'ena': ena})
+        # mid contract: apply optional mid changes after sampling, for next row
+        if isinstance(row, dict):
+            mid = row.get('mid')
+            if isinstance(mid, dict):
+                for k, v in mid.items():
+                    if k in ('reset',):
+                        input_state[k] = v
+            for k, v in row.items():
+                if isinstance(k, str) and k.endswith('_mid'):
+                    base = k[:-4]
+                    if base in ('reset',):
+                        input_state[base] = v
+    return results
+```

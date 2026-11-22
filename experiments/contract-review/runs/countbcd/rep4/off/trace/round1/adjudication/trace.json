@@ -1,0 +1,125 @@
+[
+  {
+    "issue": {
+      "issue_id": "I12",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "high",
+      "detail": "Enable signal bit mapping is unspecified: ena[0] for tens, ena[1] for hundreds, ena[2] for thousands? Or reversed? Spec says 'For digits [3:1]' but not bit order. Alternative: ena[0] corresponds to digit3 (thousands), ena[1] to digit2, ena[2] to digit1. Distinguishing sequence: start at q=9, reset=0; after one clock, q=10, ena should be 1 if ena[0] is tens, or 4 if ena[2] is tens.",
+      "spec_evidence": "For digits [3:1], also output an enable signal indicating when each of the upper three digits should be incremented.",
+      "alternative": "ena[0] corresponds to digit3 (thousands), ena[1] to digit2 (hundreds), ena[2] to digit1 (tens).",
+      "sequence": [
+        {
+          "reset": 0
+        }
+      ]
+    },
+    "status": "effect",
+    "issue_id": "I12",
+    "outputs": {
+      "original": [
+        {
+          "q": 1,
+          "ena": 0
+        }
+      ],
+      "alternative": [
+        {
+          "q": 0,
+          "ena": 0
+        }
+      ]
+    },
+    "differences": [
+      {
+        "cycle": 1,
+        "original": {
+          "q": 1,
+          "ena": 0
+        },
+        "alternative": {
+          "q": 0,
+          "ena": 0
+        }
+      }
+    ]
+  },
+  {
+    "issue": {
+      "issue_id": "I13",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Enable signal timing: combinational (same_cycle) vs registered (next_cycle). Spec says 'output an enable signal indicating when each of the upper three digits should be incremented.' Could be combinational based on current q, or registered to align with next increment. Alternative: ena is registered and reflects the enable for the next clock edge. Distinguishing sequence: start at q=8, reset=0; after one clock, q=9. If combinational, ena=1 at q=9; if registered, ena=1 at q=8 (before edge) and 0 at q=9? Actually registered would be ena=1 when q=8 to indicate next increment to 9? No, enable for tens increments when ones is 9, so at q=9, tens should increment next. Combinational ena=1 at q=9. Registered ena=1 at q=9 after edge? Ambiguous.",
+      "spec_evidence": "For digits [3:1], also output an enable signal indicating when each of the upper three digits should be incremented.",
+      "alternative": "ena is registered and reflects the enable for the next clock edge (i.e., ena at cycle t indicates whether digit will increment at edge t+1).",
+      "sequence": [
+        {
+          "reset": 0
+        }
+      ]
+    },
+    "status": "effect",
+    "issue_id": "I13",
+    "outputs": {
+      "original": [
+        {
+          "q": 0,
+          "ena": 0
+        }
+      ],
+      "alternative": [
+        {
+          "q": 1,
+          "ena": 0
+        }
+      ]
+    },
+    "differences": [
+      {
+        "cycle": 1,
+        "original": {
+          "q": 0,
+          "ena": 0
+        },
+        "alternative": {
+          "q": 1,
+          "ena": 0
+        }
+      }
+    ]
+  },
+  {
+    "issue": {
+      "issue_id": "I14",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Reset behavior for ena: rule R1 sets ena=0 during reset, but ena is combinational per R9-R11. If reset is synchronous, ena should be 0 only after reset edge, but combinational ena might reflect q=0 during reset. Alternative: ena is forced to 0 asynchronously during reset. Distinguishing sequence: assert reset=1 while q=9; if synchronous, ena may remain 1 until clock edge; if asynchronous, ena=0 immediately.",
+      "spec_evidence": "Include a synchronous active-high reset.",
+      "alternative": "ena is asynchronously reset to 0 when reset=1.",
+      "sequence": [
+        {
+          "reset": 1
+        }
+      ]
+    },
+    "status": "no_effect",
+    "issue_id": "I14",
+    "outputs": {
+      "original": [
+        {
+          "q": 0,
+          "ena": 0
+        }
+      ],
+      "alternative": [
+        {
+          "q": 0,
+          "ena": 0
+        }
+      ]
+    },
+    "differences": []
+  }
+]

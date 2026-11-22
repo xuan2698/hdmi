@@ -1,0 +1,147 @@
+{
+  "coverage": {
+    "S01": [
+      "bcd_increment"
+    ],
+    "S02": [
+      "bcd_increment",
+      "ena_combinational"
+    ],
+    "S03": [
+      "ena_combinational"
+    ],
+    "S04": [
+      "reset"
+    ]
+  },
+  "issues": [
+    {
+      "issue_id": "I1",
+      "rule_id": "ena_combinational",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "ena bit order/mapping to upper digits not stated; contract assumes ena[0]=tens carry.",
+      "spec_evidence": "For digits [3:1], also output an enable signal indicating when each of the upper three digits should be incremented.",
+      "alternative": "Reverse mapping: ena[2]=ones==9, ena[1]=ones==9&&tens==9, ena[0]=ones==9&&tens==9&&hundreds==9.",
+      "sequence": [
+        {
+          "reset": 1
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        }
+      ]
+    },
+    {
+      "issue_id": "I2",
+      "rule_id": "ena_combinational",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "ena combinational vs registered timing not stated; contract assumes combinational from q.",
+      "spec_evidence": "For digits [3:1], also output an enable signal indicating when each of the upper three digits should be incremented.",
+      "alternative": "Register ena on posedge from current q; at q=9 after edge ena=0, becoming 1 next cycle at q=10.",
+      "sequence": [
+        {
+          "reset": 1
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        }
+      ]
+    },
+    {
+      "issue_id": "I3",
+      "rule_id": "reset",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Reset value of q/ena not stated; contract assumes q=0 and ena=0.",
+      "spec_evidence": "Include a synchronous active-high reset.",
+      "alternative": "Synchronous reset leaves q unchanged; after counting to 3, reset=1 leaves q=3 instead of clearing to 0.",
+      "sequence": [
+        {
+          "reset": 1
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 1
+        }
+      ]
+    },
+    {
+      "issue_id": "I4",
+      "rule_id": "bcd_increment",
+      "type": "consistency",
+      "severity": "low",
+      "detail": "Example first expects q=9 from reset=0, requiring implicit q=8; from reset q=0 first nonreset edge gives q=1, ena=0.",
+      "spec_evidence": "",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I5",
+      "rule_id": "bcd_increment",
+      "type": "grounding",
+      "severity": "medium",
+      "detail": "Overflow/wrap behavior for 4-digit BCD counter is not stated; contract assumes modulo 10000.",
+      "spec_evidence": "Build a 4-digit BCD (binary-coded decimal) counter.",
+      "alternative": "Saturate at 9999 instead of wrapping to 0000.",
+      "sequence": []
+    }
+  ]
+}

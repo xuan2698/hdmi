@@ -1,0 +1,272 @@
+{
+  "coverage": {
+    "S01": [
+      "R1",
+      "R2"
+    ],
+    "S02": [
+      "R1",
+      "R2"
+    ],
+    "S03": [
+      "R1"
+    ],
+    "S04": [
+      "unrelated"
+    ],
+    "S05": [
+      "unrelated"
+    ],
+    "S06": [
+      "unrelated"
+    ],
+    "S07": [
+      "unrelated"
+    ],
+    "S08": [
+      "unrelated"
+    ],
+    "S09": [
+      "R1",
+      "R2"
+    ],
+    "S10": [
+      "R1",
+      "R2"
+    ],
+    "S11": [
+      "R1",
+      "R2"
+    ],
+    "S12": [
+      "R1",
+      "R2"
+    ],
+    "S13": [
+      "R1",
+      "R2"
+    ],
+    "S14": [
+      "R1",
+      "R2"
+    ],
+    "S15": [
+      "R1",
+      "R2"
+    ],
+    "S16": [
+      "R1",
+      "R2"
+    ],
+    "S17": [
+      "R1",
+      "R2"
+    ],
+    "S18": [
+      "R1",
+      "R2"
+    ],
+    "S19": [
+      "R1",
+      "R2"
+    ],
+    "S20": [
+      "R1",
+      "R2"
+    ],
+    "S21": [
+      "R1",
+      "R2"
+    ],
+    "S22": [
+      "R1",
+      "R2"
+    ],
+    "S23": [
+      "R1",
+      "R2"
+    ],
+    "S24": [
+      "R1",
+      "R2"
+    ],
+    "S25": [
+      "R1",
+      "R2"
+    ],
+    "S26": [
+      "R1",
+      "R2"
+    ],
+    "S27": [
+      "R1",
+      "R2"
+    ],
+    "S28": [
+      "R1",
+      "R2"
+    ],
+    "S29": [
+      "R1",
+      "R2"
+    ],
+    "S30": [
+      "R1",
+      "R2"
+    ],
+    "S31": [
+      "R1",
+      "R2"
+    ],
+    "S32": [
+      "R1",
+      "R2"
+    ],
+    "S33": [
+      "R1",
+      "R2"
+    ],
+    "S34": [
+      "R1",
+      "R2"
+    ],
+    "S35": [
+      "R1",
+      "R2"
+    ],
+    "S36": [
+      "R1",
+      "R2"
+    ],
+    "S37": [
+      "R1",
+      "R2"
+    ],
+    "S38": [
+      "R1",
+      "R2"
+    ],
+    "S39": [
+      "R1",
+      "R2"
+    ],
+    "S40": [
+      "R1",
+      "R2"
+    ],
+    "S41": [
+      "R1",
+      "R2"
+    ],
+    "S42": [
+      "R1",
+      "R2"
+    ],
+    "S43": [
+      "R1",
+      "R2"
+    ],
+    "S44": [
+      "R1",
+      "R2"
+    ]
+  },
+  "issues": [
+    {
+      "issue_id": "I1",
+      "rule_id": "R1",
+      "type": "grounding",
+      "severity": "high",
+      "detail": "R1 claims next state = a XOR b but spec waveform shows state updates to a AND b (e.g., at 95ns a=1,b=1 -> state=1; at 45ns a=0,b=1 -> state=0).",
+      "spec_evidence": "// 45ns            1               0               1               0               1",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I2",
+      "rule_id": "R2",
+      "type": "grounding",
+      "severity": "high",
+      "detail": "R2 claims q = a XOR b but spec waveform shows q = a AND b (e.g., at 45ns a=0,b=1 -> q=1; at 55ns a=1,b=0 -> q=1).",
+      "spec_evidence": "// 55ns            1               1               0               0               1",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I3",
+      "rule_id": "R1",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "R1 example expected state values [1,1,0] for vectors (0,1),(1,0),(1,1) match XOR, but spec waveform for same input sequence (e.g., 45ns,55ns,65ns) gives state [0,0,0] matching AND.",
+      "spec_evidence": "// 65ns            1               1               1               0               0",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I4",
+      "rule_id": "R2",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "R2 example expected q values [0,1,0] for vectors (0,0),(0,1),(1,1) match XOR, but spec waveform for same inputs (e.g., 10ns,15ns,19ns) gives q [0,0,1] matching AND.",
+      "spec_evidence": "// 15ns            1               0               0               0               0",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I5",
+      "rule_id": "R1",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec waveform is consistent with state updating to a AND b, not a XOR b. Alternative semantics: next state = a AND b.",
+      "spec_evidence": "// 95ns            1               1               1               1               1",
+      "alternative": "next state = a AND b",
+      "sequence": [
+        {
+          "a": 0,
+          "b": 1
+        },
+        {
+          "a": 1,
+          "b": 0
+        },
+        {
+          "a": 1,
+          "b": 1
+        }
+      ]
+    },
+    {
+      "issue_id": "I6",
+      "rule_id": "R2",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec waveform is consistent with q = a AND b, not a XOR b. Alternative semantics: q = a AND b.",
+      "spec_evidence": "// 45ns            1               0               1               0               1",
+      "alternative": "q = a AND b",
+      "sequence": [
+        {
+          "a": 0,
+          "b": 0
+        },
+        {
+          "a": 0,
+          "b": 1
+        },
+        {
+          "a": 1,
+          "b": 1
+        }
+      ]
+    },
+    {
+      "issue_id": "I7",
+      "rule_id": "global",
+      "type": "spec_example",
+      "severity": "high",
+      "detail": "Derived outputs using contract rules (state=a XOR b, q=a XOR b) do not match spec waveform. For example, at 45ns spec state=0,q=1 but contract gives state=1,q=1; at 95ns spec state=1,q=1 but contract gives state=0,q=0.",
+      "spec_evidence": "// 45ns            1               0               1               0               1",
+      "alternative": "",
+      "sequence": []
+    }
+  ]
+}

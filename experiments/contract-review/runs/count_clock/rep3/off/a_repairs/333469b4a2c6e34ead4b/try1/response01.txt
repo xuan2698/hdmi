@@ -1,0 +1,73 @@
+```python
+def reference(vectors):
+    # State: ss_lo, ss_hi, mm_lo, mm_hi, hh_lo, hh_hi, pm_reg
+    # BCD digits stored as integers 0-9.
+    # Initial state: 12:00 AM -> hh=0x12, mm=0x00, ss=0x00, pm=0
+    ss_lo, ss_hi = 0, 0
+    mm_lo, mm_hi = 0, 0
+    hh_lo, hh_hi = 2, 1  # 12
+    pm_reg = 0
+
+    out = []
+    for v in vectors:
+        reset = v.get('reset', 0)
+        ena = v.get('ena', 0)
+
+        # R1_reset: synchronous reset, priority 1, resets to 12:00 AM
+        if reset == 1:
+            ss_lo, ss_hi = 0, 0
+            mm_lo, mm_hi = 0, 0
+            hh_lo, hh_hi = 2, 1
+            pm_reg = 0
+        # R7_hold: ena==0, hold state (priority 3)
+        elif ena == 0:
+            pass
+        else:
+            # ena == 1, reset == 0: increment
+            # R2_seconds: ss != 0x59 -> increment seconds
+            if not (ss_hi == 5 and ss_lo == 9):
+                if ss_lo == 9:
+                    ss_lo = 0
+                    ss_hi += 1
+                else:
+                    ss_lo += 1
+            else:
+                # ss == 0x59
+                ss_lo, ss_hi = 0, 0
+                # R3_seconds_rollover: mm != 0x59 -> increment minutes
+                if not (mm_hi == 5 and mm_lo == 9):
+                    if mm_lo == 9:
+                        mm_lo = 0
+                        mm_hi += 1
+                    else:
+                        mm_lo += 1
+                else:
+                    # mm == 0x59
+                    mm_lo, mm_hi = 0, 0
+                    # R5_hour_rollover_am_pm: hh==0x11 && pm==1 -> 12:00 PM
+                    if hh_hi == 1 and hh_lo == 1 and pm_reg == 1:
+                        hh_lo, hh_hi = 2, 1
+                        pm_reg = 1
+                    # R6_hour_rollover_1159pm: hh==0x12 && pm==1 -> 12:00 AM
+                    elif hh_hi == 1 and hh_lo == 2 and pm_reg == 1:
+                        hh_lo, hh_hi = 2, 1
+                        pm_reg = 0
+                    else:
+                        # R4_minutes_rollover: increment hours
+                        if hh_hi == 1 and hh_lo == 2:
+                            # 12 -> 01, toggle pm
+                            hh_lo, hh_hi = 1, 0
+                            pm_reg = 1 - pm_reg
+                        elif hh_lo == 9:
+                            hh_lo = 0
+                            hh_hi += 1
+                        else:
+                            hh_lo += 1
+
+        hh = (hh_hi << 4) | hh_lo
+        mm = (mm_hi << 4) | mm_lo
+        ss = (ss_hi << 4) | ss_lo
+        out.append({'pm': pm_reg, 'hh': hh, 'mm': mm, 'ss': ss})
+
+    return out
+```

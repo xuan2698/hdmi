@@ -1,0 +1,71 @@
+def reference(vectors):
+    # Rule reset: Synchronous active-high reset overridden to leave q unchanged.
+    # Rule bcd_increment: BCD add 1 modulo 10000 when reset is low.
+    # Rule ena_combinational: combinational enables derived from BCD digits.
+    q = 0
+    current_inputs = {"reset": 0}
+    results = []
+    input_names = ["reset"]
+
+    for row in vectors:
+        # Apply inputs driven before the sampled posedge.
+        if isinstance(row, dict):
+            for name in input_names:
+                if name in row:
+                    current_inputs[name] = row[name]
+
+        # Sample posedge.
+        reset_val = current_inputs.get("reset", 0)
+        if reset_val == 1:
+            # Rule reset: leave q unchanged (override behavior).
+            pass
+        else:
+            # Rule bcd_increment: increment BCD value modulo 10000.
+            ones = q & 0xF
+            tens = (q >> 4) & 0xF
+            hundreds = (q >> 8) & 0xF
+            thousands = (q >> 12) & 0xF
+
+            ones += 1
+            if ones == 10:
+                ones = 0
+                tens += 1
+                if tens == 10:
+                    tens = 0
+                    hundreds += 1
+                    if hundreds == 10:
+                        hundreds = 0
+                        thousands += 1
+                        if thousands == 10:
+                            thousands = 0
+
+            q = (thousands << 12) | (hundreds << 8) | (tens << 4) | ones
+
+        q &= 0xFFFF
+
+        # Rule ena_combinational: combinational enables from q.
+        ones = q & 0xF
+        tens = (q >> 4) & 0xF
+        hundreds = (q >> 8) & 0xF
+
+        ena0 = 1 if ones == 9 else 0
+        ena1 = 1 if (tens == 9 and ones == 9) else 0
+        ena2 = 1 if (hundreds == 9 and tens == 9 and ones == 9) else 0
+        ena = ena0 | (ena1 << 1) | (ena2 << 2)
+
+        results.append({"q": q, "ena": ena & 0x7})
+
+        # Process optional mid changes after sampling; carry to next row.
+        if isinstance(row, dict):
+            for k, v in row.items():
+                if k == "mid" and isinstance(v, dict):
+                    for mk, mv in v.items():
+                        if mk in input_names:
+                            current_inputs[mk] = mv
+                elif isinstance(k, str) and "mid" in k.lower():
+                    for name in input_names:
+                        if name in k:
+                            current_inputs[name] = v
+                            break
+
+    return results

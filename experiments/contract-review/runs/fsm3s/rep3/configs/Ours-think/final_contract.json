@@ -1,0 +1,322 @@
+{
+  "ports": {
+    "inputs": {
+      "in": 1,
+      "reset": 1
+    },
+    "outputs": {
+      "out": 1
+    },
+    "clock": "clk"
+  },
+  "states": [
+    {
+      "name": "A",
+      "meaning": "Moore output 0. On posedge clk: if reset=1 then next state A; else in=0 -> A, in=1 -> B.",
+      "update_time": "posedge clk",
+      "update_during_reset": true
+    },
+    {
+      "name": "B",
+      "meaning": "Moore output 0. On posedge clk: if reset=1 then next state A; else in=0 -> C, in=1 -> B.",
+      "update_time": "posedge clk",
+      "update_during_reset": true
+    },
+    {
+      "name": "C",
+      "meaning": "Moore output 0. On posedge clk: if reset=1 then next state A; else in=0 -> A, in=1 -> D.",
+      "update_time": "posedge clk",
+      "update_during_reset": true
+    },
+    {
+      "name": "D",
+      "meaning": "Moore output 1. On posedge clk: if reset=1 then next state A; else in=0 -> C, in=1 -> B.",
+      "update_time": "posedge clk",
+      "update_during_reset": true
+    }
+  ],
+  "rules": [
+    {
+      "id": "R_RESET",
+      "outputs": [
+        "out"
+      ],
+      "condition": "reset == 1 at posedge clk; state becomes A, so out == 0 after the edge settles",
+      "edge": "posedge",
+      "visible": "same_cycle",
+      "priority": 100,
+      "spec_quote": "synchronous active high reset that resets the FSM to state A",
+      "uncertain": false,
+      "example": {
+        "vectors": [
+          {
+            "reset": 1,
+            "in": 0
+          },
+          {
+            "reset": 0,
+            "in": 1
+          },
+          {
+            "reset": 0,
+            "in": 0
+          },
+          {
+            "reset": 1,
+            "in": 1
+          }
+        ],
+        "expected": [
+          {
+            "out": 0
+          },
+          {
+            "out": 0
+          },
+          {
+            "out": 0
+          },
+          {
+            "out": 0
+          }
+        ]
+      }
+    },
+    {
+      "id": "R_OUT_A",
+      "outputs": [
+        "out"
+      ],
+      "condition": "state == A after the posedge settles",
+      "edge": "combinational",
+      "visible": "same_cycle",
+      "priority": 10,
+      "spec_quote": "A | A, B | 0",
+      "uncertain": false,
+      "example": {
+        "vectors": [
+          {
+            "reset": 1,
+            "in": 0
+          },
+          {
+            "reset": 0,
+            "in": 0
+          },
+          {
+            "reset": 0,
+            "in": 0
+          }
+        ],
+        "expected": [
+          {
+            "out": 0
+          },
+          {
+            "out": 0
+          },
+          {
+            "out": 0
+          }
+        ]
+      }
+    },
+    {
+      "id": "R_OUT_B",
+      "outputs": [
+        "out"
+      ],
+      "condition": "state == B after the posedge settles",
+      "edge": "combinational",
+      "visible": "same_cycle",
+      "priority": 10,
+      "spec_quote": "B | C, B | 0",
+      "uncertain": false,
+      "example": {
+        "vectors": [
+          {
+            "reset": 1,
+            "in": 0
+          },
+          {
+            "reset": 0,
+            "in": 1
+          },
+          {
+            "reset": 0,
+            "in": 1
+          },
+          {
+            "reset": 0,
+            "in": 0
+          }
+        ],
+        "expected": [
+          {
+            "out": 0
+          },
+          {
+            "out": 0
+          },
+          {
+            "out": 0
+          },
+          {
+            "out": 0
+          }
+        ]
+      }
+    },
+    {
+      "id": "R_OUT_C",
+      "outputs": [
+        "out"
+      ],
+      "condition": "state == C after the posedge settles",
+      "edge": "combinational",
+      "visible": "same_cycle",
+      "priority": 10,
+      "spec_quote": "C | A, D | 0",
+      "uncertain": false,
+      "example": {
+        "vectors": [
+          {
+            "reset": 1,
+            "in": 0
+          },
+          {
+            "reset": 0,
+            "in": 1
+          },
+          {
+            "reset": 0,
+            "in": 0
+          },
+          {
+            "reset": 0,
+            "in": 0
+          }
+        ],
+        "expected": [
+          {
+            "out": 0
+          },
+          {
+            "out": 0
+          },
+          {
+            "out": 0
+          },
+          {
+            "out": 0
+          }
+        ]
+      }
+    },
+    {
+      "id": "R_OUT_D",
+      "outputs": [
+        "out"
+      ],
+      "condition": "state == D after the posedge settles",
+      "edge": "combinational",
+      "visible": "same_cycle",
+      "priority": 10,
+      "spec_quote": "D | C, B | 1",
+      "uncertain": false,
+      "example": {
+        "vectors": [
+          {
+            "reset": 1,
+            "in": 0
+          },
+          {
+            "reset": 0,
+            "in": 1
+          },
+          {
+            "reset": 0,
+            "in": 0
+          },
+          {
+            "reset": 0,
+            "in": 1
+          }
+        ],
+        "expected": [
+          {
+            "out": 0
+          },
+          {
+            "out": 0
+          },
+          {
+            "out": 0
+          },
+          {
+            "out": 1
+          }
+        ]
+      }
+    },
+    {
+      "id": "R_NEXT",
+      "outputs": [
+        "out"
+      ],
+      "condition": "reset == 0 at posedge clk; next state follows the table: A: in=0 -> A, in=1 -> B; B: in=0 -> C, in=1 -> B; C: in=0 -> A, in=1 -> D; D: in=0 -> C, in=1 -> B",
+      "edge": "posedge",
+      "visible": "same_cycle",
+      "priority": 50,
+      "spec_quote": "// State | Next state in=0, Next state in=1 | Output\n// A | A, B | 0\n// B | C, B | 0\n// C | A, D | 0\n// D | C, B | 1",
+      "uncertain": false,
+      "example": {
+        "vectors": [
+          {
+            "reset": 1,
+            "in": 0
+          },
+          {
+            "reset": 0,
+            "in": 1
+          },
+          {
+            "reset": 0,
+            "in": 0
+          },
+          {
+            "reset": 0,
+            "in": 1
+          }
+        ],
+        "expected": [
+          {
+            "out": 0
+          },
+          {
+            "out": 0
+          },
+          {
+            "out": 0
+          },
+          {
+            "out": 1
+          }
+        ]
+      }
+    }
+  ],
+  "reset": {
+    "kind": "sync",
+    "name": "reset",
+    "active": "high",
+    "values": {
+      "out": 0
+    },
+    "first_released_cycle": "first posedge clk with reset==0"
+  },
+  "mid": "Optional mid input changes occur AFTER sampling, before the other edge, and are carried to the start of the next row.",
+  "uncertain": [],
+  "remaining_uncertain_fields": {},
+  "selected_interpretations": []
+}

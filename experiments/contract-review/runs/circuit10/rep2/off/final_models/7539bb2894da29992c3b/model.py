@@ -1,0 +1,21 @@
+def reference(vectors):
+    # Contract implementation.
+    # R1: state is a single flip-flop updated on posedge clk to a XOR b.
+    # R2: q is combinational, q = a XOR b for current inputs.
+    # Reset: none. Power-up state unspecified; we model it as 0 initially
+    # but only expose it after the first posedge update.
+    # Mid-cycle changes: inputs in each row are driven before the sampled
+    # posedge; any mid changes are carried to the next row (handled by
+    # simply using each row's inputs at its posedge).
+
+    state = 0  # power-up unspecified; concrete model value
+    out = []
+    for row in vectors:
+        a = row.get('a', 0) & 1
+        b = row.get('b', 0) & 1
+        # R2: combinational q from current inputs
+        q = a ^ b
+        # R1: posedge update of state to a XOR b
+        state = a ^ b
+        out.append({'q': q & 1, 'state': state & 1})
+    return out

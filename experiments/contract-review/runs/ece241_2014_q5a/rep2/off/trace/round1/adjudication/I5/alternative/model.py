@@ -1,0 +1,41 @@
+def reference(vectors):
+    # State machine implementation for 2's complementer Moore machine
+    # States: S0 (no 1 seen yet), S1 (1 seen, complementing)
+    # R4: Asynchronous reset - areset=1 forces state to S0 and z=0 (same cycle)
+    # R1: In S0, z = x (combinational, same cycle)
+    # R2: In S1, z = NOT x (combinational, same cycle)
+    # R3: posedge transitions: S0->S1 if x=1, S0->S0 if x=0, S1->S1 always
+    # global: conversion begins combinationally on areset deassert (z reflects x same cycle)
+    
+    state = "S0"  # initial state (power-up unspecified, but reset will handle)
+    results = []
+    
+    for vec in vectors:
+        areset = vec.get("areset", 0)
+        x = vec.get("x", 0)
+        
+        # R4: Asynchronous reset asserted - same cycle effect
+        if areset == 1:
+            state = "S0"
+            z = 0
+            results.append({"z": z})
+            # R3: posedge transition still occurs but state stays S0 during reset
+            # (update_during_reset is false, so state doesn't change on posedge during reset)
+            continue
+        
+        # R1/R2: combinational output based on current state
+        if state == "S0":
+            z = x  # R1
+        else:  # S1
+            z = 1 - x  # R2 (NOT x)
+        
+        results.append({"z": z})
+        
+        # R3: posedge state transition (sampled after edge settles)
+        if state == "S0":
+            if x == 1:
+                state = "S1"
+            # else stays S0
+        # S1 -> S1 always
+    
+    return results

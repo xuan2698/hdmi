@@ -1,0 +1,36 @@
+def reference(vectors):
+    # State encoding
+    A, B, C, D = 0, 1, 2, 3
+    state = A  # uncertain: assume A before first reset
+
+    def out_of(s):
+        # R1: states A, B, C output 0
+        # R2: state D outputs 1
+        return 1 if s == D else 0
+
+    results = []
+    for row in vectors:
+        inp = row.get('in', 0)
+        rst = row.get('reset', 0)
+
+        # R1 / R2: combinational output based on current state (same cycle)
+        results.append({'out': out_of(state)})
+
+        # R3: synchronous active-high reset -> next state A
+        if rst == 1:
+            state = A
+        else:
+            # R4: A -> A (in=0), B (in=1)
+            # R5: B -> C (in=0), B (in=1)
+            # R6: C -> A (in=0), D (in=1)
+            # R7: D -> C (in=0), B (in=1)
+            if state == A:
+                state = B if inp == 1 else A
+            elif state == B:
+                state = B if inp == 1 else C
+            elif state == C:
+                state = D if inp == 1 else A
+            elif state == D:
+                state = B if inp == 1 else C
+
+    return results

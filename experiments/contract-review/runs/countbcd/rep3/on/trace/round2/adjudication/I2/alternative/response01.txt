@@ -1,0 +1,76 @@
+def reference(vectors):
+    q = 0
+    carried = {}
+    results = []
+    for row in vectors:
+        # Build the input values present at this sampled posedge.
+        inputs = {}
+        for k, v in carried.items():
+            inputs[k] = v
+        mid_data = None
+        if isinstance(row, dict):
+            for k, v in row.items():
+                if k == "mid":
+                    mid_data = v
+                else:
+                    inputs[k] = v
+
+        reset = inputs.get("reset", 0)
+        old_q = q
+
+        # q_sync_reset: synchronous active-high reset has priority at the posedge.
+        if reset:
+            q = 0
+            ena = 0
+        else:
+            # ena_upper_digit_increment: apply the candidate interpretation.
+            # ena reflects the increment/carry performed on this sampled edge,
+            # based on the old q before the BCD increment.
+            ones = old_q & 0xF
+            tens = (old_q >> 4) & 0xF
+            hundreds = (old_q >> 8) & 0xF
+            thousands = (old_q >> 12) & 0xF
+
+            ena0 = 1 if ones == 9 else 0
+            ena1 = 1 if (ones == 9 and tens == 9) else 0
+            ena2 = 1 if (ones == 9 and tens == 9 and hundreds == 9) else 0
+            ena = (ena2 << 2) | (ena1 << 1) | ena0
+
+            # q_bcd_count: 4-digit BCD increment with carry and 9999 wrap.
+            if ones == 9:
+                ones = 0
+                if tens == 9:
+                    tens = 0
+                    if hundreds == 9:
+                        hundreds = 0
+                        if thousands == 9:
+                            thousands = 0
+                        else:
+                            thousands += 1
+                    else:
+                        hundreds += 1
+                else:
+                    tens += 1
+            else:
+                ones += 1
+
+            q = (thousands << 12) | (hundreds << 8) | (tens << 4) | ones
+
+        results.append({"q": q, "ena": ena})
+
+        # Inputs at the edge become the held state for the next row,
+        # then optional mid changes are applied after sampling.
+        carried = {}
+        for k, v in inputs.items():
+            carried[k] = v
+        if mid_data is not None:
+            if isinstance(mid_data, dict):
+                for k, v in mid_data.items():
+                    carried[k] = v
+            elif isinstance(mid_data, list):
+                for change in mid_data:
+                    if isinstance(change, dict):
+                        for k, v in change.items():
+                            carried[k] = v
+
+    return results

@@ -1,0 +1,96 @@
+{
+  "responses": [
+    {
+      "issue_id": "I1",
+      "decision": "accept",
+      "reason": "Add an explicit next-state transition rule so the table's next-state columns are represented with a spec_quote and an example, rather than only in state.meaning.",
+      "spec_quote": "// State | Next state in=0, Next state in=1 | Output\n// A | A, B | 0\n// B | C, B | 0\n// C | A, D | 0\n// D | C, B | 1",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R_NEXT"
+          ],
+          "value": {
+            "id": "R_NEXT",
+            "outputs": [
+              "out"
+            ],
+            "condition": "reset == 0 at posedge clk; next state follows the table: A: in=0 -> A, in=1 -> B; B: in=0 -> C, in=1 -> B; C: in=0 -> A, in=1 -> D; D: in=0 -> C, in=1 -> B",
+            "edge": "posedge",
+            "visible": "same_cycle",
+            "priority": 50,
+            "spec_quote": "// State | Next state in=0, Next state in=1 | Output\n// A | A, B | 0\n// B | C, B | 0\n// C | A, D | 0\n// D | C, B | 1",
+            "uncertain": false,
+            "example": {
+              "vectors": [
+                {
+                  "reset": 1,
+                  "in": 0
+                },
+                {
+                  "reset": 0,
+                  "in": 1
+                },
+                {
+                  "reset": 0,
+                  "in": 0
+                },
+                {
+                  "reset": 0,
+                  "in": 1
+                }
+              ],
+              "expected": [
+                {
+                  "out": 0
+                },
+                {
+                  "out": 0
+                },
+                {
+                  "out": 0
+                },
+                {
+                  "out": 1
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "issue_id": "I2",
+      "decision": "accept",
+      "reason": "The reset semantics require B/C/D to transition to A during a synchronous reset; update_during_reset=false is inconsistent with reset-to-A and the existing R_RESET example.",
+      "spec_quote": "Include a synchronous active high reset that resets the FSM to state A.",
+      "edits": [
+        {
+          "path": [
+            "states",
+            "B",
+            "update_during_reset"
+          ],
+          "value": true
+        },
+        {
+          "path": [
+            "states",
+            "C",
+            "update_during_reset"
+          ],
+          "value": true
+        },
+        {
+          "path": [
+            "states",
+            "D",
+            "update_during_reset"
+          ],
+          "value": true
+        }
+      ]
+    }
+  ]
+}

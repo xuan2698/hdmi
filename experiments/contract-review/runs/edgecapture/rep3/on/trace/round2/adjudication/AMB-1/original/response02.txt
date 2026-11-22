@@ -1,0 +1,44 @@
+def reference(vectors):
+    # State registers and current pre-edge input values.
+    out_reg = 0
+    prev_in = 0
+    current_reset = 0
+    current_in = 0
+    result = []
+
+    for row in vectors:
+        # Drive each row's values before the sampled posedge.
+        for k, v in row.items():
+            if k == "mid":
+                continue
+            if k == "reset":
+                current_reset = v
+            elif k == "in":
+                current_in = v
+
+        in_val = current_in & 0xFFFFFFFF
+
+        if current_reset == 1:
+            # sync_reset_clear_out: active-high synchronous reset clears out.
+            out_reg = 0
+            # Uncertain rule assumption: prev_in updates on every posedge, including reset cycles.
+            prev_in = in_val
+        else:
+            # falling_edge_capture_and_hold: capture 1-to-0 input transitions and hold set bits.
+            out_reg = (out_reg | (prev_in & (in_val ^ 0xFFFFFFFF))) & 0xFFFFFFFF
+            prev_in = in_val
+
+        # Output is visible same cycle after the sampled posedge.
+        result.append({"out": out_reg})
+
+        # Optional mid changes occur after sampling and carry to the next row start.
+        if "mid" in row:
+            mid = row["mid"]
+            if mid is not None:
+                for k, v in mid.items():
+                    if k == "reset":
+                        current_reset = v
+                    elif k == "in":
+                        current_in = v
+
+    return result

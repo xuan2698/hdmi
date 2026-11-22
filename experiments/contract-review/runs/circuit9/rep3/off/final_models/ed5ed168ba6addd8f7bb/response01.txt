@@ -1,0 +1,28 @@
+```python
+def reference(vectors):
+    # Contract implementation.
+    # State: 3-bit counter q, initial value 4 (no reset).
+    # Rule hold_when_a_high (priority 1): on posedge, if a==1, q holds.
+    # Rule increment_when_a_low (priority 1): on posedge, if a==0, q increments.
+    #   Unresolved field resolved by candidate interpretation: saturate at 7.
+    # Mid input changes occur AFTER sampling, before the other edge, carried to next row.
+    # Each row's values are driven before the sampled edge (posedge).
+
+    q = 4  # initial value at time 0 (no reset)
+    out = []
+
+    for row in vectors:
+        a = row.get('a', 0)
+        # Sample at posedge: apply transition based on current a
+        if a == 1:
+            # hold_when_a_high
+            pass
+        else:
+            # increment_when_a_low, saturate at 7
+            if q < 7:
+                q = q + 1
+            # else saturate: stay at 7
+        out.append({'q': q & 0x7})
+
+    return out
+```

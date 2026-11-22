@@ -1,0 +1,94 @@
+def reference(vectors):
+    # State: 16-bit BCD counter value. Power-up is unspecified by spec;
+    # use a concrete deterministic initial value of 0.
+    q = 0
+    reset_in = 0
+    out = []
+
+    def bcd_inc(v):
+        d0 = v & 0xF
+        d1 = (v >> 4) & 0xF
+        d2 = (v >> 8) & 0xF
+        d3 = (v >> 12) & 0xF
+
+        d0 += 1
+        if d0 == 10:
+            d0 = 0
+            d1 += 1
+            if d1 == 10:
+                d1 = 0
+                d2 += 1
+                if d2 == 10:
+                    d2 = 0
+                    d3 += 1
+                    if d3 == 10:
+                        d3 = 0
+
+        return (d3 << 12) | (d2 << 8) | (d1 << 4) | d0
+
+    def ena_of(v):
+        ones = v & 0xF
+        tens = (v >> 4) & 0xF
+        hundreds = (v >> 8) & 0xF
+
+        e0 = 1 if ones == 9 else 0
+        e1 = 1 if (tens == 9 and ones == 9) else 0
+        e2 = 1 if (hundreds == 9 and tens == 9 and ones == 9) else 0
+        return e0 | (e1 << 1) | (e2 << 2)
+
+    def apply_change(change):
+        nonlocal reset_in
+        if isinstance(change, dict):
+            if "reset" in change:
+                reset_in = int(change["reset"]) & 1
+        else:
+            try:
+                reset_in = int(change) & 1
+            except Exception:
+                pass
+
+    for row in vectors:
+        # Drive row values before the sampled posedge, excluding mid changes.
+        if isinstance(row, dict):
+            for k, v in row.items():
+                if k == "mid" or k == "mid_reset":
+                    continue
+                if k == "reset":
+                    reset_in = int(v) & 1
+        elif isinstance(row, (list, tuple)) and len(row) > 0 and isinstance(row[0], dict):
+            for k, v in row[0].items():
+                if k == "reset":
+                    reset_in = int(v) & 1
+
+        # Rule reset: synchronous active-high reset. Chosen interpretation:
+        # reset asserts but leaves q unchanged, so it prevents incrementing.
+        if reset_in == 1:
+            pass
+        else:
+            # Rule bcd_increment: BCD add 1 modulo 10000, wrapping 0x9999 to 0.
+            q = bcd_inc(q)
+
+        # Rule ena_combinational: combinational enables computed from settled q.
+        ena = ena_of(q)
+        out.append({"q": q & 0xFFFF, "ena": ena & 0x7})
+
+        # Process optional mid changes after sampling; they persist to next row.
+        if isinstance(row, dict):
+            if "mid" in row:
+                mid = row["mid"]
+                if isinstance(mid, (list, tuple)):
+                    for ch in mid:
+                        apply_change(ch)
+                else:
+                    apply_change(mid)
+            if "mid_reset" in row:
+                reset_in = int(row["mid_reset"]) & 1
+        elif isinstance(row, (list, tuple)) and len(row) > 1:
+            mid = row[1]
+            if isinstance(mid, (list, tuple)):
+                for ch in mid:
+                    apply_change(ch)
+            else:
+                apply_change(mid)
+
+    return out

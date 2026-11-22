@@ -1,0 +1,94 @@
+[
+  {
+    "issue": {
+      "issue_id": "I3",
+      "rule_id": "R3",
+      "type": "ambiguity",
+      "severity": "high",
+      "detail": "Spec does not define overlapping detection semantics (e.g., 1101101). Contract's S4 is terminal/latched, so after first detection no further matching occurs; alternative is to continue matching and re-detect, which would affect start_shifting only if reset clears it, but spec says forever until reset, so observable difference is only via reset timing.",
+      "spec_evidence": "searches for the sequence 1101 in an input bit stream",
+      "alternative": "After detecting 1101, remain in S4 and ignore further data until reset; start_shifting stays 1. Alternative: after detection, continue searching and allow re-detection, but start_shifting remains 1 until reset, so no observable difference unless reset occurs.",
+      "sequence": [
+        {
+          "reset": 0,
+          "data": 1
+        },
+        {
+          "reset": 0,
+          "data": 1
+        },
+        {
+          "reset": 0,
+          "data": 0
+        },
+        {
+          "reset": 0,
+          "data": 1
+        },
+        {
+          "reset": 0,
+          "data": 1
+        },
+        {
+          "reset": 0,
+          "data": 0
+        },
+        {
+          "reset": 0,
+          "data": 1
+        }
+      ]
+    },
+    "status": "no_effect",
+    "issue_id": "I3",
+    "outputs": {
+      "original": [
+        {
+          "start_shifting": 0
+        },
+        {
+          "start_shifting": 0
+        },
+        {
+          "start_shifting": 0
+        },
+        {
+          "start_shifting": 1
+        },
+        {
+          "start_shifting": 1
+        },
+        {
+          "start_shifting": 1
+        },
+        {
+          "start_shifting": 1
+        }
+      ],
+      "alternative": [
+        {
+          "start_shifting": 0
+        },
+        {
+          "start_shifting": 0
+        },
+        {
+          "start_shifting": 0
+        },
+        {
+          "start_shifting": 1
+        },
+        {
+          "start_shifting": 1
+        },
+        {
+          "start_shifting": 1
+        },
+        {
+          "start_shifting": 1
+        }
+      ]
+    },
+    "differences": []
+  }
+]

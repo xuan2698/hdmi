@@ -1,0 +1,229 @@
+{
+  "coverage": {
+    "S01": [
+      "R1",
+      "R2"
+    ],
+    "S02": [
+      "R1",
+      "R2"
+    ],
+    "S03": [
+      "R1"
+    ],
+    "S04": [
+      "unrelated"
+    ],
+    "S05": [
+      "unrelated"
+    ],
+    "S06": [
+      "unrelated"
+    ],
+    "S07": [
+      "unrelated"
+    ],
+    "S08": [
+      "unrelated"
+    ],
+    "S09": [
+      "R1",
+      "R2"
+    ],
+    "S10": [
+      "R1",
+      "R2"
+    ],
+    "S11": [
+      "R1",
+      "R2"
+    ],
+    "S12": [
+      "R1",
+      "R2"
+    ],
+    "S13": [
+      "R1",
+      "R2"
+    ],
+    "S14": [
+      "R1",
+      "R2"
+    ],
+    "S15": [
+      "R1",
+      "R2"
+    ],
+    "S16": [
+      "R1",
+      "R2"
+    ],
+    "S17": [
+      "R1",
+      "R2"
+    ],
+    "S18": [
+      "R1",
+      "R2"
+    ],
+    "S19": [
+      "R1",
+      "R2"
+    ],
+    "S20": [
+      "R1",
+      "R2"
+    ],
+    "S21": [
+      "R1",
+      "R2"
+    ],
+    "S22": [
+      "R1",
+      "R2"
+    ],
+    "S23": [
+      "R1",
+      "R2"
+    ],
+    "S24": [
+      "R1",
+      "R2"
+    ],
+    "S25": [
+      "R1",
+      "R2"
+    ],
+    "S26": [
+      "R1",
+      "R2"
+    ],
+    "S27": [
+      "R1",
+      "R2"
+    ],
+    "S28": [
+      "R1",
+      "R2"
+    ],
+    "S29": [
+      "R1",
+      "R2"
+    ],
+    "S30": [
+      "R1",
+      "R2"
+    ],
+    "S31": [
+      "R1",
+      "R2"
+    ],
+    "S32": [
+      "R1",
+      "R2"
+    ],
+    "S33": [
+      "R1",
+      "R2"
+    ],
+    "S34": [
+      "R1",
+      "R2"
+    ],
+    "S35": [
+      "R1",
+      "R2"
+    ],
+    "S36": [
+      "R1",
+      "R2"
+    ],
+    "S37": [
+      "R1",
+      "R2"
+    ],
+    "S38": [
+      "R1",
+      "R2"
+    ],
+    "S39": [
+      "R1",
+      "R2"
+    ],
+    "S40": [
+      "R1",
+      "R2"
+    ],
+    "S41": [
+      "R1",
+      "R2"
+    ],
+    "S42": [
+      "R1",
+      "R2"
+    ],
+    "S43": [
+      "R1",
+      "R2"
+    ],
+    "S44": [
+      "R1",
+      "R2"
+    ]
+  },
+  "issues": [
+    {
+      "issue_id": "I1",
+      "rule_id": "R1",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "R1 example expected state values contradict the rule condition state<=q; given q=state XOR a XOR b, the example's expected states are inconsistent with the vectors and initial state.",
+      "spec_evidence": "one bit of memory (i.e., one flip-flop)",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I2",
+      "rule_id": "R2",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "R2 example expected q values ignore the state input; q=state XOR a XOR b would yield different outputs for the given vectors if state is nonzero.",
+      "spec_evidence": "The circuit consists of combinational logic",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I3",
+      "rule_id": "R1",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec waveform shows state updating on negedge clk, but R1 condition says state<=q on negedge; however, the waveform's state values at negedge times do not match q sampled at that negedge, suggesting possible alternative update semantics (e.g., state updates on posedge or q is registered).",
+      "spec_evidence": "// 15ns            1               0               0               0               0",
+      "alternative": "state updates on posedge clk instead of negedge",
+      "sequence": [
+        {
+          "a": 0,
+          "b": 0
+        },
+        {
+          "a": 0,
+          "b": 1
+        },
+        {
+          "a": 1,
+          "b": 0
+        }
+      ]
+    },
+    {
+      "issue_id": "I4",
+      "rule_id": "global",
+      "type": "spec_example",
+      "severity": "high",
+      "detail": "Derived outputs from spec waveform using R1 and R2 do not match the provided state and q columns; e.g., at 15ns state=0 but q=0, while R2 with state=0,a=0,b=0 gives q=0 (ok), but at 45ns state=0,a=0,b=1 gives q=1 (ok), yet state updates appear inconsistent with q at negedge.",
+      "spec_evidence": "// 45ns            1               0               1               0               1",
+      "alternative": "",
+      "sequence": []
+    }
+  ]
+}

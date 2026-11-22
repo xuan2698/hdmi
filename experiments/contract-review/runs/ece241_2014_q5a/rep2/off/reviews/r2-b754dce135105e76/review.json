@@ -1,0 +1,165 @@
+{
+  "coverage": {
+    "S01": [
+      "R1",
+      "R2",
+      "R3",
+      "R4"
+    ],
+    "S02": [
+      "R1",
+      "R2",
+      "R3"
+    ],
+    "S03": [
+      "R3"
+    ],
+    "S04": [
+      "R4"
+    ],
+    "S05": [
+      "R4",
+      "R3"
+    ]
+  },
+  "issues": [
+    {
+      "issue_id": "I1",
+      "rule_id": "R1",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "R1 example contradicts S0 pass-through: after first 1 (row3) state should become S1 next cycle, but example only shows z=1 which is consistent; however R1 example never shows post-first-1 behavior, and R1 condition says z=x in S0 while R3 says first 1 passed through—consistent. Real issue: R1 example row3 x=1 expected z=1 is fine, but no contradiction. Reclassify: R1 example lacks reset row and starts mid-stream, so S0 meaning 'all bits so far are 0' is violated by row3 x=1 while still S0.",
+      "spec_evidence": "the output (Z) is the 2's complement of the input",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I2",
+      "rule_id": "R2",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "R2 example begins in S1 with x=1 expecting z=1, but S1 means at least one 1 seen and z=NOT x, so z should be 0. Example expected[0]=1 contradicts R2 condition.",
+      "spec_evidence": "the output (Z) is the 2's complement of the input",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I3",
+      "rule_id": "R3",
+      "type": "consistency",
+      "severity": "medium",
+      "detail": "R3 example row2 x=1 expected z=1 (first 1 passed) then row3 x=0 expected z=1 (complement), consistent with S0->S1 after first 1. But R3 example omits areset and assumes initial S0; acceptable but ungrounded.",
+      "spec_evidence": "beginning with the least-significant bit of the number",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I4",
+      "rule_id": "R4",
+      "type": "consistency",
+      "severity": "medium",
+      "detail": "R4 example row1 areset=0 x=1 expected z=1 assumes initial S0; row2 areset=1 expected z=0; row3 areset=0 x=0 expected z=0. After reset release, S0 with x=0 gives z=0, consistent. No contradiction.",
+      "spec_evidence": "positive edge triggered asynchronous reset",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I5",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "high",
+      "detail": "Spec says conversion begins when Reset is released; contract says no combinational conversion on deassertion and first posedge samples x. Alternative: conversion/output valid immediately upon deassertion using current x.",
+      "spec_evidence": "The conversion begins when Reset is released and stops when Reset is asserted.",
+      "alternative": "On areset deassertion, z immediately reflects x per current state (S0 pass-through) without waiting for posedge.",
+      "sequence": [
+        {
+          "areset": 1,
+          "x": 0
+        },
+        {
+          "areset": 0,
+          "x": 1
+        }
+      ]
+    },
+    {
+      "issue_id": "I6",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec says output is 2's complement of input number, but contract outputs bitwise pass-then-complement stream; alternative is registered output delayed one cycle.",
+      "spec_evidence": "the output (Z) is the 2's complement of the input",
+      "alternative": "z is registered and reflects conversion result one cycle after sampling x.",
+      "sequence": [
+        {
+          "areset": 0,
+          "x": 1
+        },
+        {
+          "areset": 0,
+          "x": 0
+        }
+      ]
+    },
+    {
+      "issue_id": "I7",
+      "rule_id": "R3",
+      "type": "grounding",
+      "severity": "medium",
+      "detail": "R3 spec_quote about LSB does not ground state transition semantics; transition rule is inferred, not verbatim.",
+      "spec_evidence": "beginning with the least-significant bit of the number",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I8",
+      "rule_id": "R1",
+      "type": "grounding",
+      "severity": "medium",
+      "detail": "R1 spec_quote 'output is 2's complement' does not verbatim support pass-through in S0; inferred.",
+      "spec_evidence": "the output (Z) is the 2's complement of the input",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I9",
+      "rule_id": "R2",
+      "type": "grounding",
+      "severity": "medium",
+      "detail": "R2 spec_quote does not verbatim support NOT x in S1; inferred.",
+      "spec_evidence": "the output (Z) is the 2's complement of the input",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I10",
+      "rule_id": "R4",
+      "type": "grounding",
+      "severity": "low",
+      "detail": "R4 quote 'positive edge triggered asynchronous reset' is contradictory phrasing; spec S04 says positive edge triggered asynchronous reset, contract uses async active-high areset, plausible but quote ambiguous.",
+      "spec_evidence": "The circuit requires a positive edge triggered asynchronous reset.",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I11",
+      "rule_id": "global",
+      "type": "spec_example",
+      "severity": "high",
+      "detail": "Derived waveform for input bits LSB-first 1,0,1 (number 5, 2's comp 3 bits = 011): expected z stream 1,1,0. Contract R1/R2/R3 yields z=1 (S0 pass), then S1 z=1, then S1 z=0 — matches. For input 0,1,1 (6, comp 010): expected z 0,1,0; contract yields 0,1,0 — matches. No mismatch found in derived examples.",
+      "spec_evidence": "the output (Z) is the 2's complement of the input",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I12",
+      "rule_id": "R2",
+      "type": "spec_example",
+      "severity": "high",
+      "detail": "R2 example expected[0]=1 for x=1 in S1 contradicts derived 2's complement behavior (should be 0). This is a material example error.",
+      "spec_evidence": "the output (Z) is the 2's complement of the input",
+      "alternative": "",
+      "sequence": []
+    }
+  ]
+}

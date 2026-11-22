@@ -1,0 +1,42 @@
+```python
+def reference(vectors):
+    # State for the 8-bit D flip-flop output register.
+    q = 0
+    # Current input values, including any mid-cycle changes carried to the next row.
+    current = {}
+
+    outputs = []
+    for row in vectors:
+        # Each row's values are driven before the sampled edge.
+        # Update current inputs with row values; these override any carried mid changes.
+        if "d" in row:
+            current["d"] = row["d"]
+        if "reset" in row:
+            current["reset"] = row["reset"]
+
+        d = current.get("d", 0) & 0xFF
+        reset = current.get("reset", 0)
+
+        # sync_reset_to_0x34_on_negedge
+        # At a negedge clk, if reset == 1, q becomes 0x34 regardless of d.
+        if reset:
+            q = 0x34
+        # d_capture_on_negedge_when_reset_low
+        # At a negedge clk, if reset == 0, q captures d.
+        else:
+            q = d & 0xFF
+
+        # Output is sampled after the negedge has settled.
+        outputs.append({"q": q & 0xFF})
+
+        # Optional mid input changes occur AFTER sampling, before the other edge,
+        # and are carried to the start of the next row.
+        mid = row.get("mid")
+        if mid:
+            if "d" in mid:
+                current["d"] = mid["d"]
+            if "reset" in mid:
+                current["reset"] = mid["reset"]
+
+    return outputs
+```

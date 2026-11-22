@@ -1,0 +1,48 @@
+```python
+def reference(vectors):
+    # Contract implementation.
+    # State: q (3-bit counter), prev_a (previous sampled a), initialized flag.
+    # No physical reset: q is x before first posedge. We model x as None.
+    # Rules:
+    #  hold_when_a_high (priority 1): a==1 posedge -> q holds (first posedge loads 4)
+    #  first_low_after_high_holds (priority 2): a==0 and prev_a==1 -> q holds
+    #  increment_when_a_low (priority 1): a==0 and prev_a==0 -> q = (q+1) mod 8
+    # Mid changes occur after sampling, carried to next row.
+
+    q = None          # unknown before first posedge
+    prev_a = None     # previous sampled a
+    first = True      # no posedge yet
+
+    results = []
+    for row in vectors:
+        a = row['a']
+        # sample at posedge
+        if first:
+            # first posedge: if a==1 load 4; if a==0, q stays unknown? 
+            # Contract: first posedge with a=1 loads 4. If a==0 first, q remains x.
+            if a == 1:
+                q = 4
+            # else q stays None (x)
+            first = False
+        else:
+            if a == 1:
+                # hold_when_a_high: q holds
+                pass
+            else:  # a == 0
+                if prev_a == 1:
+                    # first_low_after_high_holds: q holds
+                    pass
+                else:
+                    # increment_when_a_low: q = (q+1) mod 8
+                    if q is None:
+                        q = 0  # unknown treated as 0 for increment? 
+                        # Actually if q is x, increment is x. But contract expects concrete.
+                        # Use 0 as concrete fallback.
+                    else:
+                        q = (q + 1) % 8
+        prev_a = a
+        # output concrete unsigned int within 3 bits
+        out_q = q if q is not None else 0
+        results.append({'q': out_q & 0x7})
+    return results
+```

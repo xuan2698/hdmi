@@ -1,0 +1,66 @@
+def reference(vectors):
+    # Contract implementation.
+    # State: 4-digit BCD counter value (16 bits).
+    # q[3:0]=ones, q[7:4]=tens, q[11:8]=hundreds, q[15:12]=thousands.
+    # Synchronous active-high reset. Enables are combinational from current q.
+    # Mid input changes occur AFTER sampling, before the other edge, and are
+    # carried to the start of the next row.
+
+    # Initialize state. Power-up unspecified, but we must return concrete values.
+    # Use 0 as initial state.
+    q_state = 0
+
+    results = []
+
+    for row in vectors:
+        reset = row.get("reset", 0)
+
+        # R3_tens_ena / R4_hundreds_ena / R5_count enable logic (combinational)
+        ones = q_state & 0xF
+        tens = (q_state >> 4) & 0xF
+        hundreds = (q_state >> 8) & 0xF
+        thousands = (q_state >> 12) & 0xF
+
+        # R3_tens_ena: ena[0] = 1 iff ones == 9
+        ena0 = 1 if ones == 9 else 0
+        # R4_hundreds_ena: ena[1] = 1 iff ones==9 and tens==9
+        ena1 = 1 if (ones == 9 and tens == 9) else 0
+        # thousands enable: ena[2] = 1 iff ones==9 and tens==9 and hundreds==9
+        ena2 = 1 if (ones == 9 and tens == 9 and hundreds == 9) else 0
+
+        ena = (ena2 << 2) | (ena1 << 1) | ena0
+
+        # Outputs visible same cycle (before posedge update)
+        # R1_reset: reset==1 -> q=0, ena=0 (synchronous, visible same cycle)
+        if reset == 1:
+            out_q = 0
+            out_ena = 0
+        else:
+            out_q = q_state
+            out_ena = ena
+
+        results.append({"q": out_q, "ena": out_ena})
+
+        # R5_count: posedge update
+        # R1_reset: synchronous reset on posedge
+        if reset == 1:
+            q_state = 0
+        else:
+            # Increment each BCD digit iff its enable is high
+            new_ones = ones
+            new_tens = tens
+            new_hundreds = hundreds
+            new_thousands = thousands
+
+            # ones always increments
+            new_ones = (ones + 1) % 10
+            if ones == 9:
+                new_tens = (tens + 1) % 10
+                if tens == 9:
+                    new_hundreds = (hundreds + 1) % 10
+                    if hundreds == 9:
+                        new_thousands = (thousands + 1) % 10
+
+            q_state = (new_thousands << 12) | (new_hundreds << 8) | (new_tens << 4) | new_ones
+
+    return results

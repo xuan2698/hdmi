@@ -1,0 +1,53 @@
+{
+  "coverage": {
+    "S01": ["R5_count"],
+    "S02": ["R5_count"],
+    "S03": ["R3_tens_ena", "R4_hundreds_ena"],
+    "S04": ["R1_reset"]
+  },
+  "issues": [
+    {
+      "issue_id": "I1",
+      "rule_id": "R3_tens_ena",
+      "type": "ambiguity",
+      "severity": "high",
+      "detail": "Spec says enable for digits [3:1] when each upper digit should be incremented; contract defines ena[0] as ones==9 (tens increment), ena[1] as ones==9&&tens==9 (hundreds increment), but omits ena[2] for thousands increment (ones==9&&tens==9&&hundreds==9). Alternative: ena[2] should be high when all lower three digits are 9.",
+      "spec_evidence": "For digits [3:1], also output an enable signal indicating when each of the upper three digits should be incremented.",
+      "alternative": "ena[2] = (q[3:0]==9 && q[7:4]==9 && q[11:8]==9), indicating thousands digit increment.",
+      "sequence": [
+        {"reset": 0, "mid": {"q": 999}},
+        {"reset": 0}
+      ]
+    },
+    {
+      "issue_id": "I2",
+      "rule_id": "R3_tens_ena",
+      "type": "consistency",
+      "severity": "medium",
+      "detail": "R3 example expected ena=1 for q=9, but ena is 3 bits; expected value should be a 3-bit vector (e.g., 3'b001). Similarly R4 example expected ena=2 for q=99 (should be 3'b010).",
+      "spec_evidence": "",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I3",
+      "rule_id": "R5_count",
+      "type": "grounding",
+      "severity": "medium",
+      "detail": "R5_count condition mentions thousands digit increments when ones==9&&tens==9&&hundreds==9, but no rule defines ena[2] for thousands increment; the enable logic for the thousands digit is missing from the enable rules.",
+      "spec_evidence": "For digits [3:1], also output an enable signal indicating when each of the upper three digits should be incremented.",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I4",
+      "rule_id": "global",
+      "type": "spec_example",
+      "severity": "low",
+      "detail": "Spec provides no explicit waveform/table/examples; contract examples are self-consistent except for ena width representation.",
+      "spec_evidence": "",
+      "alternative": "",
+      "sequence": []
+    }
+  ]
+}

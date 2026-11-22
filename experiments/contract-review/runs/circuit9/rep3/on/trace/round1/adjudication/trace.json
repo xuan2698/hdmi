@@ -1,0 +1,51 @@
+[
+  {
+    "issue": {
+      "issue_id": "I2",
+      "rule_id": "q_load4_when_a_high",
+      "type": "ambiguity",
+      "severity": "high",
+      "detail": "Contract treats S13 a=0 as mid-cycle after the 45ns edge; literal same-edge sampling increments q at 45ns and shifts later outputs.",
+      "spec_evidence": "// 45ns            1               0               4",
+      "alternative": "Sample a=0 on the 45ns posedge: with inputs a=1,a=0,a=0, q becomes 4,5,6; mid-cycle carry gives 4,4,5.",
+      "sequence": [
+        {
+          "a": 1
+        },
+        {
+          "a": 0
+        },
+        {
+          "a": 0
+        }
+      ]
+    },
+    "status": "no_effect",
+    "issue_id": "I2",
+    "outputs": {
+      "original": [
+        {
+          "q": 4
+        },
+        {
+          "q": 5
+        },
+        {
+          "q": 6
+        }
+      ],
+      "alternative": [
+        {
+          "q": 4
+        },
+        {
+          "q": 5
+        },
+        {
+          "q": 6
+        }
+      ]
+    },
+    "differences": []
+  }
+]

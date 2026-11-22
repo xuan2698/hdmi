@@ -1,0 +1,32 @@
+```python
+def reference(vectors):
+    # Contract:
+    # - 8 D flip-flops, negative-edge triggered on clk.
+    # - Active-high synchronous reset: on negedge, if reset==1, q <= 0x34.
+    # - Otherwise on negedge, q <= d.
+    # - q holds between negedges.
+    # - Power-up unspecified; we start at 0x34 (concrete value required).
+    # - Each row: inputs driven before sampled edge; mid changes occur AFTER
+    #   sampling, before the other edge, carried to start of next row.
+    q = 0x34
+    out = []
+    for row in vectors:
+        clk = row.get('clk', 0)
+        reset = row.get('reset', 0)
+        d = row.get('d', 0)
+        # Sample at negedge: detect negedge from previous clk value.
+        # We track prev_clk across rows.
+        prev_clk = row.get('_prev_clk', None)
+        # Determine if this row's sampled edge is a negedge.
+        # The protocol: values driven before sampled edge; sample after negedge settled.
+        # We treat each row as representing the state at the sampled negedge.
+        # If clk is 0 (negedge level), we sample.
+        if clk == 0:
+            if reset == 1:
+                q = 0x34
+            else:
+                q = d & 0xFF
+        # If clk == 1, no negedge; q holds.
+        out.append({'q': q & 0xFF})
+    return out
+```

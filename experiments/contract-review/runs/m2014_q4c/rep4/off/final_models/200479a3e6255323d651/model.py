@@ -1,0 +1,19 @@
+def reference(vectors):
+    # State: Q = stored flip-flop value
+    Q = 0  # power-up unspecified; use 0 as concrete value
+
+    results = []
+    for row in vectors:
+        d = row['d'] & 1
+        r = row['r'] & 1
+
+        # R1_sync_reset: r == 1 at posedge clk -> q <= 0 (priority 1)
+        # R2_capture_d: r == 0 at posedge clk -> q <= d (priority 2)
+        if r == 1:
+            Q = 0  # R1_sync_reset
+        else:
+            Q = d  # R2_capture_d
+
+        results.append({'q': Q & 1})
+
+    return results

@@ -1,0 +1,44 @@
+```python
+def reference(vectors):
+    # global: Negedge-triggered D flip-flop with negedge synchronous reset.
+    q = 0
+    cur = {"d": 0, "r": 0}
+    result = []
+
+    for row in vectors:
+        # Drive row inputs before the sampled negedge.
+        if "d" in row:
+            cur["d"] = row["d"]
+        if "r" in row:
+            cur["r"] = row["r"]
+
+        # Sample on the negedge.
+        if (cur["r"] & 1) == 1:
+            # sync_reset: active-high synchronous reset forces q to 0.
+            q = 0
+        else:
+            # d_load: q captures d when reset is low.
+            q = cur["d"] & 1
+
+        result.append({"q": q})
+
+        # mid: changes occur after sampling and are carried to the next row.
+        if "mid" in row:
+            mid = row["mid"]
+            if isinstance(mid, dict):
+                for k, v in mid.items():
+                    if k == "d":
+                        cur["d"] = v
+                    elif k == "r":
+                        cur["r"] = v
+            elif isinstance(mid, list):
+                for change in mid:
+                    if isinstance(change, dict):
+                        for k, v in change.items():
+                            if k == "d":
+                                cur["d"] = v
+                            elif k == "r":
+                                cur["r"] = v
+
+    return result
+```

@@ -1,0 +1,22 @@
+def reference(vectors):
+    mask=0xffffffff
+    hist=0
+    st={'areset':0,'predict_valid':0,'predict_taken':0,'train_mispredicted':0,'train_taken':0,'train_history':0}
+    out=[]
+    for r in vectors:
+        for k,v in r.items():
+            if k!='mid':
+                st[k]=v
+        if st.get('areset',0):
+            hist=0
+        elif st.get('train_mispredicted',0):
+            hist=(((st.get('train_history',0)&mask)<<1)|(st.get('train_taken',0)&1))&mask
+        elif st.get('predict_valid',0):
+            hist=((hist<<1)|(st.get('predict_taken',0)&1))&mask
+        out.append({'predict_history':hist&mask})
+        if 'mid' in r and r['mid']:
+            for k,v in r['mid'].items():
+                st[k]=v
+                if k=='areset' and v:
+                    hist=0
+    return out

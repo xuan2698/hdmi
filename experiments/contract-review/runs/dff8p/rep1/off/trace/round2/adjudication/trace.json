@@ -1,0 +1,66 @@
+[
+  {
+    "issue": {
+      "issue_id": "I5",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec does not define q before first negedge or during reset before any clock edge; contract reset.first_released_cycle and update_during_reset=true leave initial q ambiguous.",
+      "spec_evidence": "",
+      "alternative": "q holds unknown/X until first negedge; reset only takes effect at negedge.",
+      "sequence": [
+        {
+          "d": 0,
+          "reset": 1
+        }
+      ]
+    },
+    "status": "no_effect",
+    "issue_id": "I5",
+    "outputs": {
+      "original": [
+        {
+          "q": 52
+        }
+      ],
+      "alternative": [
+        {
+          "q": 52
+        }
+      ]
+    },
+    "differences": []
+  },
+  {
+    "issue": {
+      "issue_id": "I6",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "low",
+      "detail": "Spec does not state whether reset is synchronous or asynchronous; contract asserts sync, but S01 only says synchronous reset, which is consistent, yet no explicit clock-edge qualification for reset in spec text.",
+      "spec_evidence": "active high synchronous reset",
+      "alternative": "reset is asynchronous active high, overriding q immediately.",
+      "sequence": [
+        {
+          "d": 255,
+          "reset": 1
+        }
+      ]
+    },
+    "status": "no_effect",
+    "issue_id": "I6",
+    "outputs": {
+      "original": [
+        {
+          "q": 52
+        }
+      ],
+      "alternative": [
+        {
+          "q": 52
+        }
+      ]
+    },
+    "differences": []
+  }
+]

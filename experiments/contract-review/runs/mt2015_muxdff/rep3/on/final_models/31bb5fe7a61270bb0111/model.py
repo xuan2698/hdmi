@@ -1,0 +1,56 @@
+def reference(vectors):
+    # Initial registered state Q; power-up unspecified, use concrete 0.
+    Q = 0
+    # Current input state, used for mid changes carried to the next row.
+    L = 0
+    q_in = 0
+    r_in = 0
+    result = []
+
+    for v in vectors:
+        # Each row's values are driven before the sampled posedge.
+        if "L" in v:
+            L = v["L"] & 1
+        if "q_in" in v:
+            q_in = v["q_in"] & 1
+        if "r_in" in v:
+            r_in = v["r_in"] & 1
+
+        # load_r: L == 1 -> Q <= r_in at posedge.
+        # hold_q_in: L == 0 -> Q <= q_in at posedge (2-1 multiplexer).
+        if L == 1:
+            Q = r_in
+        else:
+            Q = q_in
+        Q = Q & 1  # keep within 1-bit output width
+
+        result.append({"Q": Q})
+
+        # Mid input changes occur after the posedge sample and are carried
+        # to the start of the next row; they do not affect the already
+        # sampled Q.
+        if "mid" in v:
+            mid = v["mid"]
+            if mid is not None:
+                try:
+                    # mid as dict {name: value}
+                    for k, val in mid.items():
+                        if k == "L":
+                            L = val & 1
+                        elif k == "q_in":
+                            q_in = val & 1
+                        elif k == "r_in":
+                            r_in = val & 1
+                except:
+                    # mid as iterable of (name, value) pairs
+                    for item in mid:
+                        k = item[0]
+                        val = item[1]
+                        if k == "L":
+                            L = val & 1
+                        elif k == "q_in":
+                            q_in = val & 1
+                        elif k == "r_in":
+                            r_in = val & 1
+
+    return result

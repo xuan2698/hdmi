@@ -1,0 +1,96 @@
+[
+  {
+    "issue": {
+      "issue_id": "I3",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec says 'active high synchronous reset (reset output to 0)' but does not specify whether reset is synchronous to clock edge only; contract assumes posedge sync. Alternative: asynchronous active-high reset.",
+      "spec_evidence": "active high synchronous reset (reset output to 0)",
+      "alternative": "Asynchronous reset: q becomes 0 immediately when r=1, independent of clk edge.",
+      "sequence": [
+        {
+          "d": 1,
+          "r": 0
+        },
+        {
+          "d": 1,
+          "r": 1
+        },
+        {
+          "d": 0,
+          "r": 0
+        }
+      ]
+    },
+    "status": "no_effect",
+    "issue_id": "I3",
+    "outputs": {
+      "original": [
+        {
+          "q": 1
+        },
+        {
+          "q": 0
+        },
+        {
+          "q": 0
+        }
+      ],
+      "alternative": [
+        {
+          "q": 1
+        },
+        {
+          "q": 0
+        },
+        {
+          "q": 0
+        }
+      ]
+    },
+    "differences": []
+  },
+  {
+    "issue": {
+      "issue_id": "I4",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "low",
+      "detail": "Spec does not state initial q value before first posedge; contract leaves state Q undefined initially. Alternative: q initializes to 0 at time 0.",
+      "spec_evidence": "",
+      "alternative": "q initializes to 0 before any clock edge.",
+      "sequence": [
+        {
+          "d": 1,
+          "r": 0
+        },
+        {
+          "d": 0,
+          "r": 0
+        }
+      ]
+    },
+    "status": "no_effect",
+    "issue_id": "I4",
+    "outputs": {
+      "original": [
+        {
+          "q": 1
+        },
+        {
+          "q": 0
+        }
+      ],
+      "alternative": [
+        {
+          "q": 1
+        },
+        {
+          "q": 0
+        }
+      ]
+    },
+    "differences": []
+  }
+]

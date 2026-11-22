@@ -1,0 +1,40 @@
+{
+  "coverage": {
+    "S01": ["unrelated"],
+    "S02": ["unrelated"],
+    "S03": ["R_RESET"],
+    "S04": ["unrelated"],
+    "S05": ["R_OUT_A", "missing"],
+    "S06": ["R_OUT_B", "missing"],
+    "S07": ["R_OUT_C", "missing"],
+    "S08": ["R_OUT_D", "missing"]
+  },
+  "issues": [
+    {
+      "issue_id": "I1",
+      "rule_id": "global",
+      "type": "coverage",
+      "severity": "medium",
+      "detail": "Next-state columns of S05-S08 are not represented by any rule; transitions appear only in state.meaning without spec_quote/uncertain.",
+      "spec_evidence": "// State | Next state in=0, Next state in=1 | Output",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I2",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "update_during_reset=false for B/C/D is undefined; if read as no state update during reset, it conflicts with reset-to-A and R_RESET example resetting C to A.",
+      "spec_evidence": "Include a synchronous active high reset that resets the FSM to state A.",
+      "alternative": "During reset, B/C/D hold their current state because update_during_reset=false; only A updates during reset.",
+      "sequence": [
+        {"reset": 1, "in": 0},
+        {"reset": 0, "in": 1},
+        {"reset": 0, "in": 0},
+        {"reset": 0, "in": 1},
+        {"reset": 1, "in": 0}
+      ]
+    }
+  ]
+}

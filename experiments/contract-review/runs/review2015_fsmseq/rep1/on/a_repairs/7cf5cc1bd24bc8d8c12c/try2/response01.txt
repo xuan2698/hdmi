@@ -1,0 +1,54 @@
+def reference(vectors):
+    # R_RESET: synchronous active-high reset forces S0 and start_shifting=0 on posedge.
+    # R_COMPLETE_1101: S110 + data=1 -> FOUND, start_shifting becomes 1 same cycle.
+    # R_HOLD_FOUND: FOUND stays FOUND on any data when reset=0, start_shifting stays 1.
+    # R_ZERO_NOT_FOUND: before detection, start_shifting is 0.
+    state = 'S0'
+    current = {'reset': 0, 'data': 0}
+    outputs = []
+    for row in vectors:
+        if not isinstance(row, dict):
+            row = {}
+        # Each row's values are driven before the sampled posedge; overlay them.
+        for key in ('reset', 'data'):
+            if key in row:
+                current[key] = row[key] & 1
+        r = current.get('reset', 0) & 1
+        d = current.get('data', 0) & 1
+        # Sample at posedge and compute next state.
+        if r == 1:
+            # R_RESET
+            next_state = 'S0'
+        else:
+            if state == 'S0':
+                # R_ZERO_NOT_FOUND
+                next_state = 'S1' if d == 1 else 'S0'
+            elif state == 'S1':
+                next_state = 'S11' if d == 1 else 'S0'
+            elif state == 'S11':
+                next_state = 'S11' if d == 1 else 'S110'
+            elif state == 'S110':
+                if d == 1:
+                    # R_COMPLETE_1101
+                    next_state = 'FOUND'
+                else:
+                    next_state = 'S0'
+            elif state == 'FOUND':
+                # R_HOLD_FOUND
+                next_state = 'FOUND'
+            else:
+                next_state = 'S0'
+        # Output is Moore from the state after the posedge (same-cycle visibility).
+        start_shifting = 1 if next_state == 'FOUND' else 0
+        outputs.append({'start_shifting': start_shifting})
+        state = next_state
+        # Optional mid input changes occur after sampling, carried to next row.
+        if 'mid' in row and isinstance(row['mid'], dict):
+            for key in ('reset', 'data'):
+                if key in row['mid']:
+                    current[key] = row['mid'][key] & 1
+        for key in ('reset', 'data'):
+            for midkey in (key + '_mid', 'mid_' + key):
+                if midkey in row:
+                    current[key] = row[midkey] & 1
+    return outputs

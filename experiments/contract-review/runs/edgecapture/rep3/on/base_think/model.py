@@ -1,0 +1,19 @@
+def reference(vectors):
+    out=0; prev=0; reset=0; inval=0; res=[]; mask=(1<<32)-1
+    for row in vectors:
+        for k,v in row.items():
+            if k=='mid': continue
+            if k=='reset': reset=v&1
+            elif k=='in': inval=v&mask
+        if reset:
+            out=0; prev=0
+        else:
+            out=(out|(prev&(~inval&mask)))&mask
+            prev=inval&mask
+        res.append({'out':out})
+        mid=row.get('mid')
+        if mid:
+            for k,v in mid.items():
+                if k=='reset': reset=v&1
+                elif k=='in': inval=v&mask
+    return res

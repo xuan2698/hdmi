@@ -1,0 +1,30 @@
+```json
+{
+  "module_name": "top_module",
+  "io": [
+    {"name": "clk", "dir": "input", "width": 1, "description": "Clock input; state updates on posedge."},
+    {"name": "a", "dir": "input", "width": 1, "description": "Input a."},
+    {"name": "b", "dir": "input", "width": 1, "description": "Input b."},
+    {"name": "state", "dir": "output", "width": 1, "description": "Observable flip-flop state (registered output)."},
+    {"name": "q", "dir": "output", "width": 1, "description": "Combinational output derived from state and inputs."}
+  ],
+  "clocking": {
+    "clock": {"name": "clk", "edge": "posedge"},
+    "reset": null
+  },
+  "timing": {
+    "outputs": {
+      "state": {"latency_cycles": 1},
+      "q": {"latency_cycles": 0}
+    }
+  },
+  "functional_summary": {
+    "overview": "Single flip-flop sequential circuit. On each posedge of clk, state updates to the next-state function of (state, a, b). Output q is a combinational function of (state, a, b).",
+    "rules": [
+      "state_next = (a & ~b) | (state & ~a & ~b) | (state & a & b)  [derived from waveform]",
+      "q = state XOR a  [combinational; matches observed q values]",
+      "state updates only on posedge clk; q reflects current state and inputs combinationally."
+    ]
+  }
+}
+```

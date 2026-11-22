@@ -1,0 +1,146 @@
+[
+  {
+    "issue": {
+      "issue_id": "I4",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec S05 q=4 at first posedge with a=1 could mean initial q=4 (hold) or q=x then load 4; contract picks initial 4 but S04 q=x is unexplained. Alternative: q initializes to x and first a=1 posedge loads 4.",
+      "spec_evidence": "// 0ns             0               1               x",
+      "alternative": "q starts x; on first posedge with a=1 q becomes 4 (load), then holds while a=1",
+      "sequence": [
+        {
+          "a": 1
+        },
+        {
+          "a": 1
+        },
+        {
+          "a": 0
+        },
+        {
+          "a": 0
+        }
+      ]
+    },
+    "status": "no_effect",
+    "issue_id": "I4",
+    "outputs": {
+      "original": [
+        {
+          "q": 4
+        },
+        {
+          "q": 4
+        },
+        {
+          "q": 5
+        },
+        {
+          "q": 6
+        }
+      ],
+      "alternative": [
+        {
+          "q": 4
+        },
+        {
+          "q": 4
+        },
+        {
+          "q": 5
+        },
+        {
+          "q": 6
+        }
+      ]
+    },
+    "differences": []
+  },
+  {
+    "issue": {
+      "issue_id": "I5",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec S13 a=0 posedge keeps q=4 while later a=0 posedges increment; alternative semantics: increment only when a=0 AND q!=4 (or first a=0 after a=1 is ignored). Distinguishing sequence below: contract gives 4,5,6,0; alternative gives 4,4,5,6.",
+      "spec_evidence": "// 45ns            1               0               4",
+      "alternative": "increment on a=0 posedge except skip when q==4 (or skip first a=0 after a=1)",
+      "sequence": [
+        {
+          "a": 1
+        },
+        {
+          "a": 0
+        },
+        {
+          "a": 0
+        },
+        {
+          "a": 0
+        }
+      ]
+    },
+    "status": "effect",
+    "issue_id": "I5",
+    "outputs": {
+      "original": [
+        {
+          "q": 4
+        },
+        {
+          "q": 5
+        },
+        {
+          "q": 6
+        },
+        {
+          "q": 7
+        }
+      ],
+      "alternative": [
+        {
+          "q": 4
+        },
+        {
+          "q": 4
+        },
+        {
+          "q": 4
+        },
+        {
+          "q": 4
+        }
+      ]
+    },
+    "differences": [
+      {
+        "cycle": 2,
+        "original": {
+          "q": 5
+        },
+        "alternative": {
+          "q": 4
+        }
+      },
+      {
+        "cycle": 3,
+        "original": {
+          "q": 6
+        },
+        "alternative": {
+          "q": 4
+        }
+      },
+      {
+        "cycle": 4,
+        "original": {
+          "q": 7
+        },
+        "alternative": {
+          "q": 4
+        }
+      }
+    ]
+  }
+]

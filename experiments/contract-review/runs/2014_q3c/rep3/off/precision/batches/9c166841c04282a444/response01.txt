@@ -1,0 +1,24 @@
+Looking at the state-assigned table:
+
+| y | x=0 | x=1 | z |
+|---|-----|-----|---|
+| 000 | 000 | 001 | 0 |
+| 001 | 001 | 100 | 0 |
+| 010 | 010 | 001 | 0 |
+| 011 | 001 | 010 | 1 |
+| 100 | 011 | 100 | 1 |
+
+**Y[0] (next-state bit 0):**
+- y=000: x=0→0, x=1→1
+- y=001: x=0→1, x=1→0
+- y=010: x=0→0, x=1→1
+- y=011: x=0→1, x=1→0
+- y=100: x=0→1, x=1→0
+
+**z (Moore output):** 1 for y=011,100; else 0.
+
+For undefined states (101,110,111), I'll use the first candidate: Y0=0, z=0.
+
+```json
+{"models":{"79be89de30cf600d2a":"def reference(vectors):\n    out = []\n    for v in vectors:\n        x = v['x'] & 1\n        y = v['y'] & 7\n        if y == 0:\n            Y0 = x\n            z = 0\n        elif y == 1:\n            Y0 = 1 - x\n            z = 0\n        elif y == 2:\n            Y0 = x\n            z = 0\n        elif y == 3:\n            Y0 = 1 - x\n            z = 1\n        elif y == 4:\n            Y0 = 1 - x\n            z = 1\n        else:\n            Y0 = 0\n            z = 0\n        out.append({'Y0': Y0, 'z': z})\n    return out\n","c9aa68fe69f83478f5":"def reference(vectors):\n    out = []\n    for v in vectors:\n        x = v['x'] & 1\n        y = v['y'] & 7\n        if y == 0:\n            Y0 = x\n            z = 0\n        elif y == 1:\n            Y0 = 1 - x\n            z = 0\n        elif y == 2:\n            Y0 = x\n            z = 0\n        elif y == 3:\n            Y0 = 1 - x\n            z = 1\n        elif y == 4:\n            Y0 = 1 - x\n            z = 1\n        else:\n            Y0 = 0\n            z = 0\n        out.append({'Y0': Y0, 'z': z})\n    return out\n","73de1392466cb58ab8":"def reference(vectors):\n    out = []\n    for v in vectors:\n        x = v['x'] & 1\n        y = v['y'] & 7\n        if y == 0:\n            Y0 = x\n            z = 0\n        elif y == 1:\n            Y0 = 1 - x\n            z = 0\n        elif y == 2:\n            Y0 = x\n            z = 0\n        elif y == 3:\n            Y0 = 1 - x\n            z = 1\n        elif y == 4:\n            Y0 = 1 - x\n            z = 1\n        else:\n            Y0 = 0\n            z = 0\n        out.append({'Y0': Y0, 'z': z})\n    return out\n"}}
+```

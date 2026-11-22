@@ -1,0 +1,104 @@
+{
+  "ports": {
+    "inputs": {
+      "d": 8,
+      "reset": 1
+    },
+    "outputs": {
+      "q": 8
+    },
+    "clock": "clk"
+  },
+  "states": [
+    {
+      "name": "q",
+      "meaning": "Registered 8-bit D flip-flop output; loads d on a positive clk edge when reset is low, and is synchronously cleared to 0 on a positive clk edge when reset is high.",
+      "update_time": "posedge clk after reset priority evaluation",
+      "update_during_reset": true
+    }
+  ],
+  "rules": [
+    {
+      "id": "sync_reset_high",
+      "outputs": [
+        "q"
+      ],
+      "condition": "reset == 1 at posedge clk",
+      "edge": "posedge",
+      "visible": "same_cycle",
+      "priority": 1,
+      "spec_quote": "active high synchronous reset setting the output to zero",
+      "uncertain": false,
+      "example": {
+        "vectors": [
+          {
+            "d": 18,
+            "reset": 1
+          },
+          {
+            "d": 205,
+            "reset": 1
+          }
+        ],
+        "expected": [
+          {
+            "q": 0
+          },
+          {
+            "q": 0
+          }
+        ]
+      }
+    },
+    {
+      "id": "dff_load_d",
+      "outputs": [
+        "q"
+      ],
+      "condition": "reset == 0 at posedge clk",
+      "edge": "posedge",
+      "visible": "same_cycle",
+      "priority": 2,
+      "spec_quote": "Create 8 D flip-flops",
+      "uncertain": false,
+      "example": {
+        "vectors": [
+          {
+            "d": 18,
+            "reset": 0
+          },
+          {
+            "d": 52,
+            "reset": 0
+          },
+          {
+            "d": 86,
+            "reset": 0
+          }
+        ],
+        "expected": [
+          {
+            "q": 18
+          },
+          {
+            "q": 52
+          },
+          {
+            "q": 86
+          }
+        ]
+      }
+    }
+  ],
+  "reset": {
+    "kind": "sync",
+    "name": "reset",
+    "active": "high",
+    "values": {
+      "q": 0
+    },
+    "first_released_cycle": "the first posedge clk at which reset is sampled low; q then loads d"
+  },
+  "mid": "If present, mid input changes occur after the sampled posedge and are carried to the start of the next row; synchronous q updates only at posedge clk.",
+  "uncertain": []
+}

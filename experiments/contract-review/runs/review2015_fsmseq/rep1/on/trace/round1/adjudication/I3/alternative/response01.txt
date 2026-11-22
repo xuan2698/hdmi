@@ -1,0 +1,92 @@
+def reference(vectors):
+    S0 = 0
+    S1 = 1
+    S11 = 2
+    S110 = 3
+    FOUND = 4
+
+    state = S0
+    start_shifting = 0
+    cur_reset = 0
+    cur_data = 0
+
+    result = []
+
+    for row in vectors:
+        # Drive row input values before the sampled posedge.
+        if isinstance(row, dict):
+            if "reset" in row:
+                cur_reset = row["reset"]
+            if "data" in row:
+                cur_data = row["data"]
+
+        reset = cur_reset
+        data = cur_data
+
+        # R_RESET: synchronous active-high reset forces S0 and clears output.
+        if reset:
+            nxt_state = S0
+            nxt_start_shifting = 0
+        else:
+            # R_HOLD_FOUND: once in FOUND, start_shifting is held at 1.
+            if state == FOUND:
+                nxt_start_shifting = 1
+            else:
+                nxt_start_shifting = 0
+
+            # R_COMPLETE_1101 with candidate interpretation:
+            # completion enters FOUND on this edge, but registered
+            # start_shifting becomes 1 only on the next posedge.
+            # R_ZERO_NOT_FOUND: all non-found cases keep start_shifting 0.
+            if state == S0:
+                if data == 1:
+                    nxt_state = S1
+                else:
+                    nxt_state = S0
+            elif state == S1:
+                if data == 1:
+                    nxt_state = S11
+                else:
+                    nxt_state = S0
+            elif state == S11:
+                if data == 1:
+                    nxt_state = S11
+                else:
+                    nxt_state = S110
+            elif state == S110:
+                if data == 1:
+                    nxt_state = FOUND
+                else:
+                    nxt_state = S0
+            elif state == FOUND:
+                nxt_state = FOUND
+            else:
+                nxt_state = S0
+
+        state = nxt_state
+        start_shifting = nxt_start_shifting
+        result.append({"start_shifting": int(start_shifting)})
+
+        # Optional mid changes occur after sampling and are carried
+        # into the start of the next row.
+        if isinstance(row, dict):
+            if "mid" in row:
+                mid = row["mid"]
+                if isinstance(mid, dict):
+                    if "reset" in mid:
+                        cur_reset = mid["reset"]
+                    if "data" in mid:
+                        cur_data = mid["data"]
+                elif isinstance(mid, list):
+                    for m in mid:
+                        if isinstance(m, dict):
+                            if "reset" in m:
+                                cur_reset = m["reset"]
+                            if "data" in m:
+                                cur_data = m["data"]
+            if "mid_reset" in row:
+                cur_reset = row["mid_reset"]
+            if "mid_data" in row:
+                cur_data = row["mid_data"]
+
+    return result

@@ -1,0 +1,95 @@
+def reference(vectors):
+    q = 0
+    reset_sig = 0
+    out = []
+
+    for row in vectors:
+        # Rule reset: sample synchronous active-high reset at the posedge.
+        if isinstance(row, dict):
+            if "reset" in row:
+                reset_sig = int(row["reset"]) & 1
+        else:
+            reset_sig = int(row) & 1
+
+        if reset_sig:
+            # Rule reset: reset has priority over increment.
+            q = 0
+        else:
+            # Rule bcd_increment: increment packed BCD, saturating at 0x9999.
+            if q != 0x9999:
+                ones = q & 0xF
+                if ones == 9:
+                    ones_new = 0
+                    carry = 1
+                else:
+                    ones_new = ones + 1
+                    carry = 0
+
+                tens = (q >> 4) & 0xF
+                if carry:
+                    if tens == 9:
+                        tens_new = 0
+                        carry = 1
+                    else:
+                        tens_new = tens + 1
+                        carry = 0
+                else:
+                    tens_new = tens
+
+                hundreds = (q >> 8) & 0xF
+                if carry:
+                    if hundreds == 9:
+                        hundreds_new = 0
+                        carry = 1
+                    else:
+                        hundreds_new = hundreds + 1
+                        carry = 0
+                else:
+                    hundreds_new = hundreds
+
+                thousands = (q >> 12) & 0xF
+                if carry:
+                    if thousands == 9:
+                        thousands_new = 9
+                    else:
+                        thousands_new = thousands + 1
+                else:
+                    thousands_new = thousands
+
+                q = (thousands_new << 12) | (hundreds_new << 8) | (tens_new << 4) | ones_new
+
+        # Rule ena_combinational: enables are combinational from settled q.
+        ones = q & 0xF
+        tens = (q >> 4) & 0xF
+        hundreds = (q >> 8) & 0xF
+
+        ena0 = 1 if ones == 9 else 0
+        ena1 = 1 if (tens == 9 and ones == 9) else 0
+        ena2 = 1 if (hundreds == 9 and tens == 9 and ones == 9) else 0
+        ena = ena0 | (ena1 << 1) | (ena2 << 2)
+
+        out.append({"q": q & 0xFFFF, "ena": ena & 0x7})
+
+        # Optional mid input changes after sampling are carried to the next row.
+        if isinstance(row, dict):
+            mid_val = None
+            for key, val in row.items():
+                if key == "reset":
+                    continue
+                kl = str(key).lower()
+                if "reset" in kl and ("mid" in kl or "after" in kl or "post" in kl):
+                    if isinstance(val, dict):
+                        if "reset" in val:
+                            mid_val = int(val["reset"]) & 1
+                    else:
+                        mid_val = int(val) & 1
+                if kl in ("mid", "__mid__", "mid_inputs", "mid_changes"):
+                    if isinstance(val, dict):
+                        if "reset" in val:
+                            mid_val = int(val["reset"]) & 1
+                    else:
+                        mid_val = int(val) & 1
+            if mid_val is not None:
+                reset_sig = mid_val
+
+    return out

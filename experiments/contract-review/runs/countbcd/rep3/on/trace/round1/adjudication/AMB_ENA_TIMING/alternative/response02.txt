@@ -1,0 +1,65 @@
+```python
+def reference(vectors):
+    # State: q (16-bit four-digit BCD), ena (3-bit registered carry pulses)
+    q = 0
+    ena = 0
+    reset_in = 0
+    outs = []
+    for v in vectors:
+        # Inputs driven before sampled posedge
+        pre_reset = reset_in
+        if "reset" in v:
+            pre_reset = v["reset"]
+        # Default post-edge reset is the same as pre-edge unless mid changes
+        after_reset = pre_reset
+        # Optional mid changes occur after sampling, before next edge
+        if "mid" in v:
+            mid = v["mid"]
+            if mid.__class__.__name__ == 'dict':
+                if "reset" in mid:
+                    after_reset = mid["reset"]
+            else:
+                after_reset = mid
+        for key in v:
+            if key == "reset_mid":
+                after_reset = v[key]
+            elif key.endswith("_mid"):
+                name = key[:-4]
+                if name == "reset":
+                    after_reset = v[key]
+        if pre_reset:
+            # q_sync_reset: synchronous active-high reset
+            new_q = 0
+            new_ena = 0
+        else:
+            # q_bcd_count: 4-digit BCD increment
+            old_q = q
+            ones = old_q & 0xF
+            tens = (old_q >> 4) & 0xF
+            hundreds = (old_q >> 8) & 0xF
+            thousands = (old_q >> 12) & 0xF
+            # ena_upper_digit_increment: registered carry pulses
+            ena0 = 1 if ones == 9 else 0
+            ena1 = 1 if ones == 9 and tens == 9 else 0
+            ena2 = 1 if ones == 9 and tens == 9 and hundreds == 9 else 0
+            new_ena = (ena2 << 2) | (ena1 << 1) | ena0
+            ones += 1
+            if ones == 10:
+                ones = 0
+                tens += 1
+                if tens == 10:
+                    tens = 0
+                    hundreds += 1
+                    if hundreds == 10:
+                        hundreds = 0
+                        thousands += 1
+                        if thousands == 10:
+                            thousands = 0
+            new_q = (thousands << 12) | (hundreds << 8) | (tens << 4) | ones
+        q = new_q
+        ena = new_ena
+        outs.append({"ena": ena, "q": q})
+        # Mid changes are carried to the start of the next row
+        reset_in = after_reset
+    return outs
+```

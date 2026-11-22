@@ -1,0 +1,68 @@
+```python
+def reference(vectors):
+    # Initial state is S0 (reset/no-prefix); power-up unspecified is made concrete.
+    state = "S0"
+    # Carried input values between rows (mid changes persist after sampling).
+    cur_reset = 0
+    cur_data = 0
+    result = []
+
+    for row in vectors:
+        # Pre-edge inputs: carried values overridden by this row's driven values.
+        reset = row.get("reset", cur_reset)
+        data = row.get("data", cur_data)
+        reset = int(reset) & 1
+        data = int(data) & 1
+
+        # Sample posedge and compute same-cycle outputs/state update.
+        # r_reset_clear: synchronous reset forces S0 and start_shifting=0.
+        if reset == 1:
+            out = 0
+            state = "S0"
+        else:
+            # r_set_or_hold: already found or final bit completes 1101 -> 1.
+            if state == "FOUND":
+                out = 1
+                state = "FOUND"
+            elif state == "S110" and data == 1:
+                out = 1
+                state = "FOUND"
+            else:
+                # r_default_clear: not found/no completion -> 0.
+                out = 0
+                # Explicit state transitions for 1101 detection.
+                if state == "S0":
+                    if data == 1:
+                        state = "S1"
+                    else:
+                        state = "S0"
+                elif state == "S1":
+                    if data == 1:
+                        state = "S11"
+                    else:
+                        state = "S0"
+                elif state == "S11":
+                    if data == 0:
+                        state = "S110"
+                    else:
+                        state = "S11"
+                elif state == "S110":
+                    # data == 1 is handled above; here data == 0.
+                    state = "S0"
+                else:
+                    state = "S0"
+
+        result.append({"start_shifting": out})
+
+        # Persist this row's driven inputs, then apply mid changes after sampling.
+        cur_reset = reset
+        cur_data = data
+        mid = row.get("mid", None)
+        if isinstance(mid, dict):
+            if "reset" in mid:
+                cur_reset = int(mid["reset"]) & 1
+            if "data" in mid:
+                cur_data = int(mid["data"]) & 1
+
+    return result
+```

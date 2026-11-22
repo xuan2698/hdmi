@@ -1,0 +1,56 @@
+```python
+def reference(vectors):
+    # rule reset: synchronous active-high reset clears q to 0 and ena to 0
+    # rule bcd_increment: BCD add 1 modulo 10000, wrap from 0x9999 to 0x0000
+    # rule ena_combinational: ena[0]=ones==9, ena[1]=tens==9&&ones==9, ena[2]=hundreds==9&&tens==9&&ones==9
+    q = 0
+    input_state = {}
+    results = []
+    for row in vectors:
+        mid_changes = {}
+        for k, v in row.items():
+            if k == "mid" and isinstance(v, dict):
+                mid_changes.update(v)
+            elif k.endswith("_mid"):
+                mid_changes[k[:-4]] = v
+            else:
+                input_state[k] = v
+        reset = input_state.get("reset", 0)
+        if reset == 1:
+            q_next = 0
+        else:
+            ones = (q & 0xF) + 1
+            carry = 0
+            if ones >= 10:
+                ones = 0
+                carry = 1
+            tens = ((q >> 4) & 0xF) + carry
+            carry = 0
+            if tens >= 10:
+                tens = 0
+                carry = 1
+            hundreds = ((q >> 8) & 0xF) + carry
+            carry = 0
+            if hundreds >= 10:
+                hundreds = 0
+                carry = 1
+            thousands = ((q >> 12) & 0xF) + carry
+            if thousands >= 10:
+                thousands = 0
+            q_next = ones | (tens << 4) | (hundreds << 8) | (thousands << 12)
+        q = q_next & 0xFFFF
+        ones_digit = q & 0xF
+        tens_digit = (q >> 4) & 0xF
+        hundreds_digit = (q >> 8) & 0xF
+        ena = 0
+        if ones_digit == 9:
+            ena |= 1
+            if tens_digit == 9:
+                ena |= 2
+                if hundreds_digit == 9:
+                    ena |= 4
+        results.append({"q": q, "ena": ena})
+        for k, v in mid_changes.items():
+            input_state[k] = v
+    return results
+```

@@ -1,0 +1,54 @@
+```python
+def reference(vectors):
+    # Contract implementation for 4-digit BCD counter.
+    # State: counter value (16-bit BCD), initialized to 0.
+    # R1_reset: synchronous active-high reset -> q=0, ena=0 on posedge when reset==1.
+    # R3_tens_ena: ena[0] = 1 iff ones digit == 9.
+    # R4_hundreds_ena: ena[1] = 1 iff ones==9 and tens==9.
+    # (ena[2] = 1 iff ones==9 and tens==9 and hundreds==9, per spec "digits [3:1]")
+    # R5_count: on posedge with reset==0, increment each BCD digit iff its enable high.
+
+    q = 0  # counter state (BCD packed)
+    out = []
+
+    for row in vectors:
+        reset = row.get("reset", 0)
+
+        # Compute combinational outputs from current state (before edge)
+        ones = q & 0xF
+        tens = (q >> 4) & 0xF
+        hundreds = (q >> 8) & 0xF
+        thousands = (q >> 12) & 0xF
+
+        ena0 = 1 if ones == 9 else 0
+        ena1 = 1 if (ones == 9 and tens == 9) else 0
+        ena2 = 1 if (ones == 9 and tens == 9 and hundreds == 9) else 0
+        ena = (ena2 << 2) | (ena1 << 1) | ena0
+
+        # Outputs visible same cycle (combinational ena, current q)
+        out.append({"q": q & 0xFFFF, "ena": ena & 0x7})
+
+        # Posedge update (R1_reset priority, then R5_count)
+        if reset == 1:
+            q = 0
+        else:
+            # Increment BCD digits based on enables
+            new_ones = ones
+            new_tens = tens
+            new_hundreds = hundreds
+            new_thousands = thousands
+
+            if ena0:
+                new_ones = (ones + 1) % 10
+            if ena1:
+                new_tens = (tens + 1) % 10
+            if ena2:
+                new_hundreds = (hundreds + 1) % 10
+            # thousands increments when ones==9,tens==9,hundreds==9
+            if ena0 and ena1 and ena2:
+                new_thousands = (thousands + 1) % 10
+
+            q = (new_thousands << 12) | (new_hundreds << 8) | (new_tens << 4) | new_ones
+
+    return out
+```

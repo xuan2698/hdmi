@@ -1,0 +1,42 @@
+[
+  {
+    "issue": {
+      "issue_id": "I1",
+      "rule_id": "R_NORMAL",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Rule fixes 12-hour wrap/PM-toggle point; spec only says 12-hour clock with am/pm, so hour rollover point is not explicit.",
+      "spec_evidence": "Create a set of counters suitable for use as a 12-hour clock (with am/pm indicator).",
+      "alternative": "Hour wraps 12->01 immediately on the first increment after reset 12:00:00, instead of after 12:59:59.",
+      "sequence": [
+        {
+          "reset": 1,
+          "ena": 0
+        },
+        {
+          "reset": 0,
+          "ena": 1
+        }
+      ]
+    },
+    "status": "not_executable",
+    "issue_id": "I1",
+    "outputs": {
+      "original": [
+        {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 0
+        },
+        {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 1
+        }
+      ]
+    },
+    "differences": []
+  }
+]

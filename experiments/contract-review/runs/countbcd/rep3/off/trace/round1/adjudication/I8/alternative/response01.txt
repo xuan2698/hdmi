@@ -1,0 +1,51 @@
+```python
+def reference(vectors):
+    # State: 4-digit BCD counter value (16 bits)
+    # q[3:0]=ones, q[7:4]=tens, q[11:8]=hundreds, q[15:12]=thousands
+    state = {"q": 0}
+
+    def compute_outputs(reset):
+        # R1_reset: synchronous active-high reset -> outputs 0 when reset==1
+        if reset == 1:
+            return {"q": 0, "ena": 0}
+        q = state["q"]
+        ones = q & 0xF
+        tens = (q >> 4) & 0xF
+        hundreds = (q >> 8) & 0xF
+        # R2_ones_ena / R3_tens_ena / R4_hundreds_ena
+        # Candidate interpretation (global): ena[0]=tens enable, ena[1]=hundreds enable, ena[2]=thousands enable
+        ena0 = 1 if ones == 9 else 0
+        ena1 = 1 if (ones == 9 and tens == 9) else 0
+        ena2 = 1 if (ones == 9 and tens == 9 and hundreds == 9) else 0
+        ena = (ena2 << 2) | (ena1 << 1) | ena0
+        return {"q": q, "ena": ena}
+
+    results = []
+    for row in vectors:
+        reset = row.get("reset", 0)
+        # Sample outputs before the posedge (values driven before sampled edge)
+        out = compute_outputs(reset)
+        results.append({"q": out["q"] & 0xFFFF, "ena": out["ena"] & 0x7})
+
+        # R5_count: on posedge, increment BCD digits per enables (reset==0)
+        if reset == 1:
+            # R1_reset: synchronous reset clears counter
+            state["q"] = 0
+        else:
+            q = state["q"]
+            ones = q & 0xF
+            tens = (q >> 4) & 0xF
+            hundreds = (q >> 8) & 0xF
+            thousands = (q >> 12) & 0xF
+            # ones always increments
+            ones = (ones + 1) % 10
+            if (q & 0xF) == 9:
+                tens = (tens + 1) % 10
+                if ((q >> 4) & 0xF) == 9:
+                    hundreds = (hundreds + 1) % 10
+                    if ((q >> 8) & 0xF) == 9:
+                        thousands = (thousands + 1) % 10
+            state["q"] = (thousands << 12) | (hundreds << 8) | (tens << 4) | ones
+
+    return results
+```

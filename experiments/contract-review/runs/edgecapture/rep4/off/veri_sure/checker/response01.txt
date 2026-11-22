@@ -1,0 +1,27 @@
+```python
+def reference(vectors):
+    # Contract:
+    # - Active-high synchronous reset clears out to 0 on posedge.
+    # - Otherwise, out[i] becomes 1 (sticky) when in[i] transitions 1->0
+    #   between consecutive sampled posedges.
+    # - Initial previous input is 0 (no spurious transition on first edge).
+    # - Outputs reflect state after the posedge (latency 1).
+    # - Mid changes occur AFTER sampling, before next edge; carried to next row.
+    out = 0
+    prev_in = 0
+    results = []
+    for row in vectors:
+        # Apply mid changes from previous row (already stored in row inputs)
+        # Sample inputs at this posedge
+        reset = row['reset'] & 1
+        cur_in = row['in'] & 0xFFFFFFFF
+        if reset:
+            out = 0
+        else:
+            # detect 1->0 transitions
+            trans = prev_in & (~cur_in) & 0xFFFFFFFF
+            out = (out | trans) & 0xFFFFFFFF
+        prev_in = cur_in
+        results.append({'out': out & 0xFFFFFFFF})
+    return results
+```

@@ -1,0 +1,86 @@
+{
+  "responses": [
+    {
+      "issue_id": "I1",
+      "decision": "rebut",
+      "reason": "R1 example is already consistent with the pass-through-until-first-1 rule; no contradiction exists, so no edit is warranted.",
+      "spec_quote": "the output (Z) is the 2's complement of the input"
+    },
+    {
+      "issue_id": "I2",
+      "decision": "rebut",
+      "reason": "R3 example already matches the stated transition and output behavior; no change needed.",
+      "spec_quote": "beginning with the least-significant bit of the number"
+    },
+    {
+      "issue_id": "I3",
+      "decision": "accept",
+      "reason": "R2 example assumes S1 without establishing it; replace with a sequence that reaches S1 first so the example is grounded.",
+      "spec_quote": "the output (Z) is the 2's complement of the input",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R2",
+            "example"
+          ],
+          "value": {
+            "vectors": [
+              {
+                "areset": 0,
+                "x": 1
+              },
+              {
+                "areset": 0,
+                "x": 0
+              },
+              {
+                "areset": 0,
+                "x": 1
+              }
+            ],
+            "expected": [
+              {
+                "z": 1
+              },
+              {
+                "z": 1
+              },
+              {
+                "z": 0
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "issue_id": "I4",
+      "decision": "rebut",
+      "reason": "R4 example is already consistent with async reset forcing S0 and z=0; no edit needed.",
+      "spec_quote": "positive edge triggered asynchronous reset"
+    },
+    {
+      "issue_id": "I6",
+      "decision": "accept",
+      "reason": "Clarify that the state transition is registered on posedge so the same-cycle output uses the current state, resolving the ambiguity.",
+      "spec_quote": "the output (Z) is the 2's complement of the input",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R3",
+            "condition"
+          ],
+          "value": "State transition on posedge (registered, effective next cycle): S0 -> S1 when x=1; S0 -> S0 when x=0; S1 -> S1 always. Same-cycle z uses the current state, so the first 1 is passed through as z=1 and subsequent bits are complemented."
+        }
+      ]
+    },
+    {
+      "issue_id": "I7",
+      "decision": "rebut",
+      "reason": "Arbitrary length is already covered by S1->S1 always; no explicit overflow rule is required by the spec.",
+      "spec_quote": "The machine will accept input numbers of arbitrary length."
+    }
+  ]
+}

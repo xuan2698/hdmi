@@ -1,0 +1,400 @@
+We need to produce, for each of the four model IDs, a Python source string defining `reference(vectors)` that simulates the FSM per the given rules. The key ambiguity is whether `start_shifting` asserts on the same posedge as the completing bit (same_cycle) or one cycle later (registered). Each model has slightly different rule sets, so we must implement each independently.
+
+Let me analyze each model:
+
+**Model 085f270ff178c7fe56:**
+- R1: reset==1 → start_shifting=0 (priority 1)
+- R2: reset==0 and state==S4 → start_shifting=1 (priority 2)
+- R3: reset==0 and state==S3 and data==1 → start_shifting=0 (priority 3) — this is the "same_cycle" interpretation: on the completing posedge, output is still 0 (since state is S3, not S4 yet). So start_shifting asserts one cycle later.
+- R4: reset==0 and state!=S4 and next_state!=S4 → start_shifting=0 (priority 4)
+
+So this model uses the "registered" interpretation: output is 0 on the completing cycle, then 1 from next cycle onward (state becomes S4).
+
+Wait, but R3 says state==S3 and data==1 → start_shifting=0. That means on the completing posedge, output is 0. Then next cycle state==S4, R2 gives 1. So yes, registered/one-cycle-later.
+
+**Model 180569e9f4bbaf4b67:**
+- R1: reset==1 → 0
+- R2: reset==0 and state==S4 → 1
+- R3: reset==0 and state==S3 and data==1 → 0 (same as above)
+- R4: reset==0 and state!=S4 and next_state!=S4 → 0
+
+Same as first model essentially. The example for R2 shows: reset=1,data=0 → 0; reset=0,data=1 → 0; reset=0,data=0 → 0. Hmm, that example doesn't actually demonstrate the 1. But the rule text is the same. So same behavior: registered.
+
+Wait, but the example for R2 in model 180569... shows expected [0,0,0]. That's odd — if state==S4, output should be 1. But the example vectors don't reach S4. So it's just a non-demonstrative example. The rule still says state==S4 → 1.
+
+So models 1 and 2 are identical in behavior.
+
+**Model 87a45d57ba735bab29:**
+- R1: reset==1 → 0
+- R2: reset==0 and state==S4 → 1
+- R3: reset==0 and state==S3 and data==1 → 0
+- R4: reset==0 and state!=S4 and not (state==S3 and data==1) → 0
+
+Same as above. R4 is just a rephrasing. So same behavior.
+
+**Model b82477cff7b9a8f00c:**
+- R1: reset==1 → 0
+- R2: reset==0 and state==S4 → 1
+- R3: reset==0 and state==S3 and data==1 → 0
+- R4: reset==0 and state!=S4 and not (state==S3 and data==1) → 0
+- R5: reset==0 → 0 (priority 5, lowest)
+
+R5 is a catch-all but lower priority, so it doesn't change anything. Same behavior.
+
+So all four models have the same behavior: registered output (asserts one cycle after completing bit). The only difference is rule numbering/structure, but the semantics are identical.
+
+Wait, let me double-check R3 in all models: "state == S3 and data == 1" → start_shifting=0. This means on the posedge where the completing 1 is sampled, output is 0. Then state transitions to S4. Next posedge, state==S4 → output 1. So yes, registered.
+
+But wait — is there any model where R3 says start_shifting=1? No, all say 0. So all models use the "registered" interpretation.
+
+Hmm, but the uncertainty note says candidates are "same_cycle" or "registered". The rules as given implement "registered" (output 0 on completing cycle). So we implement that.
+
+Now, the state machine:
+- S0: no prefix
+- S1: matched '1'
+- S2: matched '11'
+- S3: matched '110'
+- S4: found 1101, latched
+
+Transitions (standard overlapping sequence detector for 1101):
+- S0: data=0→S0, data=1→S1
+- S1: data=0→S0, data=1→S2
+- S2: data=0→S3, data=1→S2 (since '111' still has '11' suffix)
+- S3: data=0→S0 (since '1100' — no useful suffix... wait, '1100' ends in '0', no prefix of 1101 starts with 0 except empty, so S0), data=1→S4
+- S4: stay S4 (latched)
+
+Wait, check S3 with data=0: sequence so far '1100'. Suffixes: '0' — no match for prefix of '1101' (prefixes: '', '1', '11', '110'). '0' doesn't match any non-empty prefix. So S0. Correct.
+
+Check S2 with data=1: '111'. Suffixes: '11' matches prefix '11' → S2. Correct.
+
+Check S1 with data=0: '10'. Suffix '0' → no match → S0. Correct.
+
+Now output logic per cycle (combinational based on current state and data, visible same_cycle):
+- If reset==1: output 0
+- Else if state==S4: output 1
+- Else if state==S3 and data==1: output 0 (completing cycle, registered)
+- Else: output 0
+
+So output is 1 only when state==S4 (and reset==0). Otherwise 0.
+
+Wait, but what about the cycle after reset is released? State is S0 (reset sets state to S0). So output 0. Good.
+
+Now, the simulation: we process vectors row by row. Each row has reset and data inputs. We sample at posedge. The output for that cycle is computed based on current state (before update) and current inputs, per the rules. Then state updates.
+
+But careful: the rules say "visible: same_cycle" — meaning the output is visible in the same cycle as the inputs are sampled. So for each vector, we compute output based on current state and current inputs, then update state.
+
+Reset is synchronous active high: when reset==1 at posedge, state goes to S0 and output is 0.
+
+Let me write the reference function:
+
+```python
+def reference(vectors):
+    state = 'S0'
+    outputs = []
+    for v in vectors:
+        reset = v['reset']
+        data = v['data']
+        # compute output for this cycle
+        if reset == 1:
+            out = 0
+        elif state == 'S4':
+            out = 1
+        elif state == 'S3' and data == 1:
+            out = 0
+        else:
+            out = 0
+        outputs.append({'start_shifting': out})
+        # update state
+        if reset == 1:
+            state = 'S0'
+        else:
+            if state == 'S0':
+                state = 'S1' if data == 1 else 'S0'
+            elif state == 'S1':
+                state = 'S2' if data == 1 else 'S0'
+            elif state == 'S2':
+                state = 'S3' if data == 0 else 'S2'
+            elif state == 'S3':
+                state = 'S4' if data == 1 else 'S0'
+            elif state == 'S4':
+                state = 'S4'
+    return outputs
+```
+
+Wait, but the output logic: R2 says state==S4 → 1. R3 says state==S3 and data==1 → 0. R4 says state!=S4 and next_state!=S4 → 0. But what about state==S3 and data==1? That's covered by R3 (priority 3) giving 0. And next_state would be S4, so R4 wouldn't apply anyway (next_state==S4). So output is 0. Good.
+
+But what about the case where state==S3 and data==1 — R3 gives 0. Then next cycle state==S4, R2 gives 1. So registered. Correct.
+
+Now, is there any case where output should be 1 other than state==S4? No.
+
+But wait — what about the "same_cycle" interpretation? The rules as given implement registered. So we follow the rules.
+
+Let me double-check R4 in model 1: "reset == 0 and state != S4 and next_state != S4" → 0. This covers all cases where state is not S4 and next state is not S4. But what if state is not S4 and next_state IS S4? That's the completing cycle (state==S3, data==1). R3 covers that (priority 3) giving 0. So R4 doesn't apply. Good.
+
+What if state==S4? R2 covers (priority 2) giving 1. R4 doesn't apply because state!=S4 is false.
+
+So the output logic is: 1 iff (reset==0 and state==S4), else 0. Wait, but R3 gives 0 for state==S3 and data==1, which is consistent with "else 0". So actually output = 1 if reset==0 and state==S4 else 0. That's simpler.
+
+But wait — is there any case where state==S4 but reset==1? R1 (priority 1) gives 0. So output = 0 if reset==1, else (1 if state==S4 else 0). Yes.
+
+So output = (reset==0) and (state=='S4').
+
+Let me verify with the examples:
+
+Model 1 R2 example: vectors [{reset:1,data:0},{reset:0,data:1},{reset:0,data:0}], expected [{0},{1},{1}].
+- Cycle 1: reset=1 → out=0, state→S0. ✓
+- Cycle 2: reset=0, state=S0, data=1 → out=0 (state not S4), state→S1. Expected 1? Wait, expected is {start_shifting:1} for cycle 2. But state is S0, so output should be 0. Hmm, that contradicts.
+
+Wait, let me re-read the example for R2 in model 1:
+"example":{"vectors":[{"reset":1,"data":0},{"reset":0,"data":1},{"reset":0,"data":0}],"expected":[{"start_shifting":0},{"start_shifting":1},{"start_shifting":1}]}
+
+Cycle 2: reset=0, data=1. State after cycle 1 is S0. So output should be 0 (state not S4). But expected is 1. That's inconsistent with my logic.
+
+Hmm, maybe the example is just illustrative and not necessarily consistent? Or maybe I'm misreading the state semantics.
+
+Wait, maybe the example is for a different scenario. Let me re-read: R2 condition is "reset == 0 and state == S4". The example vectors don't reach S4. So the example is not demonstrating R2 correctly. It's just a generic example. The expected outputs [0,1,1] don't match the rules. This is likely a bug in the example, or the example is meant to show something else.
+
+Actually, looking more carefully: the example for R2 in model 1 has expected [0,1,1]. But with my logic, it would be [0,0,0]. So there's a discrepancy.
+
+Wait, maybe the example is showing the "same_cycle" interpretation? Let's see: if same_cycle, then on the completing cycle, output is 1. But the vectors don't complete 1101. So that's not it either.
+
+Hmm, maybe the example is just wrong/random. The spec says "For every assigned item, implement its exact state semantics independently with the same interface." So we should follow the rules, not the examples. The examples might be inconsistent.
+
+Let me check model 2 R2 example: same vectors, expected [0,0,0]. That's consistent with my logic (all 0). So model 1's example is inconsistent, model 2's is consistent.
+
+Model 3 R2 example: same vectors, expected [0,0,0]. Consistent.
+
+Model 4 R2 example: same vectors, expected [0,0,0]. Consistent.
+
+So model 1's R2 example is the odd one out. Probably a typo. We'll follow the rules.
+
+Actually wait — let me re-read model 1 R2 example: "expected":[{"start_shifting":0},{"start_shifting":1},{"start_shifting":1}]. That's weird. Maybe it's a different example? Let me check the raw text again.
+
+Model 1 R2: "example":{"vectors":[{"reset":1,"data":0},{"reset":0,"data":1},{"reset":0,"data":0}],"expected":[{"start_shifting":0},{"start_shifting":1},{"start_shifting":1}]}
+
+Yes, that's what it says. But it's inconsistent with the rule. I'll ignore it.
+
+So all models have the same behavior: output = 1 iff reset==0 and state==S4.
+
+But wait — is there any model where R3 says start_shifting=1? No, all say 0. So registered.
+
+Hmm, but the uncertainty note says candidates are "same_cycle" or "registered". The rules as written implement "registered" (output 0 on completing cycle). So we implement that.
+
+But wait — let me reconsider. Maybe the rules are meant to be interpreted differently. R3: "reset == 0 and state == S3 and data == 1" → start_shifting=0. This is the completing cycle. Output is 0. Then next cycle state==S4, R2 gives 1. So registered.
+
+But what if the intended interpretation is same_cycle? Then R3 would say start_shifting=1. But it says 0. So it's registered.
+
+OK, so all four models are identical in behavior. But the task says "implement its exact state semantics independently". So we write four separate strings, each with the same logic but maybe slightly different structure to reflect the different rule sets? Actually, the behavior is the same, so the code can be identical. But to be safe, we can write the same code for all four.
+
+Wait, but model 4 has R5: "reset == 0" → 0 (priority 5). This is a catch-all but lower priority, so it doesn't change anything. So same behavior.
+
+So all four models: output = 1 iff reset==0 and state==S4.
+
+Let me write the reference function:
+
+```python
+def reference(vectors):
+    state = 'S0'
+    result = []
+    for v in vectors:
+        reset = v['reset']
+        data = v['data']
+        if reset == 1:
+            out = 0
+        elif state == 'S4':
+            out = 1
+        else:
+            out = 0
+        result.append({'start_shifting': out})
+        if reset == 1:
+            state = 'S0'
+        else:
+            if state == 'S0':
+                state = 'S1' if data == 1 else 'S0'
+            elif state == 'S1':
+                state = 'S2' if data == 1 else 'S0'
+            elif state == 'S2':
+                state = 'S3' if data == 0 else 'S2'
+            elif state == 'S3':
+                state = 'S4' if data == 1 else 'S0'
+            elif state == 'S4':
+                state = 'S4'
+    return result
+```
+
+Wait, but the output logic: R3 says state==S3 and data==1 → 0. My logic gives 0 because state!=S4. So consistent.
+
+But what about the case where state==S3 and data==1 — my logic gives 0, which matches R3. Good.
+
+Now, is there any case where state==S4 but reset==1? R1 gives 0. My logic: reset==1 → out=0. Good.
+
+So the code is correct.
+
+But wait — the task says "Each string must define reference(vectors) returning every width-valid output each cycle." So we return a list of dicts with 'start_shifting'.
+
+Now, the JSON format: {"models":{id: Python source string}}. So we need to produce a JSON with four keys, each mapping to the Python source string.
+
+The Python source string must be a valid Python code defining reference(vectors). It must have no imports, no I/O, no executable top-level code. So just the function definition.
+
+Let me write the source string:
+
+```python
+def reference(vectors):
+    state = 'S0'
+    result = []
+    for v in vectors:
+        reset = v['reset']
+        data = v['data']
+        if reset == 1:
+            out = 0
+        elif state == 'S4':
+            out = 1
+        else:
+            out = 0
+        result.append({'start_shifting': out})
+        if reset == 1:
+            state = 'S0'
+        else:
+            if state == 'S0':
+                state = 'S1' if data == 1 else 'S0'
+            elif state == 'S1':
+                state = 'S2' if data == 1 else 'S0'
+            elif state == 'S2':
+                state = 'S3' if data == 0 else 'S2'
+            elif state == 'S3':
+                state = 'S4' if data == 1 else 'S0'
+            elif state == 'S4':
+                state = 'S4'
+    return result
+```
+
+This is the same for all four models. But to be safe, maybe we should reflect the different rule sets? The task says "implement its exact state semantics independently". Since the semantics are the same, the code can be the same. But maybe there's a subtle difference I'm missing.
+
+Let me re-examine model 1 R4: "reset == 0 and state != S4 and next_state != S4" → 0. This is a condition on next_state. In my code, I don't compute next_state explicitly for output; I just use state. But the rule says if state!=S4 and next_state!=S4, output 0. What if state!=S4 and next_state==S4? That's the completing cycle (state==S3, data==1). R3 covers that (priority 3) giving 0. So R4 doesn't apply. So my logic is consistent.
+
+But wait — what if state==S3 and data==1, but R3 is somehow not applied? No, R3 has priority 3, R4 has priority 4. So R3 wins. Output 0.
+
+What if state==S2 and data==0? next_state==S3. state!=S4, next_state!=S4. R4 applies → 0. My logic: state!=S4 → 0. Consistent.
+
+What if state==S2 and data==1? next_state==S2. R4 applies → 0. My logic: 0. Consistent.
+
+So my logic is correct.
+
+Now, model 2 R4: same as model 1. Model 3 R4: "reset == 0 and state != S4 and not (state == S3 and data == 1)" → 0. This is equivalent to model 1's R4? Let's check: model 1 R4: state!=S4 and next_state!=S4. When is next_state==S4? Only when state==S3 and data==1. So "next_state!=S4" is equivalent to "not (state==S3 and data==1)". So model 3 R4 is equivalent to model 1 R4. Good.
+
+Model 4 R4: same as model 3. Plus R5: reset==0 → 0 (priority 5). But R5 is lower priority, so it only applies when no higher priority rule applies. When would that happen? R1: reset==1 (not applicable since reset==0). R2: state==S4 (gives 1). R3: state==S3 and data==1 (gives 0). R4: state!=S4 and not (state==S3 and data==1) (gives 0). So R5 only applies when state==S4? No, R2 covers that. So R5 never applies? Actually, R5 condition is just reset==0. But R2, R3, R4 cover all cases under reset==0? Let's see: if reset==0, either state==S4 (R2), or state==S3 and data==1 (R3), or state!=S4 and not (state==S3 and data==1) (R4). These are exhaustive. So R5 never applies. So no change.
+
+So all models are identical.
+
+Therefore, we can use the same code for all four.
+
+But wait — the task says "For every assigned item, implement its exact state semantics independently with the same interface." So we need to provide four separate strings, but they can be identical.
+
+Let me write the JSON.
+
+Actually, let me double-check the output for the completing cycle. Suppose we have vectors: reset=0,data=1; reset=0,data=1; reset=0,data=0; reset=0,data=1. This is the R3 example in all models. Expected: [0,0,0,0].
+
+Let's trace:
+- Cycle 1: reset=0, state=S0, data=1 → out=0 (state not S4), state→S1.
+- Cycle 2: reset=0, state=S1, data=1 → out=0, state→S2.
+- Cycle 3: reset=0, state=S2, data=0 → out=0, state→S3.
+- Cycle 4: reset=0, state=S3, data=1 → out=0 (state not S4), state→S4.
+Outputs: [0,0,0,0]. Matches expected. Good.
+
+Now, what about the cycle after? If there were a cycle 5 with reset=0,data=0, state=S4 → out=1. That would be the registered behavior.
+
+So the code is correct.
+
+Now, let me write the JSON. The keys are the model IDs: "085f270ff178c7fe56", "180569e9f4bbaf4b67", "87a45d57ba735bab29", "b82477cff7b9a8f00c".
+
+Each value is the Python source string.
+
+I'll write the same string for all four.
+
+But wait — the task says "Follow v3 Python restrictions with no imports, no I/O, and no executable top-level code." So the string should just be the function definition. No extra code.
+
+Let me format the JSON properly. The Python source string will contain newlines and quotes, so we need to escape them in JSON.
+
+I'll write the JSON with the Python code as a string with \n for newlines and \" for quotes.
+
+Actually, it's easier to write the JSON with the Python code as a multi-line string using \n.
+
+Let me construct the JSON:
+
+```json
+{
+  "models": {
+    "085f270ff178c7fe56": "def reference(vectors):\n    state = 'S0'\n    result = []\n    for v in vectors:\n        reset = v['reset']\n        data = v['data']\n        if reset == 1:\n            out = 0\n        elif state == 'S4':\n            out = 1\n        else:\n            out = 0\n        result.append({'start_shifting': out})\n        if reset == 1:\n            state = 'S0'\n        else:\n            if state == 'S0':\n                state = 'S1' if data == 1 else 'S0'\n            elif state == 'S1':\n                state = 'S2' if data == 1 else 'S0'\n            elif state == 'S2':\n                state = 'S3' if data == 0 else 'S2'\n            elif state == 'S3':\n                state = 'S4' if data == 1 else 'S0'\n            elif state == 'S4':\n                state = 'S4'\n    return result",
+    "180569e9f4bbaf4b67": "def reference(vectors):\n    state = 'S0'\n    result = []\n    for v in vectors:\n        reset = v['reset']\n        data = v['data']\n        if reset == 1:\n            out = 0\n        elif state == 'S4':\n            out = 1\n        else:\n            out = 0\n        result.append({'start_shifting': out})\n        if reset == 1:\n            state = 'S0'\n        else:\n            if state == 'S0':\n                state = 'S1' if data == 1 else 'S0'\n            elif state == 'S1':\n                state = 'S2' if data == 1 else 'S0'\n            elif state == 'S2':\n                state = 'S3' if data == 0 else 'S2'\n            elif state == 'S3':\n                state = 'S4' if data == 1 else 'S0'\n            elif state == 'S4':\n                state = 'S4'\n    return result",
+    "87a45d57ba735bab29": "def reference(vectors):\n    state = 'S0'\n    result = []\n    for v in vectors:\n        reset = v['reset']\n        data = v['data']\n        if reset == 1:\n            out = 0\n        elif state == 'S4':\n            out = 1\n        else:\n            out = 0\n        result.append({'start_shifting': out})\n        if reset == 1:\n            state = 'S0'\n        else:\n            if state == 'S0':\n                state = 'S1' if data == 1 else 'S0'\n            elif state == 'S1':\n                state = 'S2' if data == 1 else 'S0'\n            elif state == 'S2':\n                state = 'S3' if data == 0 else 'S2'\n            elif state == 'S3':\n                state = 'S4' if data == 1 else 'S0'\n            elif state == 'S4':\n                state = 'S4'\n    return result",
+    "b82477cff7b9a8f00c": "def reference(vectors):\n    state = 'S0'\n    result = []\n    for v in vectors:\n        reset = v['reset']\n        data = v['data']\n        if reset == 1:\n            out = 0\n        elif state == 'S4':\n            out = 1\n        else:\n            out = 0\n        result.append({'start_shifting': out})\n        if reset == 1:\n            state = 'S0'\n        else:\n            if state == 'S0':\n                state = 'S1' if data == 1 else 'S0'\n            elif state == 'S1':\n                state = 'S2' if data == 1 else 'S0'\n            elif state == 'S2':\n                state = 'S3' if data == 0 else 'S2'\n            elif state == 'S3':\n                state = 'S4' if data == 1 else 'S0'\n            elif state == 'S4':\n                state = 'S4'\n    return result"
+  }
+}
+```
+
+But wait — the task says "For every assigned item, implement its exact state semantics independently". Maybe they want different code for each to reflect the different rule sets? But the semantics are the same, so the code can be the same. However, to be safe, maybe I should write slightly different code for each that explicitly implements the rules as given? For example, for model 1, I could compute next_state and use R4's condition. But that's more complex and error-prone. Since the behavior is identical, the same code is fine.
+
+Actually, let me reconsider: is there any difference in behavior between the models? Let me check model 1 R4 vs model 3 R4 again.
+
+Model 1 R4: "reset == 0 and state != S4 and next_state != S4" → 0.
+Model 3 R4: "reset == 0 and state != S4 and not (state == S3 and data == 1)" → 0.
+
+Are these equivalent? next_state == S4 iff state == S3 and data == 1. So "next_state != S4" is equivalent to "not (state == S3 and data == 1)". So yes, equivalent.
+
+Model 2 R4: same as model 1.
+
+Model 4 R4: same as model 3.
+
+So all equivalent.
+
+What about the priority? In model 1, R3 has priority 3, R4 has priority 4. In model 3, R3 has priority 3, R4 has priority 4. Same.
+
+So no difference.
+
+Therefore, the same code works for all.
+
+But wait — the task says "Each string must define reference(vectors) returning every width-valid output each cycle." So we return a list of dicts. That's what we do.
+
+Now, let me double-check the reset behavior. Reset is active high synchronous. So when reset==1 at posedge, state goes to S0 and output is 0. My code does that.
+
+What about the first cycle? The state is initialized to S0. That's correct.
+
+What about mid-cycle input changes? The spec says "Optional mid input changes occur AFTER sampling, before the other edge, and are carried to the start of the next row." This means that the inputs for each row are the values at the sampling edge. Mid-cycle changes don't affect the current row's sampling. So we just use the values in the vector for that row. My code does that.
+
+So the code is correct.
+
+Now, I'll produce the final JSON.
+
+But wait — the task says "For diagnosis, return JSON {models:{id: Python source string}}." So the output should be exactly that JSON.
+
+I'll write it out.
+
+One more thing: the Python source string must be valid Python. My string uses single quotes for strings, which is fine. It uses \n for newlines. In JSON, I need to escape the newlines as \n and the quotes as \". Actually, in JSON, the string value can contain literal newlines? No, JSON strings cannot contain literal newlines. They must be escaped as \n. So I'll write the JSON with \n in the string.
+
+Also, the single quotes inside the Python code don't need escaping in JSON (only double quotes need escaping). So I can write the Python code with single quotes and it's fine in JSON.
+
+Let me write the JSON carefully.
+
+Actually, to avoid any issues, I'll write the Python code with double quotes for strings? No, single quotes are fine. In JSON, the string is delimited by double quotes, so single quotes inside are fine.
+
+So the JSON string will have \n for newlines and \" for any double quotes in the Python code. My Python code uses single quotes, so no double quotes to escape. Good.
+
+Let me write the final JSON.
+
+I'll produce it as a single line or pretty-printed? The task doesn't specify. I'll produce it as a valid JSON object.
+
+Let me write it:
+
+```json
+{"models":{"085f270ff178c7fe56":"def reference(vectors):\n    state = 'S0'\n    result = []\n    for v in vectors:\n        reset = v['reset']\n        data = v['data']\n        if reset == 1:\n            out = 0\n        elif state == 'S4':\n            out = 1\n        else:\n            out = 0\n        result.append({'start_shifting': out})\n        if reset == 1:\n            state = 'S0'\n        else:\n            if state == 'S0':\n                state = 'S1' if data == 1 else 'S0'\n            elif state == 'S1':\n                state = 'S2' if data == 1 else 'S0'\n            elif state == 'S2':\n                state = 'S3' if data == 0 else 'S2'\n            elif state == 'S3':\n                state = 'S4' if data == 1 else 'S0'\n            elif state == 'S4':\n                state = 'S4'\n    return result","180569e9f4bbaf4b67":"def reference(vectors):\n    state = 'S0'\n    result = []\n    for v in vectors:\n        reset = v['reset']\n        data = v['data']\n        if reset == 1:\n            out = 0\n        elif state == 'S4':\n            out = 1\n        else:\n            out = 0\n        result.append({'start_shifting': out})\n        if reset == 1:\n            state = 'S0'\n        else:\n            if state == 'S0':\n                state = 'S1' if data == 1 else 'S0'\n            elif state == 'S1':\n                state = 'S2' if data == 1 else 'S0'\n            elif state == 'S2':\n                state = 'S3' if data == 0 else 'S2'\n            elif state == 'S3':\n                state = 'S4' if data == 1 else 'S0'\n            elif state == 'S4':\n                state = 'S4'\n    return result","87a45d57ba735bab29":"def reference(vectors):\n    state = 'S0'\n    result = []\n    for v in vectors:\n        reset = v['reset']\n        data = v['data']\n        if reset == 1:\n            out = 0\n        elif state == 'S4':\n            out = 1\n        else:\n            out = 0\n        result.append({'start_shifting': out})\n        if reset == 1:\n            state = 'S0'\n        else:\n            if state == 'S0':\n                state = 'S1' if data == 1 else 'S0'\n            elif state == 'S1':\n                state = 'S2' if data == 1 else 'S0'\n            elif state == 'S2':\n                state = 'S3' if data == 0 else 'S2'\n            elif state == 'S3':\n                state = 'S4' if data == 1 else 'S0'\n            elif state == 'S4':\n                state = 'S4'\n    return result","b82477cff7b9a8f00c":"def reference(vectors):\n    state = 'S0'\n    result = []\n    for v in vectors:\n        reset = v['reset']\n        data = v['data']\n        if reset == 1:\n            out = 0\n        elif state == 'S4':\n            out = 1\n        else:\n            out = 0\n        result.append({'start_shifting': out})\n        if reset == 1:\n            state = 'S0'\n        else:\n            if state == 'S0':\n                state = 'S1' if data == 1 else 'S0'\n            elif state == 'S1':\n                state = 'S2' if data == 1 else 'S0'\n            elif state == 'S2':\n                state = 'S3' if data == 0 else 'S2'\n            elif state == 'S3':\n                state = 'S4' if data == 1 else 'S0'\n            elif state == 'S4':\n                state = 'S4'\n    return result"}}
+```
+
+This is valid JSON. I'll output this.
+
+But wait — the task says "For every assigned item, implement its exact state semantics independently with the same interface." Maybe they expect different code for each to reflect the different rule sets? But since the semantics are identical, the same code is fine. However, to be safe, I could write slightly different code for each that explicitly implements the rules as given. For example, for model 1, I could compute next_state and use R4's condition. But that's more complex and error-prone. Since the behavior is identical, the same code is fine.
+
+Actually, let me reconsider: is there any difference in the output for the completing cycle? All models have R3: state==S3 and data==1 → 0. So output is 0 on completing cycle. Then next cycle state==S4 → 1. So registered. Same for all.
+
+So the code is correct.
+
+I'll output the JSON.

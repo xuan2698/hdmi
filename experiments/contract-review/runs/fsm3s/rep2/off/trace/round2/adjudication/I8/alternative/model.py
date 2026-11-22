@@ -1,0 +1,44 @@
+def reference(vectors):
+    # State encoding
+    A, B, C, D = 0, 1, 2, 3
+
+    # R1/R2: combinational output decode (Moore)
+    def out_of(state):
+        # R2: state == D -> out 1
+        if state == D:
+            return 1
+        # R1: state in {A,B,C} -> out 0
+        return 0
+
+    # global: initial state is D before any reset (per chosen interpretation)
+    state = D
+
+    results = []
+    for vec in vectors:
+        # Sample inputs at posedge (values driven before sampled edge)
+        inp = vec["in"] & 1
+        rst = vec["reset"] & 1
+
+        # R1/R2: combinational output visible same cycle, based on current state
+        results.append({"out": out_of(state)})
+
+        # R3: synchronous active-high reset -> next state A
+        if rst == 1:
+            state = A
+        else:
+            # R4: A: in=0->A, in=1->B
+            if state == A:
+                state = B if inp == 1 else A
+            # R5: B: in=0->C, in=1->B
+            elif state == B:
+                state = B if inp == 1 else C
+            # R6: C: in=0->A, in=1->D
+            elif state == C:
+                state = D if inp == 1 else A
+            # R7: D: in=0->C, in=1->B
+            elif state == D:
+                state = B if inp == 1 else C
+
+        # mid changes: carried to start of next row (no action needed here)
+
+    return results

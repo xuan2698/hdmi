@@ -1,0 +1,96 @@
+[
+  {
+    "issue": {
+      "issue_id": "I5",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "high",
+      "detail": "Moore output timing uncertain: registered next-cycle vs combinational same-cycle. Distinguishing sequence: areset=0,x=1 then areset=0,x=0. Registered Moore gives z=1 then z=1; combinational gives z=1 then z=0.",
+      "spec_evidence": "",
+      "alternative": "z is combinational and visible same cycle (z=x in S0, z=~x in S1)",
+      "sequence": [
+        {
+          "areset": 0,
+          "x": 1
+        },
+        {
+          "areset": 0,
+          "x": 0
+        }
+      ]
+    },
+    "status": "no_effect",
+    "issue_id": "I5",
+    "outputs": {
+      "original": [
+        {
+          "z": 1
+        },
+        {
+          "z": 1
+        }
+      ],
+      "alternative": [
+        {
+          "z": 1
+        },
+        {
+          "z": 1
+        }
+      ]
+    },
+    "differences": []
+  },
+  {
+    "issue": {
+      "issue_id": "I6",
+      "rule_id": "R4",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "R4 condition says 'if state==S0 and x==1 then next state=S1; else state unchanged' but does not specify state transition when in S1 (stays S1). Also does not state z update timing relative to state transition.",
+      "spec_evidence": "",
+      "alternative": "state transitions to S1 on first x=1 and remains S1 thereafter until reset",
+      "sequence": [
+        {
+          "areset": 0,
+          "x": 1
+        },
+        {
+          "areset": 0,
+          "x": 0
+        },
+        {
+          "areset": 0,
+          "x": 1
+        }
+      ]
+    },
+    "status": "no_effect",
+    "issue_id": "I6",
+    "outputs": {
+      "original": [
+        {
+          "z": 1
+        },
+        {
+          "z": 1
+        },
+        {
+          "z": 0
+        }
+      ],
+      "alternative": [
+        {
+          "z": 1
+        },
+        {
+          "z": 1
+        },
+        {
+          "z": 0
+        }
+      ]
+    },
+    "differences": []
+  }
+]

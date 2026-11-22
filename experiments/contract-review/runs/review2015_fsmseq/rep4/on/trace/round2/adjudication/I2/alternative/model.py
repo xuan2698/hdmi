@@ -1,0 +1,70 @@
+def reference(vectors):
+    # Initial concrete power-up state: S0 and start_shifting=0.
+    state = "S0"
+    start_shifting = 0
+    cur_reset = 0
+    cur_data = 0
+    out = []
+
+    for row in vectors:
+        # Each row's values are driven before the sampled posedge.
+        if "reset" in row:
+            cur_reset = int(row["reset"])
+        if "data" in row:
+            cur_data = int(row["data"])
+
+        reset = cur_reset
+        data = cur_data
+
+        if reset == 1:
+            # r_reset_clear (modified candidate interpretation):
+            # start_shifting retains its previous value while reset is asserted.
+            # Synchronous reset forces the state to S0.
+            next_state = "S0"
+        else:
+            # r_set_or_hold: set on FOUND or when S110 sees data=1.
+            if state == "FOUND" or (state == "S110" and data == 1):
+                start_shifting = 1
+            else:
+                # r_default_clear: before detection, start_shifting is 0.
+                start_shifting = 0
+
+            # Explicit state transitions for 1101 detection.
+            if state == "S0":
+                if data == 1:
+                    next_state = "S1"
+                else:
+                    next_state = "S0"
+            elif state == "S1":
+                if data == 1:
+                    next_state = "S11"
+                else:
+                    next_state = "S0"
+            elif state == "S11":
+                if data == 0:
+                    next_state = "S110"
+                else:
+                    next_state = "S11"
+            elif state == "S110":
+                if data == 1:
+                    next_state = "FOUND"
+                else:
+                    next_state = "S0"
+            elif state == "FOUND":
+                next_state = "FOUND"
+            else:
+                next_state = "S0"
+
+        state = next_state
+        out.append({"start_shifting": int(start_shifting) & 1})
+
+        # Optional mid changes occur AFTER sampling, before the other edge,
+        # and are carried to the start of the next row.
+        if "mid" in row and row["mid"] is not None:
+            mid = row["mid"]
+            if "reset" in mid:
+                cur_reset = int(mid["reset"])
+            if "data" in mid:
+                cur_data = int(mid["data"])
+
+    return out

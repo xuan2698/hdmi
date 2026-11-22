@@ -1,0 +1,41 @@
+```python
+def reference(vectors):
+    # State encoding
+    A, B, C, D = 0, 1, 2, 3
+    # R1/R2: output is combinational from state (Moore)
+    # R3: synchronous active-high reset -> state A
+    # R4-R7: next-state transitions on posedge when reset==0
+    # global: initial state is A before any reset
+
+    state = A  # global: initial state A
+    out = []
+
+    for vec in vectors:
+        # Sample inputs for this cycle
+        inp = vec.get('in', 0)
+        rst = vec.get('reset', 0)
+
+        # R1/R2: combinational output based on current state
+        if state == D:
+            o = 1  # R2
+        else:
+            o = 0  # R1 (A, B, C)
+
+        out.append({'out': o & 1})
+
+        # R3: synchronous reset takes priority on posedge
+        if rst == 1:
+            state = A  # R3
+        else:
+            # R4-R7: state transitions
+            if state == A:
+                state = B if inp == 1 else A  # R4
+            elif state == B:
+                state = B if inp == 1 else C  # R5
+            elif state == C:
+                state = D if inp == 1 else A  # R6
+            elif state == D:
+                state = B if inp == 1 else C  # R7
+
+    return out
+```

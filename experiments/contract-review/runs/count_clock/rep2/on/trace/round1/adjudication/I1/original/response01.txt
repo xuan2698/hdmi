@@ -1,0 +1,98 @@
+def reference(vectors):
+    # Initial state: power-up unspecified, choose reset value 12:00 AM
+    pm = 0
+    hh = 0x12
+    mm = 0x00
+    ss = 0x00
+    current_inputs = {"reset": 0, "ena": 0}
+    results = []
+
+    for row in vectors:
+        # Determine pre-edge inputs for this row
+        base = {"reset": current_inputs.get("reset", 0),
+                "ena": current_inputs.get("ena", 0)}
+        mid_changes = {}
+
+        if isinstance(row, dict):
+            # Direct inputs applied before the sampled edge
+            if "reset" in row:
+                base["reset"] = row["reset"]
+            if "ena" in row:
+                base["ena"] = row["ena"]
+            # Support optional nested "inputs"
+            if "inputs" in row and isinstance(row["inputs"], dict):
+                if "reset" in row["inputs"]:
+                    base["reset"] = row["inputs"]["reset"]
+                if "ena" in row["inputs"]:
+                    base["ena"] = row["inputs"]["ena"]
+            # Mid changes occur after sampling
+            if "mid" in row:
+                if isinstance(row["mid"], dict):
+                    mid_changes = row["mid"]
+                elif isinstance(row["mid"], list):
+                    for m in row["mid"]:
+                        if isinstance(m, dict):
+                            mid_changes.update(m)
+
+        reset_val = int(base.get("reset", 0)) & 1
+        ena_val = int(base.get("ena", 0)) & 1
+
+        # R_RESET: synchronous reset has priority
+        if reset_val:
+            pm = 0
+            hh = 0x12
+            mm = 0x00
+            ss = 0x00
+        else:
+            # R_NORMAL: increment only when ena==1
+            if ena_val:
+                # Increment seconds in BCD
+                ss_ones = (ss & 0x0F) + 1
+                ss_tens = (ss >> 4) & 0x0F
+                carry_ss = False
+                if ss_ones > 9:
+                    ss_ones = 0
+                    ss_tens += 1
+                if ss_tens > 5:
+                    ss_tens = 0
+                    carry_ss = True
+                ss = (ss_tens << 4) | ss_ones
+
+                if carry_ss:
+                    # Increment minutes in BCD
+                    mm_ones = (mm & 0x0F) + 1
+                    mm_tens = (mm >> 4) & 0x0F
+                    carry_mm = False
+                    if mm_ones > 9:
+                        mm_ones = 0
+                        mm_tens += 1
+                    if mm_tens > 5:
+                        mm_tens = 0
+                        carry_mm = True
+                    mm = (mm_tens << 4) | mm_ones
+
+                    if carry_mm:
+                        # Increment hours, handling 12-hour wrap and PM toggle
+                        if hh == 0x12:
+                            hh = 0x01
+                        else:
+                            h_ones = (hh & 0x0F) + 1
+                            h_tens = (hh >> 4) & 0x0F
+                            if h_ones > 9:
+                                h_ones = 0
+                                h_tens += 1
+                            hh = (h_tens << 4) | h_ones
+                            # PM toggles only on 11:59:59 -> 12:00:00
+                            if hh == 0x12:
+                                pm ^= 1
+
+        results.append({"pm": pm, "hh": hh, "mm": mm, "ss": ss})
+
+        # Carry base inputs to next row, then apply mid changes
+        current_inputs = dict(base)
+        if isinstance(mid_changes, dict):
+            for k, v in mid_changes.items():
+                if k in ("reset", "ena"):
+                    current_inputs[k] = v
+
+    return results

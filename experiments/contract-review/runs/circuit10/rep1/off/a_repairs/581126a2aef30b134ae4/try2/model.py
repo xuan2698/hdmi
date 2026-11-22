@@ -1,0 +1,16 @@
+def reference(vectors):
+    # Contract implementation.
+    # R1: state <= q on posedge (visible next cycle)
+    # R2: q = state XOR a XOR b (combinational, same cycle)
+    # Power-up: state unspecified; use 0 as concrete value.
+    state = 0
+    out = []
+    for v in vectors:
+        a = v.get('a', 0) & 1
+        b = v.get('b', 0) & 1
+        # R2: combinational output using current state
+        q = (state ^ a ^ b) & 1
+        out.append({'q': q, 'state': state})
+        # R1: flip-flop captures q on posedge -> next cycle state
+        state = q
+    return out

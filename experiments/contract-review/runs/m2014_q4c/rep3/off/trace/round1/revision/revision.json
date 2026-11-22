@@ -1,0 +1,102 @@
+{
+  "responses": [
+    {
+      "issue_id": "I1",
+      "decision": "accept",
+      "reason": "The first example vector has r=0 and d=1 with no defined prior state, so q=0 is not derivable; the example should start with a reset cycle to establish q=0 before showing capture.",
+      "spec_quote": "active high synchronous reset (reset output to 0)",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R1_sync_reset",
+            "example"
+          ],
+          "value": {
+            "vectors": [
+              {
+                "d": 1,
+                "r": 1
+              },
+              {
+                "d": 0,
+                "r": 1
+              },
+              {
+                "d": 1,
+                "r": 0
+              },
+              {
+                "d": 0,
+                "r": 0
+              }
+            ],
+            "expected": [
+              {
+                "q": 0
+              },
+              {
+                "q": 0
+              },
+              {
+                "q": 1
+              },
+              {
+                "q": 0
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "issue_id": "I2",
+      "decision": "accept",
+      "reason": "The first example vector has d=0,r=0 with no defined prior state, so q=0 is not derivable; the example should begin with a reset cycle to establish q=0 before demonstrating capture.",
+      "spec_quote": "active high synchronous reset (reset output to 0)",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R2_capture_d",
+            "example"
+          ],
+          "value": {
+            "vectors": [
+              {
+                "d": 0,
+                "r": 1
+              },
+              {
+                "d": 0,
+                "r": 0
+              },
+              {
+                "d": 1,
+                "r": 0
+              },
+              {
+                "d": 0,
+                "r": 0
+              }
+            ],
+            "expected": [
+              {
+                "q": 0
+              },
+              {
+                "q": 0
+              },
+              {
+                "q": 1
+              },
+              {
+                "q": 0
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

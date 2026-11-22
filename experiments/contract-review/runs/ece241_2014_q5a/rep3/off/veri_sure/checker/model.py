@@ -1,0 +1,70 @@
+def reference(vectors):
+    # Moore FSM for serial 2's complementer.
+    # States: S0 = "copy" (no 1 seen yet), S1 = "complement" (1 seen).
+    # Output z is Moore: z=0 in S0, z=1 in S1.
+    # Asynchronous active-high reset forces state to S0 and z=0.
+    # Outputs sampled after posedge settles; latency 1 cycle.
+    # Each row: values driven before sampled edge; mid changes occur AFTER
+    # sampling, before other edge, carried to start of next row.
+    #
+    # Row processing model:
+    #   - Apply mid changes from previous row (already stored in cur).
+    #   - Apply this row's driven values (areset, x) at start of row.
+    #   - If areset is high: async reset -> state=S0, z=0 immediately.
+    #   - Else: sample on posedge: compute next state from cur state & x,
+    #     then z = output of new state (Moore, latency 1).
+    #   - Record z.
+    #   - Apply this row's mid changes to cur for next row.
+    #
+    # We track: state (S0/S1), z (current output), and pending mid values.
+
+    state = 0  # 0 = copy, 1 = complement
+    z = 0
+    # pending mid changes carried into next row
+    mid_areset = None
+    mid_x = None
+
+    results = []
+    for row in vectors:
+        # Apply carried-over mid changes from previous row
+        if mid_areset is not None:
+            # mid change applied after previous sampling; treat as current value
+            pass
+        # Determine current input values for this row:
+        # driven values at start of row, unless a mid change from previous
+        # row overrides (mid changes occur after sampling of previous row,
+        # so they are the values present at start of this row).
+        areset = row.get('areset', 0)
+        x = row.get('x', 0)
+        if mid_areset is not None:
+            areset = mid_areset
+        if mid_x is not None:
+            x = mid_x
+        mid_areset = None
+        mid_x = None
+
+        # Asynchronous reset: active high
+        if areset:
+            state = 0
+            z = 0
+        else:
+            # Positive edge sampling: compute next state
+            if state == 0:
+                if x == 1:
+                    state = 1
+                else:
+                    state = 0
+            else:
+                state = 1
+            # Moore output from new state
+            z = 1 if state == 1 else 0
+
+        results.append({'z': z & 1})
+
+        # Apply mid changes for next row (after sampling)
+        if 'areset_mid' in row:
+            mid_areset = row['areset_mid']
+        if 'x_mid' in row:
+            mid_x = row['x_mid']
+
+    return results

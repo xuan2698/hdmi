@@ -1,0 +1,49 @@
+def reference(vectors):
+    # R_RESET, R_COMPLETE_1101, R_HOLD_FOUND, R_ZERO_NOT_FOUND implemented via FSM
+    state = "S0"
+    cur = {"reset": 0, "data": 0}
+    result = []
+    for row in vectors:
+        # Apply row's main input values (driven before posedge)
+        for k, v in row.items():
+            if k == "mid" or k.startswith("mid_"):
+                continue
+            cur[k] = v
+        # Sample inputs at posedge
+        reset = cur.get("reset", 0)
+        data = cur.get("data", 0)
+        # Compute output based on current state before edge, reset, data
+        if reset == 1:
+            out = 0  # R_RESET
+        elif state == "FOUND":
+            out = 1  # R_HOLD_FOUND
+        elif state == "S110" and data == 1:
+            out = 1  # R_COMPLETE_1101
+        else:
+            out = 0  # R_ZERO_NOT_FOUND
+        result.append({"start_shifting": out})
+        # Update state at posedge
+        if reset == 1:
+            state = "S0"  # R_RESET
+        else:
+            if state == "S0":
+                state = "S1" if data == 1 else "S0"
+            elif state == "S1":
+                state = "S11" if data == 1 else "S0"
+            elif state == "S11":
+                state = "S11" if data == 1 else "S110"
+            elif state == "S110":
+                state = "FOUND" if data == 1 else "S0"
+            elif state == "FOUND":
+                state = "FOUND"  # R_HOLD_FOUND
+        # Process mid changes after sampling
+        if "mid" in row:
+            mid = row["mid"]
+            if type(mid) is dict:
+                for k, v in mid.items():
+                    cur[k] = v
+        # Also handle keys with prefix "mid_"
+        for k, v in row.items():
+            if k.startswith("mid_"):
+                cur[k[4:]] = v
+    return result

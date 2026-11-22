@@ -1,0 +1,263 @@
+{
+  "coverage": {
+    "S01": [
+      "R1",
+      "R2"
+    ],
+    "S02": [
+      "R1",
+      "R2"
+    ],
+    "S03": [
+      "R1"
+    ],
+    "S04": [
+      "unrelated"
+    ],
+    "S05": [
+      "unrelated"
+    ],
+    "S06": [
+      "unrelated"
+    ],
+    "S07": [
+      "unrelated"
+    ],
+    "S08": [
+      "unrelated"
+    ],
+    "S09": [
+      "R1",
+      "R2"
+    ],
+    "S10": [
+      "R1",
+      "R2"
+    ],
+    "S11": [
+      "R1",
+      "R2"
+    ],
+    "S12": [
+      "R1",
+      "R2"
+    ],
+    "S13": [
+      "R1",
+      "R2"
+    ],
+    "S14": [
+      "R1",
+      "R2"
+    ],
+    "S15": [
+      "R1",
+      "R2"
+    ],
+    "S16": [
+      "R1",
+      "R2"
+    ],
+    "S17": [
+      "R1",
+      "R2"
+    ],
+    "S18": [
+      "R1",
+      "R2"
+    ],
+    "S19": [
+      "R1",
+      "R2"
+    ],
+    "S20": [
+      "R1",
+      "R2"
+    ],
+    "S21": [
+      "R1",
+      "R2"
+    ],
+    "S22": [
+      "R1",
+      "R2"
+    ],
+    "S23": [
+      "R1",
+      "R2"
+    ],
+    "S24": [
+      "R1",
+      "R2"
+    ],
+    "S25": [
+      "R1",
+      "R2"
+    ],
+    "S26": [
+      "R1",
+      "R2"
+    ],
+    "S27": [
+      "R1",
+      "R2"
+    ],
+    "S28": [
+      "R1",
+      "R2"
+    ],
+    "S29": [
+      "R1",
+      "R2"
+    ],
+    "S30": [
+      "R1",
+      "R2"
+    ],
+    "S31": [
+      "R1",
+      "R2"
+    ],
+    "S32": [
+      "R1",
+      "R2"
+    ],
+    "S33": [
+      "R1",
+      "R2"
+    ],
+    "S34": [
+      "R1",
+      "R2"
+    ],
+    "S35": [
+      "R1",
+      "R2"
+    ],
+    "S36": [
+      "R1",
+      "R2"
+    ],
+    "S37": [
+      "R1",
+      "R2"
+    ],
+    "S38": [
+      "R1",
+      "R2"
+    ],
+    "S39": [
+      "R1",
+      "R2"
+    ],
+    "S40": [
+      "R1",
+      "R2"
+    ],
+    "S41": [
+      "R1",
+      "R2"
+    ],
+    "S42": [
+      "R1",
+      "R2"
+    ],
+    "S43": [
+      "R1",
+      "R2"
+    ],
+    "S44": [
+      "R1",
+      "R2"
+    ]
+  },
+  "issues": [
+    {
+      "issue_id": "I1",
+      "rule_id": "R1",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "R1 says state captures q on posedge, but spec waveform shows state updating on negedge (e.g., at 75ns state becomes 1 while q was already 1 from 45ns; at 85ns state becomes 0 while q was 0 from 65ns).",
+      "spec_evidence": "// 75ns            1               0               0               1               1",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I2",
+      "rule_id": "R1",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "R1 example expected state values do not match q=a XOR b at posedges: with vectors (0,0),(0,1),(1,0) and initial state unknown, expected state should be 0,1,1 only if state captures q from previous cycle; but R1 condition says state <= q (current output q), which would give state=0,1,1 at same edge? Actually q is combinational from current a,b, so at posedge state captures current q, so after first posedge state=0, second state=1, third state=1; matches example. However spec waveform contradicts edge.",
+      "spec_evidence": "",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I3",
+      "rule_id": "R2",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "R2 says q = a XOR b combinationally, but spec waveform at 15ns shows a=0,b=0,q=0 (ok), at 45ns a=0,b=1,q=1 (ok), at 55ns a=1,b=0,q=1 (ok), at 65ns a=1,b=1,q=0 (ok), but at 75ns a=0,b=0,q=1 (contradiction: XOR would be 0). Also at 85ns a=1,b=1,q=0 (ok), at 95ns a=1,b=1,q=1 (contradiction: XOR would be 0).",
+      "spec_evidence": "// 75ns            1               0               0               1               1",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I4",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "high",
+      "detail": "Spec waveform suggests q may be a registered output or state-dependent, not pure XOR. Alternative: q = state XOR a XOR b? Or q is next state? Need distinguishing sequence.",
+      "spec_evidence": "// 75ns            1               0               0               1               1",
+      "alternative": "q = state XOR a XOR b (combinational using state)",
+      "sequence": [
+        {
+          "a": 0,
+          "b": 0
+        },
+        {
+          "a": 0,
+          "b": 1
+        },
+        {
+          "a": 1,
+          "b": 0
+        },
+        {
+          "a": 1,
+          "b": 1
+        }
+      ]
+    },
+    {
+      "issue_id": "I5",
+      "rule_id": "R1",
+      "type": "grounding",
+      "severity": "medium",
+      "detail": "R1 spec_quote 'one bit of memory (i.e., one flip-flop)' does not specify update edge or that state captures q; edge and condition are not verbatim grounded.",
+      "spec_evidence": "one bit of memory (i.e., one flip-flop)",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I6",
+      "rule_id": "R2",
+      "type": "grounding",
+      "severity": "medium",
+      "detail": "R2 spec_quote 'The circuit consists of combinational logic' does not specify q = a XOR b; the XOR function is not verbatim in spec.",
+      "spec_evidence": "The circuit consists of combinational logic",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I7",
+      "rule_id": "global",
+      "type": "spec_example",
+      "severity": "high",
+      "detail": "Derived outputs from spec waveform using R1 (state captures q on posedge) and R2 (q=a XOR b) do not match spec at many rows: e.g., at 75ns spec q=1 but XOR gives 0; at 95ns spec q=1 but XOR gives 0; state updates at negedge in spec but R1 says posedge.",
+      "spec_evidence": "// 75ns            1               0               0               1               1",
+      "alternative": "",
+      "sequence": []
+    }
+  ]
+}

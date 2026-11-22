@@ -1,0 +1,39 @@
+def reference(vectors):
+    # State encoding
+    A, B, C, D = 0, 1, 2, 3
+
+    # Initial state: power-up unspecified; use A as concrete value.
+    state = A
+
+    results = []
+
+    for vec in vectors:
+        # Read inputs for this row (driven before the sampled posedge).
+        in_val = vec.get("in", 0)
+        reset_val = vec.get("reset", 0)
+
+        # R1 / R2: combinational output based on current state, visible same cycle.
+        # R1: state A/B/C -> out 0
+        # R2: state D -> out 1
+        if state == D:
+            out_val = 1  # R2
+        else:
+            out_val = 0  # R1
+
+        results.append({"out": out_val & 1})
+
+        # R3: synchronous active-high reset -> next state A (priority 0).
+        # R4-R7: state transitions on posedge when reset == 0 (priority 2).
+        if reset_val == 1:
+            state = A  # R3
+        else:
+            if state == A:
+                state = B if in_val == 1 else A  # R4
+            elif state == B:
+                state = C if in_val == 0 else B  # R5
+            elif state == C:
+                state = D if in_val == 1 else A  # R6
+            elif state == D:
+                state = C if in_val == 0 else B  # R7
+
+    return results

@@ -1,0 +1,27 @@
+def reference(vectors):
+    # Moore FSM: states A=0, B=1, C=2, D=3
+    # Synchronous active-high reset to A.
+    # Output is 1 only in state D.
+    state = 0  # power-up unspecified; assume A
+    out = 0
+    results = []
+    for row in vectors:
+        clk = row.get('clk', 0)
+        reset = row.get('reset', 0)
+        inp = row.get('in', 0)
+        # Sample on posedge clk (after edge settled)
+        if clk == 1:
+            if reset == 1:
+                state = 0
+            else:
+                if state == 0:      # A
+                    state = 0 if inp == 0 else 1
+                elif state == 1:    # B
+                    state = 2 if inp == 0 else 1
+                elif state == 2:    # C
+                    state = 0 if inp == 0 else 3
+                elif state == 3:    # D
+                    state = 2 if inp == 0 else 1
+        out = 1 if state == 3 else 0
+        results.append({'out': out})
+    return results

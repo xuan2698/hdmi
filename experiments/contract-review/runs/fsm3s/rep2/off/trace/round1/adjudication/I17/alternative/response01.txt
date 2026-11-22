@@ -1,0 +1,87 @@
+```python
+def reference(vectors):
+    # State encoding
+    A, B, C, D = 0, 1, 2, 3
+    state = A  # power-up state (unspecified; use A)
+    out = 0
+    results = []
+
+    for vec in vectors:
+        # Apply mid changes carried from previous row (already applied to vec)
+        inp = vec.get('in', 0)
+        rst = vec.get('reset', 0)
+
+        # R1: combinational output for A, B, C -> 0
+        # R2: combinational output for D -> 1
+        if state == D:
+            out = 1  # R2
+        else:
+            out = 0  # R1
+
+        results.append({'out': out})
+
+        # Compute next state at posedge
+        # Global interpretation: input transition has priority over reset when both active
+        # So if reset==1 and in causes a transition, input wins? 
+        # But spec says synchronous reset resets to A. Candidate interpretation says
+        # "Input transition has priority over reset when both active on same edge."
+        # We apply: if reset==1, normally go to A (R3), unless input transition takes priority.
+        # However, the state transition table only defines transitions when reset==0.
+        # The candidate interpretation is ambiguous; we interpret it as: when reset==1,
+        # the input still drives the transition per the table (input priority).
+        # But R3 says reset==1 -> state A. To honor both, we let input priority override reset.
+        # So we compute next state based on current state and input, ignoring reset for transition,
+        # but if reset==1 and no input-driven change? Actually the table always defines a next state.
+        # We'll implement: if reset==1, next state = A (R3), UNLESS the candidate interpretation
+        # means input transition overrides reset. The candidate says "Input transition has priority
+        # over reset when both active on same edge." So if reset==1 and in would cause a transition
+        # (i.e., in != current state's "stay" input?), we take the input transition.
+        # But the table defines transitions for both in=0 and in=1 for every state.
+        # So "input transition" is always defined. Thus input always has priority when reset==1?
+        # That would make reset useless. More sensible: input priority means if reset==1 and in
+        # would cause a state change (next_state != current_state), we take that change instead of reset.
+        # But that's still weird. Let's re-read: "Input transition has priority over reset when both active on same edge."
+        # This likely means: if reset==1 and in==1 (or in==0) causes a transition, that transition happens
+        # instead of reset. But then reset only works when input would keep state same? 
+        # Given the ambiguity, we'll implement the straightforward R3: reset==1 -> state A.
+        # The candidate interpretation is listed as unresolved; we'll note it but follow R3 as primary.
+        # Actually the instruction says: "For the listed unresolved fields apply these candidate interpretations instead"
+        # So we MUST apply the candidate interpretation. So input transition has priority over reset.
+        # We interpret: compute next state from table using current state and in. If reset==1,
+        # normally next state = A, but if the table transition would change state (next != current),
+        # then use the table transition instead (input priority). If table transition keeps state same,
+        # reset takes effect (next = A). This is a reasonable reading.
+        # However, simpler: just always use table transition when reset==1? That ignores reset entirely.
+        # Let's implement: if reset==1:
+        #   compute table_next from current state and in
+        #   if table_next != state: next_state = table_next (input priority)
+        #   else: next_state = A (reset)
+        # else: next_state = table_next
+        # This satisfies "input transition has priority over reset when both active" because
+        # when input causes a transition, it overrides reset. When input doesn't cause a transition,
+        # reset applies.
+        # We'll implement this.
+
+        # Compute table next state
+        if state == A:
+            table_next = A if inp == 0 else B  # R4
+        elif state == B:
+            table_next = C if inp == 0 else B  # R5
+        elif state == C:
+            table_next = A if inp == 0 else D  # R6
+        else:  # D
+            table_next = C if inp == 0 else B  # R7
+
+        if rst == 1:
+            # R3: synchronous reset to A, but candidate interpretation: input priority
+            if table_next != state:
+                next_state = table_next  # input transition priority
+            else:
+                next_state = A  # reset
+        else:
+            next_state = table_next
+
+        state = next_state
+
+    return results
+```

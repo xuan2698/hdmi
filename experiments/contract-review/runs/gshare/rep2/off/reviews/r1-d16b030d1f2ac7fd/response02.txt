@@ -1,0 +1,80 @@
+{
+  "coverage": {
+    "S01": ["R2_predict", "R6_pht_train"],
+    "S02": ["R6_pht_train"],
+    "S03": ["R4_ghr_update_predict", "R5_ghr_update_train_mispredicted"],
+    "S04": ["R2_predict", "R6_pht_train"],
+    "S05": ["R2_predict"],
+    "S06": ["R6_pht_train"],
+    "S07": ["R6_pht_train"],
+    "S08": ["R2_predict"],
+    "S09": ["R4_ghr_update_predict"],
+    "S10": ["R5_ghr_update_train_mispredicted", "R6_pht_train"],
+    "S11": ["R6_pht_train"],
+    "S12": ["R5_ghr_update_train_mispredicted"],
+    "S13": ["R7_train_priority_over_predict"],
+    "S14": ["R7_train_priority_over_predict"],
+    "S15": ["R6_pht_train"],
+    "S16": ["R6_pht_train"],
+    "S17": ["R6_pht_train"],
+    "S18": ["R1_reset"]
+  },
+  "issues": [
+    {
+      "issue_id": "I1",
+      "rule_id": "R3_predict_no_valid",
+      "type": "grounding",
+      "severity": "medium",
+      "detail": "Rule marked uncertain but spec does not define outputs when predict_valid=0; contract assumes values without verbatim evidence.",
+      "spec_evidence": "When a branch prediction is requested (predict_valid = 1)",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I2",
+      "rule_id": "R6_pht_train",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "Example expected outputs show predict_taken=0 after training taken=1, but PHT update should make prediction taken=1 next cycle.",
+      "spec_evidence": "Update the pattern history table (PHT) to train the branch predictor to predict this branch more accurately next time.",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I3",
+      "rule_id": "R5_ghr_update_train_mispredicted",
+      "type": "ambiguity",
+      "severity": "high",
+      "detail": "Spec says recover GHR to state immediately after mispredicting branch, but contract does not specify whether train_history is that state or pre-branch state.",
+      "spec_evidence": "recover the branch history register to the state immediately after the mispredicting branch completes execution",
+      "alternative": "train_history is the GHR value before the mispredicting branch; recovery should shift in train_taken to form post-branch GHR.",
+      "sequence": [
+        {"areset":0,"predict_valid":0,"predict_pc":0,"train_valid":1,"train_taken":1,"train_mispredicted":1,"train_history":3,"train_pc":7},
+        {"areset":0,"predict_valid":1,"predict_pc":0,"train_valid":0,"train_taken":0,"train_mispredicted":0,"train_history":0,"train_pc":0}
+      ]
+    },
+    {
+      "issue_id": "I4",
+      "rule_id": "R7_train_priority_over_predict",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec says training takes precedence when both modify GHR, but contract does not state whether prediction still updates GHR when train_valid=1 but train_mispredicted=0.",
+      "spec_evidence": "If training for a misprediction and a prediction (for a different, younger instruction) occurs in the same cycle, both operations will want to modify the branch history register. When this happens, training takes precedence",
+      "alternative": "Prediction updates GHR only when train_valid=0; any train_valid=1 suppresses prediction GHR update regardless of mispredicted.",
+      "sequence": [
+        {"areset":0,"predict_valid":1,"predict_pc":5,"train_valid":1,"train_taken":0,"train_mispredicted":0,"train_history":0,"train_pc":5},
+        {"areset":0,"predict_valid":1,"predict_pc":5,"train_valid":0,"train_taken":0,"train_mispredicted":0,"train_history":0,"train_pc":0}
+      ]
+    },
+    {
+      "issue_id": "I5",
+      "rule_id": "global",
+      "type": "spec_example",
+      "severity": "high",
+      "detail": "Spec timing diagram (S16-S17) shows training at cycle 4 changes PHT entry in cycle 5, but prediction at cycle 4 outputs old PHT state. Contract R6 example contradicts by showing prediction after training returns 0 instead of updated taken.",
+      "spec_evidence": "The training request at cycle 4 changes the PHT entry state in cycle 5, but the prediction request in cycle 4 outputs the PHT state at cycle 4, without considering the effect of the training request in cycle 4.",
+      "alternative": "",
+      "sequence": []
+    }
+  ]
+}

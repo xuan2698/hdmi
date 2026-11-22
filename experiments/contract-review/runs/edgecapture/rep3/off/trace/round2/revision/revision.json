@@ -1,0 +1,49 @@
+{
+  "responses": [
+    {
+      "issue_id": "I1",
+      "decision": "rebut",
+      "reason": "The issue itself concludes the R2 example is consistent; no change needed.",
+      "spec_quote": "capture when the input signal changes from 1 in one clock cycle to 0 the next",
+      "edits": []
+    },
+    {
+      "issue_id": "I2",
+      "decision": "rebut",
+      "reason": "The issue itself concludes the R3 example is consistent; no change needed.",
+      "spec_quote": "the output will remain 1 until the register is reset",
+      "edits": []
+    },
+    {
+      "issue_id": "I3",
+      "decision": "accept",
+      "reason": "prev_in initialization is undefined; clarify that first-cycle falling detection is unspecified via uncertain field.",
+      "spec_quote": "capture when the input signal changes from 1 in one clock cycle to 0 the next",
+      "edits": [
+        {
+          "path": [
+            "uncertain"
+          ],
+          "value": [
+            {
+              "rule_id": "R2_capture_falling",
+              "note": "prev_in for the first cycle after reset release is undefined; whether a falling edge is detected on that first cycle is unspecified.",
+              "candidates": [
+                "prev_in initialized to 0 so no first-cycle fall is detected",
+                "prev_in initialized to all-ones so any in bit that is 0 on first cycle is captured",
+                "first-cycle falling detection is don't-care"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "issue_id": "I5",
+      "decision": "rebut",
+      "reason": "The issue concludes there is no material problem; the R1 example already expresses the clear behavior.",
+      "spec_quote": "until the register is reset (active high synchronous reset)",
+      "edits": []
+    }
+  ]
+}

@@ -1,0 +1,63 @@
+def reference(vectors):
+    # State
+    ghr = 0
+    pht = [0] * 128  # 2-bit saturating counters, init 0 (weakly not-taken)
+
+    out = []
+
+    def predict_taken_for(pc, hist):
+        idx = (pc & 0x7F) ^ (hist & 0x7F)
+        return 1 if pht[idx] >= 2 else 0
+
+    def sat_update(counter, taken):
+        if taken:
+            return counter + 1 if counter < 3 else 3
+        else:
+            return counter - 1 if counter > 0 else 0
+
+    for row in vectors:
+        areset = row.get('areset', 0)
+        predict_valid = row.get('predict_valid', 0)
+        predict_pc = row.get('predict_pc', 0) & 0x7F
+        train_valid = row.get('train_valid', 0)
+        train_taken = row.get('train_taken', 0)
+        train_mispredicted = row.get('train_mispredicted', 0)
+        train_history = row.get('train_history', 0) & 0x7F
+        train_pc = row.get('train_pc', 0) & 0x7F
+
+        # R1_reset: async reset forces outputs to 0
+        if areset:
+            out.append({'predict_taken': 0, 'predict_history': 0})
+            ghr = 0
+            pht = [0] * 128
+            continue
+
+        # R2_predict / R3_predict_no_valid: combinational outputs
+        if predict_valid:
+            pt = predict_taken_for(predict_pc, ghr)
+            ph = ghr
+        else:
+            pt = 0
+            ph = ghr
+        out.append({'predict_taken': pt, 'predict_history': ph})
+
+        # Compute next state (posedge updates)
+        new_ghr = ghr
+        new_pht = list(pht)
+
+        # R6_pht_train: update PHT on training
+        if train_valid:
+            idx = train_pc ^ train_history
+            new_pht[idx] = sat_update(pht[idx], train_taken)
+
+        # R5_ghr_update_train_mispredicted / R7_train_priority_over_predict
+        if train_valid and train_mispredicted:
+            new_ghr = train_history
+        elif predict_valid:
+            # R4_ghr_update_predict: shift in predicted direction
+            new_ghr = ((ghr << 1) | pt) & 0x7F
+
+        ghr = new_ghr
+        pht = new_pht
+
+    return out

@@ -1,0 +1,55 @@
+def reference(vectors):
+    Q = 0
+    L = 0
+    q_in = 0
+    r_in = 0
+    out = []
+    for row in vectors:
+        # Apply driven inputs before the sampled posedge.
+        if 'L' in row:
+            L = row['L']
+        if 'q_in' in row:
+            q_in = row['q_in']
+        if 'r_in' in row:
+            r_in = row['r_in']
+
+        # sample at posedge clk
+        if L == 1:
+            # rule load_r: L == 1 makes Q load r_in
+            Q = r_in & 1
+        else:
+            # rule hold_q_in: candidate says L == 0 holds previous Q, ignoring q_in
+            Q = Q & 1
+
+        out.append({'Q': Q})
+
+        # Optional mid input changes occur after sampling and carry to next row.
+        mid = row.get('mid', None)
+        if mid is not None:
+            try:
+                if 'L' in mid:
+                    L = mid['L']
+                if 'q_in' in mid:
+                    q_in = mid['q_in']
+                if 'r_in' in mid:
+                    r_in = mid['r_in']
+            except:
+                pass
+
+        # Also support explicitly mid-prefixed keys if supplied.
+        for k in row:
+            if k == 'mid':
+                continue
+            if k.startswith('mid_'):
+                name = k[4:]
+                try:
+                    if name == 'L':
+                        L = row[k]
+                    elif name == 'q_in':
+                        q_in = row[k]
+                    elif name == 'r_in':
+                        r_in = row[k]
+                except:
+                    pass
+
+    return out

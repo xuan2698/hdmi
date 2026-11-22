@@ -1,0 +1,105 @@
+{
+  "responses": [
+    {
+      "issue_id": "I1",
+      "decision": "accept",
+      "reason": "Spec shows q=4 increments to 5 at 55ns with a=0, so the q!=4 guard is wrong; condition should be just a==0.",
+      "spec_quote": "// 55ns            1               0               5",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "increment_when_a_low",
+            "condition"
+          ],
+          "value": "a == 0"
+        }
+      ]
+    },
+    {
+      "issue_id": "I2",
+      "decision": "accept",
+      "reason": "From initial q=4 with a=0, three posedges give 5,6,7 (3-bit wrap only after 7), not 5,6,0.",
+      "spec_quote": "// 55ns            1               0               5",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "increment_when_a_low",
+            "example"
+          ],
+          "value": {
+            "vectors": [
+              {
+                "a": 0
+              },
+              {
+                "a": 0
+              },
+              {
+                "a": 0
+              }
+            ],
+            "expected": [
+              {
+                "q": 5
+              },
+              {
+                "q": 6
+              },
+              {
+                "q": 7
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "issue_id": "I3",
+      "decision": "rebut",
+      "reason": "The existing quote already expresses the hold rule; the rule is grounded by the shown a=1 hold and need not enumerate every held value.",
+      "spec_quote": "// 5ns             1               1               4",
+      "edits": []
+    },
+    {
+      "issue_id": "I4",
+      "decision": "accept",
+      "reason": "Spec does not explicitly state wrap vs saturate; record the ambiguity while keeping the 3-bit wrap interpretation.",
+      "spec_quote": "// 75ns            1               0               0",
+      "edits": [
+        {
+          "path": [
+            "uncertain"
+          ],
+          "value": [
+            {
+              "rule_id": "increment_when_a_low",
+              "note": "Spec shows q=4 initial and increment on a=0 but does not explicitly state 3-bit wrap; contract assumes wrap 7->0.",
+              "candidates": [
+                "3-bit wrap: 7->0",
+                "saturate at 7"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "issue_id": "I5",
+      "decision": "accept",
+      "reason": "Initial value q=4 at time 0 is not explicitly captured; clarify in state meaning.",
+      "spec_quote": "// 0ns             0               1               x",
+      "edits": [
+        {
+          "path": [
+            "states",
+            "count",
+            "meaning"
+          ],
+          "value": "3-bit counter value stored in q; initial value is 4 at time 0 (no reset); increments by 1 on each posedge when a=0, holds when a=1"
+        }
+      ]
+    }
+  ]
+}

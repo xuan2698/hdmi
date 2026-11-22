@@ -1,0 +1,56 @@
+def reference(vectors):
+    # Rule sync_reset_clear_out: active-high synchronous reset clears out_reg at posedge.
+    # Rule falling_edge_capture_and_hold: 1-to-0 transitions set out_reg bits and hold them.
+    # Contract uncertain assumption: prev_in updates on every posedge, including reset cycles.
+    mask = (1 << 32) - 1
+    out_reg = 0          # 32-bit capture register, concrete power-up default
+    prev_in = 0          # 32-bit previous sampled input, concrete power-up default
+    inputs = {'reset': 0, 'in': 0}
+    results = []
+
+    for row in vectors:
+        # Drive the row's pre-edge input values. Carried mid values persist unless overridden here.
+        for key, val in row.items():
+            if key == 'mid':
+                continue
+            if key == 'reset':
+                inputs['reset'] = val & 1
+            elif key == 'in':
+                inputs['in'] = val & mask
+            else:
+                inputs[key] = val
+
+        reset_val = inputs.get('reset', 0) & 1
+        in_val = inputs.get('in', 0) & mask
+
+        # Explicit named next-state transitions at posedge clk after sampling reset and in.
+        if reset_val == 1:
+            # sync_reset_clear_out: reset == 1 at the sampled posedge -> out becomes 0.
+            out_next = 0
+        else:
+            # falling_edge_capture_and_hold:
+            # out_next[i] = out[i] OR (prev_in[i] AND (in[i] == 0))
+            falling = prev_in & ((~in_val) & mask)
+            out_next = (out_reg | falling) & mask
+
+        # prev_in updates on every posedge, including reset cycles (contract uncertain assumption).
+        prev_in_next = in_val
+
+        out_reg = out_next & mask
+        prev_in = prev_in_next & mask
+
+        # Same-cycle visible register output after the posedge.
+        results.append({'out': out_reg})
+
+        # Mid changes occur after sampling and are carried to the start of the next row.
+        mid = row.get('mid')
+        if isinstance(mid, dict):
+            for key, val in mid.items():
+                if key == 'reset':
+                    inputs['reset'] = val & 1
+                elif key == 'in':
+                    inputs['in'] = val & mask
+                else:
+                    inputs[key] = val
+
+    return results

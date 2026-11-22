@@ -1,0 +1,162 @@
+def reference(vectors):
+    # State encoding: S0=0, S1=1, S11=2, S110=3, FOUND=4.
+    state = 0
+    start_shifting = 0
+    cur_reset = 0
+    cur_data = 0
+    result = []
+
+    for row in vectors:
+        reset = cur_reset
+        data = cur_data
+        mid = None
+
+        # Parse sampled row inputs and optional mid-cycle changes.
+        try:
+            reset = row.get('reset', reset)
+            data = row.get('data', data)
+            mid = row.get('mid', mid)
+            try:
+                nested = row.get('inputs', None)
+                if nested != None:
+                    try:
+                        reset = nested.get('reset', reset)
+                    except:
+                        pass
+                    try:
+                        data = nested.get('data', data)
+                    except:
+                        pass
+                    try:
+                        mid2 = nested.get('mid', None)
+                        if mid2 != None:
+                            mid = mid2
+                    except:
+                        pass
+            except:
+                pass
+        except:
+            # Support list-like rows [reset, data, mid].
+            try:
+                reset = row[0]
+            except:
+                reset = cur_reset
+            try:
+                data = row[1]
+            except:
+                data = cur_data
+            try:
+                mid = row[2]
+            except:
+                mid = None
+
+        reset_bit = reset & 1
+        data_bit = data & 1
+
+        # Synchronous posedge update and same-cycle output.
+        if reset_bit == 1:
+            # R_RESET: active-high synchronous reset has priority; S0 and start_shifting=0 same cycle.
+            state = 0
+            start_shifting = 0
+        else:
+            if state == 3 and data_bit == 1:
+                # R_COMPLETE_1101: S110 with data=1 completes 1101 and sets start_shifting=1 same cycle.
+                state = 4
+                start_shifting = 1
+            elif state == 4:
+                # R_HOLD_FOUND: after detection, stay FOUND and hold start_shifting=1 forever until reset.
+                state = 4
+                start_shifting = 1
+            else:
+                # R_ZERO_NOT_FOUND: before completion, start_shifting remains 0.
+                start_shifting = 0
+                # Explicit state transitions for searching 1101.
+                if state == 0:          # S0
+                    if data_bit == 1:
+                        state = 1       # S0 --1--> S1
+                    else:
+                        state = 0       # S0 --0--> S0
+                elif state == 1:        # S1
+                    if data_bit == 1:
+                        state = 2       # S1 --1--> S11
+                    else:
+                        state = 0       # S1 --0--> S0
+                elif state == 2:        # S11
+                    if data_bit == 1:
+                        state = 2       # S11 --1--> S11
+                    else:
+                        state = 3       # S11 --0--> S110
+                elif state == 3:        # S110
+                    if data_bit == 1:
+                        state = 4       # S110 --1--> FOUND, completion
+                        start_shifting = 1
+                    else:
+                        state = 0       # S110 --0--> S0
+                elif state == 4:        # FOUND
+                    state = 4
+
+        # Sampled inputs remain driven until optional mid changes.
+        cur_reset = reset_bit
+        cur_data = data_bit
+
+        # Apply optional mid changes AFTER sampling; they carry to next row start.
+        if mid != None:
+            # Dict-like mid = {'reset': x, 'data': y, ...}.
+            try:
+                _keys = mid.keys()
+                try:
+                    if 'reset' in mid:
+                        cur_reset = mid['reset'] & 1
+                except:
+                    pass
+                try:
+                    if 'data' in mid:
+                        cur_data = mid['data'] & 1
+                except:
+                    pass
+            except:
+                # List-like mid changes: [{'data':x}, ...] or [('data',x), ...] or direct pair.
+                applied_mid = 0
+                try:
+                    for change in mid:
+                        try:
+                            _keys2 = change.keys()
+                            try:
+                                if 'reset' in change:
+                                    cur_reset = change['reset'] & 1
+                                    applied_mid = 1
+                            except:
+                                pass
+                            try:
+                                if 'data' in change:
+                                    cur_data = change['data'] & 1
+                                    applied_mid = 1
+                            except:
+                                pass
+                        except:
+                            try:
+                                name = change[0]
+                                value = change[1]
+                                if name == 'reset':
+                                    cur_reset = value & 1
+                                    applied_mid = 1
+                                elif name == 'data':
+                                    cur_data = value & 1
+                                    applied_mid = 1
+                            except:
+                                pass
+                    if applied_mid == 0:
+                        try:
+                            cur_reset = mid[0] & 1
+                        except:
+                            pass
+                        try:
+                            cur_data = mid[1] & 1
+                        except:
+                            pass
+                except:
+                    pass
+
+        result.append({'start_shifting': start_shifting})
+
+    return result

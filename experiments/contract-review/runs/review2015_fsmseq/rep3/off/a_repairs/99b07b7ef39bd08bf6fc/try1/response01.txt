@@ -1,0 +1,52 @@
+```python
+def reference(vectors):
+    # State encoding
+    S0, S1, S2, S3, S4 = 0, 1, 2, 3, 4
+
+    # Power-up state (unspecified; choose S0)
+    state = S0
+    start_shifting = 0
+
+    outputs = []
+
+    for vec in vectors:
+        reset = vec.get('reset', 0) & 1
+        data = vec.get('data', 0) & 1
+
+        # Compute next state and next output based on current state and inputs
+        if reset == 1:
+            # R1: synchronous reset, priority 1
+            next_state = S0
+            next_start_shifting = 0
+        else:
+            # Determine next state from current state and data
+            if state == S0:
+                next_state = S1 if data == 1 else S0
+            elif state == S1:
+                next_state = S2 if data == 1 else S0
+            elif state == S2:
+                next_state = S3 if data == 0 else S2
+            elif state == S3:
+                next_state = S4 if data == 1 else S0
+            else:  # S4
+                next_state = S4
+
+            # R2: state == S4 -> start_shifting stays 1 (priority 2)
+            # R3: state != S4 and next_state == S4 -> start_shifting becomes 1 (priority 3)
+            # R4: state != S4 and next_state != S4 -> start_shifting stays 0 (priority 4)
+            if state == S4:
+                next_start_shifting = 1
+            elif next_state == S4:
+                next_start_shifting = 1
+            else:
+                next_start_shifting = 0
+
+        # Output visible same cycle (combinational from current state/next state per rules)
+        outputs.append({'start_shifting': next_start_shifting})
+
+        # Update state at posedge
+        state = next_state
+        start_shifting = next_start_shifting
+
+    return outputs
+```

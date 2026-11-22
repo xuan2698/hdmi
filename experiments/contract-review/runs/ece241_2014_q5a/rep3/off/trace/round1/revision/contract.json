@@ -1,0 +1,204 @@
+{
+  "ports": {
+    "inputs": {
+      "areset": 1,
+      "x": 1
+    },
+    "outputs": {
+      "z": 1
+    },
+    "clock": "clk"
+  },
+  "states": [
+    {
+      "name": "S0",
+      "meaning": "No 1-bit has been seen yet; output equals input (copy phase).",
+      "update_time": "posedge",
+      "update_during_reset": false
+    },
+    {
+      "name": "S1",
+      "meaning": "A 1-bit has been seen; output is complement of input (invert phase).",
+      "update_time": "posedge",
+      "update_during_reset": false
+    }
+  ],
+  "rules": [
+    {
+      "id": "R1",
+      "outputs": [
+        "z"
+      ],
+      "condition": "state == S0: z = x",
+      "edge": "posedge",
+      "visible": "next_cycle",
+      "priority": 1,
+      "spec_quote": "the output (Z) is the 2's complement of the input",
+      "uncertain": false,
+      "example": {
+        "vectors": [
+          {
+            "areset": 0,
+            "x": 0
+          },
+          {
+            "areset": 0,
+            "x": 1
+          },
+          {
+            "areset": 0,
+            "x": 0
+          }
+        ],
+        "expected": [
+          {
+            "z": 0
+          },
+          {
+            "z": 1
+          },
+          {
+            "z": 0
+          }
+        ]
+      }
+    },
+    {
+      "id": "R2",
+      "outputs": [
+        "z"
+      ],
+      "condition": "state == S1: z = ~x",
+      "edge": "posedge",
+      "visible": "next_cycle",
+      "priority": 1,
+      "spec_quote": "the output (Z) is the 2's complement of the input",
+      "uncertain": false,
+      "example": {
+        "vectors": [
+          {
+            "areset": 0,
+            "x": 0
+          },
+          {
+            "areset": 0,
+            "x": 1
+          },
+          {
+            "areset": 0,
+            "x": 0
+          }
+        ],
+        "expected": [
+          {
+            "z": 1
+          },
+          {
+            "z": 0
+          },
+          {
+            "z": 1
+          }
+        ]
+      }
+    },
+    {
+      "id": "R3",
+      "outputs": [
+        "z"
+      ],
+      "condition": "areset == 1 asynchronously forces state to S0 and z to 0",
+      "edge": "asynchronous",
+      "visible": "same_cycle",
+      "priority": 0,
+      "spec_quote": "positive edge triggered asynchronous reset",
+      "uncertain": false,
+      "example": {
+        "vectors": [
+          {
+            "areset": 1,
+            "x": 0
+          },
+          {
+            "areset": 1,
+            "x": 1
+          },
+          {
+            "areset": 0,
+            "x": 1
+          }
+        ],
+        "expected": [
+          {
+            "z": 0
+          },
+          {
+            "z": 0
+          },
+          {
+            "z": 1
+          }
+        ]
+      }
+    },
+    {
+      "id": "R4",
+      "outputs": [
+        "z"
+      ],
+      "condition": "posedge clk, areset == 0: if state == S0 and x == 1 then next state = S1; else state unchanged",
+      "edge": "posedge",
+      "visible": "next_cycle",
+      "priority": 2,
+      "spec_quote": "beginning with the least-significant bit",
+      "uncertain": false,
+      "example": {
+        "vectors": [
+          {
+            "areset": 0,
+            "x": 1
+          },
+          {
+            "areset": 0,
+            "x": 0
+          },
+          {
+            "areset": 0,
+            "x": 1
+          }
+        ],
+        "expected": [
+          {
+            "z": 1
+          },
+          {
+            "z": 1
+          },
+          {
+            "z": 0
+          }
+        ]
+      }
+    }
+  ],
+  "reset": {
+    "kind": "async",
+    "name": "areset",
+    "active": "high",
+    "values": {
+      "z": 0
+    },
+    "first_released_cycle": "first posedge clk after areset deasserts"
+  },
+  "mid": "Optional mid input changes occur AFTER sampling, before the other edge, and are carried to the start of the next row.",
+  "uncertain": [
+    {
+      "rule_id": "global",
+      "note": "Moore output timing: registered next-cycle vs combinational same-cycle.",
+      "candidates": [
+        "z is registered on posedge clk and visible next cycle (Moore)",
+        "z is combinational and visible same cycle"
+      ]
+    }
+  ]
+}

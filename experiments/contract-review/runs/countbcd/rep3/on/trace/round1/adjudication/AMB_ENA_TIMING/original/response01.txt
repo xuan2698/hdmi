@@ -1,0 +1,65 @@
+def reference(vectors):
+    q_state = 0
+    reset_state = 0
+    outputs = []
+
+    for row in vectors:
+        row_dict = row if isinstance(row, dict) else {}
+
+        # Apply inputs driven before the sampled posedge.
+        if "reset" in row_dict:
+            reset_state = row_dict["reset"]
+
+        # Rule q_sync_reset: synchronous active-high reset sets q to 0 at posedge.
+        if reset_state:
+            q_state = 0
+        else:
+            # Rule q_bcd_count: increment 4-digit BCD state at posedge.
+            d0 = q_state & 0xF
+            d1 = (q_state >> 4) & 0xF
+            d2 = (q_state >> 8) & 0xF
+            d3 = (q_state >> 12) & 0xF
+
+            if d0 == 9:
+                d0 = 0
+                if d1 == 9:
+                    d1 = 0
+                    if d2 == 9:
+                        d2 = 0
+                        if d3 == 9:
+                            d3 = 0
+                        else:
+                            d3 += 1
+                    else:
+                        d2 += 1
+                else:
+                    d1 += 1
+            else:
+                d0 += 1
+
+            q_state = (d3 << 12) | (d2 << 8) | (d1 << 4) | d0
+
+        # Rule ena_upper_digit_increment: combinational enables from settled q.
+        d0 = q_state & 0xF
+        d1 = (q_state >> 4) & 0xF
+        d2 = (q_state >> 8) & 0xF
+
+        ena0 = 1 if d0 == 9 else 0
+        ena1 = 1 if (d0 == 9 and d1 == 9) else 0
+        ena2 = 1 if (d0 == 9 and d1 == 9 and d2 == 9) else 0
+        ena = ena0 | (ena1 << 1) | (ena2 << 2)
+
+        outputs.append({"q": q_state & 0xFFFF, "ena": ena & 0x7})
+
+        # Optional mid input changes occur after sampling and affect the next row.
+        if "mid" in row_dict:
+            mid = row_dict["mid"]
+            if isinstance(mid, dict):
+                if "reset" in mid:
+                    reset_state = mid["reset"]
+            elif isinstance(mid, (list, tuple)):
+                for change in mid:
+                    if isinstance(change, dict) and "reset" in change:
+                        reset_state = change["reset"]
+
+    return outputs

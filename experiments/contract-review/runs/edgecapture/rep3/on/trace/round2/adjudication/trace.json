@@ -1,0 +1,54 @@
+[
+  {
+    "issue": {
+      "issue_id": "AMB-1",
+      "rule_id": "falling_edge_capture_and_hold",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec does not define whether prev_in history updates during synchronous reset; contract assumes it does, enabling capture spanning reset.",
+      "spec_evidence": "For each bit in a 32-bit vector, capture when the input signal changes from 1 in one clock cycle to 0 the next. \"Capture\" means that the output will remain 1 until the register is reset (active high synchronous reset).",
+      "alternative": "prev_in is cleared or not updated during reset, so a pre-reset 1 followed by 0 on the first released cycle is not captured and out stays 0.",
+      "sequence": [
+        {
+          "reset": 1,
+          "in": 1
+        },
+        {
+          "reset": 0,
+          "in": 0
+        }
+      ]
+    },
+    "status": "effect",
+    "issue_id": "AMB-1",
+    "outputs": {
+      "original": [
+        {
+          "out": 0
+        },
+        {
+          "out": 1
+        }
+      ],
+      "alternative": [
+        {
+          "out": 0
+        },
+        {
+          "out": 0
+        }
+      ]
+    },
+    "differences": [
+      {
+        "cycle": 2,
+        "original": {
+          "out": 1
+        },
+        "alternative": {
+          "out": 0
+        }
+      }
+    ]
+  }
+]

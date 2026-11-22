@@ -1,0 +1,34 @@
+def reference(vectors):
+    # State Q: 1-bit registered output, power-up unspecified but concrete 0 required
+    Q = 0
+    inputs = {'L': 0, 'q_in': 0, 'r_in': 0}
+    result = []
+
+    for row in vectors:
+        # Apply row's input values driven before the sampled posedge
+        for key in ('L', 'q_in', 'r_in'):
+            if key in row:
+                inputs[key] = row[key]
+
+        L = inputs['L']
+        r_in = inputs['r_in']
+
+        # rule load_r: L == 1 -> Q <= r_in on posedge, visible same cycle
+        if L == 1:
+            Q = r_in & 1
+        else:
+            # rule hold_q_in: L == 0 -> Q holds previous value and ignores q_in
+            Q = Q & 1
+
+        result.append({'Q': Q})
+
+        # mid input changes occur after the posedge sample; carry to next row
+        mid = row.get('mid', None)
+        if mid is None:
+            mid = row.get('__mid__', None)
+        if isinstance(mid, dict):
+            for key, value in mid.items():
+                if key in inputs:
+                    inputs[key] = value
+
+    return result

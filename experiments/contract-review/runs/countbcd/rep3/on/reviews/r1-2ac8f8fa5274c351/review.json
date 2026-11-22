@@ -1,0 +1,63 @@
+{
+  "coverage": {
+    "S01": [
+      "q_bcd_count"
+    ],
+    "S02": [
+      "q_bcd_count",
+      "ena_upper_digit_increment"
+    ],
+    "S03": [
+      "ena_upper_digit_increment"
+    ],
+    "S04": [
+      "q_sync_reset"
+    ]
+  },
+  "issues": [
+    {
+      "issue_id": "AMB_ENA_TIMING",
+      "rule_id": "ena_upper_digit_increment",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "S03 does not specify combinational vs registered ena timing; contract fixes ena as combinational from current q.",
+      "spec_evidence": "For digits [3:1], also output an enable signal indicating when each of the upper three digits should be incremented.",
+      "alternative": "ena is registered and pulses on the posedge that increments the upper digit (e.g., ena[0]=1 after q 9->10 instead of while q=9 before the edge).",
+      "sequence": [
+        {
+          "reset": 1
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        }
+      ]
+    }
+  ]
+}

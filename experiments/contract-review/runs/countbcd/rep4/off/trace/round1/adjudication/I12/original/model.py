@@ -1,0 +1,50 @@
+def reference(vectors):
+    # State: 4 BCD digits, each 0..9. q = d3*4096 + d2*256 + d1*16 + d0
+    d0 = 0
+    d1 = 0
+    d2 = 0
+    d3 = 0
+    out = []
+    for row in vectors:
+        # R1_reset: synchronous active-high reset -> outputs 0 same cycle
+        # (reset is sampled at posedge; outputs reflect post-edge state)
+        reset = row.get('reset', 0)
+        if reset == 1:
+            d0 = 0
+            d1 = 0
+            d2 = 0
+            d3 = 0
+        else:
+            # R2_ones_count / R3_ones_wrap: ones digit counts 0..9 then wraps
+            # R4_tens_increment / R5_tens_wrap
+            # R6_hundreds_increment
+            # R7_thousands_increment
+            # R8_full_wrap
+            if d0 == 9:
+                d0 = 0
+                if d1 == 9:
+                    d1 = 0
+                    if d2 == 9:
+                        d2 = 0
+                        if d3 == 9:
+                            d3 = 0
+                        else:
+                            d3 += 1
+                    else:
+                        d2 += 1
+                else:
+                    d1 += 1
+            else:
+                d0 += 1
+        q = (d3 << 12) | (d2 << 8) | (d1 << 4) | d0
+        # R9_ena_tens / R10_ena_hundreds / R11_ena_thousands: combinational
+        ena = 0
+        if reset == 0:
+            if d0 == 9:
+                ena |= 1
+                if d1 == 9:
+                    ena |= 2
+                    if d2 == 9:
+                        ena |= 4
+        out.append({'q': q, 'ena': ena})
+    return out

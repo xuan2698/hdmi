@@ -1,0 +1,68 @@
+def reference(vectors):
+    # Initial state: S0. Per candidate interpretation for R3, start_shifting initializes to 1
+    # before any detection and remains 1 until reset.
+    S0, S1, S2, S3, S4 = 0, 1, 2, 3, 4
+    state = S0
+    start_shifting = 1
+
+    # Inputs carried between rows, updated by mid changes after sampling.
+    cur_reset = 0
+    cur_data = 0
+
+    result = []
+
+    for row in vectors:
+        # Drive row input values before the sampled posedge.
+        if 'reset' in row:
+            cur_reset = row['reset'] & 1
+        if 'data' in row:
+            cur_data = row['data'] & 1
+
+        reset = cur_reset
+        data = cur_data
+
+        # R1_reset_clear: synchronous active-high reset has priority.
+        if reset == 1:
+            state = S0
+            start_shifting = 0
+        else:
+            # R2_detect_set_and_hold: detection condition or already in S4 sets and holds 1.
+            if state == S4 or (state == S3 and data == 1):
+                state = S4
+                start_shifting = 1
+            else:
+                # R3_default_zero_while_searching, overridden by candidate interpretation:
+                # start_shifting initializes to 1 before detection and holds until reset.
+                # Implement state transitions only; do not force start_shifting to 0 here.
+                if state == S0:
+                    if data == 1:
+                        state = S1
+                    else:
+                        state = S0
+                elif state == S1:
+                    if data == 1:
+                        state = S2
+                    else:
+                        state = S0
+                elif state == S2:
+                    if data == 0:
+                        state = S3
+                    else:
+                        state = S2
+                elif state == S3:
+                    # data == 1 was handled above as detection; here data must be 0.
+                    state = S0
+                # start_shifting holds its previous value (candidate R3 interpretation).
+
+        # Output after the sampled posedge has settled.
+        result.append({'start_shifting': int(start_shifting) & 1})
+
+        # Mid changes occur after sampling and are carried to the start of the next row.
+        if 'mid' in row and row['mid'] is not None:
+            mid = row['mid']
+            if 'reset' in mid:
+                cur_reset = mid['reset'] & 1
+            if 'data' in mid:
+                cur_data = mid['data'] & 1
+
+    return result

@@ -1,0 +1,21 @@
+def reference(vectors):
+    # State: Q register, reset value 0x34 (52)
+    Q = 0x34  # power-up unspecified; use reset value as concrete default
+
+    results = []
+
+    for vec in vectors:
+        d = vec.get('d', 0) & 0xFF
+        reset = vec.get('reset', 0) & 0x1
+
+        # R1: active high synchronous reset, priority 1, negedge, visible same cycle
+        # Reset dominates d when both asserted (chosen candidate).
+        if reset == 1:
+            Q = 0x34
+        else:
+            # R2: negedge triggered D flip-flop load, priority 2
+            Q = d
+
+        results.append({'q': Q & 0xFF})
+
+    return results

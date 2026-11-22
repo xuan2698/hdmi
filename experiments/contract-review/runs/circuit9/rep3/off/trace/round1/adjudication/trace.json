@@ -1,0 +1,233 @@
+[
+  {
+    "issue": {
+      "issue_id": "I4",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "high",
+      "detail": "Spec waveform shows q=4 at first posedge with a=1, but contract has no reset/initial value; alternative semantics: q initializes to 4 at time 0.",
+      "spec_evidence": "// 5ns             1               1               4",
+      "alternative": "q initializes to 4 at time 0 (no reset), then holds/increments per rules.",
+      "sequence": [
+        {
+          "a": 1
+        },
+        {
+          "a": 0
+        },
+        {
+          "a": 0
+        }
+      ]
+    },
+    "status": "effect",
+    "issue_id": "I4",
+    "outputs": {
+      "original": [
+        {
+          "q": 0
+        },
+        {
+          "q": 1
+        },
+        {
+          "q": 2
+        }
+      ],
+      "alternative": [
+        {
+          "q": 4
+        },
+        {
+          "q": 5
+        },
+        {
+          "q": 6
+        }
+      ]
+    },
+    "differences": [
+      {
+        "cycle": 1,
+        "original": {
+          "q": 0
+        },
+        "alternative": {
+          "q": 4
+        }
+      },
+      {
+        "cycle": 2,
+        "original": {
+          "q": 1
+        },
+        "alternative": {
+          "q": 5
+        }
+      },
+      {
+        "cycle": 3,
+        "original": {
+          "q": 2
+        },
+        "alternative": {
+          "q": 6
+        }
+      }
+    ]
+  },
+  {
+    "issue": {
+      "issue_id": "I5",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec waveform shows q=4 at 5ns with a=1, but contract has no reset; alternative: q initializes to 0 and first posedge with a=1 loads 4.",
+      "spec_evidence": "// 5ns             1               1               4",
+      "alternative": "q initializes to 0; first posedge with a=1 sets q=4 (load), then holds/increments per rules.",
+      "sequence": [
+        {
+          "a": 1
+        },
+        {
+          "a": 1
+        },
+        {
+          "a": 0
+        }
+      ]
+    },
+    "status": "effect",
+    "issue_id": "I5",
+    "outputs": {
+      "original": [
+        {
+          "q": 0
+        },
+        {
+          "q": 0
+        },
+        {
+          "q": 1
+        }
+      ],
+      "alternative": [
+        {
+          "q": 4
+        },
+        {
+          "q": 4
+        },
+        {
+          "q": 5
+        }
+      ]
+    },
+    "differences": [
+      {
+        "cycle": 1,
+        "original": {
+          "q": 0
+        },
+        "alternative": {
+          "q": 4
+        }
+      },
+      {
+        "cycle": 2,
+        "original": {
+          "q": 0
+        },
+        "alternative": {
+          "q": 4
+        }
+      },
+      {
+        "cycle": 3,
+        "original": {
+          "q": 1
+        },
+        "alternative": {
+          "q": 5
+        }
+      }
+    ]
+  },
+  {
+    "issue": {
+      "issue_id": "I10",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec waveform shows q=4 at 5ns with a=1, but no reset; alternative: q is initialized to 4 via an implicit load when a=1 at first posedge.",
+      "spec_evidence": "// 5ns             1               1               4",
+      "alternative": "At first posedge with a=1, q loads 4; thereafter hold when a=1 and increment when a=0.",
+      "sequence": [
+        {
+          "a": 1
+        },
+        {
+          "a": 0
+        },
+        {
+          "a": 1
+        }
+      ]
+    },
+    "status": "effect",
+    "issue_id": "I10",
+    "outputs": {
+      "original": [
+        {
+          "q": 0
+        },
+        {
+          "q": 1
+        },
+        {
+          "q": 1
+        }
+      ],
+      "alternative": [
+        {
+          "q": 4
+        },
+        {
+          "q": 5
+        },
+        {
+          "q": 5
+        }
+      ]
+    },
+    "differences": [
+      {
+        "cycle": 1,
+        "original": {
+          "q": 0
+        },
+        "alternative": {
+          "q": 4
+        }
+      },
+      {
+        "cycle": 2,
+        "original": {
+          "q": 1
+        },
+        "alternative": {
+          "q": 5
+        }
+      },
+      {
+        "cycle": 3,
+        "original": {
+          "q": 1
+        },
+        "alternative": {
+          "q": 5
+        }
+      }
+    ]
+  }
+]

@@ -1,0 +1,64 @@
+{
+  "responses": [
+    {
+      "issue_id": "I1",
+      "decision": "rebut",
+      "reason": "The contract already marks R3 as uncertain with candidates covering the undefined behavior; the spec does not define outputs when predict_valid=0, and the uncertain field already expresses this.",
+      "spec_quote": "When a branch prediction is requested (predict_valid = 1)",
+      "edits": []
+    },
+    {
+      "issue_id": "I2",
+      "decision": "accept",
+      "reason": "The R6 example shows predict_taken=0 after training taken=1, but training a taken branch should move the counter toward taken so a subsequent prediction returns taken=1. Fix the example expected output.",
+      "spec_quote": "Update the pattern history table (PHT) to train the branch predictor to predict this branch more accurately next time.",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R6_pht_train",
+            "example",
+            "expected"
+          ],
+          "value": [
+            {
+              "predict_taken": 0,
+              "predict_history": 0
+            },
+            {
+              "predict_taken": 1,
+              "predict_history": 0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "issue_id": "I5",
+      "decision": "accept",
+      "reason": "The spec timing diagram states training at cycle 4 changes PHT entry in cycle 5, so a prediction in cycle 5 should see the updated state. The R6 example's second-cycle prediction should reflect the trained taken direction.",
+      "spec_quote": "The training request at cycle 4 changes the PHT entry state in cycle 5, but the prediction request in cycle 4 outputs the PHT state at cycle 4, without considering the effect of the training request in cycle 4.",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R6_pht_train",
+            "example",
+            "expected"
+          ],
+          "value": [
+            {
+              "predict_taken": 0,
+              "predict_history": 0
+            },
+            {
+              "predict_taken": 1,
+              "predict_history": 0
+            }
+          ]
+        }
+      ],
+      "already_applied_by_earlier_issue": true
+    }
+  ]
+}

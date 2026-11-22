@@ -1,0 +1,22 @@
+def reference(vectors):
+    # State: Q is the 8-bit flip-flop output register, reset value 0x34
+    Q = 0x34  # power-up / initial state
+
+    results = []
+    for row in vectors:
+        d = row.get('d', 0)
+        reset = row.get('reset', 0)
+
+        # R1: reset == 1, negedge, visible same_cycle, priority 1
+        # Candidate interpretation for unresolved field: when reset is high,
+        # q holds previous value instead of loading 0x34.
+        if reset == 1:
+            # hold previous value (per candidate interpretation)
+            pass
+        else:
+            # R2: reset == 0, negedge, visible same_cycle, priority 2
+            Q = d & 0xFF
+
+        results.append({'q': Q & 0xFF})
+
+    return results

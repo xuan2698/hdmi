@@ -1,0 +1,37 @@
+def reference(vectors):
+    # Initial concrete state: power-up unspecified, choose 0.
+    q = 0
+    # Carried input value from previous row's mid changes.
+    reset = 0
+    out = []
+    for row in vectors:
+        if isinstance(row, dict):
+            # Row values are driven before the sampled posedge; they override
+            # any value carried from the previous row's mid changes.
+            if "reset" in row:
+                reset = row["reset"] & 1
+
+            # Rule sync_reset_high: active high synchronous reset to 0.
+            # Rule count_mod_10: otherwise increment modulo 10.
+            if reset == 1:
+                q = 0  # sync_reset_high
+            else:
+                q = (q + 1) % 10  # count_mod_10
+
+            out.append({"q": q & 0xF})
+
+            # Optional mid input changes occur AFTER sampling, before the other
+            # edge, and are carried to the start of the next row.
+            if "mid" in row and isinstance(row["mid"], dict):
+                mid = row["mid"]
+                if "reset" in mid:
+                    reset = mid["reset"] & 1
+        else:
+            # Fallback for a bare reset value row.
+            reset = int(row) & 1
+            if reset == 1:
+                q = 0  # sync_reset_high
+            else:
+                q = (q + 1) % 10  # count_mod_10
+            out.append({"q": q & 0xF})
+    return out

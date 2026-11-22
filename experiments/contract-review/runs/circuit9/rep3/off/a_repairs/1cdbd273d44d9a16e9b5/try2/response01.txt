@@ -1,0 +1,22 @@
+```python
+def reference(vectors):
+    # Contract rules:
+    # hold_when_a_high: on posedge, if a==1, q holds (priority 1)
+    # increment_when_a_low: on posedge, if a==0, q increments mod 8 (priority 1)
+    # reset: none; power-up unspecified -> use 4 as initial (matches spec waveform)
+    # mid: mid changes occur after sampling, carried to next row (handled by
+    #      reading a from the current row's vector at posedge time)
+    q = 4  # power-up unspecified; concrete choice consistent with spec
+    out = []
+    for v in vectors:
+        a = v.get('a', 0)
+        # posedge sampling: apply rule based on a
+        if a == 1:
+            # hold_when_a_high
+            pass
+        else:
+            # increment_when_a_low
+            q = (q + 1) & 0x7
+        out.append({'q': q})
+    return out
+```

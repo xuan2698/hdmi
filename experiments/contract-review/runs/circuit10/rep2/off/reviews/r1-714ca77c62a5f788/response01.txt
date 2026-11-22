@@ -1,0 +1,135 @@
+{
+  "coverage": {
+    "S01": ["R1", "R2"],
+    "S02": ["R1", "R2"],
+    "S03": ["R1"],
+    "S04": ["unrelated"],
+    "S05": ["unrelated"],
+    "S06": ["unrelated"],
+    "S07": ["unrelated"],
+    "S08": ["unrelated"],
+    "S09": ["R1", "R2"],
+    "S10": ["R1", "R2"],
+    "S11": ["R1", "R2"],
+    "S12": ["R1", "R2"],
+    "S13": ["R1", "R2"],
+    "S14": ["R1", "R2"],
+    "S15": ["R1", "R2"],
+    "S16": ["R1", "R2"],
+    "S17": ["R1", "R2"],
+    "S18": ["R1", "R2"],
+    "S19": ["R1", "R2"],
+    "S20": ["R1", "R2"],
+    "S21": ["R1", "R2"],
+    "S22": ["R1", "R2"],
+    "S23": ["R1", "R2"],
+    "S24": ["R1", "R2"],
+    "S25": ["R1", "R2"],
+    "S26": ["R1", "R2"],
+    "S27": ["R1", "R2"],
+    "S28": ["R1", "R2"],
+    "S29": ["R1", "R2"],
+    "S30": ["R1", "R2"],
+    "S31": ["R1", "R2"],
+    "S32": ["R1", "R2"],
+    "S33": ["R1", "R2"],
+    "S34": ["R1", "R2"],
+    "S35": ["R1", "R2"],
+    "S36": ["R1", "R2"],
+    "S37": ["R1", "R2"],
+    "S38": ["R1", "R2"],
+    "S39": ["R1", "R2"],
+    "S40": ["R1", "R2"],
+    "S41": ["R1", "R2"],
+    "S42": ["R1", "R2"],
+    "S43": ["R1", "R2"],
+    "S44": ["R1", "R2"]
+  },
+  "issues": [
+    {
+      "issue_id": "I1",
+      "rule_id": "R1",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "R1 example expected state sequence is wrong for XOR next-state: inputs (0,1)->1, (1,0)->1, (1,1)->0, but expected lists {1},{1},{0} which is correct only if first vector's next state is shown; however the example omits initial state and the spec waveform shows state at posedge equals a^b of that same sampled row, not previous row. R1 example is internally consistent with next-state=a^b but contradicts spec waveform timing where state at 15ns is 0 for a=0,b=0 (a^b=0) and at 45ns state=1 for a=0,b=1 (a^b=1). No contradiction in values, but R1 example does not include initial state and expected length equals vectors, implying state after each vector; that matches spec. No material issue here.",
+      "spec_evidence": "",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I2",
+      "rule_id": "R1",
+      "type": "grounding",
+      "severity": "high",
+      "detail": "R1 condition 'next state = a XOR b' is not verbatim in spec; spec only says one flip-flop and shows waveform. The XOR behavior is inferred from waveform, not quoted. spec_quote 'one bit of memory' does not support XOR. Grounding is weak but waveform evidence supports XOR. Mark as grounding issue because rule claims spec_quote that does not contain the condition.",
+      "spec_evidence": "one bit of memory (i.e., one flip-flop)",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I3",
+      "rule_id": "R2",
+      "type": "grounding",
+      "severity": "high",
+      "detail": "R2 condition 'q = a XOR b' is not verbatim in spec; spec only says combinational logic. The XOR behavior is inferred from waveform. spec_quote 'The circuit consists of combinational logic' does not support XOR. Grounding is weak but waveform evidence supports XOR.",
+      "spec_evidence": "The circuit consists of combinational logic",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I4",
+      "rule_id": "R1",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec waveform shows state at posedge clk equals a^b of the same sampled row (e.g., at 45ns a=0,b=1 -> state=1). Contract R1 says 'next state = a XOR b (state updates to a^b on posedge clk)' with visible 'next_cycle'. This could mean state visible after edge reflects a^b of inputs sampled at that edge (same cycle) or inputs from previous cycle (next cycle). The waveform supports same-edge sampling. Alternative semantics: state updates to a^b of inputs from previous posedge (delayed by one cycle). Distinguishing sequence: start state=0; apply a=0,b=1 at posedge -> under same-edge state becomes 1, under delayed state remains 0; next posedge a=0,b=0 -> same-edge state becomes 0, delayed state becomes 1.",
+      "spec_evidence": "// 45ns            1               0               1               0               1",
+      "alternative": "state updates to a^b of inputs from previous posedge (one-cycle delay)",
+      "sequence": [
+        {"a": 0, "b": 1},
+        {"a": 0, "b": 0}
+      ]
+    },
+    {
+      "issue_id": "I5",
+      "rule_id": "R2",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec waveform shows q equals a^b of current inputs at all times (e.g., at 45ns a=0,b=1 -> q=1; at 65ns a=1,b=1 -> q=0). Contract R2 says q = a XOR b combinational same_cycle. This matches waveform. However, spec also shows q at 15ns a=0,b=0 -> q=0, at 25ns a=0,b=0 -> q=0, etc. No ambiguity. But note at 5ns a=1,b=x -> q=x, at 0ns a=1,b=x -> q=x. Contract does not specify behavior for x inputs. Alternative semantics: q = a XOR b only for defined inputs, undefined for x. Distinguishing sequence: apply a=1,b=x -> contract would need to define q; spec shows q=x. This is a coverage gap for x handling.",
+      "spec_evidence": "// 5ns             1               1               x               x               x",
+      "alternative": "q is x when any input is x",
+      "sequence": [
+        {"a": 1, "b": "x"}
+      ]
+    },
+    {
+      "issue_id": "I6",
+      "rule_id": "global",
+      "type": "coverage",
+      "severity": "medium",
+      "detail": "Spec includes x values for b and state/q at early times (S06-S08). Contract rules do not specify behavior for x inputs or initial state. R1/R2 examples only use 0/1. This is a coverage gap for x semantics and initial state.",
+      "spec_evidence": "// 0ns             0               1               x               x               x",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I7",
+      "rule_id": "R1",
+      "type": "spec_example",
+      "severity": "high",
+      "detail": "Derived outputs from spec waveform for state: at each posedge, state = a^b of that row. Check: 15ns a=0,b=0 -> state=0 (matches S09); 45ns a=0,b=1 -> state=1 (matches S15); 55ns a=1,b=0 -> state=1 (matches S17); 65ns a=1,b=1 -> state=0 (matches S19); 75ns a=0,b=0 -> state=0 but spec S21 shows state=1. Contradiction! At 75ns a=0,b=0, a^b=0, but spec state=1. This breaks XOR next-state rule. Let's recheck: S21: 75ns clk=1 a=0 b=0 state=1 q=1. If state updates on posedge to a^b, should be 0. So R1 condition is contradicted by spec waveform at 75ns. Also at 85ns a=1,b=1 -> state=0 (matches S23); 95ns a=1,b=1 -> state=1 but a^b=0, spec S25 state=1. Contradiction again. At 105ns a=1,b=1 -> state=1 (S27) but a^b=0. At 115ns a=1,b=0 -> state=1 (S29) a^b=1 matches. At 125ns a=0,b=1 -> state=1 (S31) a^b=1 matches. At 135ns a=0,b=0 -> state=1 (S33) a^b=0 contradiction. At 145ns a=0,b=0 -> state=0 (S35) a^b=0 matches. So R1 XOR next-state is inconsistent with spec waveform at multiple points. The actual next-state appears to be something else, perhaps state = a OR b? Check: 75ns a=0,b=0 -> state=1 not OR. Maybe state = previous state XOR a XOR b? Let's derive: state at posedge seems to be q of previous row? At 75ns state=1, previous q at 70ns=0. Not. Let's list state at posedge: 15:0, 45:1, 55:1, 65:0, 75:1, 85:0, 95:1, 105:1, 115:1, 125:1, 135:1, 145:0, 155:0, 165:0, 175:0, 185:0. Inputs a,b at those times: (0,0)->0, (0,1)->1, (1,0)->1, (1,1)->0, (0,0)->1, (1,1)->0, (1,1)->1, (1,1)->1, (1,0)->1, (0,1)->1, (0,0)->1, (0,0)->0, (0,0)->0, (0,0)->0, (0,0)->0, (0,0)->0. This does not match XOR. It might be state = a OR b? (0,0)->0, (0,1)->1, (1,0)->1, (1,1)->1 but spec 65ns (1,1)->0, so no. Maybe state = a AND b? (0,0)->0, (0,1)->0 but spec 45ns (0,1)->1, no. Maybe state = previous state XOR a XOR b? Let's test: start state=0 at 15ns? At 15ns a=0,b=0, state=0. At 45ns a=0,b=1, prev state=0, 0^0^1=1 -> state=1 matches. At 55ns a=1,b=0, prev state=1, 1^1^0=0 but spec state=1. No. Maybe state = a XOR b XOR previous q? At 55ns prev q at 50ns=1, a=1,b=0 -> 1^1^0=0, spec state=1. No. Let's check if state at posedge equals q of same row? At 45ns q=1, state=1; at 55ns q=1, state=1; at 65ns q=0, state=0; at 75ns q=1, state=1; at 85ns q=0, state=0; at 95ns q=1, state=1; at 105ns q=1, state=1; at 115ns q=0, state=1? S29: 115ns a=1,b=0 state=1 q=0. So state != q at 115ns. At 125ns a=0,b=1 state=1 q=0? S31: 125ns a=0,b=1 state=1 q=0. So state != q. At 135ns a=0,b=0 state=1 q=1? S33: 135ns a=0,b=0 state=1 q=1. At 145ns a=0,b=0 state=0 q=0. So state seems to be previous state? Let's track state: at 15ns state=0. At 45ns state=1. At 55ns state=1. At 65ns state=0. At 75ns state=1. At 85ns state=0. At 95ns state=1. At 105ns state=1. At 115ns state=1. At 125ns state=1. At 135ns state=1. At 145ns state=0. At 155ns state=0. At 165ns state=0. At 175ns state=0. At 185ns state=0. This looks like state = a XOR b XOR previous state? Test: at 45ns prev state=0, a=0,b=1 -> 0^0^1=1 matches. At 55ns prev state=1, a=1,b=0 -> 1^1^0=0 but spec state=1. No. Maybe state = a OR b? No. Maybe state = a AND b? No. Maybe state = a XOR b but with different sampling? Let's check if state at posedge equals a^b of previous row? At 45ns prev row 40ns a=0,b=0 -> a^b=0, but state=1. No. At 55ns prev row 50ns a=0,b=1 -> a^b=1, state=1 matches. At 65ns prev row 60ns a=1,b=0 -> a^b=1, state=0 no. So not. The waveform seems inconsistent with simple XOR. Possibly state is a flip-flop that updates to a XOR b but the waveform shows state after some other logic? Let's re-examine S21: 75ns clk=1 a=0 b=0 state=1 q=1. If state is flip-flop output, it should be previous state? At 70ns state=0. So state changed to 1 at 75ns despite a=0,b=0. That suggests state update is not a^b. Could be state = a OR b? At 75ns a=0,b=0 -> 0, but state=1. Could be state = NOT(a XOR b)? At 75ns a=0,b=0 -> 1, matches. At 45ns a=0,b=1 -> NOT(1)=0, but state=1. No. Could be state = a XNOR b? No. Let's list state at posedge and a,b: (0,0)->0, (0,1)->1, (1,0)->1, (1,1)->0, (0,0)->1, (1,1)->0, (1,1)->1, (1,1)->1, (1,0)->1, (0,1)->1, (0,0)->1, (0,0)->0, (0,0)->0, (0,0)->0, (0,0)->0, (0,0)->0. This looks like state = a XOR b XOR previous state? Let's test with initial state=0 at 15ns. At 45ns: prev state=0, a=0,b=1 -> 0^0^1=1 matches. At 55ns: prev state=1, a=1,b=0 -> 1^1^0=0 but spec state=1. No. Maybe state = a XOR b XOR q? At 55ns q=1, a=1,b=0 -> 1^1^0=0, spec state=1. No. Maybe state = a OR b OR previous state? At 55ns prev state=1 -> 1, matches. At 65ns prev state=1, a=1,b=1 -> 1, but spec state=0. No. Maybe state = a AND b? No. Let's check if state at posedge equals q of previous row? At 45ns prev q at 40ns=0, state=1 no. At 55ns prev q at 50ns=1, state=1 matches. At 65ns prev q at 60ns=1, state=0 no. So not. The waveform seems to have state that is not simply a^b. Possibly the spec waveform is for a different circuit? But contract claims XOR. This is a major inconsistency. I'll report as spec_example issue: R1 XOR next-state contradicts spec waveform at multiple points (e.g., 75ns a=0,b=0 state=1 but XOR=0; 95ns a=1,b=1 state=1 but XOR=0; 105ns a=1,b=1 state=1 but XOR=0; 135ns a=0,b=0 state=1 but XOR=0).",
+      "spec_evidence": "// 75ns            1               0               0               1               1",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I8",
+      "rule_id": "R2",
+      "type": "spec_example",
+      "severity": "high",
+      "detail": "Derived outputs from spec waveform for q: q = a XOR b of current inputs. Check: 15ns a=0,b=0 -> q=0 (S09 q=0 matches); 45ns a=0,b=1 -> q=1 (S15 q=1 matches); 55ns a=1,b=0 -> q=1 (S17 q=1 matches); 65ns a=1,b=1 -> q=0 (S19 q=0 matches); 75ns a=0,b=0 -> q=0 but spec S21 q=1. Contradiction! At 75ns a=0,b=0, a^b=0, but spec q=1. Also at 85ns a=1,b=1 -> q=0 (S23 q=0 matches); 95ns a=1,b=1 -> q=0 but spec S25 q=1. Contradiction. At 105ns a=1,b=1 -> q=0 but spec S27 q=1. At 115ns a=1,b=0 -> q=1 but spec S29 q=0. Contradiction. At 125ns a=0,b=1 -> q=1 but spec S31 q=0. Contradiction. At 135ns a=0,b=0 -> q=0 but spec S33 q=1. Contradiction. At 145ns a=0,b=0 -> q=0 (S35 q=0 matches). So R2 XOR combinational is inconsistent with spec waveform at multiple points. The actual q appears to be something else, possibly q = state? At 75ns state=1, q=1; at 115ns state=1, q=0 so not always. Possibly q = a XOR b XOR state? At 75ns a=0,b=0,state=1 -> 1, matches q=1. At 115ns a=1,b=0,state=1 -> 0, matches q=0. At 125ns a=0,b=1,state=1 -> 0, matches q=0. At 135ns a=0,b=0,state=1 -> 1, matches q=1. At 45ns a=0,b=1,state=1 -> 0, but spec q=1. No. Maybe q = a XOR b XOR previous state? At 45ns prev state=0, a=0,b=1 -> 1, matches q=1. At 55ns prev state=1, a=1,b=0 -> 0, but spec q=1. No. The waveform seems inconsistent with simple XOR. Report as spec_example issue.",
+      "spec_evidence": "// 75ns            1               0               0               1               1",
+      "alternative": "",
+      "sequence": []
+    }
+  ]
+}

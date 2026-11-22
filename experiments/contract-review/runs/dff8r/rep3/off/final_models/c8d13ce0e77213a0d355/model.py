@@ -1,0 +1,27 @@
+def reference(vectors):
+    # State: q_state holds the 8-bit registered output.
+    # Power-up is unspecified; we choose 0 as a concrete initial value.
+    q_state = 0
+
+    results = []
+
+    for row in vectors:
+        # R1/R2: sample inputs at posedge clk (values driven before the edge).
+        d = row['d'] & 0xFF
+        reset = row['reset'] & 0x1
+
+        # R1: active high synchronous reset -> q becomes 0 at posedge.
+        # R2: otherwise q captures d at posedge.
+        if reset == 1:
+            q_state = 0
+        else:
+            q_state = d
+
+        # Output visible same cycle after the sampled posedge.
+        results.append({'q': q_state & 0xFF})
+
+        # Mid changes occur AFTER sampling; they are carried to the start
+        # of the next row, so no action needed here (next row's inputs
+        # already reflect the carried values).
+
+    return results

@@ -1,0 +1,88 @@
+```python
+def reference(vectors):
+    # Initial state for q (power-up unspecified, choose 0 as concrete)
+    q = 0
+    # Persistent input state to carry mid changes
+    current_inputs = {'reset': 0}
+    results = []
+
+    for row in vectors:
+        # Apply inputs driven before the sampled posedge edge
+        for key, val in row.items():
+            if key == 'mid' or key == 'clk':
+                continue
+            if key == 'reset':
+                current_inputs[key] = val & 1
+
+        # Sample after posedge
+        reset_val = current_inputs.get('reset', 0)
+
+        if reset_val:
+            # rule reset: synchronous active-high reset
+            q_next = 0
+        else:
+            # rule bcd_increment: BCD add 1 modulo 10000
+            ones = q & 0xF
+            tens = (q >> 4) & 0xF
+            hundreds = (q >> 8) & 0xF
+            thousands = (q >> 12) & 0xF
+
+            carry = 1
+            ones += carry
+            if ones > 9:
+                ones = 0
+                carry = 1
+            else:
+                carry = 0
+
+            if carry:
+                tens += 1
+                if tens > 9:
+                    tens = 0
+                    carry = 1
+                else:
+                    carry = 0
+            else:
+                carry = 0
+
+            if carry:
+                hundreds += 1
+                if hundreds > 9:
+                    hundreds = 0
+                    carry = 1
+                else:
+                    carry = 0
+            else:
+                carry = 0
+
+            if carry:
+                thousands += 1
+                if thousands > 9:
+                    thousands = 0  # wrap modulo 10000
+
+            q_next = (thousands << 12) | (hundreds << 8) | (tens << 4) | ones
+
+        q = q_next & 0xFFFF
+
+        # rule ena_combinational: combinational enable from q after edge
+        ones = q & 0xF
+        tens = (q >> 4) & 0xF
+        hundreds = (q >> 8) & 0xF
+        ena = 0
+        if ones == 9:
+            ena |= 1 << 0
+        if tens == 9 and ones == 9:
+            ena |= 1 << 1
+        if hundreds == 9 and tens == 9 and ones == 9:
+            ena |= 1 << 2
+
+        results.append({'q': q, 'ena': ena})
+
+        # Apply optional mid changes AFTER sampling, carried to next row
+        if 'mid' in row and isinstance(row['mid'], dict):
+            for key, val in row['mid'].items():
+                if key == 'reset':
+                    current_inputs[key] = val & 1
+
+    return results
+```

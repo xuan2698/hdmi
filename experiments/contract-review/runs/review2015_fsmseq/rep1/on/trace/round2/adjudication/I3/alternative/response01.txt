@@ -1,0 +1,96 @@
+def reference(vectors):
+    # State encoding for the 1101 sequence detector.
+    S0 = 0
+    S1 = 1
+    S11 = 2
+    S110 = 3
+    FOUND = 4
+
+    state = S0
+    start_shifting = 0
+
+    # Carried mid-cycle input values; used when later rows omit an input.
+    cur_reset = 0
+    cur_data = 0
+
+    outputs = []
+
+    for row in vectors:
+        # Apply driven row values before the sampled posedge.
+        if "reset" in row:
+            cur_reset = row["reset"]
+        if "data" in row:
+            cur_data = row["data"]
+
+        reset = cur_reset
+        data = cur_data
+
+        # Sample the posedge: compute output visible after this edge using
+        # the pre-edge state and sampled inputs.
+        if reset == 1:
+            # R_RESET: reset has priority 0. Per the supplied candidate
+            # interpretation, start_shifting retains its previous 1 during
+            # reset high and clears on the first reset==0 posedge.
+            next_start = start_shifting
+            next_state = S0
+        else:
+            # reset == 0
+            # R_COMPLETE_1101: priority 1, same-cycle detection of 1101.
+            # R_HOLD_FOUND: priority 2, hold start_shifting once FOUND.
+            # R_ZERO_NOT_FOUND: priority 3, otherwise start_shifting is 0.
+            if state == S110 and data == 1:
+                next_start = 1
+            elif state == FOUND:
+                next_start = 1
+            else:
+                next_start = 0
+
+            # Explicit FSM transitions for 1101.
+            if state == S0:
+                if data == 1:
+                    next_state = S1
+                else:
+                    next_state = S0
+            elif state == S1:
+                if data == 1:
+                    next_state = S11
+                else:
+                    next_state = S0
+            elif state == S11:
+                if data == 1:
+                    next_state = S11
+                else:
+                    next_state = S110
+            elif state == S110:
+                if data == 1:
+                    next_state = FOUND
+                else:
+                    next_state = S0
+            else:  # FOUND
+                next_state = FOUND
+
+        # Update state and output after posedge settles.
+        state = next_state
+        start_shifting = next_start
+        outputs.append({"start_shifting": start_shifting})
+
+        # Process optional mid-cycle input changes AFTER sampling, carried to
+        # the start of the next row. Support a "mid" dict plus common
+        # mid-key naming variants.
+        if "mid" in row and isinstance(row["mid"], dict):
+            mid = row["mid"]
+            if "reset" in mid:
+                cur_reset = mid["reset"]
+            if "data" in mid:
+                cur_data = mid["data"]
+
+        if "reset_mid" in row:
+            cur_reset = row["reset_mid"]
+        if "data_mid" in row:
+            cur_data = row["data_mid"]
+        if "mid_reset" in row:
+            cur_reset = row["mid_reset"]
+        if "mid_data" in row:
+            cur_data = row["mid_data"]
+
+    return outputs

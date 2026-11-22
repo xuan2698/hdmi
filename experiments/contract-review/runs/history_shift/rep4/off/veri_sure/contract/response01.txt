@@ -1,0 +1,35 @@
+```json
+{
+  "module_name": "top_module",
+  "io": [
+    {"name": "clk", "dir": "input", "width": 1, "description": "Clock; positive edge samples state."},
+    {"name": "areset", "dir": "input", "width": 1, "description": "Asynchronous positive-edge reset; clears history register to zero."},
+    {"name": "predict_valid", "dir": "input", "width": 1, "description": "Indicates a branch prediction is being made; shift predict_taken into history."},
+    {"name": "predict_taken", "dir": "input", "width": 1, "description": "Predicted direction of the youngest branch; shifted into LSB of history."},
+    {"name": "train_mispredicted", "dir": "input", "width": 1, "description": "Indicates a branch misprediction; load history from train_history concatenated with train_taken."},
+    {"name": "train_taken", "dir": "input", "width": 1, "description": "Actual direction of the mispredicted branch; becomes new LSB of history."},
+    {"name": "train_history", "dir": "input", "width": 32, "description": "History before the mispredicted branch; upper 32 bits of the restored history."},
+    {"name": "predict_history", "dir": "output", "width": 32, "description": "Current branch history register value; bit 0 is the youngest branch direction."}
+  ],
+  "clocking": {
+    "clock": {"name": "clk", "edge": "posedge"},
+    "reset": {"name": "areset", "active": "high", "kind": "asynchronous"}
+  },
+  "timing": {
+    "outputs": {
+      "predict_history": {"latency_cycles": 0}
+    }
+  },
+  "functional_summary": {
+    "overview": "32-bit global branch history shift register with prediction shifting and misprediction rollback. Asynchronously reset to zero. On each posedge clk, if train_mispredicted is asserted, load history with {train_history, train_taken} (misprediction takes precedence over prediction). Otherwise, if predict_valid is asserted, shift history left by one and insert predict_taken at LSB.",
+    "rules": [
+      "areset asserted asynchronously clears predict_history to 0.",
+      "On posedge clk with train_mispredicted=1: predict_history <= {train_history[31:0], train_taken} (train_taken becomes bit 0).",
+      "On posedge clk with train_mispredicted=0 and predict_valid=1: predict_history <= {predict_history[30:0], predict_taken}.",
+      "On posedge clk with train_mispredicted=0 and predict_valid=0: predict_history holds its value.",
+      "If both train_mispredicted and predict_valid are asserted, misprediction takes precedence and prediction is ignored.",
+      "predict_history[0] represents the direction of the youngest branch."
+    ]
+  }
+}
+```

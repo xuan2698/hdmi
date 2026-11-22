@@ -1,0 +1,107 @@
+We need to implement four independent reference models, each matching the exact state semantics described. Let me analyze each variant carefully.
+
+**Common structure:** Two states S0 (no 1 seen yet, pass-through) and S1 (1 seen, complement). Async reset to S0 with z=0. Output is combinational based on current state and x.
+
+**Key differences between variants:**
+
+1. **26f3c9273e5a2465e3**: Standard Moore. In S0, z=x. In S1, z=NOT x. Transition on posedge: S0→S1 if x=1. Output visible same cycle based on current state. Reset forces z=0 same cycle.
+
+2. **e45e480faf3f372e6b**: Same as above, but reset description clarifies "no combinational conversion occurs on deassertion itself" — meaning after reset release, the first cycle uses S0 with z=x. Same behavior as #1 essentially.
+
+3. **b754dce135105e769c**: Same rules, but R3 clarifies transition takes effect after current cycle's output. Same behavior.
+
+4. **46b2a8f318b8241425**: R2 example shows expected `[{z:0},{z:0},{z:1},{z:0}]` for inputs `[1,1,0,1]` — this is DIFFERENT. Let's check: if in S1 with x=1, NOT x = 0. But expected first is 0... wait, let's trace. Actually the example vectors start fresh. Let me re-read: vectors `[{x:1},{x:1},{x:0},{x:1}]`, expected `[{z:0},{z:0},{z:1},{z:0}]`. 
+
+Hmm, if starting in S0: cycle1 x=1 → z=1 (pass through), then S1. But expected z=0. That doesn't match S0 start. Unless... this example assumes already in S1? If in S1: x=1→z=0, x=1→z=0, x=0→z=1, x=1→z=0. Yes! That matches `[0,0,1,0]`. So R2's example in variant 4 assumes starting in S1. That's just an example quirk, not a semantic change. The rule text is identical.
+
+Wait, but variant 1's R2 example: vectors `[1,1,0,1]`, expected `[1,0,1,0]`. That's S0 start: x=1→z=1→S1, x=1→z=0, x=0→z=1, x=1→z=0. Yes matches S0 start.
+
+So variant 4's R2 example is inconsistent with S0 start but the rule text is the same. This is likely just an example error, but since we must implement "exact state semantics," and the rule text is identical, the behavior should be the same. However, the task says "implement its exact state semantics independently" — the semantics are defined by states + rules text, not examples. The examples are illustrative. But to be safe, let me check if there's any real difference.
+
+Actually, re-reading: all four have identical state definitions and identical rule conditions. The only textual differences are clarifications in R3 and reset descriptions that don't change behavior. The examples differ but examples aren't normative.
+
+Hmm, but the task says "implement its exact state semantics independently with the same interface." Since semantics are identical, all four implementations would be identical. But that seems odd for a task. Let me look more carefully...
+
+Variant 4's R2 example: `[{z:0},{z:0},{z:1},{z:0}]` for `[1,1,0,1]`. If we're in S1 at start: 1→0, 1→0, 0→1, 1→0. ✓. So this example just starts in S1. Not a semantic difference.
+
+Given all four have identical normative semantics, I'll implement them all the same way. But wait — maybe the task intends for me to notice subtle differences. Let me re-read variant 4's R2 example once more... it's the only anomaly. Since examples are non-normative and the rule text matches, I'll treat all as identical.
+
+Actually, let me reconsider. The task says "For every assigned item, implement its exact state semantics independently." Perhaps the intent is that they ARE all the same and I should produce identical code. That's fine.
+
+Let me write the reference function. The interface: `reference(vectors)` where vectors is a list of dicts with keys 'areset' and 'x'. Returns list of dicts with 'z'.
+
+Semantics per cycle:
+- If areset==1: state=S0, z=0 (async, same cycle)
+- Else: z = x if state==S0 else (1-x). Then on posedge (end of cycle): if state==S0 and x==1: state=S1.
+
+Wait — need to be careful about ordering. The output is combinational based on current state and current x. The state update happens at posedge. So for each row: compute z from current state and x, then update state.
+
+But reset is async: if areset=1, z=0 and state=S0 immediately (same cycle). Then next cycle if areset=0, we start from S0.
+
+Let me code:
+
+```python
+def reference(vectors):
+    state = 0  # 0=S0, 1=S1
+    out = []
+    for v in vectors:
+        areset = v['areset']
+        x = v['x']
+        if areset:
+            state = 0
+            z = 0
+        else:
+            if state == 0:
+                z = x
+            else:
+                z = 1 - x
+            # posedge update
+            if state == 0 and x == 1:
+                state = 1
+        out.append({'z': z})
+    return out
+```
+
+Wait, but the state update should happen at posedge which is at the end of the cycle. The z is computed before the update. That's what I have. But there's a subtlety: if areset is asserted mid-cycle (async), it takes effect immediately. In our model, areset is sampled per row, so if areset=1 in a row, we reset. That matches "asynchronous reset asserted: machine returns to S0; z forced to 0" same cycle.
+
+But what about the transition when areset=0 but was 1 previous cycle? We start from S0 (since reset set it to S0). Good.
+
+One more check: "first_released_cycle: The first posedge clk after areset is deasserted samples x as the LSB and begins conversion from S0". So after reset release, first cycle: state=S0, z=x, then update. ✓.
+
+Now, is there any difference for variant 4? The R2 example suggests maybe the first 1 is NOT passed through? No — R1 example in all variants shows `[0,0,1]` → `[0,0,1]`, so first 1 passes through. Variant 4's R1 example is the same. So variant 4's R2 example is just starting from S1. No semantic difference.
+
+Therefore all four implementations are identical. Let me produce the JSON.
+
+Actually, let me double-check the "mid" note: "Optional mid-cycle input changes occur after the sampling edge and are carried to the start of the next row; they do not affect the current row's sampled values." This just means each row's x is sampled at the posedge, and mid-cycle changes apply to next row. Our model already treats each row's x as the sampled value. ✓.
+
+Let me also verify R4 example: `[{areset:0,x:1},{areset:1,x:0},{areset:0,x:0}]` → `[{z:1},{z:0},{z:0}]`. 
+- Cycle1: areset=0, state=S0, z=x=1, update: x=1→state=S1. ✓ z=1.
+- Cycle2: areset=1, state=S0, z=0. ✓
+- Cycle3: areset=0, state=S0, z=x=0, update: x=0→stay S0. ✓ z=0.
+Matches.
+
+R3 example: `[{x:0},{x:1},{x:0}]` → `[{z:0},{z:1},{z:1}]`.
+- C1: S0, z=0, x=0→stay S0. ✓
+- C2: S0, z=1, x=1→S1. ✓
+- C3: S1, z=NOT 0=1. ✓
+Matches.
+
+R1 example: `[0,0,1]` → `[0,0,1]`. ✓
+R2 example (variant 1): `[1,1,0,1]` → `[1,0,1,0]`. 
+- C1: S0, z=1, x=1→S1. ✓
+- C2: S1, z=0. ✓
+- C3: S1, z=1. ✓
+- C4: S1, z=0. ✓
+Matches.
+
+All good. Now produce JSON with four identical implementations (since semantics are identical).
+
+```json
+{"models":{"26f3c9273e5a2465e3":"def reference(vectors):\n    state = 0\n    out = []\n    for v in vectors:\n        areset = v['areset']\n        x = v['x']\n        if areset:\n            state = 0\n            z = 0\n        else:\n            if state == 0:\n                z = x\n            else:\n                z = 1 - x\n            if state == 0 and x == 1:\n                state = 1\n        out.append({'z': z})\n    return out","e45e480faf3f372e6b":"def reference(vectors):\n    state = 0\n    out = []\n    for v in vectors:\n        areset = v['areset']\n        x = v['x']\n        if areset:\n            state = 0\n            z = 0\n        else:\n            if state == 0:\n                z = x\n            else:\n                z = 1 - x\n            if state == 0 and x == 1:\n                state = 1\n        out.append({'z': z})\n    return out","b754dce135105e769c":"def reference(vectors):\n    state = 0\n    out = []\n    for v in vectors:\n        areset = v['areset']\n        x = v['x']\n        if areset:\n            state = 0\n            z = 0\n        else:\n            if state == 0:\n                z = x\n            else:\n                z = 1 - x\n            if state == 0 and x == 1:\n                state = 1\n        out.append({'z': z})\n    return out","46b2a8f318b8241425":"def reference(vectors):\n    state = 0\n    out = []\n    for v in vectors:\n        areset = v['areset']\n        x = v['x']\n        if areset:\n            state = 0\n            z = 0\n        else:\n            if state == 0:\n                z = x\n            else:\n                z = 1 - x\n            if state == 0 and x == 1:\n                state = 1\n        out.append({'z': z})\n    return out"}}
+```
+
+Wait — I should double check whether variant 4's R2 example implies a different behavior. The example is `[{x:1},{x:1},{x:0},{x:1}]` → `[{z:0},{z:0},{z:1},{z:0}]`. If we start in S0: z=1, then S1: z=0, z=1, z=0 → `[1,0,1,0]`. That does NOT match `[0,0,1,0]`. So the example only matches if starting in S1. But R2's condition says "In state S1: z = NOT x" — the example is meant to illustrate being in S1. So it's fine; the example just doesn't show the transition into S1. The normative rule text is identical to variant 1. So same implementation.
+
+However, to be extra careful: could variant 4 intend that the first 1 is NOT passed through (i.e., z=0 for first 1)? No — R1 example in variant 4 is `[0,0,1]`→`[0,0,1]`, so first 1 passes through as z=1. And R3 example `[0,1,0]`→`[0,1,1]` confirms first 1 gives z=1. So variant 4 is identical.
+
+Final answer as JSON. I'll format the Python strings properly with \n escapes.

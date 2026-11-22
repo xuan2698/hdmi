@@ -1,0 +1,53 @@
+def reference(vectors):
+    # Rule reset: synchronous active-high reset, priority over increment
+    # Rule bcd_increment: BCD add 1 modulo 10000
+    # Rule ena_combinational: compute enables combinationally from q
+    q = 0
+    reset = 0
+    results = []
+    for row in vectors:
+        input_vals = {}
+        mid_vals = {}
+        if isinstance(row, dict):
+            if 'inputs' in row and isinstance(row['inputs'], dict):
+                input_vals = row['inputs']
+            else:
+                for k, v in row.items():
+                    if k != 'mid':
+                        input_vals[k] = v
+            if 'mid' in row and isinstance(row['mid'], dict):
+                mid_vals = row['mid']
+        if 'reset' in input_vals:
+            reset = input_vals['reset'] & 1
+        if reset:
+            q_next = 0
+        else:
+            ones = q & 0xF
+            tens = (q >> 4) & 0xF
+            hundreds = (q >> 8) & 0xF
+            thousands = (q >> 12) & 0xF
+            ones += 1
+            if ones == 10:
+                ones = 0
+                tens += 1
+                if tens == 10:
+                    tens = 0
+                    hundreds += 1
+                    if hundreds == 10:
+                        hundreds = 0
+                        thousands += 1
+                        if thousands == 10:
+                            thousands = 0
+            q_next = (thousands << 12) | (hundreds << 8) | (tens << 4) | ones
+        q = q_next & 0xFFFF
+        ones = q & 0xF
+        tens = (q >> 4) & 0xF
+        hundreds = (q >> 8) & 0xF
+        ena0 = 1 if ones == 9 else 0
+        ena1 = 1 if (tens == 9 and ones == 9) else 0
+        ena2 = 1 if (hundreds == 9 and tens == 9 and ones == 9) else 0
+        ena = ena0 | (ena1 << 1) | (ena2 << 2)
+        results.append({'q': q, 'ena': ena})
+        if 'reset' in mid_vals:
+            reset = mid_vals['reset'] & 1
+    return results

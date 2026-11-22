@@ -1,0 +1,126 @@
+{
+  "ports": {
+    "inputs": {
+      "reset": 1,
+      "in": 32
+    },
+    "outputs": {
+      "out": 32
+    },
+    "clock": "clk"
+  },
+  "states": [
+    {
+      "name": "out_reg",
+      "meaning": "32-bit capture register; each bit remains 1 after a detected 1-to-0 input transition until cleared by synchronous reset.",
+      "update_time": "posedge clk after sampling reset and in",
+      "update_during_reset": true
+    },
+    {
+      "name": "prev_in",
+      "meaning": "32-bit previous sampled input value used to detect 1-to-0 transitions between successive cycles.",
+      "update_time": "posedge clk after sampling in",
+      "update_during_reset": true
+    }
+  ],
+  "rules": [
+    {
+      "id": "sync_reset_clear_out",
+      "outputs": [
+        "out"
+      ],
+      "condition": "reset == 1 at the sampled posedge; out becomes 0",
+      "edge": "posedge",
+      "visible": "same_cycle",
+      "priority": 2,
+      "spec_quote": "active high synchronous reset",
+      "uncertain": false,
+      "example": {
+        "vectors": [
+          {
+            "reset": 1,
+            "in": 7
+          },
+          {
+            "reset": 1,
+            "in": 0
+          }
+        ],
+        "expected": [
+          {
+            "out": 0
+          },
+          {
+            "out": 0
+          }
+        ]
+      }
+    },
+    {
+      "id": "falling_edge_capture_and_hold",
+      "outputs": [
+        "out"
+      ],
+      "condition": "reset == 0 at the sampled posedge; for every bit i, out_next[i] = out[i] OR (prev_in[i] AND (in[i] == 0)); bits already set remain 1",
+      "edge": "posedge",
+      "visible": "same_cycle",
+      "priority": 1,
+      "spec_quote": "capture when the input signal changes from 1 in one clock cycle to 0 the next",
+      "uncertain": true,
+      "example": {
+        "vectors": [
+          {
+            "reset": 1,
+            "in": 1
+          },
+          {
+            "reset": 0,
+            "in": 1
+          },
+          {
+            "reset": 0,
+            "in": 0
+          },
+          {
+            "reset": 0,
+            "in": 0
+          }
+        ],
+        "expected": [
+          {
+            "out": 0
+          },
+          {
+            "out": 0
+          },
+          {
+            "out": 1
+          },
+          {
+            "out": 1
+          }
+        ]
+      }
+    }
+  ],
+  "reset": {
+    "kind": "sync",
+    "name": "reset",
+    "active": "high",
+    "values": {
+      "out": 0
+    },
+    "first_released_cycle": "first sampled posedge with reset == 0; normal falling-edge capture and hold apply on that edge"
+  },
+  "mid": "Optional mid object supplies changed nonclock inputs after the sampled posedge; those changes are carried to the start of the next row as pre-edge input values.",
+  "uncertain": [
+    {
+      "rule_id": "falling_edge_capture_and_hold",
+      "note": "The specification does not explicitly state whether the previous-input history is reset or still updated during synchronous reset. This contract assumes prev_in updates on every posedge, including reset cycles.",
+      "candidates": [
+        "prev_in updates during reset, so a 1-to-0 transition can be captured on the first released posedge",
+        "prev_in is cleared or not updated during reset, so a transition spanning the reset interval is not captured"
+      ]
+    }
+  ]
+}

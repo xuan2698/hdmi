@@ -1,0 +1,42 @@
+def reference(vectors):
+    # R1_async_reset: areset == 1 asynchronously resets history_reg to 0
+    # R2_train_mispredicted_load: at posedge, if train_mispredicted then load ((train_history << 1) | train_taken) & 0xFFFFFFFF
+    # R3_predict_update: at posedge, if no mispredict and predict_valid then shift in predict_taken
+    # R4_hold: otherwise hold previous value
+    history_reg = 0
+    out_list = []
+    for row in vectors:
+        areset = row["areset"]
+        predict_valid = row["predict_valid"]
+        predict_taken = row["predict_taken"]
+        train_mispredicted = row["train_mispredicted"]
+        train_taken = row["train_taken"]
+        train_history = row["train_history"]
+
+        # Apply asynchronous reset or clocked update for this sampled edge
+        if areset == 1:
+            # R1_async_reset: reset overrides all clocked updates
+            history_reg = 0
+        else:
+            if train_mispredicted == 1:
+                # R2_train_mispredicted_load
+                history_reg = ((train_history << 1) | train_taken) & 0xFFFFFFFF
+            elif predict_valid == 1:
+                # R3_predict_update
+                history_reg = ((history_reg << 1) | predict_taken) & 0xFFFFFFFF
+            else:
+                # R4_hold
+                history_reg = history_reg & 0xFFFFFFFF
+
+        # Output sampled after posedge has settled
+        out_list.append({"predict_history": history_reg & 0xFFFFFFFF})
+
+        # Process optional mid-cycle changes after sampling
+        if "mid" in row:
+            mid = row["mid"]
+            # Asynchronous reset assertion takes effect immediately
+            if "areset" in mid and mid["areset"] == 1:
+                history_reg = 0
+            # Other mid changes affect inputs for the next cycle; they are
+            # overridden by the next row's driven values before its posedge.
+    return out_list

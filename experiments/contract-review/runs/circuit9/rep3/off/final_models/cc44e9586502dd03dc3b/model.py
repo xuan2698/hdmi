@@ -1,0 +1,23 @@
+def reference(vectors):
+    # Contract implementation.
+    # State: q is a 3-bit counter, initial value 4 (no reset).
+    # Rule hold_when_a_high: on posedge, if a==1, q holds.
+    # Rule increment_when_a_low: on posedge, if a==0, q increments (3-bit wrap 7->0).
+    # Mid changes occur after sampling, before the other edge, carried to next row.
+    # Each row: values driven before sampled posedge; sample after posedge settles.
+
+    q = 4  # initial state at time 0
+    out = []
+
+    for row in vectors:
+        a = row.get('a', 0)
+        # Sample at posedge: apply transition based on a
+        if a == 1:
+            # hold_when_a_high
+            q = q & 0x7
+        else:
+            # increment_when_a_low (3-bit wrap)
+            q = (q + 1) & 0x7
+        out.append({'q': q})
+
+    return out

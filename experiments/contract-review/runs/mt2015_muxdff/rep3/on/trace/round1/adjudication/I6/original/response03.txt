@@ -1,0 +1,46 @@
+def reference(vectors):
+    # Carried input state; initially all inputs default to 0 unless driven.
+    cur = {'L': 0, 'q_in': 0, 'r_in': 0}
+    result = []
+    for row in vectors:
+        # Row values are driven before the sampled posedge.
+        # They override any carried mid changes from the previous row.
+        for key in ('L', 'q_in', 'r_in'):
+            if key in row:
+                cur[key] = int(row[key]) & 1
+
+        L = cur['L'] & 1
+        q_in = cur['q_in'] & 1
+        r_in = cur['r_in'] & 1
+
+        # rule load_r: condition L == 1, posedge, visible same_cycle, priority 1.
+        if L == 1:
+            Q = r_in
+        # rule hold_q_in: condition L == 0, posedge, visible same_cycle, priority 2.
+        else:
+            Q = q_in
+
+        Q = int(Q) & 1
+        result.append({'Q': Q})
+
+        # Optional mid input changes occur AFTER the posedge sample.
+        # They are carried to the start of the next row.
+        mid = row.get('mid', None)
+        if isinstance(mid, dict):
+            for key in ('L', 'q_in', 'r_in'):
+                if key in mid:
+                    cur[key] = int(mid[key]) & 1
+        elif isinstance(mid, list):
+            for change in mid:
+                if isinstance(change, dict):
+                    for key in ('L', 'q_in', 'r_in'):
+                        if key in change:
+                            cur[key] = int(change[key]) & 1
+
+        # Also accept explicit *_mid keys as an alternative encoding.
+        for key in ('L', 'q_in', 'r_in'):
+            mid_key = key + '_mid'
+            if mid_key in row:
+                cur[key] = int(row[mid_key]) & 1
+
+    return result

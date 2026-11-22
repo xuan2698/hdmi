@@ -1,0 +1,71 @@
+def reference(vectors):
+    # Initial concrete power-up choice: S0 with start_shifting cleared.
+    state = "S0"
+    start_shifting = 0
+    cur_reset = 0
+    cur_data = 0
+    results = []
+
+    for row in vectors:
+        # Drive row input values before the sampled posedge. Any mid changes
+        # from the previous row are carried in cur_* and may be overridden here.
+        if "reset" in row:
+            cur_reset = int(row["reset"]) & 1
+        if "data" in row:
+            cur_data = int(row["data"]) & 1
+
+        # Sampled posedge update.
+        if cur_reset == 1:
+            # r_reset_clear: synchronous active-high reset forces S0 and output 0.
+            state = "S0"
+            start_shifting = 0
+        else:
+            if state == "FOUND":
+                # r_set_or_hold: once FOUND, hold start_shifting at 1.
+                state = "FOUND"
+                start_shifting = 1
+            elif state == "S110" and cur_data == 1:
+                # r_set_or_hold: completing 1101 sets start_shifting same cycle.
+                state = "FOUND"
+                start_shifting = 1
+            else:
+                # r_default_clear: no detection, start_shifting is 0.
+                start_shifting = 0
+
+                if state == "S0":
+                    if cur_data == 1:
+                        state = "S1"
+                    else:
+                        state = "S0"
+                elif state == "S1":
+                    if cur_data == 1:
+                        state = "S11"
+                    else:
+                        state = "S0"
+                elif state == "S11":
+                    if cur_data == 0:
+                        state = "S110"
+                    else:
+                        state = "S11"
+                elif state == "S110":
+                    if cur_data == 1:
+                        # Explicit transition retained for clarity; handled above.
+                        state = "FOUND"
+                        start_shifting = 1
+                    else:
+                        state = "S0"
+                else:
+                    state = "S0"
+
+        results.append({"start_shifting": start_shifting})
+
+        # Optional mid changes occur after sampling and are carried to the
+        # start of the next row's pre-edge inputs.
+        if "mid" in row and isinstance(row["mid"], dict):
+            mid = row["mid"]
+            if "reset" in mid:
+                cur_reset = int(mid["reset"]) & 1
+            if "data" in mid:
+                cur_data = int(mid["data"]) & 1
+
+    return results

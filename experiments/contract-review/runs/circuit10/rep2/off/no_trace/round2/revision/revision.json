@@ -1,0 +1,195 @@
+{
+  "responses": [
+    {
+      "issue_id": "I1",
+      "decision": "accept",
+      "reason": "Waveform shows state at 75ns posedge (a=0,b=0) becomes 1, contradicting a&b; XOR matches.",
+      "spec_quote": "// 75ns            1               0               0               1               1",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R1",
+            "condition"
+          ],
+          "value": "next state = a XOR b (state updates to a^b on posedge clk)"
+        },
+        {
+          "path": [
+            "rules",
+            "R1",
+            "example"
+          ],
+          "value": {
+            "vectors": [
+              {
+                "a": 0,
+                "b": 1
+              },
+              {
+                "a": 1,
+                "b": 0
+              },
+              {
+                "a": 1,
+                "b": 1
+              }
+            ],
+            "expected": [
+              {
+                "state": 1
+              },
+              {
+                "state": 1
+              },
+              {
+                "state": 0
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "issue_id": "I2",
+      "decision": "accept",
+      "reason": "Waveform shows q=1 at 45ns with a=0,b=1, contradicting AND; XOR matches.",
+      "spec_quote": "// 45ns            1               0               1               0               1",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R2",
+            "condition"
+          ],
+          "value": "q = a XOR b (combinational output of current inputs)"
+        },
+        {
+          "path": [
+            "rules",
+            "R2",
+            "example"
+          ],
+          "value": {
+            "vectors": [
+              {
+                "a": 0,
+                "b": 0
+              },
+              {
+                "a": 0,
+                "b": 1
+              },
+              {
+                "a": 1,
+                "b": 1
+              }
+            ],
+            "expected": [
+              {
+                "q": 0
+              },
+              {
+                "q": 1
+              },
+              {
+                "q": 0
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "issue_id": "I3",
+      "decision": "accept",
+      "reason": "Distinguishing sequence a=1,b=1 yields state=0 at 65ns, confirming XOR.",
+      "spec_quote": "// 65ns            1               1               1               0               0",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R1",
+            "condition"
+          ],
+          "value": "next state = a XOR b (state updates to a^b on posedge clk)"
+        }
+      ],
+      "already_applied_by_earlier_issue": true
+    },
+    {
+      "issue_id": "I4",
+      "decision": "accept",
+      "reason": "a=0,b=1 gives q=1 at 45ns, confirming combinational XOR.",
+      "spec_quote": "// 45ns            1               0               1               0               1",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R2",
+            "condition"
+          ],
+          "value": "q = a XOR b (combinational output of current inputs)"
+        }
+      ],
+      "already_applied_by_earlier_issue": true
+    },
+    {
+      "issue_id": "I5",
+      "decision": "accept",
+      "reason": "Rules updated to XOR to match waveform-derived outputs.",
+      "spec_quote": "// 85ns            1               1               1               0               0",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R1",
+            "condition"
+          ],
+          "value": "next state = a XOR b (state updates to a^b on posedge clk)"
+        },
+        {
+          "path": [
+            "rules",
+            "R2",
+            "condition"
+          ],
+          "value": "q = a XOR b (combinational output of current inputs)"
+        }
+      ],
+      "already_applied_by_earlier_issue": true
+    },
+    {
+      "issue_id": "I6",
+      "decision": "accept",
+      "reason": "Quote only grounds flip-flop existence; add waveform-derived quote for next-state function.",
+      "spec_quote": "// 65ns            1               1               1               0               0",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R1",
+            "spec_quote"
+          ],
+          "value": "// 65ns            1               1               1               0               0"
+        }
+      ]
+    },
+    {
+      "issue_id": "I7",
+      "decision": "accept",
+      "reason": "Quote only grounds combinational logic existence; add waveform-derived quote for q function.",
+      "spec_quote": "// 45ns            1               0               1               0               1",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R2",
+            "spec_quote"
+          ],
+          "value": "// 45ns            1               0               1               0               1"
+        }
+      ]
+    }
+  ]
+}

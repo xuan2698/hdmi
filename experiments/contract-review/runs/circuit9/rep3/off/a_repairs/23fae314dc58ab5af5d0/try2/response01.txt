@@ -1,0 +1,47 @@
+```python
+def reference(vectors):
+    # Contract implementation.
+    # State: q (3-bit counter), prev_a (previous sampled a), started (first posedge seen)
+    # Rules:
+    #   hold_when_a_high (priority 1): a==1 on posedge -> q holds (first posedge with a=1 loads 4)
+    #   first_low_after_high_holds (priority 2): a==0 and prev_a==1 -> q holds
+    #   increment_when_a_low (priority 1): a==0 and prev_a==0 -> q = (q+1) mod 8
+    # q is x before first posedge; first posedge with a=1 loads 4.
+    # Mid changes occur after sampling, carried to next row.
+
+    q = None          # unknown before first posedge
+    prev_a = None     # previous sampled a
+    started = False   # whether we've seen a posedge
+
+    results = []
+    for row in vectors:
+        a = row['a']
+
+        # posedge sampling
+        if not started:
+            # first posedge
+            started = True
+            if a == 1:
+                q = 4  # hold_when_a_high: first posedge with a=1 loads 4
+            else:
+                # a==0 on first posedge: no prior a==1, treat as increment from unknown?
+                # Contract: q is x before first posedge; first posedge with a=1 loads 4.
+                # If first posedge has a=0, no rule defines q; keep as 0 (concrete).
+                q = 0
+        else:
+            if a == 1:
+                # hold_when_a_high (priority 1)
+                pass
+            else:
+                if prev_a == 1:
+                    # first_low_after_high_holds (priority 2)
+                    pass
+                else:
+                    # increment_when_a_low (priority 1)
+                    q = (q + 1) % 8
+
+        prev_a = a
+        results.append({'q': q})
+
+    return results
+```

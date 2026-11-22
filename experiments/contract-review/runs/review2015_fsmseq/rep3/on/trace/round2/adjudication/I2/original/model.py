@@ -1,0 +1,73 @@
+def reference(vectors):
+    # State encoding: S0=0, S1=1, S2=2, S3=3, S4=4
+    state = 0
+    start_shifting = 0
+    cur_reset = 0
+    cur_data = 0
+    outputs = []
+
+    for row in vectors:
+        # Each row's values are driven before the sampled posedge.
+        # An explicit field overrides any value carried from a previous mid change.
+        if "reset" in row:
+            cur_reset = row["reset"]
+        if "data" in row:
+            cur_data = row["data"]
+
+        reset = cur_reset
+        data = cur_data
+
+        # R1_reset_clear: synchronous active-high reset forces S0 and start_shifting=0.
+        if reset == 1:
+            state = 0
+            start_shifting = 0
+        else:
+            if state == 0:  # S0
+                if data == 1:
+                    state = 1
+                else:
+                    state = 0
+                start_shifting = 0  # R3_default_zero_while_searching
+            elif state == 1:  # S1
+                if data == 1:
+                    state = 2
+                else:
+                    state = 0
+                start_shifting = 0  # R3_default_zero_while_searching
+            elif state == 2:  # S2
+                if data == 0:
+                    state = 3
+                else:
+                    state = 2
+                start_shifting = 0  # R3_default_zero_while_searching
+            elif state == 3:  # S3
+                if data == 1:
+                    state = 4
+                    start_shifting = 1  # R2_detect_set_and_hold
+                else:
+                    state = 0
+                    start_shifting = 0  # R3_default_zero_while_searching
+            else:  # S4
+                state = 4
+                start_shifting = 1  # R2_detect_set_and_hold
+
+        # Outputs are visible after the sampled edge (same_cycle).
+        outputs.append({"start_shifting": start_shifting})
+
+        # Optional mid changes occur AFTER sampling and are carried to the start of the next row.
+        if "mid" in row:
+            mid = row["mid"]
+            try:
+                _ = mid.get
+                if "reset" in mid:
+                    cur_reset = mid["reset"]
+                if "data" in mid:
+                    cur_data = mid["data"]
+            except:
+                for m in mid:
+                    if "reset" in m:
+                        cur_reset = m["reset"]
+                    if "data" in m:
+                        cur_data = m["data"]
+
+    return outputs

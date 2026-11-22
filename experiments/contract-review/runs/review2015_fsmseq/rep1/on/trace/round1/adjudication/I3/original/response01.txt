@@ -1,0 +1,63 @@
+def reference(vectors):
+    state = "S0"  # concrete power-up/reset state
+    cur = {"reset": 0, "data": 0}
+    result = []
+
+    def apply_mid(m):
+        if isinstance(m, dict):
+            for k, val in m.items():
+                if k in cur:
+                    cur[k] = int(val) & 1
+        elif isinstance(m, (list, tuple)):
+            for item in m:
+                apply_mid(item)
+
+    for v in vectors:
+        # Drive row inputs before the sampled posedge.
+        if isinstance(v, dict):
+            if "reset" in v:
+                cur["reset"] = int(v["reset"]) & 1
+            if "data" in v:
+                cur["data"] = int(v["data"]) & 1
+
+        rst = cur["reset"]
+        dat = cur["data"]
+
+        # R_RESET: active-high synchronous reset has priority and forces S0/start_shifting=0.
+        if rst == 1:
+            next_state = "S0"
+        else:
+            if state == "S0":
+                next_state = "S1" if dat == 1 else "S0"
+            elif state == "S1":
+                next_state = "S11" if dat == 1 else "S0"
+            elif state == "S11":
+                next_state = "S11" if dat == 1 else "S110"
+            elif state == "S110":
+                # R_COMPLETE_1101: S110 with data=1 completes 1101 -> FOUND.
+                next_state = "FOUND" if dat == 1 else "S0"
+            else:  # FOUND
+                # R_HOLD_FOUND: stay FOUND until reset; start_shifting remains 1.
+                next_state = "FOUND"
+
+        state = next_state
+        # R_ZERO_NOT_FOUND: non-completing, non-FOUND states output 0.
+        result.append({"start_shifting": 1 if state == "FOUND" else 0})
+
+        # Optional mid input changes occur AFTER sampling and carry to next row start.
+        if isinstance(v, dict):
+            if "mid" in v:
+                apply_mid(v["mid"])
+            for k, val in v.items():
+                if k == "mid":
+                    continue
+                if k.endswith("_mid"):
+                    base = k[:-4]
+                    if base in cur:
+                        cur[base] = int(val) & 1
+                elif k.startswith("mid_"):
+                    base = k[4:]
+                    if base in cur:
+                        cur[base] = int(val) & 1
+
+    return result

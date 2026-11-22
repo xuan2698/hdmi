@@ -1,0 +1,66 @@
+def reference(vectors):
+    # State: current decade count q.
+    q = 0
+    current_reset = 0
+    out = []
+    for row in vectors:
+        reset_specified = False
+        reset_val = 0
+        mid_specified = False
+        mid_val = None
+
+        # Each row's values are driven before the sampled posedge.
+        try:
+            rv = row.get("reset", None)
+            if rv is not None:
+                reset_val = rv
+                reset_specified = True
+            mv = row.get("mid", None)
+            if mv is not None:
+                mid_val = mv
+                mid_specified = True
+        except:
+            # Support tuple/list rows: (inputs, mid) or scalar reset.
+            try:
+                inputs = row[0]
+                try:
+                    ir = inputs.get("reset", None)
+                    if ir is not None:
+                        reset_val = ir
+                        reset_specified = True
+                except:
+                    reset_val = inputs
+                    reset_specified = True
+                try:
+                    mv = row[1]
+                    if mv is not None:
+                        mid_val = mv
+                        mid_specified = True
+                except:
+                    pass
+            except:
+                reset_val = row
+                reset_specified = True
+
+        if reset_specified:
+            current_reset = reset_val
+
+        # Rule sync_reset_high: reset == 1 implies q = 0 after posedge clk.
+        if current_reset == 1:
+            q = 0
+        else:
+            # Rule count_mod_10: reset == 0 implies q = (previous q + 1) mod 10 after posedge clk.
+            q = (q + 1) % 10
+
+        out.append({"q": q})
+
+        # Optional mid input changes occur AFTER sampling, before the other edge,
+        # and are carried to the start of the next row.
+        if mid_specified:
+            try:
+                if "reset" in mid_val:
+                    current_reset = mid_val["reset"]
+            except:
+                current_reset = mid_val
+
+    return out

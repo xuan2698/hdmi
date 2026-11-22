@@ -1,0 +1,21 @@
+def reference(vectors):
+    # State: q_state holds the 8-bit value stored in the D flip-flops.
+    # Initial value is unspecified at power-up; we start at 0x34 (52) since
+    # reset is synchronous and the first sampled negedge will set it anyway.
+    q_state = 0x34  # R1: reset value 0x34 (52)
+
+    results = []
+    for row in vectors:
+        d = row["d"] & 0xFF
+        reset = row["reset"] & 0x1
+
+        # R1: active high synchronous reset, priority 1, negedge, same_cycle
+        # R2: reset == 0, negedge, same_cycle -> q <= d
+        if reset == 1:
+            q_state = 0x34  # R1
+        else:
+            q_state = d  # R2
+
+        results.append({"q": q_state & 0xFF})
+
+    return results

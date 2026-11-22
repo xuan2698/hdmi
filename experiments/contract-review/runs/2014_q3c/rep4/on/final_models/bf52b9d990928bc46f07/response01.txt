@@ -1,0 +1,98 @@
+```python
+def reference(vectors):
+    # Contract: each row's driven values are present before the sampled posedge.
+    # Contract: optional mid changes occur after sampling and carry to the next row.
+    cur_x = 0
+    cur_y = 0
+    out = []
+
+    for vec in vectors:
+        # Drive row values before the sampled edge.
+        if isinstance(vec, dict):
+            if "x" in vec:
+                cur_x = int(vec["x"]) & 1
+            if "y" in vec:
+                cur_y = int(vec["y"]) & 7
+
+        x = cur_x
+        y = cur_y
+        Y0 = 0
+        z = 0
+
+        if y == 0:
+            if x == 0:
+                # Y0_z_S0_x0
+                Y0 = 0
+                z = 0
+            else:
+                # Y0_z_S0_x1
+                Y0 = 1
+                z = 0
+        elif y == 1:
+            if x == 0:
+                # Y0_z_S1_x0
+                Y0 = 1
+                z = 0
+            else:
+                # Y0_z_S1_x1
+                Y0 = 0
+                z = 0
+        elif y == 2:
+            if x == 0:
+                # Y0_z_S2_x0
+                Y0 = 0
+                z = 0
+            else:
+                # Y0_z_S2_x1
+                Y0 = 1
+                z = 0
+        elif y == 3:
+            if x == 0:
+                # Y0_z_S3_x0
+                Y0 = 1
+                z = 1
+            else:
+                # Y0_z_S3_x1
+                Y0 = 0
+                z = 1
+        elif y == 4:
+            if x == 0:
+                # Y0_z_S4_x0
+                Y0 = 1
+                z = 1
+            else:
+                # Y0_z_S4_x1
+                Y0 = 0
+                z = 1
+        else:
+            # Y0_z_unused: concrete don't-care choice matching the contract example.
+            Y0 = 0
+            z = 0
+
+        out.append({"Y0": Y0 & 1, "z": z & 1})
+
+        # Apply optional mid input changes after sampling; they carry to next row.
+        if isinstance(vec, dict):
+            mid = vec.get("mid")
+            if isinstance(mid, dict):
+                if "x" in mid:
+                    cur_x = int(mid["x"]) & 1
+                if "y" in mid:
+                    cur_y = int(mid["y"]) & 7
+            elif isinstance(mid, (list, tuple)):
+                for change in mid:
+                    if isinstance(change, dict):
+                        if "x" in change:
+                            cur_x = int(change["x"]) & 1
+                        if "y" in change:
+                            cur_y = int(change["y"]) & 7
+                    elif isinstance(change, (list, tuple)) and len(change) >= 2:
+                        key = change[0]
+                        val = change[1]
+                        if key == "x":
+                            cur_x = int(val) & 1
+                        elif key == "y":
+                            cur_y = int(val) & 7
+
+    return out
+```

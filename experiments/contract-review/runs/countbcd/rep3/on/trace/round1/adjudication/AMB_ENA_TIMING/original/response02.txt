@@ -1,0 +1,59 @@
+```python
+def reference(vectors):
+    # Initial state: power-up unspecified, choose concrete 0.
+    q = 0
+    current_reset = 0
+    outputs = []
+    for row in vectors:
+        # Apply row input values before the sampled posedge.
+        if 'reset' in row:
+            current_reset = row['reset']
+        
+        # q_sync_reset: synchronous active-high reset at posedge clk.
+        if current_reset == 1:
+            q = 0
+        else:
+            # q_bcd_count: 4-digit BCD increment at posedge clk.
+            ones = q & 0xF
+            tens = (q >> 4) & 0xF
+            hundreds = (q >> 8) & 0xF
+            thousands = (q >> 12) & 0xF
+            
+            ones += 1
+            if ones == 10:
+                ones = 0
+                tens += 1
+                if tens == 10:
+                    tens = 0
+                    hundreds += 1
+                    if hundreds == 10:
+                        hundreds = 0
+                        thousands += 1
+                        if thousands == 10:
+                            thousands = 0
+            q = (thousands << 12) | (hundreds << 8) | (tens << 4) | ones
+        
+        # ena_upper_digit_increment: combinational from settled q.
+        ones = q & 0xF
+        tens = (q >> 4) & 0xF
+        hundreds = (q >> 8) & 0xF
+        ena = 0
+        if ones == 9:
+            ena = 1
+            if tens == 9:
+                ena = 3
+                if hundreds == 9:
+                    ena = 7
+        
+        # Outputs visible after the posedge and combinational settling.
+        outputs.append({'q': q, 'ena': ena})
+        
+        # Optional mid input changes occur AFTER sampling,
+        # before the other edge, and carry to the next row.
+        if 'mid' in row:
+            mid = row['mid']
+            if 'reset' in mid:
+                current_reset = mid['reset']
+    
+    return outputs
+```

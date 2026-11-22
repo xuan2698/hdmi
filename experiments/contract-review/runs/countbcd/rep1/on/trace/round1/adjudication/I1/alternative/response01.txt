@@ -1,0 +1,81 @@
+```python
+def reference(vectors):
+    # rule reset: synchronous active-high reset; reset has priority over increment
+    # rule bcd_increment: 4-digit BCD counter modulo 10000
+    # rule ena_combinational: reverse mapping interpretation
+    q = 0
+    current_reset = 0
+
+    def bcd_inc(val):
+        ones = val & 0xF
+        tens = (val >> 4) & 0xF
+        hundreds = (val >> 8) & 0xF
+        thousands = (val >> 12) & 0xF
+        ones += 1
+        if ones > 9:
+            ones = 0
+            tens += 1
+            if tens > 9:
+                tens = 0
+                hundreds += 1
+                if hundreds > 9:
+                    hundreds = 0
+                    thousands += 1
+                    if thousands > 9:
+                        thousands = 0
+        return (thousands << 12) | (hundreds << 8) | (tens << 4) | ones
+
+    def calc_ena(val):
+        ones = val & 0xF
+        tens = (val >> 4) & 0xF
+        hundreds = (val >> 8) & 0xF
+        bit2 = 1 if ones == 9 else 0
+        bit1 = 1 if (ones == 9 and tens == 9) else 0
+        bit0 = 1 if (ones == 9 and tens == 9 and hundreds == 9) else 0
+        return (bit2 << 2) | (bit1 << 1) | bit0
+
+    def apply_reset_spec(spec, cur_reset):
+        if isinstance(spec, dict):
+            if 'reset' in spec:
+                cur_reset = int(spec['reset']) & 1
+        elif isinstance(spec, list):
+            for item in spec:
+                cur_reset = apply_reset_spec(item, cur_reset)
+        return cur_reset
+
+    results = []
+    for row in vectors:
+        if isinstance(row, dict):
+            if 'inputs' in row:
+                current_reset = apply_reset_spec(row['inputs'], current_reset)
+            if 'reset' in row:
+                current_reset = int(row['reset']) & 1
+
+        if current_reset == 1:
+            # rule reset
+            q = 0
+        else:
+            # rule bcd_increment
+            q = bcd_inc(q)
+
+        # rule ena_combinational
+        ena = calc_ena(q)
+        results.append({'q': q & 0xFFFF, 'ena': ena & 0x7})
+
+        if isinstance(row, dict):
+            for midkey in ('mid', 'mid_changes', 'after', 'mid_inputs'):
+                if midkey in row:
+                    current_reset = apply_reset_spec(row[midkey], current_reset)
+            for k, v in row.items():
+                if k == 'reset':
+                    continue
+                if k in ('reset_mid', 'reset__mid', 'reset_after', 'reset_mid_change', 'mid_reset'):
+                    current_reset = int(v) & 1
+                elif k.startswith('mid_') and k[4:] == 'reset':
+                    current_reset = int(v) & 1
+                elif k.endswith('_mid') and k[:-4] == 'reset':
+                    current_reset = int(v) & 1
+                elif k.endswith('__mid') and k[:-5] == 'reset':
+                    current_reset = int(v) & 1
+    return results
+```

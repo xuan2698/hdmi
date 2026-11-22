@@ -1,0 +1,45 @@
+def reference(vectors):
+    # Initial documented post-reset state.
+    q = 0
+    results = []
+
+    for row in vectors:
+        # Values for this row are driven before the sampled posedge.
+        reset = row.get("reset", 0)
+
+        # q_sync_reset: synchronous active-high reset has priority at posedge.
+        if reset == 1:
+            q_next = 0
+        else:
+            # q_bcd_count: increment the 4-digit BCD counter at posedge.
+            carry = 1
+            q_next = 0
+            for shift in (0, 4, 8, 12):
+                digit = (q >> shift) & 0xF
+                digit += carry
+                if digit >= 10:
+                    digit -= 10
+                    carry = 1
+                else:
+                    carry = 0
+                q_next |= digit << shift
+            q_next &= 0xFFFF
+
+        q = q_next
+
+        # ena_upper_digit_increment: combinational from settled q.
+        ones = q & 0xF
+        tens = (q >> 4) & 0xF
+        hundreds = (q >> 8) & 0xF
+
+        ena = 0
+        if ones == 9:
+            ena |= 1  # ena[0]: tens increment
+            if tens == 9:
+                ena |= 2  # ena[1]: hundreds increment
+                if hundreds == 9:
+                    ena |= 4  # ena[2]: thousands increment
+
+        results.append({"ena": ena, "q": q})
+
+    return results

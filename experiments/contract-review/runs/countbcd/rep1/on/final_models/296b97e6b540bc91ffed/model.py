@@ -1,0 +1,54 @@
+def reference(vectors):
+    # Rule reset: synchronous active-high reset; reset has priority over increment.
+    # Rule bcd_increment: BCD add 1 modulo 10000 when reset is low.
+    # Rule ena_combinational: ena bits are combinational functions of the registered q.
+    q = 0
+    cur_reset = 0
+    result = []
+    for row in vectors:
+        # Inputs driven before the sampled posedge.
+        if "reset" in row:
+            cur_reset = row["reset"]
+
+        # Evaluate posedge: reset has priority, otherwise BCD increment.
+        if cur_reset:
+            q = 0
+        else:
+            ones = q & 0xF
+            tens = (q >> 4) & 0xF
+            hundreds = (q >> 8) & 0xF
+            thousands = (q >> 12) & 0xF
+
+            ones += 1
+            if ones == 10:
+                ones = 0
+                tens += 1
+                if tens == 10:
+                    tens = 0
+                    hundreds += 1
+                    if hundreds == 10:
+                        hundreds = 0
+                        thousands += 1
+                        if thousands == 10:
+                            thousands = 0
+
+            q = ones | (tens << 4) | (hundreds << 8) | (thousands << 12)
+
+        # Combinational enables from the settled registered q.
+        ones = q & 0xF
+        tens = (q >> 4) & 0xF
+        hundreds = (q >> 8) & 0xF
+        e0 = 1 if ones == 9 else 0
+        e1 = 1 if (tens == 9 and ones == 9) else 0
+        e2 = 1 if (hundreds == 9 and tens == 9 and ones == 9) else 0
+        ena = e0 | (e1 << 1) | (e2 << 2)
+
+        result.append({"q": q, "ena": ena})
+
+        # Optional mid input changes occur after sampling and carry to next row.
+        if "mid" in row:
+            mid = row["mid"]
+            if "reset" in mid:
+                cur_reset = mid["reset"]
+
+    return result

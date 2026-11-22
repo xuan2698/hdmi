@@ -1,0 +1,222 @@
+{
+  "coverage": {
+    "S01": [
+      "R1",
+      "R2",
+      "R4",
+      "R5",
+      "R6",
+      "R7"
+    ],
+    "S02": [
+      "R1",
+      "R2",
+      "R3",
+      "R4",
+      "R5",
+      "R6",
+      "R7"
+    ],
+    "S03": [
+      "R3"
+    ],
+    "S04": [
+      "R1",
+      "R2",
+      "R4",
+      "R5",
+      "R6",
+      "R7"
+    ],
+    "S05": [
+      "R1",
+      "R4"
+    ],
+    "S06": [
+      "R1",
+      "R5"
+    ],
+    "S07": [
+      "R1",
+      "R6"
+    ],
+    "S08": [
+      "R2",
+      "R7"
+    ]
+  },
+  "issues": [
+    {
+      "issue_id": "I1",
+      "rule_id": "R1",
+      "type": "grounding",
+      "severity": "high",
+      "detail": "R1 spec_quote 'A | A, B | 0' is not verbatim from spec; spec row is '// A | A, B | 0'.",
+      "spec_evidence": "// A | A, B | 0",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I2",
+      "rule_id": "R2",
+      "type": "grounding",
+      "severity": "high",
+      "detail": "R2 spec_quote 'D | C, B | 1' is not verbatim; spec row is '// D | C, B | 1'.",
+      "spec_evidence": "// D | C, B | 1",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I3",
+      "rule_id": "R3",
+      "type": "grounding",
+      "severity": "high",
+      "detail": "R3 spec_quote 'synchronous active high reset that resets the FSM to state A' is not verbatim; spec says 'Include a synchronous active high reset that resets the FSM to state A.'",
+      "spec_evidence": "Include a synchronous active high reset that resets the FSM to state A.",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I4",
+      "rule_id": "R4",
+      "type": "grounding",
+      "severity": "high",
+      "detail": "R4 spec_quote 'A | A, B | 0' is not verbatim; spec row is '// A | A, B | 0'.",
+      "spec_evidence": "// A | A, B | 0",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I5",
+      "rule_id": "R5",
+      "type": "grounding",
+      "severity": "high",
+      "detail": "R5 spec_quote 'B | C, B | 0' is not verbatim; spec row is '// B | C, B | 0'.",
+      "spec_evidence": "// B | C, B | 0",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I6",
+      "rule_id": "R6",
+      "type": "grounding",
+      "severity": "high",
+      "detail": "R6 spec_quote 'C | A, D | 0' is not verbatim; spec row is '// C | A, D | 0'.",
+      "spec_evidence": "// C | A, D | 0",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I7",
+      "rule_id": "R7",
+      "type": "grounding",
+      "severity": "high",
+      "detail": "R7 spec_quote 'D | C, B | 1' is not verbatim; spec row is '// D | C, B | 1'.",
+      "spec_evidence": "// D | C, B | 1",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I8",
+      "rule_id": "R1",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "R1 is marked uncertain but has edge=combinational and visible=same_cycle asserted; uncertainty contradicts fixed timing fields.",
+      "spec_evidence": "",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I9",
+      "rule_id": "R2",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "R2 is marked uncertain but has edge=combinational and visible=same_cycle asserted; uncertainty contradicts fixed timing fields.",
+      "spec_evidence": "",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I10",
+      "rule_id": "R4",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "R4 example expected out=1 at third vector, but R4 only governs state A transitions; out=1 requires state D, inconsistent with R4's condition.",
+      "spec_evidence": "",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I11",
+      "rule_id": "R6",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "R6 example expected out=1 at third vector while R6 governs state C (output 0); out=1 implies state D, contradicting R6 condition.",
+      "spec_evidence": "",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I12",
+      "rule_id": "R7",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "R7 example expected out=1 at third vector but R7 governs state D transitions; after reset release from A with in=1 then in=0, state is C not D, so out=1 is inconsistent.",
+      "spec_evidence": "",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I13",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Moore output timing (same-cycle vs registered next-cycle) not specified; contract asserts combinational same_cycle for R1/R2 while marking uncertain.",
+      "spec_evidence": "",
+      "alternative": "Registered next-cycle Moore output: out reflects current state delayed by one posedge.",
+      "sequence": [
+        {
+          "in": 1,
+          "reset": 1
+        },
+        {
+          "in": 1,
+          "reset": 0
+        },
+        {
+          "in": 0,
+          "reset": 0
+        }
+      ]
+    },
+    {
+      "issue_id": "I14",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "low",
+      "detail": "Initial state before first reset not specified; examples assume A.",
+      "spec_evidence": "",
+      "alternative": "Initial state D before any reset.",
+      "sequence": [
+        {
+          "in": 0,
+          "reset": 0
+        },
+        {
+          "in": 0,
+          "reset": 0
+        }
+      ]
+    },
+    {
+      "issue_id": "I15",
+      "rule_id": "R3",
+      "type": "consistency",
+      "severity": "medium",
+      "detail": "R3 outputs 'out' with edge=posedge and visible=next_cycle for reset, but reset is a state control not an output rule; output during reset should be combinational from state A.",
+      "spec_evidence": "",
+      "alternative": "",
+      "sequence": []
+    }
+  ]
+}

@@ -1,0 +1,234 @@
+{
+  "coverage": {
+    "S01": ["unrelated"],
+    "S02": ["unrelated"],
+    "S03": ["R2", "R3"],
+    "S04": ["R11", "R12", "R13", "R14"],
+    "S05": ["R11"],
+    "S06": ["R12"],
+    "S07": ["R13", "R14"],
+    "S08": ["R4", "R7", "R8"],
+    "S09": ["R15", "R16"],
+    "S10": ["R21", "R22", "R23"],
+    "S11": ["R5", "R9", "R10"],
+    "S12": ["R9", "R10", "R19"],
+    "S13": ["R18", "R15", "R16"],
+    "S14": ["R24"],
+    "S15": ["R7", "R9", "R11"],
+    "S16": ["unrelated"],
+    "S17": ["R17"],
+    "S18": ["R17", "R20", "R6"],
+    "S19": ["unrelated"],
+    "S20": ["R17"],
+    "S21": ["R1"]
+  },
+  "issues": [
+    {
+      "issue_id": "I1",
+      "rule_id": "R12",
+      "type": "grounding",
+      "severity": "medium",
+      "detail": "R12 is marked uncertain but its spec_quote is verbatim from S06; uncertainty is unsupported.",
+      "spec_evidence": "If it's bumped on the right (by receiving a 1 on bump_right), it will walk left.",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I2",
+      "rule_id": "R22",
+      "type": "grounding",
+      "severity": "medium",
+      "detail": "R22 spec_quote is a spliced paraphrase, not verbatim from S10.",
+      "spec_evidence": "being bumped in the same cycle as ground disappears (but not yet falling), or when the ground reappears while still falling, also does not affect the walking direction",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I3",
+      "rule_id": "R17",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "R17 example has only 3 falling cycles before ground=1, so fall_count<=20; expected SPLAT contradicts rule condition fall_count>20.",
+      "spec_evidence": "if a Lemming falls for more than 20 clock cycles then hits the ground, it will splatter",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I4",
+      "rule_id": "R7",
+      "type": "consistency",
+      "severity": "medium",
+      "detail": "R7 example expected shows aaah=1 on the same cycle ground=0 is sampled, but rule edge is posedge/next_cycle; output should remain walking until next cycle.",
+      "spec_evidence": "when ground=0, the Lemming will fall and say \"aaah!\"",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I5",
+      "rule_id": "R8",
+      "type": "consistency",
+      "severity": "medium",
+      "detail": "R8 example expected shows aaah=1 on the same cycle ground=0 is sampled, but rule edge is posedge/next_cycle.",
+      "spec_evidence": "when ground=0, the Lemming will fall",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I6",
+      "rule_id": "R9",
+      "type": "consistency",
+      "severity": "medium",
+      "detail": "R9 example expected shows digging=1 on the same cycle dig=1 is sampled, but rule edge is posedge/next_cycle.",
+      "spec_evidence": "A Lemming can dig if it is currently walking on ground",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I7",
+      "rule_id": "R10",
+      "type": "consistency",
+      "severity": "medium",
+      "detail": "R10 example expected shows digging=1 on the same cycle dig=1 is sampled, but rule edge is posedge/next_cycle.",
+      "spec_evidence": "it starts digging when dig=1",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I8",
+      "rule_id": "R11",
+      "type": "consistency",
+      "severity": "medium",
+      "detail": "R11 example expected shows direction switch on the same cycle bump_left=1 is sampled, but rule edge is posedge/next_cycle.",
+      "spec_evidence": "if a Lemming is bumped on the left",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I9",
+      "rule_id": "R12",
+      "type": "consistency",
+      "severity": "medium",
+      "detail": "R12 example expected shows direction switch on the same cycle bump_right=1 is sampled, but rule edge is posedge/next_cycle.",
+      "spec_evidence": "If it's bumped on the right (by receiving a 1 on bump_right), it will walk left.",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I10",
+      "rule_id": "R13",
+      "type": "consistency",
+      "severity": "medium",
+      "detail": "R13 example expected shows direction switch on the same cycle both bumps are sampled, but rule edge is posedge/next_cycle.",
+      "spec_evidence": "If it's bumped on both sides at the same time, it will still switch directions",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I11",
+      "rule_id": "R14",
+      "type": "consistency",
+      "severity": "medium",
+      "detail": "R14 example expected shows direction switch on the same cycle both bumps are sampled, but rule edge is posedge/next_cycle.",
+      "spec_evidence": "If it's bumped on both sides at the same time, it will still switch directions",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I12",
+      "rule_id": "R15",
+      "type": "consistency",
+      "severity": "medium",
+      "detail": "R15 example expected shows walk_left=1 on the same cycle ground=1 is sampled, but rule edge is posedge/next_cycle.",
+      "spec_evidence": "When the ground reappears (ground=1), the Lemming will resume walking in the same direction as before the fall",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I13",
+      "rule_id": "R16",
+      "type": "consistency",
+      "severity": "medium",
+      "detail": "R16 example expected shows walk_right=1 on the same cycle ground=1 is sampled, but rule edge is posedge/next_cycle.",
+      "spec_evidence": "resume walking in the same direction as before the fall",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I14",
+      "rule_id": "R18",
+      "type": "consistency",
+      "severity": "medium",
+      "detail": "R18 example expected shows aaah=1 on the same cycle ground=0 is sampled, but rule edge is posedge/next_cycle.",
+      "spec_evidence": "will continue digging until it reaches the other side (ground=0). At that point, since there is no ground, it will fall",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I15",
+      "rule_id": "R23",
+      "type": "consistency",
+      "severity": "medium",
+      "detail": "R23 example expected shows walk_left=1 on the same cycle ground=1 is sampled, but rule edge is posedge/next_cycle.",
+      "spec_evidence": "when the ground reappears while still falling, also does not affect the walking direction",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I16",
+      "rule_id": "R17",
+      "type": "ambiguity",
+      "severity": "high",
+      "detail": "Spec says 'more than 20 clock cycles'; contract uses fall_count>20 but does not define whether the ground-reappear cycle counts as a fall cycle. Alternative: splat when falling for 21 sampled ground=0 cycles before ground=1.",
+      "spec_evidence": "if a Lemming falls for more than 20 clock cycles then hits the ground, it will splatter",
+      "alternative": "Splat only if there are at least 21 consecutive sampled cycles with ground=0 before the first ground=1; 20 cycles resumes walking.",
+      "sequence": [
+        {"areset":0,"bump_left":0,"bump_right":0,"ground":1,"dig":0},
+        {"areset":0,"bump_left":0,"bump_right":0,"ground":0,"dig":0},
+        {"areset":0,"bump_left":0,"bump_right":0,"ground":0,"dig":0},
+        {"areset":0,"bump_left":0,"bump_right":0,"ground":0,"dig":0},
+        {"areset":0,"bump_left":0,"bump_right":0,"ground":0,"dig":0},
+        {"areset":0,"bump_left":0,"bump_right":0,"ground":0,"dig":0},
+        {"areset":0,"bump_left":0,"bump_right":0,"ground":0,"dig":0},
+        {"areset":0,"bump_left":0,"bump_right":0,"ground":0,"dig":0},
+        {"areset":0,"bump_left":0,"bump_right":0,"ground":0,"dig":0},
+        {"areset":0,"bump_left":0,"bump_right":0,"ground":0,"dig":0},
+        {"areset":0,"bump_left":0,"bump_right":0,"ground":0,"dig":0},
+        {"areset":0,"bump_left":0,"bump_right":0,"ground":0,"dig":0},
+        {"areset":0,"bump_left":0,"bump_right":0,"ground":0,"dig":0},
+        {"areset":0,"bump_left":0,"bump_right":0,"ground":0,"dig":0},
+        {"areset":0,"bump_left":0,"bump_right":0,"ground":0,"dig":0},
+        {"areset":0,"bump_left":0,"bump_right":0,"ground":0,"dig":0},
+        {"areset":0,"bump_left":0,"bump_right":0,"ground":0,"dig":0},
+        {"areset":0,"bump_left":0,"bump_right":0,"ground":0,"dig":0},
+        {"areset":0,"bump_left":0,"bump_right":0,"ground":0,"dig":0},
+        {"areset":0,"bump_left":0,"bump_right":0,"ground":0,"dig":0},
+        {"areset":0,"bump_left":0,"bump_right":0,"ground":0,"dig":0},
+        {"areset":0,"bump_left":0,"bump_right":0,"ground":1,"dig":0}
+      ]
+    },
+    {
+      "issue_id": "I17",
+      "rule_id": "R24",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "R24 bundles three behaviors; it does not specify whether dig=1 during the same cycle ground drops from 1 to 0 is ignored (fall precedence) or starts digging. Alternative: dig starts only if ground=1 at sample; ground=0 always falls.",
+      "spec_evidence": "being told to dig when falling or when there is no ground is ignored",
+      "alternative": "If ground=0 and dig=1 while walking, fall (dig ignored); if ground=1 and dig=1, dig.",
+      "sequence": [
+        {"areset":0,"bump_left":0,"bump_right":0,"ground":1,"dig":0},
+        {"areset":0,"bump_left":0,"bump_right":0,"ground":0,"dig":1},
+        {"areset":0,"bump_left":0,"bump_right":0,"ground":0,"dig":0}
+      ]
+    },
+    {
+      "issue_id": "I18",
+      "rule_id": "global",
+      "type": "coverage",
+      "severity": "low",
+      "detail": "S19 (no upper fall limit) and S20 (no mid-air splat) are not mapped to any rule; behavior is implied by R17 but not explicit.",
+      "spec_evidence": "There is no upper limit on how far a Lemming can fall before hitting the ground.",
+      "alternative": "",
+      "sequence": []
+    }
+  ]
+}

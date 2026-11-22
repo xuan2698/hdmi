@@ -1,0 +1,66 @@
+def reference(vectors):
+    # Contract state: Q_state is the 1-bit registered output updated on posedge clk.
+    Q_state = 0
+    # Carried input values after optional mid changes from the previous row.
+    cur = {'L': 0, 'q_in': 0, 'r_in': 0}
+
+    def to_bit(value):
+        if value is None:
+            return 0
+        return int(value) & 1
+
+    def apply_mid(change):
+        # mid changes occur after sampling and are carried to the next row.
+        if isinstance(change, dict):
+            for name, value in change.items():
+                if name in cur:
+                    cur[name] = to_bit(value)
+        elif isinstance(change, (list, tuple)):
+            if len(change) == 2 and isinstance(change[0], str) and change[0] in cur:
+                cur[change[0]] = to_bit(change[1])
+            else:
+                for sub in change:
+                    apply_mid(sub)
+
+    result = []
+    for row in vectors:
+        # Each row's values are driven before the sampled posedge.
+        L = cur['L']
+        q_in = cur['q_in']
+        r_in = cur['r_in']
+        if 'L' in row:
+            L = to_bit(row['L'])
+        if 'q_in' in row:
+            q_in = to_bit(row['q_in'])
+        if 'r_in' in row:
+            r_in = to_bit(row['r_in'])
+
+        # rule load_r: if L == 1, Q <= r_in on posedge.
+        if L == 1:
+            Q_state = r_in & 1
+        # rule hold_q_in: if L == 0, Q <= q_in on posedge.
+        else:
+            Q_state = q_in & 1
+
+        # visible same_cycle: output after the sampled posedge.
+        result.append({'Q': Q_state & 1})
+
+        # Prepare carried inputs for the next row.
+        cur['L'] = L & 1
+        cur['q_in'] = q_in & 1
+        cur['r_in'] = r_in & 1
+
+        # mid changes occur AFTER sampling, so they do not affect the already sampled Q.
+        if 'mid' in row:
+            apply_mid(row['mid'])
+        for name, value in row.items():
+            if name.endswith('_mid'):
+                base = name[:-4]
+                if base in cur:
+                    cur[base] = to_bit(value)
+            elif name.startswith('mid_'):
+                base = name[4:]
+                if base in cur:
+                    cur[base] = to_bit(value)
+
+    return result

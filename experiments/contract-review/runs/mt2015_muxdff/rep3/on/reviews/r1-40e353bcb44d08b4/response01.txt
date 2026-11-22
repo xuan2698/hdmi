@@ -1,0 +1,96 @@
+{
+  "coverage": {
+    "S01": ["missing"],
+    "S02": ["missing"],
+    "S03": ["missing"],
+    "S04": ["load_r", "hold_q_in"],
+    "S05": ["load_r", "hold_q_in"],
+    "S06": ["missing"],
+    "S07": ["unrelated"],
+    "S08": ["load_r", "hold_q_in"],
+    "S09": ["load_r"],
+    "S10": ["load_r"],
+    "S11": ["hold_q_in"],
+    "S12": ["missing"],
+    "S13": ["unrelated"],
+    "S14": ["unrelated"],
+    "S15": ["unrelated"],
+    "S16": ["missing"],
+    "S17": ["missing"]
+  },
+  "issues": [
+    {
+      "issue_id": "I1",
+      "rule_id": "global",
+      "type": "coverage",
+      "severity": "high",
+      "detail": "Contract models only 1-bit Q from L,q_in,r_in; spec full_module has 3-bit r/q and L=0 shift/XOR update. S03,S06,S12 and full q/r bus behavior are missing.",
+      "spec_evidence": "//         q <= {q[1] ^ q[2], q[0], q[2]};",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I2",
+      "rule_id": "global",
+      "type": "coverage",
+      "severity": "high",
+      "detail": "Spec requires hierarchical top_module with a flipflop plus 2-1 multiplexer submodule instantiated three times; contract has no hierarchy, module top_module, or three instances.",
+      "spec_evidence": "// You want to create a hierarchical Verilog design where a flipflop and 2-1 multiplexer are in a submodule, and that submodule is instantiated three times in this code.",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I3",
+      "rule_id": "hold_q_in",
+      "type": "grounding",
+      "severity": "high",
+      "detail": "hold_q_in has uncertain false and cites only 2-1 multiplexer; that does not verbatim evidence condition L==0 or assignment Q<=q_in, and omits the else shift update.",
+      "spec_evidence": "2-1 multiplexer",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I4",
+      "rule_id": "global",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "Contract ports Q and r_in are 1-bit; spec r and q are 3-bit. No width-valid mapping or three-bit instance mapping is provided.",
+      "spec_evidence": "//     input [2:0] r,",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I5",
+      "rule_id": "hold_q_in",
+      "type": "spec_example",
+      "severity": "high",
+      "detail": "Spec L=0 updates q by shift/XOR, e.g. q=3'b010 gives q'=3'b100; contract L=0 examples encode Q=q_in instead, not the spec else behavior.",
+      "spec_evidence": "//         q <= {q[1] ^ q[2], q[0], q[2]};",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I6",
+      "rule_id": "hold_q_in",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "The L=0 rule's exact assignment is unclear: examples output q_in, while the name and registered-state meaning suggest retaining previous Q if q_in is feedback.",
+      "spec_evidence": "",
+      "alternative": "L==0 holds the previous Q and ignores q_in.",
+      "sequence": [
+        {"L": 1, "q_in": 0, "r_in": 1},
+        {"L": 0, "q_in": 0, "r_in": 0}
+      ]
+    },
+    {
+      "issue_id": "I7",
+      "rule_id": "global",
+      "type": "consistency",
+      "severity": "medium",
+      "detail": "Both rules say visible same_cycle while Q is a posedge-registered state updated after input setup; examples omit timing, so same-cycle visibility can be read as combinational change.",
+      "spec_evidence": "// always @(posedge clk) begin",
+      "alternative": "",
+      "sequence": []
+    }
+  ]
+}

@@ -1,0 +1,88 @@
+def reference(vectors):
+    S0 = 0
+    S1 = 1
+    S11 = 2
+    S110 = 3
+    FOUND = 4
+
+    state = S0
+    start_shifting = 0
+    carried_reset = 0
+    carried_data = 0
+    out = []
+
+    for row in vectors:
+        reset_v = row["reset"] if "reset" in row else carried_reset
+        data_v = row["data"] if "data" in row else carried_data
+        reset_v = 1 if reset_v else 0
+        data_v = 1 if data_v else 0
+
+        prev_state = state
+
+        if reset_v == 1:
+            # R_RESET: candidate interpretation applied: reset restarts detector,
+            # but start_shifting remains held while reset==1 and clears on first reset==0 update.
+            state = S0
+        else:
+            if prev_state == S0:
+                state = S1 if data_v == 1 else S0
+            elif prev_state == S1:
+                state = S11 if data_v == 1 else S0
+            elif prev_state == S11:
+                state = S110 if data_v == 0 else S11
+            elif prev_state == S110:
+                if data_v == 1:
+                    state = FOUND  # R_COMPLETE_1101
+                else:
+                    state = S0
+            elif prev_state == FOUND:
+                state = FOUND  # R_HOLD_FOUND
+            else:
+                state = S0
+
+            if state == FOUND:
+                # R_COMPLETE_1101 and R_HOLD_FOUND: start_shifting visible high on this posedge.
+                start_shifting = 1
+            else:
+                # R_ZERO_NOT_FOUND: no detection and not holding FOUND.
+                start_shifting = 0
+
+        out.append({"start_shifting": 1 if start_shifting else 0})
+
+        # Values after sampling; mid changes happen after the posedge and persist to next row start.
+        carried_reset = reset_v
+        carried_data = data_v
+
+        if isinstance(row, dict):
+            if "mid" in row and isinstance(row["mid"], dict):
+                for k, v in row["mid"].items():
+                    name = str(k)
+                    if name == "reset" or name == "mid_reset":
+                        carried_reset = 1 if v else 0
+                    elif name == "data" or name == "mid_data":
+                        carried_data = 1 if v else 0
+                    elif name.endswith("_mid"):
+                        base = name[:-4]
+                        if base == "reset":
+                            carried_reset = 1 if v else 0
+                        elif base == "data":
+                            carried_data = 1 if v else 0
+
+            for k in row:
+                ks = str(k)
+                if ks == "mid" or ks == "reset" or ks == "data":
+                    continue
+                if ks.endswith("_mid"):
+                    base = ks[:-4]
+                    if base == "reset":
+                        carried_reset = 1 if row[k] else 0
+                    elif base == "data":
+                        carried_data = 1 if row[k] else 0
+                elif ks.startswith("mid_"):
+                    base = ks[4:]
+                    if base == "reset":
+                        carried_reset = 1 if row[k] else 0
+                    elif base == "data":
+                        carried_data = 1 if row[k] else 0
+
+    return out

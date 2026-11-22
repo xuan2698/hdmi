@@ -1,0 +1,70 @@
+```python
+def reference(vectors):
+    # State encoding for the finite-state machine.
+    S0 = 0
+    S1 = 1
+    S11 = 2
+    S110 = 3
+    FOUND = 4
+
+    state = S0
+    current = {"reset": 0, "data": 0}
+    outputs = []
+
+    for row in vectors:
+        # Apply the values driven before the sampled posedge.
+        for key, val in row.items():
+            if key == "mid":
+                continue
+            if key.endswith("_mid") or key.startswith("mid_"):
+                continue
+            current[key] = val
+
+        reset = current.get("reset", 0)
+        data = current.get("data", 0)
+
+        # R_RESET: active high synchronous reset forces S0.
+        if reset == 1:
+            next_state = S0
+        else:
+            if state == S0:
+                # Normal transitions from S0.
+                next_state = S1 if data == 1 else S0
+            elif state == S1:
+                # Normal transitions from S1.
+                next_state = S11 if data == 1 else S0
+            elif state == S11:
+                # Normal transitions from S11.
+                next_state = S11 if data == 1 else S110
+            elif state == S110:
+                # R_COMPLETE_1101: data==1 completes 1101 and enters FOUND.
+                next_state = FOUND if data == 1 else S0
+            elif state == FOUND:
+                # R_HOLD_FOUND: stay in FOUND for any data.
+                next_state = FOUND
+            else:
+                next_state = S0
+
+        # Output is visible on the same posedge as the transition.
+        # R_COMPLETE_1101: becomes 1 when entering FOUND.
+        # R_HOLD_FOUND: remains 1 while in FOUND.
+        # R_RESET: is 0 during reset.
+        # R_ZERO_NOT_FOUND: is 0 before detection.
+        start_shifting = 1 if next_state == FOUND else 0
+        outputs.append({"start_shifting": start_shifting})
+        state = next_state
+
+        # Process optional mid-cycle input changes after sampling.
+        if "mid" in row and isinstance(row["mid"], dict):
+            for key, val in row["mid"].items():
+                current[key] = val
+        for key, val in row.items():
+            if key.endswith("_mid"):
+                base = key[:-4]
+                current[base] = val
+            elif key.startswith("mid_"):
+                base = key[4:]
+                current[base] = val
+
+    return outputs
+```

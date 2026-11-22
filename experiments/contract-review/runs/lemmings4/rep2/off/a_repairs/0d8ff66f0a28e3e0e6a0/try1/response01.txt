@@ -1,0 +1,263 @@
+Looking at the failures, the issue is that the state machine isn't transitioning correctly on the first cycle. The failures show that after the first cycle, the state remains WALK_LEFT when it should have transitioned based on the inputs.
+
+The key insight: the contract says "Each row's values are driven before the sampled edge." This means the inputs for row N are applied, then the clock edge samples them, producing outputs for row N+1. But the expected outputs in the examples show that the transition happens *within* the same row's output — i.e., the outputs shown for row N reflect the state *after* processing row N's inputs.
+
+Wait, let me re-read. Looking at example 3 (R3): 
+- Row 0: bump_left=0, expected walk_right=1 (WALK_RIGHT state)
+- Row 1: bump_left=1, expected walk_right=1
+
+So row 0's output is WALK_RIGHT. That means the initial state must already be WALK_RIGHT, OR the reset puts it there. But reset says WALK_LEFT...
+
+Actually, looking more carefully: the outputs are sampled *after* the posedge. So for row 0, the inputs are applied, then posedge occurs, then we sample. So row 0's output reflects the state after processing row 0's inputs from the reset state.
+
+For example 3: reset→WALK_LEFT. Row 0 inputs: bump_left=0, ground=1, dig=0. WALK_LEFT with no bump stays WALK_LEFT. But expected is walk_right=1. That contradicts...
+
+Unless the reset is applied asynchronously and the first row's output is the reset state itself (WALK_LEFT), and transitions happen at the *end* of each row. Let me check example 2 (R2): row 0 expected walk_left=1 — consistent with reset state.
+
+Example 3 row 0 expected walk_right=1. Hmm. But R3's example has row 0 with bump_left=1. So: reset→WALK_LEFT, row 0 has bump_left=1 → transitions to WALK_RIGHT, and row 0's output shows WALK_RIGHT. So the output shown is the state *after* the transition caused by that row's inputs.
+
+So the model is: for each row, apply inputs, compute next state, output = next state's outputs. The reset state is the starting point before row 0.
+
+Let me verify with example 4 (R4): row 0 ground=0, expected aaah=1. Reset→WALK_LEFT, row 0 ground=0 → FALL_LEFT, output aaah=1. ✓
+
+Example 5 (R5): row 0 dig=1, ground=1, expected digging=1. WALK_LEFT + dig → DIG_LEFT, output digging=1. ✓
+
+Example 6 (R6): row 0 expected all 0. But reset is WALK_LEFT which outputs walk_left=1. Hmm, that doesn't match. Unless... R6 is about SPLAT state. The example just shows two rows both with all-zero expected. But from reset, row 0 should be WALK_LEFT. 
+
+Wait — maybe the examples for R6 are just illustrating the SPLAT output, not a full trace from reset. The failure says example 6 cycle 1 and 2 differ. So the test harness runs these examples from reset. Row 0 expected all 0 but reset gives walk_left=1... 
+
+Hmm, but the failure only mentions cycle 1 and 2, not cycle 0. So cycle 0 matched (walk_left=1 from reset). Then cycle 1 expected all 0. From WALK_LEFT with ground=1, dig=0, no bumps → stays WALK_LEFT → walk_left=1. But expected 0.
+
+This is confusing. Let me reconsider: maybe the outputs shown are the state *before* the transition (current state), and the reset applies at row 0 making it WALK_LEFT. Then:
+- Example 3: row 0 shows WALK_LEFT (walk_left=1)? But expected walk_right=1. ✗
+
+So that doesn't work either. Let me try: outputs = current state, but reset is applied and the first posedge after reset deasserts transitions. Actually the reset says "first_released_cycle: first posedge after areset deasserts". So areset is asserted at row 0 (areset=1), forcing WALK_LEFT asynchronously. Row 0 output = WALK_LEFT. Then areset=0 at row 1, posedge samples row 1 inputs.
+
+Example 3: row 0 areset=0 (not 1!). So no reset. Initial state unspecified? The contract says "even when power-up is unspecified" — so we need a default. Default = WALK_LEFT presumably.
+
+Row 0: areset=0, bump_left=1 → from WALK_LEFT, bump_left → WALK_RIGHT. Output for row 0 = ? If output is current state before transition: WALK_LEFT (walk_left=1). Expected walk_right=1. ✗
+
+If output is next state: WALK_RIGHT (walk_right=1). ✓
+
+Example 6: row 0 areset=0, all inputs 0, ground=1. From WALK_LEFT → stays WALK_LEFT. Next state WALK_LEFT → walk_left=1. Expected 0. ✗
+
+Unless example 6's rows are meant to start from SPLAT. But there's no way to get to SPLAT from reset in these inputs. The example is just showing SPLAT behavior in isolation — the test harness might not actually run it from reset, OR the harness might have a different interpretation.
+
+Given the failures listed, example 6 fails at cycle 1 and 2 but not cycle 0. So cycle 0 matched. If output=next_state and default=WALK_LEFT: cycle 0 → WALK_LEFT → walk_left=1. Expected walk_left=0. That would fail at cycle 0. But it doesn't. So cycle 0 expected must be walk_left=1... but the example shows 0.
+
+Hmm, maybe the harness treats these examples differently. Let me focus on what the failures tell us: the actual output has walk_left=1 when expected is 0 (or walk_right=1, aaah=1, digging=1). This means our state is stuck in WALK_LEFT when it should have transitioned.
+
+The fix: outputs should reflect the *next* state (after processing current row's inputs), not the current state. Let me implement that.
+
+Actually wait — re-reading: "sample after the posedge edge has settled. Each row's values are driven before the sampled edge." So: drive inputs for row N, posedge occurs, sample outputs. The outputs sampled are the new state's outputs. So output = next_state outputs. And the reset state is the initial state before row 0.
+
+But then example 6 cycle 0: from WALK_LEFT, inputs all 0, ground=1 → next state WALK_LEFT → walk_left=1. Expected 0. Fails at cycle 0. But failure list doesn't include cycle 0 for example 6.
+
+Unless the harness for example 6 starts from SPLAT somehow, or the example is just illustrative and the harness skips it. Given the failure list, let me just make output = next_state and see.
+
+Actually, let me reconsider. Maybe the harness applies reset differently. Let me just implement: output = next state after processing inputs, with reset forcing WALK_LEFT when areset=1 (and output = WALK_LEFT in that case).
+
+Let me write it:
+
+```python
+def reference(vectors):
+    # States
+    WALK_LEFT, WALK_RIGHT, FALL_LEFT, FALL_RIGHT, DIG_LEFT, DIG_RIGHT, SPLAT = range(7)
+    
+    def outputs(state):
+        if state == WALK_LEFT: return {"walk_left":1,"walk_right":0,"aaah":0,"digging":0}
+        if state == WALK_RIGHT: return {"walk_left":0,"walk_right":1,"aaah":0,"digging":0}
+        if state in (FALL_LEFT, FALL_RIGHT): return {"walk_left":0,"walk_right":0,"aaah":1,"digging":0}
+        if state in (DIG_LEFT, DIG_RIGHT): return {"walk_left":0,"walk_right":0,"aaah":0,"digging":1}
+        return {"walk_left":0,"walk_right":0,"aaah":0,"digging":0}  # SPLAT
+    
+    state = WALK_LEFT
+    fall_count = 0
+    result = []
+    
+    for row in vectors:
+        areset = row["areset"]
+        bl = row["bump_left"]
+        br = row["bump_right"]
+        g = row["ground"]
+        d = row["dig"]
+        
+        if areset:
+            # R1: async reset to WALK_LEFT
+            state = WALK_LEFT
+            fall_count = 0
+            result.append(outputs(state))
+            continue
+        
+        # Compute next state
+        if state == SPLAT:
+            # R20
+            next_state = SPLAT
+        elif state in (FALL_LEFT, FALL_RIGHT):
+            if g:
+                # R15/R16/R17/R23
+                if fall_count > 20:
+                    next_state = SPLAT  # R17
+                else:
+                    next_state = WALK_LEFT if state == FALL_LEFT else WALK_RIGHT  # R15/R16, R23 (bump ignored)
+                fall_count = 0
+            else:
+                next_state = state  # R21 (bump ignored while falling)
+                fall_count += 1
+        elif state in (DIG_LEFT, DIG_RIGHT):
+            if g:
+                next_state = state  # R19, R24 (bump ignored)
+            else:
+                next_state = FALL_LEFT if state == DIG_LEFT else FALL_RIGHT  # R18
+                fall_count = 1
+        else:  # WALK_LEFT or WALK_RIGHT
+            if not g:
+                # R7/R8/R22: fall, bump ignored
+                next_state = FALL_LEFT if state == WALK_LEFT else FALL_RIGHT
+                fall_count = 1
+            elif d:
+                # R9/R10
+                next_state = DIG_LEFT if state == WALK_LEFT else DIG_RIGHT
+            else:
+                # R11/R12/R13/R14
+                if state == WALK_LEFT:
+                    next_state = WALK_RIGHT if (bl or br) else WALK_LEFT
+                else:
+                    next_state = WALK_LEFT if (bl or br) else WALK_RIGHT
+        
+        state = next_state
+        result.append(outputs(state))
+    
+    return result
+```
+
+Wait, but this outputs next_state. Let me check example 3 again: row 0 bump_left=1, from WALK_LEFT → WALK_RIGHT, output walk_right=1. ✓ Row 1 bump_left=1, from WALK_RIGHT → WALK_LEFT (bump_left on WALK_RIGHT? R12 says bump_right→WALK_LEFT, but bump_left on WALK_RIGHT... hmm). 
+
+Actually R12: WALK_RIGHT with bump_right=1 → WALK_LEFT. What about WALK_RIGHT with bump_left=1? The spec says "if a Lemming is bumped on the left, it will walk right." So bump_left on WALK_RIGHT → WALK_RIGHT (already going right). But R14 says WALK_RIGHT with both bumps → WALK_LEFT. And R12 says bump_right → WALK_LEFT.
+
+Hmm, so for WALK_RIGHT: bump_right → WALK_LEFT. bump_left → ? The spec: "if a Lemming is bumped on the left, it will walk right." So bump_left → WALK_RIGHT (no change). But R14 says both → WALK_LEFT. So bump_left alone on WALK_RIGHT → WALK_RIGHT (no change), bump_right → WALK_LEFT, both → WALK_LEFT.
+
+Wait but that's asymmetric. Let me re-read: "It will switch directions if it hits an obstacle. In particular, if a Lemming is bumped on the left (by receiving a 1 on bump_left), it will walk right. If it's bumped on the right (by receiving a 1 on bump_right), it will walk left."
+
+So bump_left → walk right (regardless of current direction). bump_right → walk left (regardless). Both → switch (so WALK_LEFT→WALK_RIGHT, WALK_RIGHT→WALK_LEFT).
+
+So: bump_left=1 → WALK_RIGHT. bump_right=1 → WALK_LEFT. Both → switch from current.
+
+For WALK_LEFT: bump_left→WALK_RIGHT, bump_right→WALK_LEFT (already), both→WALK_RIGHT.
+For WALK_RIGHT: bump_left→WALK_RIGHT (already), bump_right→WALK_LEFT, both→WALK_LEFT.
+
+So the rule is: if bump_left and bump_right: switch. elif bump_left: WALK_RIGHT. elif bump_right: WALK_LEFT. else: stay.
+
+Let me verify R11: WALK_LEFT, bump_left=1 → WALK_RIGHT ✓. R12: WALK_RIGHT, bump_right=1 → WALK_LEFT ✓. R13: WALK_LEFT, both → WALK_RIGHT ✓. R14: WALK_RIGHT, both → WALK_LEFT ✓.
+
+Now example 3: row 0 bump_left=1, WALK_LEFT → WALK_RIGHT ✓. Row 1 bump_left=1, WALK_RIGHT → WALK_RIGHT (bump_left on WALK_RIGHT stays right). Expected walk_right=1 ✓.
+
+Example 8 (R8): row 0 bump_left=1, WALK_LEFT→WALK_RIGHT, expected walk_right=1 ✓. Row 1 ground=0, WALK_RIGHT→FALL_RIGHT, expected aaah=1 ✓. Row 2 ground=0, FALL_RIGHT→FALL_RIGHT, aaah=1 ✓.
+
+Example 10 (R10): row 0 bump_left=1, WALK_LEFT→WALK_RIGHT ✓. Row 1 dig=1, ground=1, WALK_RIGHT→DIG_RIGHT, digging=1 ✓. Row 2 dig=1, DIG_RIGHT→DIG_RIGHT, digging=1 ✓.
+
+Example 11 (R11): row 0 all 0, WALK_LEFT→WALK_LEFT, walk_left=1 ✓. Row 1 bump_left=1, WALK_LEFT→WALK_RIGHT, walk_right=1 ✓. Row 2 all 0, WALK_RIGHT→WALK_RIGHT, walk_right=1 ✓.
+
+Example 6 (R6): row 0 all 0, ground=1, WALK_LEFT→WALK_LEFT, walk_left=1. Expected 0. ✗ at cycle 0. But failure list says cycle 1 and 2 fail, not 0. So cycle 0 must match. Contradiction unless the harness for R6 starts from SPLAT.
+
+Hmm. Maybe the harness for R6 example pre-sets state to SPLAT. Or maybe the harness treats the first row's output as the reset state (WALK_LEFT) and then transitions. Let me try: output = current state, transition at end.
+
+Example 3: row 0 output = WALK_LEFT (walk_left=1). Expected walk_right=1. ✗
+
+So that doesn't work for example 3. 
+
+I think the R6 example is just illustrative and the harness might handle it specially, or the failure list is what matters. Given the failures all show "actual walk_left=1 when expected 0", the fix is to output next_state. Let me go with that. The R6 cycle 0 discrepancy might be a harness quirk I can't resolve, but fixing the main issue should help.
+
+Actually, let me reconsider R6. Maybe the harness for R6 example starts from SPLAT because the example is specifically about SPLAT. The failure list shows cycle 1,2 fail but not 0 — meaning cycle 0 matched. If harness starts from SPLAT: cycle 0 → SPLAT → all 0 ✓. Cycle 1 → SPLAT → all 0 ✓. But failure says cycle 1 fails with actual walk_left=1. So harness doesn't start from SPLAT.
+
+I'm confused. Let me just implement output=next_state and accept R6 might have issues. Actually, the failure list is what I need to fix. All failures show actual walk_left=1 when it shouldn't be. With output=next_state, these should be fixed because the state will transition properly.
+
+Let me also double check the fall_count logic. "falls for more than 20 clock cycles then hits the ground". So if fall_count > 20 when ground reappears → splat. fall_count counts cycles in fall state. If we enter fall at cycle N (fall_count becomes 1), and ground reappears at cycle N+20, fall_count would be 20 at that point (if we increment each cycle in fall). "more than 20" means >20, so 21+ cycles of falling → splat.
+
+Let me trace: enter FALL at end of cycle 0 (fall_count=1). Cycle 1: still falling, fall_count=2. ... Cycle 20: fall_count=21. If ground reappears at cycle 20, fall_count=21 > 20 → splat. If ground reappears at cycle 19, fall_count=20, not >20 → walk.
+
+Hmm, "falls for more than 20 clock cycles" — if it falls for 21 cycles then hits ground, splat. So fall_count should represent number of cycles spent falling. When we transition to FALL, that's 1 cycle of falling (the cycle we're in). Let me set fall_count=1 on entering fall, increment each subsequent fall cycle, and check >20 on ground reappear.
+
+Actually the exact boundary might matter but let me not overthink. Let me use: on entering fall, fall_count=1. Each cycle in fall (ground=0), fall_count+=1. On ground reappear, if fall_count>20 → splat.
+
+Wait, if we enter fall at cycle 0 (fall_count=1), cycle 1 ground=0 (fall_count=2), ..., cycle 20 ground=0 (fall_count=21), cycle 21 ground=1 → check fall_count=21>20 → splat. That's 21 cycles of falling (cycles 0-20). "more than 20" = 21+. ✓
+
+Let me finalize:
+
+```python
+def reference(vectors):
+    WALK_LEFT, WALK_RIGHT, FALL_LEFT, FALL_RIGHT, DIG_LEFT, DIG_RIGHT, SPLAT = range(7)
+    
+    def outputs(state):
+        if state == WALK_LEFT: return {"walk_left":1,"walk_right":0,"aaah":0,"digging":0}
+        if state == WALK_RIGHT: return {"walk_left":0,"walk_right":1,"aaah":0,"digging":0}
+        if state in (FALL_LEFT, FALL_RIGHT): return {"walk_left":0,"walk_right":0,"aaah":1,"digging":0}
+        if state in (DIG_LEFT, DIG_RIGHT): return {"walk_left":0,"walk_right":0,"aaah":0,"digging":1}
+        return {"walk_left":0,"walk_right":0,"aaah":0,"digging":0}
+    
+    state = WALK_LEFT
+    fall_count = 0
+    result = []
+    
+    for row in vectors:
+        areset = row["areset"]
+        bl = row["bump_left"]
+        br = row["bump_right"]
+        g = row["ground"]
+        d = row["dig"]
+        
+        if areset:
+            state = WALK_LEFT  # R1
+            fall_count = 0
+            result.append(outputs(state))
+            continue
+        
+        if state == SPLAT:
+            next_state = SPLAT  # R20
+        elif state in (FALL_LEFT, FALL_RIGHT):
+            if g:
+                if fall_count > 20:
+                    next_state = SPLAT  # R17
+                else:
+                    next_state = WALK_LEFT if state == FALL_LEFT else WALK_RIGHT  # R15/R16, R23
+                fall_count = 0
+            else:
+                next_state = state  # R21
+                fall_count += 1
+        elif state in (DIG_LEFT, DIG_RIGHT):
+            if g:
+                next_state = state  # R19, R24
+            else:
+                next_state = FALL_LEFT if state == DIG_LEFT else FALL_RIGHT  # R18
+                fall_count = 1
+        else:  # WALK_*
+            if not g:
+                next_state = FALL_LEFT if state == WALK_LEFT else FALL_RIGHT  # R7/R8/R22
+                fall_count = 1
+            elif d:
+                next_state = DIG_LEFT if state == WALK_LEFT else DIG_RIGHT  # R9/R10
+            else:
+                if bl and br:
+                    next_state = WALK_RIGHT if state == WALK_LEFT else WALK_LEFT  # R13/R14
+                elif bl:
+                    next_state = WALK_RIGHT  # R11
+                elif br:
+                    next_state = WALK_LEFT  # R12
+                else:
+                    next_state = state
+        
+        state = next_state
+        result.append(outputs(state))
+    
+    return result
+```
+
+This should fix the failures since outputs now reflect the transitioned state. Let me verify example 4 (R4): row 0 ground=0, WALK_LEFT→FALL_LEFT, aaah=1 ✓. Row 1 ground=0, FALL_LEFT→FALL_LEFT, aaah=1 ✓.
+
+Example 5 (R5): row 0 dig=1, ground=1, WALK_LEFT→DIG_LEFT, digging=1 ✓. Row 1 dig=1, DIG_LEFT→DIG_LEFT, digging=1 ✓.
+
+Example 7 (R7): row 0 all 0, ground=1, WALK_LEFT→WALK_LEFT, walk_left=1 ✓. Row 1 ground=0, WALK_LEFT→FALL_LEFT, aaah=1 ✓. Row 2 ground=0, FALL_LEFT→FALL_LEFT, aaah=1 ✓.
+
+Example 9 (R9): row 0 all 0, WALK_LEFT→WALK_LEFT ✓. Row 1 dig=1, WALK_LEFT→DIG_LEFT, digging=1 ✓. Row 2 dig=1, DIG_LEFT→DIG_LEFT, digging=1 ✓.
+
+All good. The R6 example remains problematic at cycle 0 but the failure list doesn't include it, so maybe the harness handles it. Let me submit this.

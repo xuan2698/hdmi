@@ -1,0 +1,48 @@
+```json
+{
+  "module_name": "top_module",
+  "io": [
+    {
+      "name": "clk",
+      "dir": "input",
+      "width": 1,
+      "description": "Clock input; circuit samples on posedge."
+    },
+    {
+      "name": "a",
+      "dir": "input",
+      "width": 1,
+      "description": "Single-bit control input."
+    },
+    {
+      "name": "q",
+      "dir": "output",
+      "width": 3,
+      "description": "3-bit sequential output."
+    }
+  ],
+  "clocking": {
+    "clock": {
+      "name": "clk",
+      "edge": "posedge"
+    },
+    "reset": null
+  },
+  "timing": {
+    "outputs": {
+      "q": {
+        "latency_cycles": 1
+      }
+    }
+  },
+  "functional_summary": {
+    "overview": "3-bit counter with a single-bit control input a. On each posedge of clk, q updates based on a: when a=1, q holds its current value; when a=0, q increments by 1 modulo 8.",
+    "rules": [
+      "On posedge clk, if a == 1, q_next = q (hold).",
+      "On posedge clk, if a == 0, q_next = (q + 1) mod 8.",
+      "q is a 3-bit register initialized to unknown (x) at time 0; first sampled posedge at 5ns with a=1 loads q=4 (initial value 4).",
+      "Output q changes only on posedge clk; it is stable between edges."
+    ]
+  }
+}
+```

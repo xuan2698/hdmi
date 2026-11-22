@@ -1,0 +1,30 @@
+def reference(vectors):
+    state=0
+    inputs={'reset':0,'data':0}
+    out=[]
+    for row in vectors:
+        for k,v in row.items():
+            if k!='mid':
+                inputs[k]=v
+        r=inputs.get('reset',0)
+        d=inputs.get('data',0)
+        if r:
+            state=0
+        else:
+            b=d
+            if state==0:
+                state=1 if b else 0
+            elif state==1:
+                state=2 if b else 0
+            elif state==2:
+                state=3 if b==0 else 2
+            elif state==3:
+                state=4 if b else 0
+            elif state==4:
+                state=4
+        out.append({'start_shifting':1 if state==4 else 0})
+        m=row.get('mid')
+        if m:
+            for k,v in m.items():
+                inputs[k]=v
+    return out

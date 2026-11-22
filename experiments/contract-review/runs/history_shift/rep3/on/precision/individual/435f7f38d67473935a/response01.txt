@@ -1,0 +1,105 @@
+```python
+def reference(vectors):
+    # State: 32-bit speculative global branch history register.
+    history = 0
+
+    # Current input levels, initially zero.
+    areset = 0
+    predict_valid = 0
+    predict_taken = 0
+    train_mispredicted = 0
+    train_taken = 0
+    train_history = 0
+
+    out = []
+
+    for row in vectors:
+        # Drive row inputs before the sampled posedge.
+        if 'areset' in row:
+            areset = int(row['areset']) & 1
+        if 'predict_valid' in row:
+            predict_valid = int(row['predict_valid']) & 1
+        if 'predict_taken' in row:
+            predict_taken = int(row['predict_taken']) & 1
+        if 'train_mispredicted' in row:
+            train_mispredicted = int(row['train_mispredicted']) & 1
+        if 'train_taken' in row:
+            train_taken = int(row['train_taken']) & 1
+        if 'train_history' in row:
+            train_history = int(row['train_history']) & 0xFFFFFFFF
+
+        # R1_async_reset: areset high forces history to 0 asynchronously.
+        if areset:
+            history = 0
+
+        # Sampled posedge transition.
+        if areset:
+            history = 0  # R1_async_reset has priority 100.
+        elif train_mispredicted:
+            # R2_train_mispredicted_load: load history after mispredicted branch.
+            history = ((train_history << 1) | train_taken) & 0xFFFFFFFF
+        elif predict_valid:
+            # R3_predict_update: shift predict_taken into LSB.
+            history = ((history << 1) | predict_taken) & 0xFFFFFFFF
+        else:
+            # R4_hold: no update.
+            history = history & 0xFFFFFFFF
+
+        out.append({'predict_history': history})
+
+        # Apply optional mid-cycle changes after sampling.
+        mid = row.get('mid', None) if isinstance(row, dict) else None
+
+        if isinstance(mid, dict):
+            if 'areset' in mid:
+                areset = int(mid['areset']) & 1
+                if areset:
+                    history = 0  # R1 async assertion affects next row's starting state.
+            if 'predict_valid' in mid:
+                predict_valid = int(mid['predict_valid']) & 1
+            if 'predict_taken' in mid:
+                predict_taken = int(mid['predict_taken']) & 1
+            if 'train_mispredicted' in mid:
+                train_mispredicted = int(mid['train_mispredicted']) & 1
+            if 'train_taken' in mid:
+                train_taken = int(mid['train_taken']) & 1
+            if 'train_history' in mid:
+                train_history = int(mid['train_history']) & 0xFFFFFFFF
+
+        elif isinstance(mid, (list, tuple)):
+            for item in mid:
+                if isinstance(item, dict):
+                    for k, v in item.items():
+                        if k == 'areset':
+                            areset = int(v) & 1
+                            if areset:
+                                history = 0
+                        elif k == 'predict_valid':
+                            predict_valid = int(v) & 1
+                        elif k == 'predict_taken':
+                            predict_taken = int(v) & 1
+                        elif k == 'train_mispredicted':
+                            train_mispredicted = int(v) & 1
+                        elif k == 'train_taken':
+                            train_taken = int(v) & 1
+                        elif k == 'train_history':
+                            train_history = int(v) & 0xFFFFFFFF
+                elif isinstance(item, (list, tuple)) and len(item) >= 2:
+                    k, v = item[0], item[1]
+                    if k == 'areset':
+                        areset = int(v) & 1
+                        if areset:
+                            history = 0
+                    elif k == 'predict_valid':
+                        predict_valid = int(v) & 1
+                    elif k == 'predict_taken':
+                        predict_taken = int(v) & 1
+                    elif k == 'train_mispredicted':
+                        train_mispredicted = int(v) & 1
+                    elif k == 'train_taken':
+                        train_taken = int(v) & 1
+                    elif k == 'train_history':
+                        train_history = int(v) & 0xFFFFFFFF
+
+    return out
+```

@@ -1,0 +1,22 @@
+```python
+def reference(vectors):
+    # State: Q = stored flip-flop value (power-up unspecified -> 0)
+    Q = 0
+    out = []
+    for row in vectors:
+        d = row['d'] & 1
+        r = row['r'] & 1
+        # R1_sync_reset: r == 1 at posedge clk -> q <= 0 (priority 1)
+        # R2_capture_d: r == 0 at posedge clk -> q <= d (priority 2)
+        # Candidate interpretation (global): asynchronous reset - q becomes 0
+        # immediately when r=1, independent of clk edge. Applied here since
+        # each row's values are driven before the sampled edge.
+        if r == 1:
+            Q = 0  # R1_sync_reset (async interpretation)
+        else:
+            Q = d  # R2_capture_d
+        out.append({'q': Q & 1})
+        # mid changes occur AFTER sampling, before other edge, carried to
+        # next row start; no mid inputs provided in this contract.
+    return out
+```

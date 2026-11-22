@@ -1,0 +1,27 @@
+def reference(vectors):
+    q = 0
+    current = {}
+    result = []
+    for vec in vectors:
+        # Inputs driven before the sampled posedge (excluding mid changes).
+        for key, val in vec.items():
+            if key == 'mid':
+                continue
+            current[key] = val
+
+        # Rule sync_reset_high: active-high synchronous reset has priority.
+        if current.get('reset', 0) & 1:
+            q = 0
+        else:
+            # Rule dff_load_d: load 8-bit d when reset is low.
+            q = current.get('d', 0) & 0xFF
+
+        result.append({'q': q})
+
+        # Contract mid: mid changes occur after sampling and carry to next row.
+        if 'mid' in vec:
+            mid = vec['mid']
+            if isinstance(mid, dict):
+                for key, val in mid.items():
+                    current[key] = val
+    return result

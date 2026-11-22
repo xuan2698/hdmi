@@ -1,0 +1,58 @@
+{
+  "module_name": "top_module",
+  "io": [
+    {
+      "name": "clk",
+      "dir": "input",
+      "width": 1,
+      "description": "Clock signal; all D flip-flops trigger on the positive edge."
+    },
+    {
+      "name": "reset",
+      "dir": "input",
+      "width": 1,
+      "description": "Active high synchronous reset; when high at a positive clock edge, all outputs are set to zero."
+    },
+    {
+      "name": "d",
+      "dir": "input",
+      "width": 8,
+      "description": "Data input bus; each bit is captured into the corresponding flip-flop on the positive clock edge when reset is low."
+    },
+    {
+      "name": "q",
+      "dir": "output",
+      "width": 8,
+      "description": "Registered output bus; reflects the value of d captured at the most recent positive clock edge, or zero after a synchronous reset."
+    }
+  ],
+  "clocking": {
+    "clock": {
+      "name": "clk",
+      "edge": "posedge"
+    },
+    "reset": {
+      "name": "reset",
+      "active": "high",
+      "kind": "synchronous"
+    }
+  },
+  "timing": {
+    "outputs": {
+      "q": {
+        "latency_cycles": 1
+      }
+    }
+  },
+  "functional_summary": {
+    "overview": "Eight D flip-flops sharing a positive-edge clock and an active high synchronous reset. On each positive clock edge, if reset is high, q is set to 0; otherwise q captures the current value of d.",
+    "rules": [
+      "All eight flip-flops are triggered by the positive edge of clk.",
+      "reset is active high and synchronous: it takes effect only at a positive clk edge.",
+      "When reset is high at a positive clk edge, q is set to 8'b00000000.",
+      "When reset is low at a positive clk edge, q is updated to the value of d present at that edge.",
+      "q holds its value between positive clock edges.",
+      "Output q reflects the captured value one cycle after the sampling edge (latency_cycles = 1)."
+    ]
+  }
+}

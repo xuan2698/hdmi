@@ -1,0 +1,50 @@
+def reference(vectors):
+    # Rule sync_reset_clear_out: active-high synchronous reset clears out_reg at sampled posedge.
+    # Rule falling_edge_capture_and_hold: capture per-bit 1-to-0 transitions and hold until reset.
+    # Contract uncertain assumption: prev_in updates on every posedge, including reset cycles.
+    mask = 0xFFFFFFFF
+    out_reg = 0
+    prev_in = 0
+    current = {"reset": 0, "in": 0}
+    results = []
+
+    for row in vectors:
+        if not isinstance(row, dict):
+            row = {}
+
+        # Apply explicit pre-edge input drives for this row. Missing inputs retain prior values.
+        for key in ("reset", "in"):
+            if key in row:
+                if key == "reset":
+                    current[key] = int(row[key]) & 1
+                else:
+                    current[key] = int(row[key]) & mask
+
+        # Sample posedge inputs after pre-edge drives.
+        reset_val = current.get("reset", 0) & 1
+        in_val = current.get("in", 0) & mask
+
+        # Rule sync_reset_clear_out: reset == 1 at sampled posedge makes out become 0.
+        if reset_val:
+            out_reg = 0
+            # Contract uncertain assumption: prev_in still updates during reset.
+            prev_in = in_val & mask
+        else:
+            # Rule falling_edge_capture_and_hold: out_next[i] = out[i] OR (prev_in[i] AND ~in[i]).
+            out_reg = (out_reg | (prev_in & ((~in_val) & mask))) & mask
+            prev_in = in_val & mask
+
+        # Same-cycle visible output after posedge update.
+        results.append({"out": out_reg & mask})
+
+        # Optional mid changes occur after sampling and are carried to the next row's pre-edge.
+        mid = row.get("mid")
+        if isinstance(mid, dict):
+            for key in ("reset", "in"):
+                if key in mid:
+                    if key == "reset":
+                        current[key] = int(mid[key]) & 1
+                    else:
+                        current[key] = int(mid[key]) & mask
+
+    return results

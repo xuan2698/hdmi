@@ -1,0 +1,89 @@
+```python
+def reference(vectors):
+    q = 0
+    ena = 0
+    current = {'reset': 0}
+    out = []
+
+    for row in vectors:
+        # Apply main inputs driven before the sampled posedge.
+        if isinstance(row, dict):
+            for k, v in row.items():
+                if k == 'mid' or k.startswith('mid_'):
+                    continue
+                if k == 'reset' and v is not None:
+                    current[k] = int(v) & 1
+        elif isinstance(row, (list, tuple)):
+            if len(row) > 0 and row[0] is not None:
+                current['reset'] = int(row[0]) & 1
+        else:
+            if row is not None:
+                current['reset'] = int(row) & 1
+
+        r = current.get('reset', 0) & 1
+
+        # Rule q_sync_reset: synchronous active-high reset priority 1.
+        if r:
+            q_next = 0
+            ena_next = 0
+        else:
+            ones = q & 0xF
+            tens = (q >> 4) & 0xF
+            hundreds = (q >> 8) & 0xF
+            thousands = (q >> 12) & 0xF
+
+            # Candidate interpretation for ena_upper_digit_increment:
+            # ena is registered; it pulses after the edge that causes a carry
+            # into the corresponding upper digit, computed from pre-edge q.
+            ena_next = 0
+            if ones == 9:
+                ena_next |= 1  # tens digit gets a carry/increment
+            if ones == 9 and tens == 9:
+                ena_next |= 2  # hundreds digit gets a carry/increment
+            if ones == 9 and tens == 9 and hundreds == 9:
+                ena_next |= 4  # thousands digit gets a carry/increment
+
+            # Rule q_bcd_count: four-digit BCD increment on non-reset posedge.
+            o = ones + 1
+            t = tens
+            h = hundreds
+            th = thousands
+            if o == 10:
+                o = 0
+                t += 1
+                if t == 10:
+                    t = 0
+                    h += 1
+                    if h == 10:
+                        h = 0
+                        th += 1
+                        if th == 10:
+                            th = 0
+
+            q_next = ((th & 0xF) << 12) | ((h & 0xF) << 8) | ((t & 0xF) << 4) | (o & 0xF)
+
+        q = q_next & 0xFFFF
+        ena = ena_next & 0x7
+        out.append({'ena': ena, 'q': q})
+
+        # Apply optional mid changes AFTER sampling, before the next row.
+        if isinstance(row, dict):
+            if 'mid' in row:
+                mid = row['mid']
+                if isinstance(mid, dict):
+                    for k, v in mid.items():
+                        if k == 'reset' and v is not None:
+                            current[k] = int(v) & 1
+                elif mid is not None:
+                    current['reset'] = int(mid) & 1
+            for k, v in row.items():
+                if k.startswith('mid_') and v is not None:
+                    real = k[4:]
+                    if real == 'reset':
+                        current['reset'] = int(v) & 1
+        elif isinstance(row, (list, tuple)):
+            if len(row) > 1 and row[1] is not None:
+                current['reset'] = int(row[1]) & 1
+
+    return out
+```

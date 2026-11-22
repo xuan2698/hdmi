@@ -1,0 +1,65 @@
+def reference(vectors):
+    # Rule reset: synchronous active-high reset; q becomes 0x0000 and ena becomes 0 after edge.
+    # Rule bcd_increment: BCD increment modulo 10000 with carry across nibbles and wrap 0x9999 -> 0x0000.
+    # Rule ena_combinational: ena from q as specified.
+    q = 0
+    reset = 0
+    out = []
+    for row in vectors:
+        # Apply base input values driven before the sampled posedge.
+        if 'reset' in row:
+            reset = row['reset']
+
+        # Posedge clk update: reset has priority over increment.
+        if reset == 1:
+            q = 0
+        else:
+            ones = q & 0xF
+            tens = (q >> 4) & 0xF
+            hundreds = (q >> 8) & 0xF
+            thousands = (q >> 12) & 0xF
+
+            if ones < 9:
+                ones += 1
+            else:
+                ones = 0
+                if tens < 9:
+                    tens += 1
+                else:
+                    tens = 0
+                    if hundreds < 9:
+                        hundreds += 1
+                    else:
+                        hundreds = 0
+                        if thousands < 9:
+                            thousands += 1
+                        else:
+                            thousands = 0
+
+            q = (thousands << 12) | (hundreds << 8) | (tens << 4) | ones
+
+        # Combinational ena after q settles from edge.
+        ones = q & 0xF
+        tens = (q >> 4) & 0xF
+        hundreds = (q >> 8) & 0xF
+        ena0 = 1 if ones == 9 else 0
+        ena1 = 1 if (tens == 9 and ones == 9) else 0
+        ena2 = 1 if (hundreds == 9 and tens == 9 and ones == 9) else 0
+        ena = ena0 | (ena1 << 1) | (ena2 << 2)
+
+        out.append({'q': q, 'ena': ena})
+
+        # Process optional mid changes after sampling, carried to start of next row.
+        if 'reset_mid' in row:
+            reset = row['reset_mid']
+        if 'mid_reset' in row:
+            reset = row['mid_reset']
+        if 'mid' in row:
+            mid = row['mid']
+            try:
+                if 'reset' in mid:
+                    reset = mid['reset']
+            except:
+                pass
+
+    return out

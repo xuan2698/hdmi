@@ -1,0 +1,52 @@
+def reference(vectors):
+    # State: 1-bit registered output Q updated on posedge clk.
+    # Current input values are carried to support optional mid changes.
+    cur = {"L": 0, "q_in": 0, "r_in": 0}
+    Q = 0
+    out = []
+
+    def apply_change(ch):
+        # Apply one mid input change after sampling; carried to next row.
+        if isinstance(ch, dict):
+            for k in ("L", "q_in", "r_in"):
+                if k in ch:
+                    cur[k] = int(ch[k]) & 1
+        elif isinstance(ch, (tuple, list)):
+            # Support (time, dict) or [time, dict] style changes.
+            for item in ch:
+                if isinstance(item, dict):
+                    for k in ("L", "q_in", "r_in"):
+                        if k in item:
+                            cur[k] = int(item[k]) & 1
+                    break
+
+    for row in vectors:
+        # Each row's values are driven before the sampled posedge.
+        for k in ("L", "q_in", "r_in"):
+            if k in row:
+                cur[k] = int(row[k]) & 1
+
+        # Rule load_r: L == 1 -> Q = r_in, priority 1.
+        if cur["L"] == 1:
+            Q = cur["r_in"] & 1
+        # Rule hold_q_in: L == 0 -> Q = q_in, priority 2.
+        else:
+            Q = cur["q_in"] & 1
+
+        out.append({"Q": Q})
+
+        # Optional mid changes occur after sampling and before the next edge.
+        mid = row.get("mid")
+        if mid is not None:
+            if isinstance(mid, dict):
+                apply_change(mid)
+            else:
+                try:
+                    it = iter(mid)
+                except TypeError:
+                    apply_change(mid)
+                else:
+                    for ch in it:
+                        apply_change(ch)
+
+    return out

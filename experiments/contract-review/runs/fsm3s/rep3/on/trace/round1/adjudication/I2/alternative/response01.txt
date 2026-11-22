@@ -1,0 +1,53 @@
+```python
+def reference(vectors):
+    # R_RESET: Synchronous active high reset. Candidate interpretation:
+    # during reset, B/C/D hold current state; only A updates (to A).
+    # R_OUT_A: state A -> out 0
+    # R_OUT_B: state B -> out 0
+    # R_OUT_C: state C -> out 0
+    # R_OUT_D: state D -> out 1
+    state = 'A'
+    cur = {'in': 0, 'reset': 0}
+    result = []
+    for row in vectors:
+        # Drive row values before sampled posedge
+        for k, v in row.items():
+            if k == 'mid':
+                continue
+            cur[k] = v
+        # Sampled posedge
+        reset = cur.get('reset', 0)
+        in_val = cur.get('in', 0)
+        if reset == 1:
+            if state == 'A':
+                next_state = 'A'
+            else:
+                next_state = state  # hold
+        else:
+            if state == 'A':
+                next_state = 'B' if in_val == 1 else 'A'
+            elif state == 'B':
+                next_state = 'C' if in_val == 0 else 'B'
+            elif state == 'C':
+                next_state = 'A' if in_val == 0 else 'D'
+            elif state == 'D':
+                next_state = 'C' if in_val == 0 else 'B'
+            else:
+                next_state = 'A'
+        state = next_state
+        # Moore output
+        out = 1 if state == 'D' else 0
+        result.append({'out': out})
+        # Mid changes after sampling
+        if 'mid' in row:
+            mid = row['mid']
+            if isinstance(mid, dict):
+                for k, v in mid.items():
+                    cur[k] = v
+            elif isinstance(mid, list):
+                for change in mid:
+                    if isinstance(change, dict):
+                        for k, v in change.items():
+                            cur[k] = v
+    return result
+```

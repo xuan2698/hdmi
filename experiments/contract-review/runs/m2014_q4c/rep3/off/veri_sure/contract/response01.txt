@@ -1,0 +1,57 @@
+```json
+{
+  "module_name": "top_module",
+  "io": [
+    {
+      "name": "clk",
+      "dir": "input",
+      "width": 1,
+      "description": "Clock. Samples on posedge."
+    },
+    {
+      "name": "d",
+      "dir": "input",
+      "width": 1,
+      "description": "Data input."
+    },
+    {
+      "name": "r",
+      "dir": "input",
+      "width": 1,
+      "description": "Active-high synchronous reset."
+    },
+    {
+      "name": "q",
+      "dir": "output",
+      "width": 1,
+      "description": "Registered output."
+    }
+  ],
+  "clocking": {
+    "clock": {
+      "name": "clk",
+      "edge": "posedge"
+    },
+    "reset": {
+      "name": "r",
+      "active": "high",
+      "kind": "synchronous"
+    }
+  },
+  "timing": {
+    "outputs": {
+      "q": {
+        "latency_cycles": 1
+      }
+    }
+  },
+  "functional_summary": {
+    "overview": "Single-bit D flip-flop with active-high synchronous reset. On each rising clock edge, q is updated to d unless r is high, in which case q is reset to 0.",
+    "rules": [
+      "On posedge clk: if r == 1, q <= 0; else q <= d.",
+      "q holds its value between rising clock edges.",
+      "Reset is synchronous: r only takes effect at a rising clock edge."
+    ]
+  }
+}
+```

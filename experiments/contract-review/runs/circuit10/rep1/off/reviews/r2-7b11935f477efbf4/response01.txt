@@ -1,0 +1,116 @@
+{
+  "coverage": {
+    "S01": ["R1", "R2"],
+    "S02": ["R1", "R2"],
+    "S03": ["R1"],
+    "S04": ["unrelated"],
+    "S05": ["unrelated"],
+    "S06": ["unrelated"],
+    "S07": ["unrelated"],
+    "S08": ["unrelated"],
+    "S09": ["unrelated"],
+    "S10": ["unrelated"],
+    "S11": ["unrelated"],
+    "S12": ["unrelated"],
+    "S13": ["unrelated"],
+    "S14": ["unrelated"],
+    "S15": ["unrelated"],
+    "S16": ["unrelated"],
+    "S17": ["unrelated"],
+    "S18": ["unrelated"],
+    "S19": ["unrelated"],
+    "S20": ["unrelated"],
+    "S21": ["unrelated"],
+    "S22": ["unrelated"],
+    "S23": ["unrelated"],
+    "S24": ["unrelated"],
+    "S25": ["unrelated"],
+    "S26": ["unrelated"],
+    "S27": ["unrelated"],
+    "S28": ["unrelated"],
+    "S29": ["unrelated"],
+    "S30": ["unrelated"],
+    "S31": ["unrelated"],
+    "S32": ["unrelated"],
+    "S33": ["unrelated"],
+    "S34": ["unrelated"],
+    "S35": ["unrelated"],
+    "S36": ["unrelated"],
+    "S37": ["unrelated"],
+    "S38": ["unrelated"],
+    "S39": ["unrelated"],
+    "S40": ["unrelated"],
+    "S41": ["unrelated"],
+    "S42": ["unrelated"],
+    "S43": ["unrelated"],
+    "S44": ["unrelated"]
+  },
+  "issues": [
+    {
+      "issue_id": "I1",
+      "rule_id": "R1",
+      "type": "grounding",
+      "severity": "high",
+      "detail": "R1 claims state<=q on negedge, but spec waveform shows state changes on posedge (e.g., at 15ns state becomes 0 while q=0; at 75ns state becomes 1 while q=1). No verbatim spec supports negedge update.",
+      "spec_evidence": "// 15ns            1               0               0               0               0",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I2",
+      "rule_id": "R1",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "R1 example expected states [0,1,1] for vectors (0,0),(0,1),(1,0) is inconsistent with state<=q and with spec waveform; spec shows state updates from q at clock edges, not from a XOR b.",
+      "spec_evidence": "// 75ns            1               0               0               1               1",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I3",
+      "rule_id": "R2",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "R2 example expected q=[0,1,1,0] for (a,b) pairs assumes state=0, but spec waveform at 45ns with a=0,b=1,state=0 gives q=1; at 55ns a=1,b=0,state=0 gives q=1; at 65ns a=1,b=1,state=0 gives q=0; matches XOR only if state included. Example omits state and contradicts spec when state=1 (e.g., 95ns a=1,b=1,state=1 gives q=1, not 0).",
+      "spec_evidence": "// 95ns            1               1               1               1               1",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I4",
+      "rule_id": "R1",
+      "type": "ambiguity",
+      "severity": "high",
+      "detail": "Spec waveform shows state updates on posedge clk (e.g., 15ns, 75ns), but contract says negedge. Alternative semantics: state captures q on posedge clk. Distinguishing sequence: at a posedge with q=1, state becomes 1; at negedge it would remain 0.",
+      "spec_evidence": "// 15ns            1               0               0               0               0",
+      "alternative": "state <= q on posedge clk",
+      "sequence": [
+        {"clk": 1, "a": 0, "b": 0},
+        {"clk": 0, "a": 0, "b": 0}
+      ]
+    },
+    {
+      "issue_id": "I5",
+      "rule_id": "R2",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "R2 condition q=state XOR a XOR b matches spec waveform, but example vectors omit state and expected q values are only valid when state=0. Alternative semantics: q = a XOR b (ignoring state). Distinguishing sequence: state=1, a=1, b=1 gives q=1 under spec, q=0 under alternative.",
+      "spec_evidence": "// 95ns            1               1               1               1               1",
+      "alternative": "q = a XOR b (state not used)",
+      "sequence": [
+        {"clk": 1, "a": 1, "b": 1},
+        {"clk": 0, "a": 1, "b": 1}
+      ]
+    },
+    {
+      "issue_id": "I6",
+      "rule_id": "global",
+      "type": "spec_example",
+      "severity": "high",
+      "detail": "Contract rules do not reproduce spec waveform: state updates on posedge not negedge; q=state XOR a XOR b matches waveform, but R1 example and R2 example are inconsistent with waveform. Derived waveform from contract (negedge state<=q, q=state XOR a XOR b) differs from spec at 15ns (state=0 vs spec 0? actually spec state=0 at 15ns, contract would state=0 if q=0; but at 75ns spec state=1, contract negedge would capture q at 70ns=0, so state=0, mismatch).",
+      "spec_evidence": "// 75ns            1               0               0               1               1",
+      "alternative": "",
+      "sequence": []
+    }
+  ]
+}

@@ -1,0 +1,140 @@
+{
+  "coverage": {
+    "S01": ["hold_when_a_high", "increment_when_a_low"],
+    "S02": ["hold_when_a_high", "increment_when_a_low"],
+    "S03": ["hold_when_a_high", "increment_when_a_low"],
+    "S04": ["hold_when_a_high", "increment_when_a_low"],
+    "S05": ["hold_when_a_high"],
+    "S06": ["hold_when_a_high"],
+    "S07": ["hold_when_a_high"],
+    "S08": ["hold_when_a_high"],
+    "S09": ["hold_when_a_high"],
+    "S10": ["hold_when_a_high"],
+    "S11": ["hold_when_a_high"],
+    "S12": ["hold_when_a_high"],
+    "S13": ["hold_when_a_high"],
+    "S14": ["hold_when_a_high"],
+    "S15": ["increment_when_a_low"],
+    "S16": ["increment_when_a_low"],
+    "S17": ["increment_when_a_low"],
+    "S18": ["increment_when_a_low"],
+    "S19": ["increment_when_a_low"],
+    "S20": ["increment_when_a_low"],
+    "S21": ["increment_when_a_low"],
+    "S22": ["increment_when_a_low"]
+  },
+  "issues": [
+    {
+      "issue_id": "I1",
+      "rule_id": "hold_when_a_high",
+      "type": "grounding",
+      "severity": "medium",
+      "detail": "Rule quote is a single waveform line; no verbatim evidence that hold applies to all a=1 posedges (S05-S13).",
+      "spec_evidence": "// 5ns             1               1               4",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I2",
+      "rule_id": "increment_when_a_low",
+      "type": "grounding",
+      "severity": "medium",
+      "detail": "Rule quote is a single waveform line; no verbatim evidence that increment applies to all a=0 posedges (S15-S21).",
+      "spec_evidence": "// 55ns            1               0               5",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I3",
+      "rule_id": "increment_when_a_low",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "Example expected q sequence 5,6,0 implies wrap at 3 bits, but spec waveform shows 4->5->6->0 only after a=0; no explicit wrap evidence for 7->0.",
+      "spec_evidence": "// 75ns            1               0               0",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I4",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "high",
+      "detail": "Spec waveform shows q=4 at first posedge with a=1, but contract has no reset/initial value; alternative semantics: q initializes to 4 at time 0.",
+      "spec_evidence": "// 5ns             1               1               4",
+      "alternative": "q initializes to 4 at time 0 (no reset), then holds/increments per rules.",
+      "sequence": [
+        {"a": 1},
+        {"a": 0},
+        {"a": 0}
+      ]
+    },
+    {
+      "issue_id": "I5",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec waveform shows q=4 at 5ns with a=1, but contract has no reset; alternative: q initializes to 0 and first posedge with a=1 loads 4.",
+      "spec_evidence": "// 5ns             1               1               4",
+      "alternative": "q initializes to 0; first posedge with a=1 sets q=4 (load), then holds/increments per rules.",
+      "sequence": [
+        {"a": 1},
+        {"a": 1},
+        {"a": 0}
+      ]
+    },
+    {
+      "issue_id": "I6",
+      "rule_id": "global",
+      "type": "spec_example",
+      "severity": "high",
+      "detail": "Contract rules cannot reproduce spec waveform: at 5ns a=1 posedge q should be 4, but no initial value/reset is defined; derived outputs from rules alone are undefined at first posedge.",
+      "spec_evidence": "// 0ns             0               1               x",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I7",
+      "rule_id": "global",
+      "type": "spec_example",
+      "severity": "medium",
+      "detail": "Spec waveform at 45ns posedge a=0 q stays 4 (S13), but increment_when_a_low would increment to 5; contradiction between rule and waveform.",
+      "spec_evidence": "// 45ns            1               0               4",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I8",
+      "rule_id": "global",
+      "type": "spec_example",
+      "severity": "medium",
+      "detail": "Spec waveform at 55ns posedge a=0 q becomes 5 (S15), consistent with increment; but at 45ns a=0 q stayed 4, so increment condition is not simply a==0.",
+      "spec_evidence": "// 45ns            1               0               4",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I9",
+      "rule_id": "global",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "Rule increment_when_a_low says increment on every posedge with a=0, but spec waveform S13 (45ns, a=0) holds q=4; rule contradicts spec example.",
+      "spec_evidence": "// 45ns            1               0               4",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I10",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec waveform shows q=4 at 5ns with a=1, but no reset; alternative: q is initialized to 4 via an implicit load when a=1 at first posedge.",
+      "spec_evidence": "// 5ns             1               1               4",
+      "alternative": "At first posedge with a=1, q loads 4; thereafter hold when a=1 and increment when a=0.",
+      "sequence": [
+        {"a": 1},
+        {"a": 0},
+        {"a": 1}
+      ]
+    }
+  ]
+}

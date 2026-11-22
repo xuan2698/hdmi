@@ -1,0 +1,86 @@
+def reference(vectors):
+    # Named states for the 1101 sequence detector.
+    S0 = 0
+    S1 = 1
+    S11 = 2
+    S110 = 3
+    FOUND = 4
+
+    state = S0
+    carried = {'reset': 0, 'data': 0}
+    out_rows = []
+
+    for row in vectors:
+        # Values sampled at this posedge. Explicit row values override any
+        # mid-cycle changes carried from the previous row.
+        sampled = {'reset': carried['reset'], 'data': carried['data']}
+        if 'reset' in row:
+            sampled['reset'] = int(row['reset']) & 1
+        if 'data' in row:
+            sampled['data'] = int(row['data']) & 1
+
+        reset = sampled['reset']
+        data = sampled['data']
+
+        # R_RESET: active-high synchronous reset has priority 0.
+        if reset == 1:
+            out = 0  # R_RESET
+        else:
+            # R_COMPLETE_1101: completion is visible on this posedge.
+            if state == S110 and data == 1:
+                out = 1  # R_COMPLETE_1101
+            # R_HOLD_FOUND: once found, hold until reset.
+            elif state == FOUND:
+                out = 1  # R_HOLD_FOUND
+            else:
+                out = 0  # R_ZERO_NOT_FOUND
+
+        # Compute the next state at this posedge.
+        if reset == 1:
+            next_state = S0  # R_RESET
+        else:
+            if state == S0:
+                next_state = S1 if data == 1 else S0
+            elif state == S1:
+                next_state = S11 if data == 1 else S0
+            elif state == S11:
+                next_state = S11 if data == 1 else S110
+            elif state == S110:
+                next_state = FOUND if data == 1 else S0
+            else:  # FOUND
+                next_state = FOUND
+
+        out_rows.append({'start_shifting': out & 1})
+        state = next_state
+
+        # After the posedge, inputs remain at sampled values until optional
+        # mid-cycle changes occur. Those changes are carried to next row start.
+        carried = {'reset': reset, 'data': data}
+
+        if 'mid' in row:
+            mid = row['mid']
+            if isinstance(mid, dict):
+                for k, v in mid.items():
+                    if k in ('reset', 'data'):
+                        carried[k] = int(v) & 1
+            elif isinstance(mid, (list, tuple)):
+                for item in mid:
+                    if isinstance(item, dict):
+                        for k, v in item.items():
+                            if k in ('reset', 'data'):
+                                carried[k] = int(v) & 1
+
+        # Also support flat mid-change keys such as mid_reset or data_mid.
+        for k, v in row.items():
+            if k == 'mid':
+                continue
+            if k.startswith('mid_'):
+                base = k[4:]
+                if base in ('reset', 'data'):
+                    carried[base] = int(v) & 1
+            elif k.endswith('_mid'):
+                base = k[:-4]
+                if base in ('reset', 'data'):
+                    carried[base] = int(v) & 1
+
+    return out_rows

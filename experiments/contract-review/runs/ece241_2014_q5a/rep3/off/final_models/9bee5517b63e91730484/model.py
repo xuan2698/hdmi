@@ -1,0 +1,39 @@
+def reference(vectors):
+    # Contract implementation for a serial 2's complementer Moore FSM.
+    # States: S0 (copy phase, no 1 seen yet), S1 (invert phase, 1 seen).
+    # Outputs are combinational on state and x (R1, R2), except async reset (R3).
+    # State updates on posedge clk when areset==0 (R4).
+    # Mid input changes occur AFTER sampling, before the other edge, and are
+    # carried to the start of the next row.
+
+    state = "S0"  # power-up state (unspecified but we choose S0)
+    results = []
+
+    for row in vectors:
+        areset = row.get("areset", 0) & 1
+        x = row.get("x", 0) & 1
+
+        # R3: asynchronous reset forces state to S0 and z to 0 (same cycle).
+        if areset == 1:
+            state = "S0"
+            z = 0
+            results.append({"z": z})
+            # Mid changes after sampling: none affect state since reset held.
+            continue
+
+        # R1 / R2: combinational output based on current state and x.
+        if state == "S0":
+            z = x  # R1
+        else:  # S1
+            z = (~x) & 1  # R2
+
+        results.append({"z": z})
+
+        # R4: posedge clk state update (visible next cycle).
+        # Since we sample after posedge has settled, the state transition
+        # for this row's x happens now and affects the next row.
+        if state == "S0" and x == 1:
+            state = "S1"
+        # else state unchanged
+
+    return results

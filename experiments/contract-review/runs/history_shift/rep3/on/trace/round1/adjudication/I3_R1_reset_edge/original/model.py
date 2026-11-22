@@ -1,0 +1,89 @@
+def reference(vectors):
+    # R1_async_reset, R2_train_mispredicted_load, R3_predict_update, R4_hold
+    history_reg = 0
+    current_inputs = {
+        "areset": 0,
+        "predict_valid": 0,
+        "predict_taken": 0,
+        "train_mispredicted": 0,
+        "train_taken": 0,
+        "train_history": 0
+    }
+    results = []
+
+    for v in vectors:
+        # Build the input values driven before the sampled edge.
+        inputs_now = {}
+        for k in current_inputs:
+            inputs_now[k] = current_inputs[k]
+
+        # Override with this row's explicit input values, if present.
+        for k in current_inputs:
+            val = None
+            try:
+                val = v[k]
+            except:
+                try:
+                    val = v.get(k, None)
+                except:
+                    val = None
+            if val is not None:
+                inputs_now[k] = val
+
+        # Sample after the posedge has settled.
+        areset = inputs_now["areset"]
+        predict_valid = inputs_now["predict_valid"]
+        predict_taken = inputs_now["predict_taken"] & 1
+        train_mispredicted = inputs_now["train_mispredicted"]
+        train_taken = inputs_now["train_taken"] & 1
+        train_history = inputs_now["train_history"]
+
+        # R1_async_reset: asynchronous reset overrides all clocked updates.
+        if areset:
+            history_reg = 0
+        else:
+            # R2_train_mispredicted_load: load history after the mispredicted branch.
+            # This has priority over predict_valid.
+            if train_mispredicted:
+                history_reg = (((train_history << 1) | train_taken) & 0xFFFFFFFF)
+            # R3_predict_update: shift in predict_taken at the LSB side.
+            elif predict_valid:
+                history_reg = (((history_reg << 1) | predict_taken) & 0xFFFFFFFF)
+            # R4_hold: otherwise hold previous value.
+
+        results.append({"predict_history": history_reg & 0xFFFFFFFF})
+
+        # The values driven before the edge remain stable until changed.
+        for k in current_inputs:
+            current_inputs[k] = inputs_now[k]
+
+        # Optional mid-cycle changes occur after sampling.
+        mid = None
+        try:
+            mid = v.get("mid", None)
+        except:
+            try:
+                mid = v["mid"]
+            except:
+                mid = None
+
+        if mid is not None:
+            for k in current_inputs:
+                val = None
+                try:
+                    val = mid[k]
+                except:
+                    try:
+                        val = mid.get(k, None)
+                    except:
+                        val = None
+                if val is not None:
+                    current_inputs[k] = val
+
+            # R1_async_reset: a mid-cycle assertion of areset resets the
+            # internal history register immediately, without changing the
+            # already sampled output for this row.
+            if current_inputs["areset"]:
+                history_reg = 0
+
+    return results

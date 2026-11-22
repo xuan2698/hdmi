@@ -1,0 +1,89 @@
+```python
+def reference(vectors):
+    # Initial state (power-up unspecified; use 0 for concrete deterministic output)
+    history = 0
+    # Current input values carried between rows (including mid-cycle changes)
+    areset = 0
+    predict_valid = 0
+    predict_taken = 0
+    train_mispredicted = 0
+    train_taken = 0
+    train_history = 0
+
+    outputs = []
+
+    for row in vectors:
+        # Drive row inputs before the sampled posedge
+        if 'areset' in row:
+            areset = row['areset'] & 1
+        if 'predict_valid' in row:
+            predict_valid = row['predict_valid'] & 1
+        if 'predict_taken' in row:
+            predict_taken = row['predict_taken'] & 1
+        if 'train_mispredicted' in row:
+            train_mispredicted = row['train_mispredicted'] & 1
+        if 'train_taken' in row:
+            train_taken = row['train_taken'] & 1
+        if 'train_history' in row:
+            train_history = row['train_history'] & 0xFFFFFFFF
+
+        # R1_async_reset: areset high asynchronously forces history to 0
+        if areset == 1:
+            history = 0
+
+        # At posedge clk (after edge settles)
+        if areset == 1:
+            # R1_async_reset: reset overrides all clocked prediction/training updates
+            # history already forced to 0
+            pass
+        else:
+            if train_mispredicted == 1:
+                # R2_train_mispredicted_load: load history after mispredicted branch,
+                # shifting train_taken into LSB and discarding MSB
+                history = ((train_history << 1) | train_taken) & 0xFFFFFFFF
+            elif predict_valid == 1:
+                # R3_predict_update: shift in predict_taken at LSB side
+                history = ((history << 1) | predict_taken) & 0xFFFFFFFF
+            else:
+                # R4_hold: no branch-history update
+                pass
+
+        # Output after sampled edge has settled
+        outputs.append({"predict_history": history & 0xFFFFFFFF})
+
+        # Process optional mid-cycle input changes after sampling.
+        # These changes are carried to the start of the next row.
+        mid = row.get('mid', None)
+        if mid is not None:
+            if isinstance(mid, dict):
+                mid_list = [mid]
+            else:
+                mid_list = mid
+
+            for change in mid_list:
+                if isinstance(change, dict):
+                    items = change.items()
+                elif isinstance(change, (list, tuple)) and len(change) == 2:
+                    items = [(change[0], change[1])]
+                else:
+                    continue
+
+                for k, v in items:
+                    if k == 'areset':
+                        areset = v & 1
+                        # R1_async_reset: asynchronous reset takes effect immediately
+                        if areset == 1:
+                            history = 0
+                    elif k == 'predict_valid':
+                        predict_valid = v & 1
+                    elif k == 'predict_taken':
+                        predict_taken = v & 1
+                    elif k == 'train_mispredicted':
+                        train_mispredicted = v & 1
+                    elif k == 'train_taken':
+                        train_taken = v & 1
+                    elif k == 'train_history':
+                        train_history = v & 0xFFFFFFFF
+
+    return outputs
+```

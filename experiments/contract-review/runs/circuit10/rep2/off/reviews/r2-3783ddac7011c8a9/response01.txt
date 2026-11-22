@@ -1,0 +1,124 @@
+{
+  "coverage": {
+    "S01": ["R1", "R2"],
+    "S02": ["R1", "R2"],
+    "S03": ["R1"],
+    "S04": ["unrelated"],
+    "S05": ["unrelated"],
+    "S06": ["unrelated"],
+    "S07": ["unrelated"],
+    "S08": ["unrelated"],
+    "S09": ["R1", "R2"],
+    "S10": ["R1", "R2"],
+    "S11": ["R1", "R2"],
+    "S12": ["R1", "R2"],
+    "S13": ["R1", "R2"],
+    "S14": ["R1", "R2"],
+    "S15": ["R1", "R2"],
+    "S16": ["R1", "R2"],
+    "S17": ["R1", "R2"],
+    "S18": ["R1", "R2"],
+    "S19": ["R1", "R2"],
+    "S20": ["R1", "R2"],
+    "S21": ["R1", "R2"],
+    "S22": ["R1", "R2"],
+    "S23": ["R1", "R2"],
+    "S24": ["R1", "R2"],
+    "S25": ["R1", "R2"],
+    "S26": ["R1", "R2"],
+    "S27": ["R1", "R2"],
+    "S28": ["R1", "R2"],
+    "S29": ["R1", "R2"],
+    "S30": ["R1", "R2"],
+    "S31": ["R1", "R2"],
+    "S32": ["R1", "R2"],
+    "S33": ["R1", "R2"],
+    "S34": ["R1", "R2"],
+    "S35": ["R1", "R2"],
+    "S36": ["R1", "R2"],
+    "S37": ["R1", "R2"],
+    "S38": ["R1", "R2"],
+    "S39": ["R1", "R2"],
+    "S40": ["R1", "R2"],
+    "S41": ["R1", "R2"],
+    "S42": ["R1", "R2"],
+    "S43": ["R1", "R2"],
+    "S44": ["R1", "R2"]
+  },
+  "issues": [
+    {
+      "issue_id": "I1",
+      "rule_id": "R1",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "R1 says state updates to a&b on posedge, but spec waveform shows state changing to 1 at 75ns posedge when a=0,b=0 (S21), and changing to 0 at 85ns posedge when a=1,b=1 (S23).",
+      "spec_evidence": "// 75ns            1               0               0               1               1",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I2",
+      "rule_id": "R2",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "R2 says q = a AND b combinationally, but spec waveform shows q=1 at 45ns when a=0,b=1 (S15), and q=0 at 65ns when a=1,b=1 (S19).",
+      "spec_evidence": "// 45ns            1               0               1               0               1",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I3",
+      "rule_id": "R1",
+      "type": "ambiguity",
+      "severity": "high",
+      "detail": "Spec waveform is consistent with state being a registered XOR of a and b (state <= a XOR b), not a&b. Distinguishing sequence: posedge with a=1,b=1 should set state=0 under XOR but 1 under AND.",
+      "spec_evidence": "// 65ns            1               1               1               0               0",
+      "alternative": "state <= a XOR b on posedge clk",
+      "sequence": [
+        {"a": 1, "b": 1}
+      ]
+    },
+    {
+      "issue_id": "I4",
+      "rule_id": "R2",
+      "type": "ambiguity",
+      "severity": "high",
+      "detail": "Spec waveform is consistent with q being combinational XOR of a and b, not AND. Distinguishing input: a=0,b=1 gives q=1 under XOR but 0 under AND.",
+      "spec_evidence": "// 45ns            1               0               1               0               1",
+      "alternative": "q = a XOR b combinationally",
+      "sequence": [
+        {"a": 0, "b": 1}
+      ]
+    },
+    {
+      "issue_id": "I5",
+      "rule_id": "global",
+      "type": "spec_example",
+      "severity": "high",
+      "detail": "Derived outputs from spec waveform contradict contract rules: at 75ns posedge (a=0,b=0) state becomes 1, not 0; at 85ns posedge (a=1,b=1) state becomes 0, not 1; q at 45ns (a=0,b=1) is 1, not 0; q at 65ns (a=1,b=1) is 0, not 1.",
+      "spec_evidence": "// 75ns            1               0               0               1               1",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I6",
+      "rule_id": "R1",
+      "type": "grounding",
+      "severity": "medium",
+      "detail": "R1 spec_quote only supports existence of one flip-flop, not the next-state function a&b; no verbatim spec text states state = a AND b.",
+      "spec_evidence": "one bit of memory (i.e., one flip-flop)",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I7",
+      "rule_id": "R2",
+      "type": "grounding",
+      "severity": "medium",
+      "detail": "R2 spec_quote only supports presence of combinational logic, not q = a AND b; no verbatim spec text states q = a AND b.",
+      "spec_evidence": "The circuit consists of combinational logic",
+      "alternative": "",
+      "sequence": []
+    }
+  ]
+}

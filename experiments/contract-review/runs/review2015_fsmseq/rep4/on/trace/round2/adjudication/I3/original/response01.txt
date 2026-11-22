@@ -1,0 +1,55 @@
+def reference(vectors):
+    S0, S1, S11, S110, FOUND = 0, 1, 2, 3, 4
+    state = S0
+    start_shifting = 0
+    inputs = {"reset": 0, "data": 0}
+    result = []
+
+    for row in vectors:
+        # Apply row values before the sampled posedge.
+        if "reset" in row:
+            inputs["reset"] = row["reset"]
+        if "data" in row:
+            inputs["data"] = row["data"]
+
+        reset = inputs["reset"]
+        data = inputs["data"]
+
+        if reset == 1:
+            # r_reset_clear: synchronous active-high reset forces clear.
+            next_state = S0
+            next_start_shifting = 0
+        else:
+            # r_set_or_hold: set/hold start_shifting when 1101 completes or already found.
+            if state == FOUND or (state == S110 and data == 1):
+                next_start_shifting = 1
+            else:
+                # r_default_clear: otherwise start_shifting remains cleared.
+                next_start_shifting = 0
+
+            # Explicit finite-state-machine transitions.
+            if state == S0:
+                next_state = S1 if data == 1 else S0
+            elif state == S1:
+                next_state = S11 if data == 1 else S0
+            elif state == S11:
+                next_state = S110 if data == 0 else S11
+            elif state == S110:
+                next_state = FOUND if data == 1 else S0
+            else:  # FOUND
+                next_state = FOUND
+
+        # Output is visible same_cycle after the posedge has settled.
+        start_shifting = next_start_shifting
+        result.append({"start_shifting": start_shifting})
+        state = next_state
+
+        # Optional mid changes occur after sampling and are carried to next row.
+        if "mid" in row:
+            mid = row["mid"]
+            if "reset" in mid:
+                inputs["reset"] = mid["reset"]
+            if "data" in mid:
+                inputs["data"] = mid["data"]
+
+    return result

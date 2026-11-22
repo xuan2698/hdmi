@@ -1,0 +1,63 @@
+{
+  "coverage": {
+    "S01": ["R1", "R2"],
+    "S02": ["R1"],
+    "S03": ["R1", "R2"]
+  },
+  "issues": [
+    {
+      "issue_id": "I1",
+      "rule_id": "R1",
+      "type": "grounding",
+      "severity": "medium",
+      "detail": "R1 marked uncertain despite spec clearly stating synchronous active-high reset to 0x34; no verbatim uncertainty in spec.",
+      "spec_evidence": "Create 8 D flip-flops with active high synchronous reset. The flip-flops must be reset to 0x34 rather than zero.",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I2",
+      "rule_id": "R1",
+      "type": "ambiguity",
+      "severity": "high",
+      "detail": "Spec does not distinguish reset applied every negedge while asserted vs only first negedge after assertion; contract lists both candidates.",
+      "spec_evidence": "active high synchronous reset; The flip-flops must be reset to 0x34 rather than zero.",
+      "alternative": "reset forces q to 0x34 only on the first negedge after reset asserts; subsequent negedges with reset==1 hold previous q",
+      "sequence": [
+        {"d": 0, "reset": 1},
+        {"d": 255, "reset": 1},
+        {"d": 7, "reset": 0}
+      ]
+    },
+    {
+      "issue_id": "I3",
+      "rule_id": "R1",
+      "type": "consistency",
+      "severity": "medium",
+      "detail": "R1 example expected q=52 for first vector with reset=1, but no prior state given; if reset only first-negdege semantics, first vector should still be 52, but second vector distinguishes; example does not cover distinguishing case.",
+      "spec_evidence": "",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I4",
+      "rule_id": "R2",
+      "type": "consistency",
+      "severity": "low",
+      "detail": "R2 example expected q equals d on same negedge; consistent with spec, but no reset interaction shown.",
+      "spec_evidence": "",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I5",
+      "rule_id": "global",
+      "type": "spec_example",
+      "severity": "low",
+      "detail": "Spec provides no explicit waveform/table; contract examples are self-consistent with stated rules.",
+      "spec_evidence": "",
+      "alternative": "",
+      "sequence": []
+    }
+  ]
+}

@@ -1,0 +1,62 @@
+def reference(vectors):
+    # R1_async_reset, R2_train_mispredicted_load, R3_predict_update, R4_hold
+    history_reg = 0
+    cur = {
+        'areset': 0,
+        'predict_valid': 0,
+        'predict_taken': 0,
+        'train_mispredicted': 0,
+        'train_taken': 0,
+        'train_history': 0
+    }
+    out = []
+    for row in vectors:
+        # Drive inputs before the sampled posedge (mid changes are handled later).
+        for k in cur:
+            if k in row:
+                cur[k] = row[k]
+
+        # R1_async_reset: level-sensitive asynchronous reset before edge.
+        if cur['areset']:
+            history_reg = 0
+
+        # Sampled posedge update.
+        if not cur['areset']:
+            if cur['train_mispredicted']:
+                # R2_train_mispredicted_load: misprediction takes precedence.
+                history_reg = ((cur['train_history'] << 1) | cur['train_taken']) & 0xFFFFFFFF
+            elif cur['predict_valid']:
+                # R3_predict_update: shift predict_taken into LSB.
+                history_reg = ((history_reg << 1) | cur['predict_taken']) & 0xFFFFFFFF
+            else:
+                # R4_hold: no update.
+                pass
+        else:
+            # R1_async_reset
+            history_reg = 0
+
+        out.append({'predict_history': history_reg & 0xFFFFFFFF})
+
+        # Optional mid-cycle changes occur after sampling.
+        if 'mid' in row:
+            mid = row['mid']
+            changes = []
+            if isinstance(mid, dict):
+                changes = list(mid.items())
+            elif isinstance(mid, list):
+                for item in mid:
+                    if isinstance(item, dict):
+                        changes.extend(item.items())
+                    elif isinstance(item, (list, tuple)) and len(item) >= 2:
+                        changes.append((item[0], item[1]))
+            for k, v in changes:
+                if k in cur:
+                    cur[k] = v
+                    if k == 'areset' and v:
+                        # R1_async_reset: asynchronous reset as soon as areset goes high.
+                        history_reg = 0
+            # R1_async_reset: while areset remains high, history stays reset.
+            if cur['areset']:
+                history_reg = 0
+
+    return out

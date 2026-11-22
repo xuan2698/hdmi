@@ -1,0 +1,106 @@
+[
+  {
+    "issue": {
+      "issue_id": "I4",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "high",
+      "detail": "Spec waveform suggests q may be a registered output or state-dependent, not pure XOR. Alternative: q = state XOR a XOR b? Or q is next state? Need distinguishing sequence.",
+      "spec_evidence": "// 75ns            1               0               0               1               1",
+      "alternative": "q = state XOR a XOR b (combinational using state)",
+      "sequence": [
+        {
+          "a": 0,
+          "b": 0
+        },
+        {
+          "a": 0,
+          "b": 1
+        },
+        {
+          "a": 1,
+          "b": 0
+        },
+        {
+          "a": 1,
+          "b": 1
+        }
+      ]
+    },
+    "status": "effect",
+    "issue_id": "I4",
+    "outputs": {
+      "original": [
+        {
+          "q": 0,
+          "state": 0
+        },
+        {
+          "q": 1,
+          "state": 0
+        },
+        {
+          "q": 1,
+          "state": 1
+        },
+        {
+          "q": 0,
+          "state": 1
+        }
+      ],
+      "alternative": [
+        {
+          "q": 0,
+          "state": 0
+        },
+        {
+          "q": 1,
+          "state": 1
+        },
+        {
+          "q": 0,
+          "state": 0
+        },
+        {
+          "q": 0,
+          "state": 0
+        }
+      ]
+    },
+    "differences": [
+      {
+        "cycle": 2,
+        "original": {
+          "q": 1,
+          "state": 0
+        },
+        "alternative": {
+          "q": 1,
+          "state": 1
+        }
+      },
+      {
+        "cycle": 3,
+        "original": {
+          "q": 1,
+          "state": 1
+        },
+        "alternative": {
+          "q": 0,
+          "state": 0
+        }
+      },
+      {
+        "cycle": 4,
+        "original": {
+          "q": 0,
+          "state": 1
+        },
+        "alternative": {
+          "q": 0,
+          "state": 0
+        }
+      }
+    ]
+  }
+]

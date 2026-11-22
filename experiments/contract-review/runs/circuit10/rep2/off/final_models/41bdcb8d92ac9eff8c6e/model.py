@@ -1,0 +1,17 @@
+def reference(vectors):
+    # Contract rules:
+    # R1: state updates to a XOR b on posedge clk (visible next cycle)
+    # R2: q = a XOR b combinationally (same cycle)
+    # Power-up state is unspecified; use 0 as concrete default.
+    state = 0
+    out = []
+    for v in vectors:
+        a = v.get('a', 0) & 1
+        b = v.get('b', 0) & 1
+        # R2: combinational q from current inputs
+        q = a ^ b
+        # R1: state is the value held from previous posedge (next_cycle visible)
+        out.append({'q': q & 1, 'state': state & 1})
+        # Update state for next cycle: next state = a XOR b
+        state = a ^ b
+    return out

@@ -1,0 +1,56 @@
+{
+  "responses": [
+    {
+      "issue_id": "I1",
+      "decision": "rebut",
+      "reason": "The issue itself concludes the R2 example is consistent; no contract change is warranted.",
+      "spec_quote": "capture when the input signal changes from 1 in one clock cycle to 0 the next",
+      "edits": []
+    },
+    {
+      "issue_id": "I2",
+      "decision": "rebut",
+      "reason": "The issue itself concludes the R3 example is consistent; no contract change is warranted.",
+      "spec_quote": "the output will remain 1 until the register is reset",
+      "edits": []
+    },
+    {
+      "issue_id": "I3",
+      "decision": "accept",
+      "reason": "prev_in initialization is undefined; clarify that no falling edge is detected on the first sampled cycle after reset release.",
+      "spec_quote": "capture when the input signal changes from 1 in one clock cycle to 0 the next",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R2_capture_falling",
+            "condition"
+          ],
+          "value": "reset == 0 && prev_in_valid && (prev_in & ~in) != 0; out <= out | (prev_in & ~in); prev_in_valid is 0 on the first posedge clk with reset==0 and 1 thereafter"
+        }
+      ]
+    },
+    {
+      "issue_id": "I4",
+      "decision": "accept",
+      "reason": "Clarify reset-release cycle behavior: reset clear takes priority, so no falling edge is captured on the first posedge with reset==0.",
+      "spec_quote": "until the register is reset (active high synchronous reset)",
+      "edits": [
+        {
+          "path": [
+            "reset",
+            "first_released_cycle"
+          ],
+          "value": "first posedge clk with reset==0; on this cycle out is cleared to 0 and no falling-edge capture occurs"
+        }
+      ]
+    },
+    {
+      "issue_id": "I5",
+      "decision": "rebut",
+      "reason": "The issue states there is no material issue and the example is consistent with clear.",
+      "spec_quote": "until the register is reset (active high synchronous reset)",
+      "edits": []
+    }
+  ]
+}

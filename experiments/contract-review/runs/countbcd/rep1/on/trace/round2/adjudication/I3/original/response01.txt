@@ -1,0 +1,73 @@
+def reference(vectors):
+    q = 0  # concrete power-up assumption; reset value is also q=0
+    held_reset = 0
+    outputs = []
+
+    for row in vectors:
+        # Each row's explicit values are driven before the sampled posedge.
+        if isinstance(row, dict):
+            if "reset" in row:
+                held_reset = int(row["reset"]) & 0x1
+
+        # Rule reset: synchronous active-high reset has priority over increment.
+        if held_reset:
+            q = 0
+        else:
+            # Rule bcd_increment: BCD add 1 modulo 10000, with carry across nibbles.
+            ones = q & 0xF
+            tens = (q >> 4) & 0xF
+            hundreds = (q >> 8) & 0xF
+            thousands = (q >> 12) & 0xF
+
+            if ones < 9:
+                ones += 1
+            else:
+                ones = 0
+                if tens < 9:
+                    tens += 1
+                else:
+                    tens = 0
+                    if hundreds < 9:
+                        hundreds += 1
+                    else:
+                        hundreds = 0
+                        if thousands < 9:
+                            thousands += 1
+                        else:
+                            thousands = 0
+
+            q = ((thousands & 0xF) << 12) | ((hundreds & 0xF) << 8) | ((tens & 0xF) << 4) | (ones & 0xF)
+
+        # Rule ena_combinational: enable signals are combinational from registered q.
+        ones = q & 0xF
+        tens = (q >> 4) & 0xF
+        hundreds = (q >> 8) & 0xF
+
+        ena = 0
+        if ones == 9:
+            ena |= 0x1
+        if tens == 9 and ones == 9:
+            ena |= 0x2
+        if hundreds == 9 and tens == 9 and ones == 9:
+            ena |= 0x4
+
+        outputs.append({"q": q & 0xFFFF, "ena": ena & 0x7})
+
+        # Mid input changes occur after sampling and are carried to the next row start.
+        if isinstance(row, dict):
+            mid = row.get("mid")
+            if isinstance(mid, dict) and "reset" in mid:
+                held_reset = int(mid["reset"]) & 0x1
+
+            mid2 = row.get("__mid__")
+            if isinstance(mid2, dict) and "reset" in mid2:
+                held_reset = int(mid2["reset"]) & 0x1
+
+            for key, value in row.items():
+                if key in ("mid", "__mid__", "reset"):
+                    continue
+                key_text = str(key)
+                if "mid" in key_text and "reset" in key_text:
+                    held_reset = int(value) & 0x1
+
+    return outputs

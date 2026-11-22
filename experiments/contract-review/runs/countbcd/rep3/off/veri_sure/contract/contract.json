@@ -1,0 +1,61 @@
+{
+  "module_name": "top_module",
+  "io": [
+    {
+      "name": "clk",
+      "dir": "input",
+      "width": 1,
+      "description": "Clock input; all state updates on the positive edge."
+    },
+    {
+      "name": "reset",
+      "dir": "input",
+      "width": 1,
+      "description": "Synchronous active-high reset. When high at a positive clock edge, all counter digits and enables are cleared to 0."
+    },
+    {
+      "name": "q",
+      "dir": "output",
+      "width": 16,
+      "description": "4-digit BCD counter value. q[3:0]=ones, q[7:4]=tens, q[11:8]=hundreds, q[15:12]=thousands. Each nibble is a valid BCD digit (0-9)."
+    },
+    {
+      "name": "ena",
+      "dir": "output",
+      "width": 3,
+      "description": "Enable signals for upper digits. ena[0] indicates tens digit should increment (ones digit is 9), ena[1] indicates hundreds digit should increment (ones and tens are 9), ena[2] indicates thousands digit should increment (ones, tens, and hundreds are 9)."
+    }
+  ],
+  "clocking": {
+    "clock": {
+      "name": "clk",
+      "edge": "posedge"
+    },
+    "reset": {
+      "name": "reset",
+      "active": "high",
+      "kind": "synchronous"
+    }
+  },
+  "timing": {
+    "outputs": {
+      "q": {
+        "latency_cycles": 1
+      },
+      "ena": {
+        "latency_cycles": 1
+      }
+    }
+  },
+  "functional_summary": {
+    "overview": "A 4-digit binary-coded decimal (BCD) counter. On each positive clock edge (when reset is low), the 16-bit output q is incremented as a BCD number, rolling over from 9999 to 0000. The 3-bit ena output indicates which upper digits will increment on the next count, based on the current digit values.",
+    "rules": [
+      "On a positive clock edge with reset=1, q is set to 16'h0000 and ena is set to 3'b000.",
+      "On a positive clock edge with reset=0, q is incremented as a 4-digit BCD counter: ones digit increments; if ones was 9 it wraps to 0 and tens increments; cascading through hundreds and thousands; 9999 wraps to 0000.",
+      "ena[0] = 1 iff the current ones digit (q[3:0]) equals 9 (tens digit will increment on next count).",
+      "ena[1] = 1 iff the current ones and tens digits are both 9 (hundreds digit will increment on next count).",
+      "ena[2] = 1 iff the current ones, tens, and hundreds digits are all 9 (thousands digit will increment on next count).",
+      "All outputs update synchronously with the positive clock edge; ena reflects the state after the same edge as q (i.e., ena is derived from the current q value)."
+    ]
+  }
+}

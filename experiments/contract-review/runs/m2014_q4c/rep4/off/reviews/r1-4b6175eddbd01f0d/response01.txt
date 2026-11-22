@@ -1,0 +1,40 @@
+{
+  "coverage": {
+    "S01": ["R1_sync_reset", "R2_capture_d"]
+  },
+  "issues": [
+    {
+      "issue_id": "I1",
+      "rule_id": "R1_sync_reset",
+      "type": "consistency",
+      "severity": "medium",
+      "detail": "Rule says reset is synchronous and visible same_cycle, but example vectors omit clock edges and expected q values are listed per row without specifying edge timing; cannot verify same_cycle visibility from example.",
+      "spec_evidence": "active high synchronous reset (reset output to 0)",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I2",
+      "rule_id": "R2_capture_d",
+      "type": "consistency",
+      "severity": "medium",
+      "detail": "Capture rule example expected q values assume prior state or edge alignment not stated; first vector d=1,r=0 expected q=1 is only valid if a posedge occurs and prior q irrelevant, but no clock edges shown.",
+      "spec_evidence": "Implement a simple D flip flop",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I3",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "low",
+      "detail": "Spec does not define behavior when r and d change between edges; contract mid note says mid changes occur after sampling and carry to next row, but no explicit rule covers mid input changes.",
+      "spec_evidence": "",
+      "alternative": "Mid changes after sampling are ignored until next posedge; q updates only at posedge based on r and d sampled at that edge.",
+      "sequence": [
+        {"d": 1, "r": 0, "mid": {"d": 0}},
+        {"d": 0, "r": 0}
+      ]
+    }
+  ]
+}

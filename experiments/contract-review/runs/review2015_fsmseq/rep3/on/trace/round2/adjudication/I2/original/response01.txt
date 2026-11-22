@@ -1,0 +1,53 @@
+def reference(vectors):
+    state = 0
+    cur_reset = 0
+    cur_data = 0
+    outputs = []
+    for row in vectors:
+        if "reset" in row:
+            cur_reset = int(row["reset"]) & 1
+        if "data" in row:
+            cur_data = int(row["data"]) & 1
+
+        # R1_reset_clear: synchronous active-high reset has priority on this posedge.
+        if cur_reset == 1:
+            state = 0
+        else:
+            # R2_detect_set_and_hold: S4 or (S3 and data==1) sets and holds start_shifting.
+            if state == 4 or (state == 3 and cur_data == 1):
+                state = 4
+            else:
+                # R3_default_zero_while_searching: 1101-prefix transitions; default zero.
+                if state == 0:
+                    state = 1 if cur_data == 1 else 0
+                elif state == 1:
+                    state = 2 if cur_data == 1 else 0
+                elif state == 2:
+                    state = 3 if cur_data == 0 else 2
+                elif state == 3:
+                    state = 0
+                else:
+                    state = 0
+
+        outputs.append({"start_shifting": 1 if state == 4 else 0})
+
+        if "mid" in row:
+            mid = row["mid"]
+            if mid is not None:
+                if isinstance(mid, dict):
+                    if "reset" in mid:
+                        cur_reset = int(mid["reset"]) & 1
+                    if "data" in mid:
+                        cur_data = int(mid["data"]) & 1
+                else:
+                    try:
+                        for change in mid:
+                            if isinstance(change, dict):
+                                if "reset" in change:
+                                    cur_reset = int(change["reset"]) & 1
+                                if "data" in change:
+                                    cur_data = int(change["data"]) & 1
+                    except TypeError:
+                        pass
+
+    return outputs

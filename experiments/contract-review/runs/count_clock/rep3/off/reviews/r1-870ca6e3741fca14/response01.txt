@@ -1,0 +1,122 @@
+{
+  "coverage": {
+    "S01": ["R1_reset", "R2_seconds", "R3_seconds_rollover", "R4_minutes_rollover", "R5_hour_rollover_am_pm", "R6_hour_rollover_1159pm", "R7_hold"],
+    "S02": ["R2_seconds", "R3_seconds_rollover", "R4_minutes_rollover", "R5_hour_rollover_am_pm", "R6_hour_rollover_1159pm", "R7_hold"],
+    "S03": ["R2_seconds", "R3_seconds_rollover", "R4_minutes_rollover", "R5_hour_rollover_am_pm", "R6_hour_rollover_1159pm"],
+    "S04": ["R1_reset"]
+  },
+  "issues": [
+    {
+      "issue_id": "I1",
+      "rule_id": "R1_reset",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "Reset example expected hh=18 (0x12) but spec says reset to 12:00 AM; 18 is not BCD for 12.",
+      "spec_evidence": "Reset is the active high synchronous signal that resets the clock to \"12:00 AM.\"",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I2",
+      "rule_id": "R2_seconds",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "Example expected hh=18 (0x12) but spec hours are 01-12 BCD; 18 is invalid.",
+      "spec_evidence": "hh, mm, and ss are two BCD (Binary-Coded Decimal) digits each for hours (01-12), minutes (00-59), and seconds (00-59).",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I3",
+      "rule_id": "R3_seconds_rollover",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "Example expected hh=18 (0x12) but spec hours are 01-12 BCD; 18 is invalid.",
+      "spec_evidence": "hh, mm, and ss are two BCD (Binary-Coded Decimal) digits each for hours (01-12), minutes (00-59), and seconds (00-59).",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I4",
+      "rule_id": "R4_minutes_rollover",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "Example expected hh=18 (0x12) but spec hours are 01-12 BCD; 18 is invalid.",
+      "spec_evidence": "hh, mm, and ss are two BCD (Binary-Coded Decimal) digits each for hours (01-12), minutes (00-59), and seconds (00-59).",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I5",
+      "rule_id": "R5_hour_rollover_am_pm",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "Example expected hh=18 (0x12) but spec hours are 01-12 BCD; 18 is invalid.",
+      "spec_evidence": "hh, mm, and ss are two BCD (Binary-Coded Decimal) digits each for hours (01-12), minutes (00-59), and seconds (00-59).",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I6",
+      "rule_id": "R6_hour_rollover_1159pm",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "Example expected hh=18 (0x12) but spec hours are 01-12 BCD; 18 is invalid.",
+      "spec_evidence": "hh, mm, and ss are two BCD (Binary-Coded Decimal) digits each for hours (01-12), minutes (00-59), and seconds (00-59).",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I7",
+      "rule_id": "R7_hold",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "Example expected hh=18 (0x12) but spec hours are 01-12 BCD; 18 is invalid.",
+      "spec_evidence": "hh, mm, and ss are two BCD (Binary-Coded Decimal) digits each for hours (01-12), minutes (00-59), and seconds (00-59).",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I8",
+      "rule_id": "R5_hour_rollover_am_pm",
+      "type": "ambiguity",
+      "severity": "high",
+      "detail": "R5 condition hh==0x11 && pm==1 (11 PM) rolls to 12 AM, but spec implies 11 PM should increment to 12 AM? Actually 11 PM -> 12 AM is correct, but R5 also sets pm=0 and hh=0x12? Wait R5 outputs pm,hh,mm,ss but example shows hh=18. The condition is 11 PM, but 11 PM should become 12 AM (hh=0x12, pm=0). However R5 example shows hh=18. Also R5 condition is 11 PM, but 11 PM is not the last hour; 12 PM is noon, 11 PM is 23:00. The spec says 12-hour clock with am/pm. The rollover from 11:59:59 PM should go to 12:00:00 AM. That is R6? R6 condition is hh==0x12 && pm==1 (12 PM) which is noon, not 11 PM. So R5 and R6 conditions are swapped: R5 should be 11 PM (hh=0x11, pm=1) -> 12 AM (hh=0x12, pm=0). R6 should be 12 PM (hh=0x12, pm=1) -> 1 PM (hh=0x01, pm=1). But R6 condition is 12 PM and spec_quote says resets to 12:00 AM, which is wrong. This is a contradiction.",
+      "spec_evidence": "The signal \"pm\" is asserted if the clock is PM, or is otherwise AM. hh, mm, and ss are two BCD (Binary-Coded Decimal) digits each for hours (01-12), minutes (00-59), and seconds (00-59).",
+      "alternative": "R5 should handle 11:59:59 PM -> 12:00:00 AM (hh=0x12, pm=0). R6 should handle 12:59:59 PM -> 1:00:00 PM (hh=0x01, pm=1).",
+      "sequence": [
+        {"reset": 0, "ena": 1, "mid": {"hh": 17, "mm": 89, "ss": 89, "pm": 1}},
+        {"reset": 0, "ena": 1},
+        {"reset": 0, "ena": 0}
+      ]
+    },
+    {
+      "issue_id": "I9",
+      "rule_id": "R6_hour_rollover_1159pm",
+      "type": "ambiguity",
+      "severity": "high",
+      "detail": "R6 condition hh==0x12 && pm==1 (12 PM) but spec_quote says resets to 12:00 AM, which is incorrect for 12 PM. 12 PM should increment to 1 PM, not reset to 12 AM.",
+      "spec_evidence": "resets the clock to \"12:00 AM.\"",
+      "alternative": "12:59:59 PM should become 1:00:00 PM (hh=0x01, pm=1), not 12:00:00 AM.",
+      "sequence": [
+        {"reset": 0, "ena": 1, "mid": {"hh": 18, "mm": 89, "ss": 89, "pm": 1}},
+        {"reset": 0, "ena": 1},
+        {"reset": 0, "ena": 0}
+      ]
+    },
+    {
+      "issue_id": "I10",
+      "rule_id": "global",
+      "type": "grounding",
+      "severity": "medium",
+      "detail": "No rule explicitly handles hour increment when seconds and minutes do not roll over (e.g., 12:00:00 AM + 1s -> 12:00:01 AM). R2 only updates ss. Hour increment only occurs on minute rollover via R4/R5/R6, but those conditions require ss==0x59 && mm==0x59. So hour never increments except at minute rollover, which is correct. However, R4 condition includes !(hh==0x11 && pm==1) but does not handle hh==0x12 && pm==1 (12 PM) which should increment to 1 PM. R4 would increment hh from 0x12 to 0x13 (invalid BCD) if pm==1 and hh==0x12. That is a bug.",
+      "spec_evidence": "hours (01-12)",
+      "alternative": "R4 should not increment hh from 12 PM to 13; it should wrap to 1 PM. R6 should handle 12 PM rollover.",
+      "sequence": [
+        {"reset": 0, "ena": 1, "mid": {"hh": 18, "mm": 89, "ss": 89, "pm": 1}},
+        {"reset": 0, "ena": 1},
+        {"reset": 0, "ena": 0}
+      ]
+    }
+  ]
+}

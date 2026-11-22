@@ -1,0 +1,60 @@
+```json
+{
+  "module_name": "top_module",
+  "io": [
+    {
+      "name": "clk",
+      "dir": "input",
+      "width": 1,
+      "description": "Positive edge triggered clock."
+    },
+    {
+      "name": "areset",
+      "dir": "input",
+      "width": 1,
+      "description": "Asynchronous active-high reset. Conversion begins when released and stops when asserted."
+    },
+    {
+      "name": "x",
+      "dir": "input",
+      "width": 1,
+      "description": "Serial input bit, least-significant bit first."
+    },
+    {
+      "name": "z",
+      "dir": "output",
+      "width": 1,
+      "description": "Serial output bit of the 2's complement of the input number."
+    }
+  ],
+  "clocking": {
+    "clock": {
+      "name": "clk",
+      "edge": "posedge"
+    },
+    "reset": {
+      "name": "areset",
+      "active": "high",
+      "kind": "asynchronous"
+    }
+  },
+  "timing": {
+    "outputs": {
+      "z": {
+        "latency_cycles": 1
+      }
+    }
+  },
+  "functional_summary": {
+    "overview": "One-input one-output serial 2's complementer Moore state machine. Input bits arrive LSB first; output is the 2's complement of the input number, also produced LSB first. Conversion starts when areset is released and stops when areset is asserted.",
+    "rules": [
+      "While areset is asserted, the machine is held in the initial state and z is driven to 0.",
+      "After areset is released, the machine processes input bits x one per clock cycle, LSB first.",
+      "The machine remains in the 'copy' state, passing x through to z, until the first 1 bit is received.",
+      "Upon receiving the first 1 bit, the machine transitions to the 'complement' state; from then on, z is the complement of x.",
+      "The output z is a Moore output determined solely by the current state, with one cycle of latency from the sampled input.",
+      "The machine supports input numbers of arbitrary length."
+    ]
+  }
+}
+```

@@ -1,0 +1,44 @@
+```python
+def reference(vectors):
+    history = 0
+    sig = {
+        'areset': 0,
+        'predict_valid': 0,
+        'predict_taken': 0,
+        'train_mispredicted': 0,
+        'train_taken': 0,
+        'train_history': 0
+    }
+    outputs = []
+    for row in vectors:
+        # Apply inputs driven before the sampled edge (override carried mid values)
+        for k in sig:
+            if k in row:
+                sig[k] = row[k]
+        # R1_async_reset: asynchronous reset overrides all clocked updates
+        if sig['areset'] == 1:
+            history = 0
+            out = 0
+        else:
+            # R2_train_mispredicted_load: misprediction takes precedence over prediction
+            if sig['train_mispredicted'] == 1:
+                history = ((sig['train_history'] << 1) | sig['train_taken']) & 0xFFFFFFFF
+            # R3_predict_update: shift in predict_taken from LSB
+            elif sig['predict_valid'] == 1:
+                history = ((history << 1) | sig['predict_taken']) & 0xFFFFFFFF
+            else:
+                # R4_hold: no update, hold previous value
+                pass
+            out = history & 0xFFFFFFFF
+        outputs.append({'predict_history': out})
+        # Process optional mid-cycle input changes after sampling
+        if "mid" in row:
+            mid = row["mid"]
+            for k in sig:
+                if k in mid:
+                    sig[k] = mid[k]
+            # R1_async_reset: mid-cycle reset assertion takes effect immediately
+            if "areset" in mid and mid["areset"] == 1:
+                history = 0
+    return outputs
+```

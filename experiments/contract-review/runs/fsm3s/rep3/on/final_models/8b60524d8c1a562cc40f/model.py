@@ -1,0 +1,77 @@
+def reference(vectors):
+    # R_RESET: synchronous active high reset resets FSM to state A.
+    # Power-up unspecified; assume state A for deterministic output.
+    state = "A"
+    cur_in = 0
+    cur_reset = 0
+    results = []
+
+    for row in vectors:
+        # Each row's values are driven before the sampled posedge.
+        if "in" in row:
+            cur_in = row["in"]
+        if "reset" in row:
+            cur_reset = row["reset"]
+
+        # On posedge clk: if reset=1 then next state A; else follow transition table.
+        # R_RESET, R_NEXT
+        if cur_reset == 1:
+            state = "A"
+        else:
+            if state == "A":
+                if cur_in == 0:
+                    state = "A"
+                else:
+                    state = "B"
+            elif state == "B":
+                if cur_in == 0:
+                    state = "C"
+                else:
+                    state = "B"
+            elif state == "C":
+                if cur_in == 0:
+                    state = "A"
+                else:
+                    state = "D"
+            elif state == "D":
+                if cur_in == 0:
+                    state = "C"
+                else:
+                    state = "B"
+
+        # Moore output after posedge settles.
+        # R_OUT_A, R_OUT_B, R_OUT_C, R_OUT_D
+        if state == "A":
+            out = 0  # R_OUT_A
+        elif state == "B":
+            out = 0  # R_OUT_B
+        elif state == "C":
+            out = 0  # R_OUT_C
+        else:  # state == "D"
+            out = 1  # R_OUT_D
+
+        results.append({"out": out})
+
+        # Optional mid input changes occur AFTER sampling, before the other edge,
+        # and are carried to the start of the next row.
+        if "mid" in row:
+            mid = row["mid"]
+            try:
+                if "in" in mid:
+                    cur_in = mid["in"]
+                if "reset" in mid:
+                    cur_reset = mid["reset"]
+            except:
+                pass
+
+        # Also support explicit mid-change key variants.
+        if "mid_in" in row:
+            cur_in = row["mid_in"]
+        if "in_mid" in row:
+            cur_in = row["in_mid"]
+        if "mid_reset" in row:
+            cur_reset = row["mid_reset"]
+        if "reset_mid" in row:
+            cur_reset = row["reset_mid"]
+
+    return results

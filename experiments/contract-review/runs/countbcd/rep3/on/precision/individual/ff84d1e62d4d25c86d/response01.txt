@@ -1,0 +1,77 @@
+def reference(vectors):
+    # Initialize documented post-power-up state (uncertain rule assumes 0)
+    q = 0
+    reset_in = 0
+    result = []
+
+    for row in vectors:
+        # Determine input value driven before the sampled posedge.
+        if 'reset' in row:
+            reset_in = int(row['reset']) & 1
+        elif 'inputs' in row and isinstance(row['inputs'], dict) and 'reset' in row['inputs']:
+            reset_in = int(row['inputs']['reset']) & 1
+
+        # q_sync_reset: synchronous active-high reset to 0 at posedge
+        # q_bcd_count: 4-digit BCD increment when reset == 0
+        if reset_in == 1:
+            q = 0
+        else:
+            d0 = q & 0xF
+            d1 = (q >> 4) & 0xF
+            d2 = (q >> 8) & 0xF
+            d3 = (q >> 12) & 0xF
+
+            d0 += 1
+            if d0 == 10:
+                d0 = 0
+                d1 += 1
+                if d1 == 10:
+                    d1 = 0
+                    d2 += 1
+                    if d2 == 10:
+                        d2 = 0
+                        d3 += 1
+                        if d3 == 10:
+                            d3 = 0
+
+            q = ((d3 & 0xF) << 12) | ((d2 & 0xF) << 8) | ((d1 & 0xF) << 4) | (d0 & 0xF)
+
+        q = q & 0xFFFF
+
+        # ena_upper_digit_increment: combinational from settled q
+        ones = q & 0xF
+        tens = (q >> 4) & 0xF
+        hundreds = (q >> 8) & 0xF
+        ena = 0
+        if ones == 9:
+            ena |= 1
+            if tens == 9:
+                ena |= 2
+                if hundreds == 9:
+                    ena |= 4
+
+        result.append({'q': q, 'ena': ena & 0x7})
+
+        # Process optional mid input changes after sampling, before next row.
+        if 'mid_reset' in row:
+            reset_in = int(row['mid_reset']) & 1
+        elif 'mid' in row:
+            mid = row['mid']
+            if isinstance(mid, dict):
+                if 'reset' in mid:
+                    reset_in = int(mid['reset']) & 1
+                elif 'inputs' in mid and isinstance(mid['inputs'], dict) and 'reset' in mid['inputs']:
+                    reset_in = int(mid['inputs']['reset']) & 1
+            else:
+                reset_in = int(mid) & 1
+        elif 'mid_inputs' in row:
+            mid = row['mid_inputs']
+            if isinstance(mid, dict):
+                if 'reset' in mid:
+                    reset_in = int(mid['reset']) & 1
+                elif 'inputs' in mid and isinstance(mid['inputs'], dict) and 'reset' in mid['inputs']:
+                    reset_in = int(mid['inputs']['reset']) & 1
+            else:
+                reset_in = int(mid) & 1
+
+    return result

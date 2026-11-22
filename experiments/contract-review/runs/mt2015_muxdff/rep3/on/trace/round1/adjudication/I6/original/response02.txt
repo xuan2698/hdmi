@@ -1,0 +1,70 @@
+```python
+def reference(vectors):
+    # Q state: 1-bit registered output updated on posedge clk
+    Q = 0
+    # carried input values (start at zero)
+    L = 0
+    q_in = 0
+    r_in = 0
+    out = []
+    for row in vectors:
+        # Drive row values before the sampled edge
+        if "L" in row:
+            L = row["L"]
+        if "q_in" in row:
+            q_in = row["q_in"]
+        if "r_in" in row:
+            r_in = row["r_in"]
+
+        # rule load_r: L == 1 -> Q = r_in (priority 1)
+        # rule hold_q_in: L == 0 -> Q = q_in (priority 2)
+        if L == 1:
+            Q = r_in
+        else:
+            Q = q_in
+
+        # Output visible same cycle
+        out.append({"Q": Q})
+
+        # Optional mid input changes occur after sampling, carried to next row
+        if "mid" in row and row["mid"] is not None:
+            mid = row["mid"]
+            if mid.__class__.__name__ == "dict":
+                for k, v in mid.items():
+                    if k == "L":
+                        L = v
+                    elif k == "q_in":
+                        q_in = v
+                    elif k == "r_in":
+                        r_in = v
+            elif mid.__class__.__name__ == "list" or mid.__class__.__name__ == "tuple":
+                for ch in mid:
+                    if ch.__class__.__name__ == "dict":
+                        for k, v in ch.items():
+                            if k == "L":
+                                L = v
+                            elif k == "q_in":
+                                q_in = v
+                            elif k == "r_in":
+                                r_in = v
+                    elif ch.__class__.__name__ == "tuple" or ch.__class__.__name__ == "list":
+                        # Assume (key, value) pair
+                        key = None
+                        val = None
+                        idx = 0
+                        for x in ch:
+                            if idx == 0:
+                                key = x
+                            elif idx == 1:
+                                val = x
+                                break
+                            idx += 1
+                        if val is not None:
+                            if key == "L":
+                                L = val
+                            elif key == "q_in":
+                                q_in = val
+                            elif key == "r_in":
+                                r_in = val
+    return out
+```

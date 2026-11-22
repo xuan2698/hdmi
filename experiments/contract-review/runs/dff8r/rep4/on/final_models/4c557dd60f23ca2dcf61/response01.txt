@@ -1,0 +1,47 @@
+```python
+def reference(vectors):
+    # State: registered 8-bit D flip-flop output
+    q_state = 0  # concrete initial value for unspecified power-up
+    # Persistent input state to handle mid-cycle changes carried to next row
+    current_d = 0
+    current_reset = 0
+
+    outputs = []
+
+    for vector in vectors:
+        # Apply row's driven inputs before the sampled posedge
+        if 'd' in vector:
+            current_d = vector['d']
+        if 'reset' in vector:
+            current_reset = vector['reset']
+
+        # Rule sync_reset_high: reset == 1 at posedge clk -> q = 0
+        # Rule dff_load_d: reset == 0 at posedge clk -> q = d
+        if current_reset == 1:
+            q_state = 0
+        else:
+            q_state = current_d & 0xFF
+
+        # Output is visible same_cycle after posedge settled
+        outputs.append({'q': q_state})
+
+        # Process optional mid changes AFTER sampling; carry to next row start
+        mid_changes = vector.get('mid')
+        if mid_changes is not None:
+            if isinstance(mid_changes, dict):
+                for key, value in mid_changes.items():
+                    if key == 'd':
+                        current_d = value
+                    elif key == 'reset':
+                        current_reset = value
+            elif isinstance(mid_changes, list):
+                for change in mid_changes:
+                    if isinstance(change, dict):
+                        for key, value in change.items():
+                            if key == 'd':
+                                current_d = value
+                            elif key == 'reset':
+                                current_reset = value
+
+    return outputs
+```

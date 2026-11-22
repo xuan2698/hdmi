@@ -1,0 +1,172 @@
+{
+  "coverage": {
+    "S01": ["R1", "R2", "R4", "R5", "R6", "R7"],
+    "S02": ["R1", "R2", "R3", "R4", "R5", "R6", "R7"],
+    "S03": ["R3"],
+    "S04": ["R1", "R2", "R4", "R5", "R6", "R7"],
+    "S05": ["R1", "R4"],
+    "S06": ["R1", "R5"],
+    "S07": ["R1", "R6"],
+    "S08": ["R2", "R7"]
+  },
+  "issues": [
+    {
+      "issue_id": "I1",
+      "rule_id": "R1",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "R1 example expected out=0 for all rows, but row 3 has in=1 from state A, which transitions to B (out=0) only after the edge; the example's expected values are not aligned with the stated next_cycle visibility and state transitions.",
+      "spec_evidence": "A | A, B | 0",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I2",
+      "rule_id": "R2",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "R2 example: after reset, in=1 from A goes to B (out=0), then in=0 from B goes to C (out=0), but expected row 3 is out=1, which would require state D; the example contradicts the transition table.",
+      "spec_evidence": "D | C, B | 1",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I3",
+      "rule_id": "R4",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "R4 example expected row 3 out=1 after in=1 from A, but A with in=1 goes to B (out=0), not D; expected out=1 is inconsistent with the transition table.",
+      "spec_evidence": "A | A, B | 0",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I4",
+      "rule_id": "R5",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "R5 example expected row 3 out=1 after in=1 from B, but B with in=1 stays B (out=0); expected out=1 is inconsistent.",
+      "spec_evidence": "B | C, B | 0",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I5",
+      "rule_id": "R6",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "R6 example expected row 2 out=1 after in=1 from A (not C), but A with in=1 goes to B (out=0); expected out=1 is inconsistent.",
+      "spec_evidence": "C | A, D | 0",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I6",
+      "rule_id": "R7",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "R7 example expected row 1 out=1 before any transition from D; starting from reset state A, out should be 0, not 1. The example assumes initial state D, contradicting the reset behavior.",
+      "spec_evidence": "D | C, B | 1",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I7",
+      "rule_id": "R3",
+      "type": "consistency",
+      "severity": "medium",
+      "detail": "R3 is a reset rule with edge=posedge and visible=next_cycle, but reset is synchronous and should affect state at the posedge; the example's expected outputs do not demonstrate reset behavior distinctly and are consistent with out=0 regardless.",
+      "spec_evidence": "synchronous active high reset that resets the FSM to state A",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I8",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec does not define initial state before first reset; contract notes uncertainty but examples assume A. Alternative: initial state D before any reset.",
+      "spec_evidence": "",
+      "alternative": "Initial state is D before any reset, so out=1 until first reset.",
+      "sequence": [
+        {"in": 0, "reset": 0},
+        {"in": 0, "reset": 0}
+      ]
+    },
+    {
+      "issue_id": "I9",
+      "rule_id": "R1",
+      "type": "grounding",
+      "severity": "medium",
+      "detail": "R1 spec_quote 'A | A, B | 0' only covers state A row; it does not verbatim support the combined condition for states A, B, and C. The quote is partial and not verbatim for the full rule condition.",
+      "spec_evidence": "A | A, B | 0",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I10",
+      "rule_id": "R2",
+      "type": "grounding",
+      "severity": "medium",
+      "detail": "R2 spec_quote 'D | C, B | 1' is verbatim for state D row, but the rule condition is only state==D, which is supported; however the example is inconsistent (see I2).",
+      "spec_evidence": "D | C, B | 1",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I11",
+      "rule_id": "R4",
+      "type": "grounding",
+      "severity": "low",
+      "detail": "R4 spec_quote 'A | A, B | 0' is verbatim for state A row, but the rule includes transition logic and output; the quote does not explicitly state output for state A beyond the table row, which is acceptable but partial.",
+      "spec_evidence": "A | A, B | 0",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I12",
+      "rule_id": "R5",
+      "type": "grounding",
+      "severity": "low",
+      "detail": "R5 spec_quote 'B | C, B | 0' is verbatim for state B row; acceptable.",
+      "spec_evidence": "B | C, B | 0",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I13",
+      "rule_id": "R6",
+      "type": "grounding",
+      "severity": "low",
+      "detail": "R6 spec_quote 'C | A, D | 0' is verbatim for state C row; acceptable.",
+      "spec_evidence": "C | A, D | 0",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I14",
+      "rule_id": "R7",
+      "type": "grounding",
+      "severity": "low",
+      "detail": "R7 spec_quote 'D | C, B | 1' is verbatim for state D row; acceptable.",
+      "spec_evidence": "D | C, B | 1",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I15",
+      "rule_id": "global",
+      "type": "spec_example",
+      "severity": "high",
+      "detail": "Derived outputs from spec table for a reset-then-input sequence: reset=1 (out=0), then in=1 from A -> B (out=0), then in=0 from B -> C (out=0), then in=1 from C -> D (out=1). Contract examples do not match this for several rules.",
+      "spec_evidence": "A | A, B | 0; B | C, B | 0; C | A, D | 0; D | C, B | 1",
+      "alternative": "",
+      "sequence": [
+        {"in": 0, "reset": 1},
+        {"in": 1, "reset": 0},
+        {"in": 0, "reset": 0},
+        {"in": 1, "reset": 0}
+      ]
+    }
+  ]
+}

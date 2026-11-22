@@ -1,0 +1,19 @@
+def reference(vectors):
+    # Sequential 3-bit counter with hold/increment control.
+    # On posedge clk: if a==1 hold q; if a==0 q=(q+1)%8.
+    # q initializes to 4 (per spec, first posedge with a=1 loads q=4).
+    # Outputs have 1-cycle latency: q reflects state after the sampled edge.
+    q = 4
+    out = []
+    for row in vectors:
+        clk = row.get('clk', 0)
+        a = row.get('a', 0)
+        # Sample on posedge (clk transitions 0->1). We treat each row as
+        # the state at the sampled edge; apply update when clk==1.
+        if clk == 1:
+            if a == 1:
+                q = q  # hold
+            else:
+                q = (q + 1) % 8
+        out.append({'q': q & 0x7})
+    return out

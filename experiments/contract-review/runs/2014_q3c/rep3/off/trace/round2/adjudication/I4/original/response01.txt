@@ -1,0 +1,48 @@
+```python
+def reference(vectors):
+    # Contract rules implemented:
+    # R_Y0: Y0 = next-state bit 0, combinational from present state y and input x
+    # R_z: z = 1 when y is 011 or 100, else 0 (Moore output)
+    # Undefined states 101,110,111: treat as don't-cares -> Y0=0, z=0
+    # Mid input changes occur AFTER sampling, carried to start of next row.
+    # Each row: values driven before sampled edge; sample after posedge settled.
+
+    # State-assigned table: next state Y[2:0] for (y, x)
+    # y=000: x=0 -> 000, x=1 -> 001
+    # y=001: x=0 -> 001, x=1 -> 100
+    # y=010: x=0 -> 010, x=1 -> 001
+    # y=011: x=0 -> 001, x=1 -> 010
+    # y=100: x=0 -> 011, x=1 -> 100
+    # y=101,110,111: unspecified -> don't-care (Y0=0, z=0)
+
+    next_state = {
+        0b000: (0b000, 0b001),
+        0b001: (0b001, 0b100),
+        0b010: (0b010, 0b001),
+        0b011: (0b001, 0b010),
+        0b100: (0b011, 0b100),
+    }
+
+    results = []
+    for vec in vectors:
+        x = vec["x"] & 1
+        y = vec["y"] & 0b111
+
+        # R_z: Moore output from present state
+        if y == 0b011 or y == 0b100:
+            z = 1
+        else:
+            z = 0
+
+        # R_Y0: next-state bit 0, combinational
+        if y in next_state:
+            nxt = next_state[y][x]
+            Y0 = nxt & 1
+        else:
+            # unspecified states: don't-care -> Y0=0
+            Y0 = 0
+
+        results.append({"Y0": Y0, "z": z})
+
+    return results
+```

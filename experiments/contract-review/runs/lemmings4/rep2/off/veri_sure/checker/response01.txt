@@ -1,0 +1,193 @@
+```python
+def reference(vectors):
+    # Moore FSM for Lemmings.
+    # States: 0=WALK_LEFT, 1=WALK_RIGHT, 2=FALL, 3=DIG, 4=SPLAT
+    # Fall counter tracks cycles spent falling.
+    # Timing: outputs are decoded from current state (Moore, latency 0).
+    # areset is async positive-edge: when areset goes 0->1, state resets immediately.
+    # Sampling occurs on posedge clk after settling.
+    # Mid input changes occur after sampling, before next edge, carried to next row.
+
+    results = []
+
+    # Initial state (power-up unspecified -> default to WALK_LEFT, counter 0)
+    state = 0
+    fall_count = 0
+    prev_areset = 0
+
+    for row in vectors:
+        # Apply asynchronous reset if areset has a positive edge (0->1)
+        areset = row.get('areset', 0)
+        if areset == 1 and prev_areset == 0:
+            state = 0
+            fall_count = 0
+        prev_areset = areset
+
+        # Sample inputs at this edge (values driven before sampled edge)
+        bump_left = row.get('bump_left', 0)
+        bump_right = row.get('bump_right', 0)
+        ground = row.get('ground', 0)
+        dig = row.get('dig', 0)
+
+        # Compute next state based on current state and inputs
+        if state == 4:  # SPLAT absorbing
+            next_state = 4
+            next_fall = 0
+        elif state == 0:  # WALK_LEFT
+            if ground == 0:
+                next_state = 2
+                next_fall = 1
+            elif dig == 1:
+                next_state = 3
+                next_fall = 0
+            elif bump_left == 1 or bump_right == 1:
+                next_state = 1
+                next_fall = 0
+            else:
+                next_state = 0
+                next_fall = 0
+        elif state == 1:  # WALK_RIGHT
+            if ground == 0:
+                next_state = 2
+                next_fall = 1
+            elif dig == 1:
+                next_state = 3
+                next_fall = 0
+            elif bump_left == 1 or bump_right == 1:
+                next_state = 0
+                next_fall = 0
+            else:
+                next_state = 1
+                next_fall = 0
+        elif state == 2:  # FALL
+            if ground == 1:
+                if fall_count > 20:
+                    next_state = 4
+                    next_fall = 0
+                else:
+                    # Resume walking in pre-fall direction.
+                    # Pre-fall direction is stored implicitly: we need to know it.
+                    # We track it via a separate variable.
+                    next_state = pre_fall_dir
+                    next_fall = 0
+            else:
+                next_state = 2
+                next_fall = fall_count + 1
+        elif state == 3:  # DIG
+            if ground == 0:
+                next_state = 2
+                next_fall = 1
+            else:
+                next_state = 3
+                next_fall = 0
+        else:
+            next_state = state
+            next_fall = fall_count
+
+        # Track pre-fall direction: when entering FALL from WALK_LEFT/WALK_RIGHT/DIG,
+        # remember the walking direction. DIG resumes original walking direction.
+        # We need to store the direction to resume.
+        # Use a variable 'resume_dir' that is set when entering fall/dig.
+        # For simplicity, track it alongside state.
+        # Actually we need to handle this carefully. Let's restructure with resume_dir.
+
+        # Recompute with resume_dir tracking:
+        # We'll redo the transition logic with resume_dir.
+
+        # (Redo cleanly)
+        # State encoding: 0=WL, 1=WR, 2=FALL, 3=DIG, 4=SPLAT
+        # resume_dir: direction to resume after fall/dig (0=left, 1=right)
+
+        # We'll recompute next_state, next_fall, next_resume from scratch.
+        pass
+
+    # The above got messy; rewrite cleanly below.
+    return results
+```
+
+Let me rewrite cleanly:
+
+```python
+def reference(vectors):
+    # States: 0=WALK_LEFT, 1=WALK_RIGHT, 2=FALL, 3=DIG, 4=SPLAT
+    # resume_dir: walking direction to resume after fall/dig (0=left, 1=right)
+    # fall_count: number of cycles spent falling (incremented each cycle while falling)
+
+    results = []
+    state = 0
+    fall_count = 0
+    resume_dir = 0
+    prev_areset = 0
+
+    for row in vectors:
+        areset = row.get('areset', 0)
+        # Async positive-edge reset
+        if areset == 1 and prev_areset == 0:
+            state = 0
+            fall_count = 0
+            resume_dir = 0
+        prev_areset = areset
+
+        bump_left = row.get('bump_left', 0)
+        bump_right = row.get('bump_right', 0)
+        ground = row.get('ground', 0)
+        dig = row.get('dig', 0)
+
+        # Moore outputs from current state
+        walk_left = 1 if state == 0 else 0
+        walk_right = 1 if state == 1 else 0
+        aaah = 1 if state == 2 else 0
+        digging = 1 if state == 3 else 0
+
+        results.append({
+            'walk_left': walk_left,
+            'walk_right': walk_right,
+            'aaah': aaah,
+            'digging': digging,
+        })
+
+        # Compute next state
+        if state == 4:
+            next_state, next_fall, next_resume = 4, 0, resume_dir
+        elif state == 0:  # WALK_LEFT
+            if ground == 0:
+                next_state, next_fall, next_resume = 2, 1, 0
+            elif dig == 1:
+                next_state, next_fall, next_resume = 3, 0, 0
+            elif bump_left == 1 or bump_right == 1:
+                next_state, next_fall, next_resume = 1, 0, 0
+            else:
+                next_state, next_fall, next_resume = 0, 0, 0
+        elif state == 1:  # WALK_RIGHT
+            if ground == 0:
+                next_state, next_fall, next_resume = 2, 1, 1
+            elif dig == 1:
+                next_state, next_fall, next_resume = 3, 0, 1
+            elif bump_left == 1 or bump_right == 1:
+                next_state, next_fall, next_resume = 0, 0, 1
+            else:
+                next_state, next_fall, next_resume = 1, 0, 1
+        elif state == 2:  # FALL
+            if ground == 1:
+                if fall_count > 20:
+                    next_state, next_fall, next_resume = 4, 0, resume_dir
+                else:
+                    next_state = resume_dir
+                    next_fall = 0
+                    next_resume = resume_dir
+            else:
+                next_state, next_fall, next_resume = 2, fall_count + 1, resume_dir
+        elif state == 3:  # DIG
+            if ground == 0:
+                next_state, next_fall, next_resume = 2, 1, resume_dir
+            else:
+                next_state, next_fall, next_resume = 3, 0, resume_dir
+        else:
+            next_state, next_fall, next_resume = state, fall_count, resume_dir
+
+        state = next_state
+        fall_count = next_fall
+        resume_dir = next_resume
+
+    return results
+```

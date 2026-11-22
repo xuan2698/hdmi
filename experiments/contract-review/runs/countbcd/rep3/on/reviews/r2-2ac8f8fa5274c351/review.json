@@ -1,0 +1,72 @@
+{
+  "coverage": {
+    "S01": [
+      "q_bcd_count"
+    ],
+    "S02": [
+      "q_bcd_count"
+    ],
+    "S03": [
+      "ena_upper_digit_increment"
+    ],
+    "S04": [
+      "q_sync_reset"
+    ]
+  },
+  "issues": [
+    {
+      "issue_id": "I1",
+      "rule_id": "q_sync_reset",
+      "type": "grounding",
+      "severity": "medium",
+      "detail": "Spec only requires a synchronous active-high reset; q=0 and ena=0 reset values are asserted without verbatim evidence and marked uncertain false.",
+      "spec_evidence": "Include a synchronous active-high reset.",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I2",
+      "rule_id": "ena_upper_digit_increment",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Enable timing relative to q update is not fixed; contract derives ena from settled new q, making carry-edge ena 0.",
+      "spec_evidence": "For digits [3:1], also output an enable signal indicating when each of the upper three digits should be incremented.",
+      "alternative": "ena is asserted for the increment performed on the sampled edge: on the 09-to-10 carry edge ena[0] is 1 after the edge, while contract computes from q=10 and gives 0.",
+      "sequence": [
+        {
+          "reset": 1
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        }
+      ]
+    }
+  ]
+}

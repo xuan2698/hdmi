@@ -1,0 +1,47 @@
+```python
+def reference(vectors):
+    # Named state: single-bit D flip-flop output/state
+    q = 0
+    # Persistent input values carried between rows
+    d = 0
+    r = 0
+
+    results = []
+
+    for row in vectors:
+        # Drive row's pre-edge input values before the sampled posedge.
+        if 'd' in row:
+            d = row['d'] & 1
+        if 'r' in row:
+            r = row['r'] & 1
+
+        # At the sampled posedge, update q according to synchronous reset priority.
+        if r == 1:
+            # Rule sync_reset: active high synchronous reset forces q to 0.
+            q = 0
+        else:
+            # Rule d_load: when reset is low, q captures d.
+            q = d & 1
+
+        # Visible same-cycle output after the posedge has settled.
+        results.append({'q': q & 1})
+
+        # Optional mid changes occur after sampling and are carried to next row.
+        if 'mid' in row:
+            mid = row['mid']
+            if isinstance(mid, dict):
+                # Apply mid-cycle input changes for the next row's start.
+                if 'd' in mid:
+                    d = mid['d'] & 1
+                if 'r' in mid:
+                    r = mid['r'] & 1
+            elif isinstance(mid, (list, tuple)):
+                for change in mid:
+                    if isinstance(change, dict):
+                        if 'd' in change:
+                            d = change['d'] & 1
+                        if 'r' in change:
+                            r = change['r'] & 1
+
+    return results
+```

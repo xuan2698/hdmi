@@ -1,0 +1,58 @@
+{
+  "module_name": "top_module",
+  "io": [
+    {
+      "name": "clk",
+      "dir": "input",
+      "width": 1,
+      "description": "Clock. All state updates occur on the positive edge."
+    },
+    {
+      "name": "reset",
+      "dir": "input",
+      "width": 1,
+      "description": "Active-high synchronous reset. When asserted at a positive clock edge, all out bits are cleared to 0."
+    },
+    {
+      "name": "in",
+      "dir": "input",
+      "width": 32,
+      "description": "32-bit input vector sampled on each positive clock edge."
+    },
+    {
+      "name": "out",
+      "dir": "output",
+      "width": 32,
+      "description": "32-bit output vector. Bit i is set to 1 when in[i] transitions from 1 to 0 between consecutive sampled clock edges, and remains 1 until reset."
+    }
+  ],
+  "clocking": {
+    "clock": {
+      "name": "clk",
+      "edge": "posedge"
+    },
+    "reset": {
+      "name": "reset",
+      "active": "high",
+      "kind": "synchronous"
+    }
+  },
+  "timing": {
+    "outputs": {
+      "out": {
+        "latency_cycles": 1
+      }
+    }
+  },
+  "functional_summary": {
+    "overview": "Detects 1-to-0 transitions on each bit of a 32-bit input across consecutive positive clock edges. When in[i] is 1 at one sampled edge and 0 at the next, out[i] is set to 1 and held until a synchronous active-high reset clears it. Reset has priority over transition detection.",
+    "rules": [
+      "On each positive clock edge, if reset is 1, out is cleared to 0 (reset dominates).",
+      "Otherwise, for each bit i in 0..31: if the previous sampled value of in[i] was 1 and the current sampled value of in[i] is 0, then out[i] becomes 1.",
+      "Once out[i] is set to 1, it remains 1 on subsequent edges until reset is asserted, regardless of further input transitions.",
+      "Bits of out that are already 1 stay 1 (sticky) unless reset is asserted.",
+      "The previous input value is tracked per bit across clock edges; the initial previous value before any edge is treated as 0 (no spurious transition on the first edge).",
+      "out is registered and reflects the state after the positive clock edge (latency of 1 cycle from the sampling edge)."
+    ]
+  }
+}

@@ -1,0 +1,47 @@
+def reference(vectors):
+    # Contract implementation for a serial 2's complementer Moore machine.
+    # States: S0 (no 1 seen yet), S1 (at least one 1 seen).
+    # Output z is combinational from state and x.
+    # State updates on posedge clk; async reset (areset=1) forces S0 and z=0.
+    # Mid-cycle input changes occur after sampling and carry to next row.
+
+    # Named states
+    S0 = 0
+    S1 = 1
+
+    state = S0  # power-up state (unspecified, but we pick S0; reset will fix)
+    results = []
+
+    for row in vectors:
+        areset = row.get('areset', 0) & 1
+        x = row.get('x', 0) & 1
+
+        # R4: Asynchronous reset asserted -> state S0, z forced to 0 (same cycle).
+        if areset == 1:
+            state = S0
+            z = 0
+            results.append({'z': z})
+            # Reset is async; state remains S0. Next row continues from S0.
+            continue
+
+        # Combinational output based on current state and x (R1, R2).
+        if state == S0:
+            # R1: In S0, z = x (pass through until first 1).
+            z = x
+        else:
+            # R2: In S1, z = NOT x.
+            z = 1 - x
+
+        results.append({'z': z})
+
+        # R3: State transition on posedge (sampled at this edge).
+        # S0 -> S1 when x=1; S0 -> S0 when x=0; S1 -> S1 always.
+        if state == S0:
+            if x == 1:
+                state = S1
+            else:
+                state = S0
+        else:
+            state = S1
+
+    return results

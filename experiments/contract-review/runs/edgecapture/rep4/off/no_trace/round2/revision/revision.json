@@ -1,0 +1,80 @@
+{
+  "responses": [
+    {
+      "issue_id": "I1",
+      "decision": "accept",
+      "reason": "Condition uses (in & ~in_prev) which detects 0->1 rising, not 1->0 falling; must use (~in & in_prev) to match the spec quote.",
+      "spec_quote": "capture when the input signal changes from 1 in one clock cycle to 0 the next",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R2_capture_falling",
+            "condition"
+          ],
+          "value": "reset == 0 && (~in & in_prev) != 0  (bit was 1 previous cycle, 0 this cycle)"
+        }
+      ]
+    },
+    {
+      "issue_id": "I2",
+      "decision": "rebut",
+      "reason": "The example already expresses the correct falling-edge rule: 0xFFFFFFFF->0 yields out=all-ones on the following row, matching next_cycle visibility. No contract change is needed; the defect was in the condition, fixed under I1.",
+      "spec_quote": "capture when the input signal changes from 1 in one clock cycle to 0 the next",
+      "edits": []
+    },
+    {
+      "issue_id": "I3",
+      "decision": "rebut",
+      "reason": "R1 already declares visible same_cycle with reset==1 producing out=0 at the sampling edge, which is the correct synchronous-reset behavior; the existing example already expresses this rule.",
+      "spec_quote": "active high synchronous reset",
+      "edits": []
+    },
+    {
+      "issue_id": "I4",
+      "decision": "rebut",
+      "reason": "R3's example already aligns with next_cycle visibility: the 1->0 transition occurs at the third row and out=1 appears in that row's expected, which is sampled after the posedge. No change needed.",
+      "spec_quote": "the output will remain 1 until the register is reset",
+      "edits": []
+    },
+    {
+      "issue_id": "I5",
+      "decision": "accept",
+      "reason": "Ambiguity between same_cycle and next_cycle visibility; clarify via uncertain field while keeping registered next_cycle as the primary interpretation.",
+      "spec_quote": "capture when the input signal changes from 1 in one clock cycle to 0 the next",
+      "edits": [
+        {
+          "path": [
+            "uncertain"
+          ],
+          "value": [
+            {
+              "rule_id": "R2_capture_falling",
+              "note": "Whether out reflects the 1->0 transition in the same sampled cycle or the following cycle.",
+              "candidates": [
+                "out visible next_cycle (registered at posedge)",
+                "out visible same_cycle (combinational visibility)"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "issue_id": "I6",
+      "decision": "accept",
+      "reason": "in_prev initialized to 0 could falsely trigger falling on first cycle if in=0; clarify initialization in state meaning.",
+      "spec_quote": "capture when the input signal changes from 1 in one clock cycle to 0 the next",
+      "edits": [
+        {
+          "path": [
+            "states",
+            "out_reg",
+            "meaning"
+          ],
+          "value": "Per-bit sticky flag: set to 1 when in bit transitions 1->0; held until synchronous reset. in_prev is an internal register holding the previous cycle's in value; on the first cycle after reset release in_prev is initialized to the current in value to avoid spurious capture."
+        }
+      ]
+    }
+  ]
+}

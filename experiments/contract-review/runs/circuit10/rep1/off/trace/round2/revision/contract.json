@@ -1,0 +1,120 @@
+{
+  "ports": {
+    "inputs": {
+      "a": 1,
+      "b": 1
+    },
+    "outputs": {
+      "q": 1,
+      "state": 1
+    },
+    "clock": "clk"
+  },
+  "states": [
+    {
+      "name": "state",
+      "meaning": "single flip-flop storing the next value of q",
+      "update_time": "negedge",
+      "update_during_reset": false
+    }
+  ],
+  "rules": [
+    {
+      "id": "R1",
+      "outputs": [
+        "state"
+      ],
+      "condition": "state <= q (the flip-flop captures the current output q on each posedge)",
+      "edge": "posedge",
+      "visible": "next_cycle",
+      "priority": 1,
+      "spec_quote": "// 95ns            1               1               1               1               1",
+      "uncertain": false,
+      "example": {
+        "vectors": [
+          {
+            "a": 0,
+            "b": 0
+          },
+          {
+            "a": 0,
+            "b": 1
+          },
+          {
+            "a": 1,
+            "b": 0
+          }
+        ],
+        "expected": [
+          {
+            "state": 0
+          },
+          {
+            "state": 0
+          },
+          {
+            "state": 1
+          }
+        ]
+      }
+    },
+    {
+      "id": "R2",
+      "outputs": [
+        "q"
+      ],
+      "condition": "q = state XOR a XOR b (combinational output using state)",
+      "edge": "combinational",
+      "visible": "same_cycle",
+      "priority": 1,
+      "spec_quote": "// 115ns           1               1               0               1               0",
+      "uncertain": false,
+      "example": {
+        "vectors": [
+          {
+            "a": 0,
+            "b": 0
+          },
+          {
+            "a": 0,
+            "b": 1
+          },
+          {
+            "a": 1,
+            "b": 0
+          },
+          {
+            "a": 1,
+            "b": 1
+          }
+        ],
+        "expected": [
+          {
+            "q": 0
+          },
+          {
+            "q": 1
+          },
+          {
+            "q": 1
+          },
+          {
+            "q": 0
+          }
+        ]
+      }
+    }
+  ],
+  "reset": {
+    "kind": "none",
+    "name": null,
+    "active": "none",
+    "values": {
+      "q": null,
+      "state": null
+    },
+    "first_released_cycle": "0ns"
+  },
+  "mid": "Optional mid input changes occur AFTER sampling, before the other edge, and are carried to the start of the next row.",
+  "uncertain": []
+}

@@ -1,0 +1,63 @@
+def reference(vectors):
+    # Contract rules implemented below:
+    # R1_reset: synchronous active-high reset -> q=0, ena=0 on posedge when reset==1
+    # R2_ones_count / R3_ones_wrap: ones digit counts 0..9 then wraps
+    # R4_tens_increment / R5_tens_wrap: tens increments when ones==9
+    # R6_hundreds_increment: hundreds increments when tens&ones==9
+    # R7_thousands_increment: thousands increments when hundreds&tens&ones==9
+    # R8_full_wrap: full 4-digit wrap 9999 -> 0
+    # R9_ena_tens: ena[0] = (ones==9)
+    # R10_ena_hundreds: ena[1] = (ones==9 and tens==9)
+    # R11_ena_thousands: ena[2] = (ones==9 and tens==9 and hundreds==9)
+
+    # State: BCD digits (each 0..9)
+    d0 = 0  # ones
+    d1 = 0  # tens
+    d2 = 0  # hundreds
+    d3 = 0  # thousands
+
+    results = []
+
+    for row in vectors:
+        reset = row.get('reset', 0)
+
+        # Combinational outputs based on current state (before posedge sampling)
+        # R9_ena_tens
+        ena0 = 1 if (reset == 0 and d0 == 9) else 0
+        # R10_ena_hundreds
+        ena1 = 1 if (reset == 0 and d0 == 9 and d1 == 9) else 0
+        # R11_ena_thousands
+        ena2 = 1 if (reset == 0 and d0 == 9 and d1 == 9 and d2 == 9) else 0
+
+        ena = (ena2 << 2) | (ena1 << 1) | ena0
+        q = (d3 << 12) | (d2 << 8) | (d1 << 4) | d0
+
+        results.append({'q': q, 'ena': ena})
+
+        # Synchronous posedge update
+        if reset == 1:
+            # R1_reset
+            d0 = d1 = d2 = d3 = 0
+        else:
+            # R2_ones_count / R3_ones_wrap
+            if d0 != 9:
+                d0 += 1
+            else:
+                d0 = 0
+                # R4_tens_increment / R5_tens_wrap
+                if d1 != 9:
+                    d1 += 1
+                else:
+                    d1 = 0
+                    # R6_hundreds_increment
+                    if d2 != 9:
+                        d2 += 1
+                    else:
+                        d2 = 0
+                        # R7_thousands_increment / R8_full_wrap
+                        if d3 != 9:
+                            d3 += 1
+                        else:
+                            d3 = 0
+
+    return results

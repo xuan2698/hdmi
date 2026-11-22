@@ -1,0 +1,174 @@
+{
+  "responses": [
+    {
+      "issue_id": "I1",
+      "decision": "accept",
+      "reason": "Waveform shows state changing on negedge (e.g., 75ns, 85ns), not posedge as R1 claims.",
+      "spec_quote": "// 75ns            1               0               0               1               1",
+      "edits": [
+        {
+          "path": [
+            "states",
+            "state",
+            "update_time"
+          ],
+          "value": "negedge"
+        },
+        {
+          "path": [
+            "rules",
+            "R1",
+            "edge"
+          ],
+          "value": "negedge"
+        }
+      ]
+    },
+    {
+      "issue_id": "I2",
+      "decision": "rebut",
+      "reason": "R1 example is internally consistent with state<=q at posedges; the issue itself concedes the example matches. No change needed.",
+      "spec_quote": "one bit of memory (i.e., one flip-flop)"
+    },
+    {
+      "issue_id": "I3",
+      "decision": "accept",
+      "reason": "Waveform contradicts q=a XOR b (e.g., 75ns a=0,b=0,q=1; 95ns a=1,b=1,q=1). q depends on state.",
+      "spec_quote": "// 75ns            1               0               0               1               1",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R2",
+            "condition"
+          ],
+          "value": "q = state XOR a XOR b (combinational output using state)"
+        },
+        {
+          "path": [
+            "rules",
+            "R2",
+            "example"
+          ],
+          "value": {
+            "vectors": [
+              {
+                "a": 0,
+                "b": 0
+              },
+              {
+                "a": 0,
+                "b": 1
+              },
+              {
+                "a": 1,
+                "b": 0
+              },
+              {
+                "a": 1,
+                "b": 1
+              }
+            ],
+            "expected": [
+              {
+                "q": 0
+              },
+              {
+                "q": 1
+              },
+              {
+                "q": 1
+              },
+              {
+                "q": 0
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "issue_id": "I4",
+      "decision": "accept",
+      "reason": "Waveform supports q = state XOR a XOR b; adopt as the combinational rule.",
+      "spec_quote": "// 75ns            1               0               0               1               1",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R2",
+            "condition"
+          ],
+          "value": "q = state XOR a XOR b (combinational output using state)"
+        }
+      ],
+      "already_applied_by_earlier_issue": true
+    },
+    {
+      "issue_id": "I5",
+      "decision": "accept",
+      "reason": "Edge/condition not verbatim grounded; waveform evidence supports negedge capture of q.",
+      "spec_quote": "one bit of memory (i.e., one flip-flop)",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R1",
+            "condition"
+          ],
+          "value": "state <= q (the flip-flop captures the current output q on each negedge)"
+        },
+        {
+          "path": [
+            "rules",
+            "R1",
+            "edge"
+          ],
+          "value": "negedge"
+        }
+      ]
+    },
+    {
+      "issue_id": "I6",
+      "decision": "accept",
+      "reason": "XOR function not verbatim; waveform evidence supports q = state XOR a XOR b.",
+      "spec_quote": "The circuit consists of combinational logic",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R2",
+            "condition"
+          ],
+          "value": "q = state XOR a XOR b (combinational output using state)"
+        }
+      ],
+      "already_applied_by_earlier_issue": true
+    },
+    {
+      "issue_id": "I7",
+      "decision": "accept",
+      "reason": "Waveform contradicts posedge capture and pure XOR; correct to negedge capture and state-dependent XOR.",
+      "spec_quote": "// 75ns            1               0               0               1               1",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R1",
+            "edge"
+          ],
+          "value": "negedge"
+        },
+        {
+          "path": [
+            "rules",
+            "R2",
+            "condition"
+          ],
+          "value": "q = state XOR a XOR b (combinational output using state)"
+        }
+      ],
+      "already_applied_by_earlier_issue": true
+    }
+  ]
+}

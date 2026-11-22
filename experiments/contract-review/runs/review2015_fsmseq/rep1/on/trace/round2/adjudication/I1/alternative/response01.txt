@@ -1,0 +1,60 @@
+def reference(vectors):
+    state = "S0"
+    out = 0
+    cur_reset = 0
+    cur_data = 0
+    result = []
+
+    for row in vectors:
+        # Drive row values before the sampled posedge; prior mid changes are already carried.
+        if isinstance(row, dict):
+            if "reset" in row:
+                cur_reset = row["reset"]
+            if "data" in row:
+                cur_data = row["data"]
+
+        reset = cur_reset
+        data = cur_data
+
+        if reset == 1:
+            # R_RESET: synchronous active-high reset forces S0 and start_shifting=0.
+            next_state = "S0"
+            next_out = 0
+        else:
+            # R_HOLD_FOUND: when state is FOUND, start_shifting is 1 on this posedge.
+            # R_COMPLETE_1101: registered output, so completion this edge keeps it 0.
+            # R_ZERO_NOT_FOUND: start_shifting is 0 before detection / when not FOUND.
+            if state == "FOUND":
+                next_out = 1
+            else:
+                next_out = 0
+
+            if state == "S0":
+                next_state = "S1" if data == 1 else "S0"
+            elif state == "S1":
+                next_state = "S11" if data == 1 else "S0"
+            elif state == "S11":
+                next_state = "S11" if data == 1 else "S110"
+            elif state == "S110":
+                # R_COMPLETE_1101: transition to FOUND; output becomes 1 at the next posedge.
+                next_state = "FOUND" if data == 1 else "S0"
+            elif state == "FOUND":
+                # R_HOLD_FOUND: stay FOUND; start_shifting remains 1 until reset.
+                next_state = "FOUND"
+            else:
+                next_state = "S0"
+
+        state = next_state
+        out = next_out
+        result.append({"start_shifting": out & 1})
+
+        # Optional mid changes occur after sampling and carry to the next row's start.
+        if isinstance(row, dict) and "mid" in row:
+            mid = row["mid"]
+            if isinstance(mid, dict):
+                if "reset" in mid:
+                    cur_reset = mid["reset"]
+                if "data" in mid:
+                    cur_data = mid["data"]
+
+    return result

@@ -1,0 +1,20 @@
+def reference(vectors):
+    # State: q_state holds the 8-bit value stored in the D flip-flops.
+    # Updated on the negative edge of clk.
+    q_state = 0x34  # power-up unspecified; use reset value as concrete default
+
+    out = []
+    for row in vectors:
+        d = row.get('d', 0) & 0xFF
+        reset = row.get('reset', 0) & 0x1
+
+        # R1: reset == 1 -> q = 0x34 on negedge (priority 1)
+        # R2: reset == 0 -> q = d on negedge (priority 2)
+        if reset == 1:
+            q_state = 0x34
+        else:
+            q_state = d
+
+        out.append({'q': q_state & 0xFF})
+
+    return out

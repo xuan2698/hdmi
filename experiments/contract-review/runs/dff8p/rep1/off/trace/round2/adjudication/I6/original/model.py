@@ -1,0 +1,31 @@
+def reference(vectors):
+    # State: q_state holds the 8-bit value stored in the D flip-flops.
+    # Initial value is unspecified at power-up; we use 0x34 as a concrete
+    # placeholder (any concrete value is acceptable per the contract).
+    q_state = 0x34
+
+    results = []
+
+    for row in vectors:
+        d = row["d"] & 0xFF
+        reset = row["reset"] & 0x1
+
+        # R1: active high synchronous reset on negedge -> q becomes 0x34.
+        # R2: on negedge with reset==0 -> q becomes d.
+        # Both rules are evaluated at the negedge sampling point.
+        if reset == 1:
+            # R1: reset == 1, negedge, visible same_cycle, priority 1
+            q_state = 0x34
+        else:
+            # R2: reset == 0, negedge, visible same_cycle, priority 2
+            q_state = d
+
+        # Output q reflects the state after the sampled negedge.
+        results.append({"q": q_state & 0xFF})
+
+        # Mid input changes occur AFTER sampling, before the other edge,
+        # and are carried to the start of the next row. Since the next row
+        # supplies its own d/reset values, no additional state mutation is
+        # needed here; the carried values are simply the next row's inputs.
+
+    return results

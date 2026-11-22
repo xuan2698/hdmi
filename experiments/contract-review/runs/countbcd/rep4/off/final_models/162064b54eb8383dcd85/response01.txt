@@ -1,0 +1,83 @@
+```python
+def reference(vectors):
+    # State: 4 BCD digits, initialized to 0 (power-up unspecified but we choose 0)
+    # Contract: synchronous active-high reset. Outputs sampled after posedge settles.
+    # Each row's values are driven before the sampled edge.
+    # Mid changes occur AFTER sampling, before the other edge, carried to next row.
+    #
+    # We model: for each row, we have current state (from previous row's post-edge).
+    # The row's inputs are applied, then posedge occurs, then we sample outputs.
+    # Mid changes (if any) happen after sampling and affect next row's starting inputs.
+    #
+    # Since vectors only contain 'reset' (the only input), mid changes would be
+    # changes to reset after sampling. We track a pending reset override.
+
+    # R1_reset: reset==1 -> q=0, ena=0 (sync, same cycle visible)
+    # R2-R8: BCD counting on posedge when reset==0
+    # R9-R11: ena combinational from current q (same cycle)
+
+    d0 = 0  # ones
+    d1 = 0  # tens
+    d2 = 0  # hundreds
+    d3 = 0  # thousands
+
+    pending_reset = None  # mid change carried to next row
+
+    results = []
+
+    for row in vectors:
+        # Determine reset value for this row: mid change from previous row overrides
+        if pending_reset is not None:
+            reset = pending_reset
+            pending_reset = None
+        else:
+            reset = row.get('reset', 0)
+
+        # Apply posedge update
+        if reset == 1:
+            # R1_reset
+            d0 = d1 = d2 = d3 = 0
+        else:
+            # R2-R8: BCD increment
+            if d0 != 9:
+                d0 += 1  # R2_ones_count
+            else:
+                d0 = 0  # R3_ones_wrap
+                if d1 != 9:
+                    d1 += 1  # R4_tens_increment
+                else:
+                    d1 = 0  # R5_tens_wrap
+                    if d2 != 9:
+                        d2 += 1  # R6_hundreds_increment
+                    else:
+                        d2 = 0
+                        if d3 != 9:
+                            d3 += 1  # R7_thousands_increment
+                        else:
+                            d3 = 0  # R8_full_wrap
+
+        # Build q
+        q = (d3 << 12) | (d2 << 8) | (d1 << 4) | d0
+
+        # ena combinational from current q (same cycle)
+        # R9_ena_tens: bit0 = (d0==9)
+        # R10_ena_hundreds: bit1 = (d0==9 and d1==9)
+        # R11_ena_thousands: bit2 = (d0==9 and d1==9 and d2==9)
+        ena = 0
+        if d0 == 9:
+            ena |= 1  # R9_ena_tens
+            if d1 == 9:
+                ena |= 2  # R10_ena_hundreds
+                if d2 == 9:
+                    ena |= 4  # R11_ena_thousands
+
+        results.append({'q': q, 'ena': ena})
+
+        # Mid changes: if row has 'mid' key, apply after sampling
+        if 'mid' in row:
+            mid = row['mid']
+            if 'reset' in mid:
+                pending_reset = mid['reset']
+
+    return results
+```

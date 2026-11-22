@@ -1,0 +1,52 @@
+def reference(vectors):
+    # State encoding: S0=0, S1=1, S2=2, S3=3, S4=4
+    state = 0
+    cur_reset = 0
+    cur_data = 0
+    result = []
+
+    for row in vectors:
+        # Drive row inputs before the sampled posedge.
+        if 'reset' in row:
+            cur_reset = row['reset']
+        if 'data' in row:
+            cur_data = row['data']
+
+        # R1_reset_clear: synchronous active-high reset has priority.
+        if cur_reset == 1:
+            next_state = 0
+            start_shifting = 0
+        else:
+            # R2_detect_set_and_hold: detection sets and latches start_shifting.
+            if state == 4:
+                next_state = 4
+                start_shifting = 1
+            elif state == 3 and cur_data == 1:
+                next_state = 4
+                start_shifting = 1
+            else:
+                # R3_default_zero_while_searching: search transitions, output 0.
+                start_shifting = 0
+                if state == 0:
+                    next_state = 1 if cur_data == 1 else 0
+                elif state == 1:
+                    next_state = 2 if cur_data == 1 else 0
+                elif state == 2:
+                    next_state = 2 if cur_data == 1 else 3
+                elif state == 3:
+                    next_state = 0  # data==1 handled by R2 above
+                else:
+                    next_state = 0
+
+        # Mid changes occur after sampling and affect the start of the next row.
+        if 'mid' in row:
+            mid = row['mid']
+            if 'reset' in mid:
+                cur_reset = mid['reset']
+            if 'data' in mid:
+                cur_data = mid['data']
+
+        result.append({'start_shifting': start_shifting})
+        state = next_state
+
+    return result

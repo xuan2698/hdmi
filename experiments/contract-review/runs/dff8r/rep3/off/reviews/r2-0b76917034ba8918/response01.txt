@@ -1,0 +1,31 @@
+{
+  "coverage": {
+    "S01": ["R1", "R2"],
+    "S02": ["R1", "R2"]
+  },
+  "issues": [
+    {
+      "issue_id": "I1",
+      "rule_id": "R2",
+      "type": "consistency",
+      "severity": "medium",
+      "detail": "R2 example first vector expects q=0 after posedge with reset=0 and d=5, but a DFF should load d=5. The example contradicts the rule condition and the DFF semantics.",
+      "spec_evidence": "Create 8 D flip-flops with active high synchronous reset setting the output to zero.",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I2",
+      "rule_id": "R2",
+      "type": "ambiguity",
+      "severity": "low",
+      "detail": "R2 example implies an initial q=0 before any reset, but the spec does not define power-up state. Alternative semantics: q is unknown until first reset or load.",
+      "spec_evidence": "",
+      "alternative": "q is X/unknown at time zero and only becomes defined after a posedge with reset=1 (q=0) or reset=0 (q=d).",
+      "sequence": [
+        {"d": 5, "reset": 0},
+        {"d": 9, "reset": 0}
+      ]
+    }
+  ]
+}

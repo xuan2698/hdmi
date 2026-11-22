@@ -1,0 +1,64 @@
+def reference(vectors):
+    # Initial state power-up unspecified; choose concrete value 0.
+    q = 0
+    pending_reset = 0
+    results = []
+    for row in vectors:
+        # Determine reset value at this posedge: explicit row value overrides
+        # any pending mid-cycle change from the previous row.
+        if 'reset' in row:
+            reset_val = row['reset']
+        else:
+            reset_val = pending_reset
+
+        # Rule reset: synchronous active-high reset, priority over increment.
+        if reset_val == 1:
+            q = 0
+        else:
+            # Rule bcd_increment: BCD add 1 modulo 10000 with carry across nibbles.
+            ones = q & 15
+            tens = (q >> 4) & 15
+            hundreds = (q >> 8) & 15
+            thousands = (q >> 12) & 15
+
+            if ones < 9:
+                ones += 1
+            else:
+                ones = 0
+                if tens < 9:
+                    tens += 1
+                else:
+                    tens = 0
+                    if hundreds < 9:
+                        hundreds += 1
+                    else:
+                        hundreds = 0
+                        if thousands < 9:
+                            thousands += 1
+                        else:
+                            thousands = 0
+
+            q = (thousands << 12) | (hundreds << 8) | (tens << 4) | ones
+
+        # Rule ena_combinational: enable signals for upper three digits.
+        ones = q & 15
+        tens = (q >> 4) & 15
+        hundreds = (q >> 8) & 15
+
+        ena0 = 1 if ones == 9 else 0
+        ena1 = 1 if (tens == 9 and ones == 9) else 0
+        ena2 = 1 if (hundreds == 9 and tens == 9 and ones == 9) else 0
+
+        ena = (ena2 << 2) | (ena1 << 1) | ena0
+
+        results.append({'q': q, 'ena': ena})
+
+        # Process mid changes after sampling; they are carried to the start of
+        # the next row and evaluated at the next sampled posedge.
+        pending_reset = reset_val
+        if 'mid' in row:
+            mid = row['mid']
+            if 'reset' in mid:
+                pending_reset = mid['reset']
+
+    return results

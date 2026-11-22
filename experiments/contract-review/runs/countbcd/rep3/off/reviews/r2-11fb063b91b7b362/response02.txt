@@ -1,0 +1,100 @@
+{
+  "coverage": {
+    "S01": ["R5_count"],
+    "S02": ["R5_count"],
+    "S03": ["R3_tens_ena", "R4_hundreds_ena"],
+    "S04": ["R1_reset"]
+  },
+  "issues": [
+    {
+      "issue_id": "I1",
+      "rule_id": "R3_tens_ena",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "Example expected ena values contradict rule condition: ena[0] should be 1 iff ones==9, but example shows ena=0 for q=8 and ena=1 for q=9, which is consistent; however ena is 3-bit and example uses ena=1 for q=9 (ones==9) which sets ena[0]=1, correct. But for q=10, ena=0, correct. No contradiction? Wait: R3 example vectors have reset=0 and expected q values that are not derived from vectors; vectors only specify reset, not q. The example expected q values are given but vectors do not set q. This is a grounding issue: example vectors lack q input, so expected q cannot be derived. But q is state, not input. The example is meant to show state before edge? The contract's example format is ambiguous. However, the rule condition is combinational on q, so example should specify q as input? The contract ports only have reset as input; q is output/state. So example vectors cannot set q. Thus examples are not executable. This is a grounding issue.",
+      "spec_evidence": "For digits [3:1], also output an enable signal indicating when each of the upper three digits should be incremented.",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I2",
+      "rule_id": "R4_hundreds_ena",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "Example expected ena=2 for q=99: ena[1] should be 1 iff ones==9 and tens==9, so ena[1]=1, ena[0]=1 (ones==9), so ena should be 3 (binary 011) not 2. Contradiction between rule condition and example.",
+      "spec_evidence": "For digits [3:1], also output an enable signal indicating when each of the upper three digits should be incremented.",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I3",
+      "rule_id": "R5_count",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "Example expected q sequence: vectors all reset=0, expected q: 8,9,10,11. But rule says on posedge each digit increments iff enable high. Starting from q=8, next q should be 9 (ones increments), then 10 (ones 9->0, tens increments), then 11. This matches. However, the example vectors do not specify initial q, so the sequence cannot be derived from the given vectors alone. The example is not grounded because initial state is not provided.",
+      "spec_evidence": "Build a 4-digit BCD (binary-coded decimal) counter.",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I4",
+      "rule_id": "R3_tens_ena",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Rule condition for ena[0] says 'ena[0] = 1 iff ones digit == 9'. But spec S03 says 'For digits [3:1], also output an enable signal indicating when each of the upper three digits should be incremented.' This implies ena[0] corresponds to tens digit (digit 1), ena[1] to hundreds (digit 2), ena[2] to thousands (digit 3). The rule uses ena[0] for ones==9, which is the enable for tens digit. That is consistent. However, the rule condition for ena[1] says 'ones==9 and tens==9', which is enable for hundreds. That is consistent. But the rule does not specify ena[2] condition. Missing rule for ena[2] (thousands enable). Coverage issue: S03 requires enable for all upper three digits, but only two rules cover ena[0] and ena[1]; ena[2] is missing.",
+      "spec_evidence": "For digits [3:1], also output an enable signal indicating when each of the upper three digits should be incremented.",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I5",
+      "rule_id": "global",
+      "type": "coverage",
+      "severity": "high",
+      "detail": "No rule specifies ena[2] (enable for thousands digit). Spec S03 requires enable for digits [3:1], i.e., three enable signals. Contract has ena[0] and ena[1] defined, but ena[2] is never assigned a condition. This is a missing rule.",
+      "spec_evidence": "For digits [3:1], also output an enable signal indicating when each of the upper three digits should be incremented.",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I6",
+      "rule_id": "R1_reset",
+      "type": "grounding",
+      "severity": "medium",
+      "detail": "Reset rule example vectors: [{reset:1},{reset:1},{reset:0}] expected q=0,ena=0 for all. But after reset released (reset=0), the counter should start counting from 0 on next posedge. The example shows q=0,ena=0 for the cycle with reset=0, which is correct for same_cycle visible? The rule says visible same_cycle, so when reset=1, q=0,ena=0 same cycle. When reset=0, q should be 0 (from previous reset) and ena=0 (since ones=0). That is consistent. However, the example does not show the next cycle after reset=0 to verify counting starts. Not a material issue.",
+      "spec_evidence": "Include a synchronous active-high reset.",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I7",
+      "rule_id": "R3_tens_ena",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Rule condition for ena[0] is combinational on q, but q is a state updated on posedge. The contract does not specify whether ena is computed from current q (before edge) or next q. The example for R3 shows expected ena for given q values, implying ena is combinational from current q. But the rule's 'edge' is 'combinational', which is clear. However, the example vectors do not include q as input, so it's unclear how q is set. This is a grounding issue rather than ambiguity.",
+      "spec_evidence": "",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I8",
+      "rule_id": "R5_count",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Rule says 'each BCD digit increments iff its enable is high (ones always; tens when ones==9; hundreds when ones==9&&tens==9; thousands when ones==9&&tens==9&&hundreds==9)'. This implies ones always increments, but what about when ones==9? It should wrap to 0 and carry. The rule says 'wrapping 9->0', so ones increments modulo 10. That is clear. However, the rule does not specify whether the enable signals are computed from the current state before the edge or after. Typically, enables are combinational from current state, and on edge, digits increment based on those enables. That is standard. No ambiguity.",
+      "spec_evidence": "",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I9",
+      "rule_id": "global",
+      "type": "spec_example",
+      "severity": "high",
+      "detail": "Derive outputs for explicit spec waveform/table/examples: The spec provides no explicit waveform or table, only textual description. The contract examples are inconsistent as noted. For R4 example, expected ena=2 for q=99 is wrong; should be 3. For R3 example, expected ena=1 for q=9 is correct (ena[0]=1), but ena[1] should be 0, ena[2] should be 0, so ena=1 is correct. For q=98, ena should be 0 (ones=8, tens=9, so ena[0]=0, ena[1]=0), correct. For q=100, ena should be 0 (ones=0, tens=0, hundreds=1, so ena[0]=0, ena[1]=0), correct. So only R4 example is wrong.",
+      "spec_evidence": "",
+      "alternative": "",
+      "sequence": []
+    }
+  ]
+}

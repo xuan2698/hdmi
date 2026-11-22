@@ -1,0 +1,18 @@
+def reference(vectors):
+    # Contract implementation.
+    # R1: next state = a AND b (candidate interpretation for R1), updated on posedge clk.
+    # R2: q = a XOR b (combinational, same cycle).
+    # state is the flip-flop output, observable; q is combinational.
+    # Power-up state unspecified -> treat as 0 initially (concrete unsigned value required).
+    state = 0
+    out = []
+    for row in vectors:
+        a = row.get('a', 0) & 1
+        b = row.get('b', 0) & 1
+        # R2: combinational q from current inputs
+        q = a ^ b
+        # R1: state visible this cycle is the stored flip-flop value
+        out.append({'q': q & 1, 'state': state & 1})
+        # R1: posedge update -> next state = a AND b
+        state = a & b
+    return out

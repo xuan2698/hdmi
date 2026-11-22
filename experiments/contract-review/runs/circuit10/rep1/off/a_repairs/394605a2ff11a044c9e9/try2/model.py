@@ -1,0 +1,18 @@
+def reference(vectors):
+    # Contract implementation.
+    # R1: state <= q on posedge (visible next cycle).
+    # R2: q = state XOR a XOR b (combinational, same cycle).
+    # Reset: none. Power-up unspecified -> use 0.
+    # Mid changes: inputs may change after sampling; we process each row's
+    # inputs as given at the sampling edge, then carry to next row.
+    state = 0
+    out = []
+    for vec in vectors:
+        a = vec.get('a', 0) & 1
+        b = vec.get('b', 0) & 1
+        # R2: combinational output using current state
+        q = (state ^ a ^ b) & 1
+        out.append({'q': q, 'state': state})
+        # R1: on posedge, state captures current q (visible next cycle)
+        state = q
+    return out

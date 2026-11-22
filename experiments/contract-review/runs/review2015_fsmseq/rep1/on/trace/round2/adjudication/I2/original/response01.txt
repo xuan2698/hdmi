@@ -1,0 +1,66 @@
+def reference(vectors):
+    # Concrete power-up state is S0; R_ZERO_NOT_FOUND assumes 0 before detection.
+    state = "S0"
+    held = {"reset": 0, "data": 0}
+    result = []
+
+    for row in vectors:
+        # Drive row values before the sampled posedge.
+        if "reset" in row:
+            held["reset"] = int(row["reset"]) & 1
+        if "data" in row:
+            held["data"] = int(row["data"]) & 1
+
+        r = held["reset"]
+        d = held["data"]
+
+        # R_RESET: active-high synchronous reset has priority at the posedge.
+        if r == 1:
+            next_state = "S0"
+        else:
+            # R_HOLD_FOUND: FOUND remains until reset.
+            if state == "FOUND":
+                next_state = "FOUND"
+            elif state == "S0":
+                next_state = "S1" if d == 1 else "S0"
+            elif state == "S1":
+                next_state = "S11" if d == 1 else "S0"
+            elif state == "S11":
+                next_state = "S11" if d == 1 else "S110"
+            elif state == "S110":
+                # R_COMPLETE_1101: data==1 while S110 completes 1101 on this posedge.
+                if d == 1:
+                    next_state = "FOUND"
+                else:
+                    next_state = "S0"
+            else:
+                next_state = "S0"
+
+        state = next_state
+
+        # R_HOLD_FOUND / R_COMPLETE_1101: start_shifting is 1 in FOUND.
+        # R_ZERO_NOT_FOUND: otherwise start_shifting is 0.
+        start_shifting = 1 if state == "FOUND" else 0
+
+        # R_RESET: reset output value is 0 on a reset posedge.
+        if r == 1:
+            start_shifting = 0
+
+        result.append({"start_shifting": start_shifting})
+
+        # Optional mid changes occur AFTER sampling and are carried to the next row.
+        for k, v in row.items():
+            if k == "mid" and isinstance(v, dict):
+                for mk, mv in v.items():
+                    if mk in held:
+                        held[mk] = int(mv) & 1
+            elif k.startswith("mid_"):
+                mk = k[4:]
+                if mk in held:
+                    held[mk] = int(v) & 1
+            elif k.endswith("_mid"):
+                mk = k[:-4]
+                if mk in held:
+                    held[mk] = int(v) & 1
+
+    return result

@@ -1,0 +1,56 @@
+```python
+def reference(vectors):
+    # FSM states
+    S0, S1, S2, S3, S4 = 0, 1, 2, 3, 4
+
+    # State registers (power-up unspecified; use S0 as concrete init)
+    state = S0
+    start_shifting = 0
+
+    results = []
+    for vec in vectors:
+        reset = vec.get('reset', 0) & 1
+        data = vec.get('data', 0) & 1
+
+        # R1: synchronous active-high reset forces start_shifting=0 (priority 1)
+        # R2: once in S4, start_shifting stays 1 until reset (priority 2)
+        # R3: transition S3 + data==1 -> S4, start_shifting asserts same cycle (priority 3)
+        # R4: otherwise start_shifting stays 0 while not in S4 and not entering S4 (priority 4)
+
+        if reset == 1:
+            # R1
+            next_state = S0
+            next_start = 0
+        else:
+            if state == S4:
+                # R2: stay latched
+                next_state = S4
+                next_start = 1
+            else:
+                # Compute next state based on prefix matching of "1101"
+                if state == S0:
+                    next_state = S1 if data == 1 else S0
+                elif state == S1:
+                    next_state = S2 if data == 1 else S0
+                elif state == S2:
+                    next_state = S3 if data == 0 else S2
+                elif state == S3:
+                    next_state = S4 if data == 1 else S0
+                else:
+                    next_state = S0
+
+                if next_state == S4:
+                    # R3: same-cycle assertion on completing posedge
+                    next_start = 1
+                else:
+                    # R4
+                    next_start = 0
+
+        # Sample after posedge settles: outputs reflect post-edge values
+        state = next_state
+        start_shifting = next_start
+
+        results.append({'start_shifting': start_shifting & 1})
+
+    return results
+```

@@ -1,0 +1,263 @@
+We need to produce Python source strings for each of the four models (afd006556ee4e5ec7c, 6c0da14e51cbf0a315, b8a3eb93047706347f, 274cba3473b76a83f1). Each must define `reference(vectors)` returning a list of dicts with `predict_taken` and `predict_history` per cycle.
+
+Key semantics:
+- Async reset: when areset=1, outputs 0/0 and state cleared.
+- Prediction: if predict_valid and not reset, predict_taken = (pht[pc^ghr] >= 2), predict_history = ghr.
+- If predict_valid=0, output predict_taken=0, predict_history=ghr (per uncertain assumption).
+- PHT training: on posedge, if train_valid, update pht[train_pc ^ train_history] saturating.
+- GHR update on posedge:
+  - If train_valid and train_mispredicted: ghr = {train_history[5:0], train_taken} (models 1,2,4) or ghr = train_history (models 3,4 per R5 wording "loaded directly"). Wait, model b8a3eb93047706347f says "train_history is the GHR value immediately after the mispredicting branch, loaded directly into ghr" → ghr = train_history. Model 274cba3473b76a83f1 also says loaded directly. Models afd006556ee4e5ec7c and 6c0da14e51cbf0a315 say ghr <= {train_history[5:0], train_taken}.
+  - Else if predict_valid: ghr = {ghr[5:0], predict_taken}.
+  - Training takes precedence over prediction for ghr update when both and mispredicted.
+
+Wait, for model 274cba3473b76a83f1, R4 condition is `predict_valid == 1 && !(train_valid == 1 && train_mispredicted == 1)`. So if train_valid=1 but not mispredicted, prediction still updates ghr. Hmm, but spec says "training takes precedence" only when mispredicted. Actually the spec says "If training for a misprediction and a prediction ... occurs in the same cycle, both operations will want to modify the branch history register. When this happens, training takes precedence". So only mispredicted training conflicts. Non-mispredicted training doesn't update ghr. So R4 in model 4 is correct: prediction updates ghr unless mispredicted training.
+
+For models 1,2,3, R4 condition is `predict_valid == 1 && train_valid == 0`. That means if train_valid=1 (even non-mispredicted), prediction doesn't update ghr. That's a difference. Let's check: model 1 R4: `predict_valid == 1 && train_valid == 0`. So if train_valid=1 and not mispredicted, ghr not updated by prediction. But spec says training only modifies ghr when mispredicted. Hmm, but the model's rule says so. We must implement each model's exact rules as given.
+
+Actually wait, let's re-read model 1 R4: condition `predict_valid == 1 && train_valid == 0 && areset == 0`. So if train_valid=1, prediction doesn't update ghr. But R5 only updates ghr if mispredicted. So if train_valid=1 and not mispredicted, ghr stays same. That's a semantic difference from model 4.
+
+Model 2 same as model 1.
+Model 3 same as model 1.
+Model 4 R4: `predict_valid == 1 && !(train_valid == 1 && train_mispredicted == 1)`. So prediction updates ghr unless mispredicted training. If train_valid=1 and not mispredicted, prediction updates ghr.
+
+We must implement each model's rules exactly.
+
+Also PHT training: all models train PHT on train_valid regardless of mispredicted.
+
+Reset: async, clears ghr and pht to 0.
+
+Let's write a generic simulator per model.
+
+For each cycle:
+1. If areset=1: outputs 0,0; state ghr=0, pht all 0. (async, so immediate)
+2. Else compute outputs:
+   - if predict_valid: predict_taken = 1 if pht[pc^ghr]>=2 else 0; predict_history = ghr
+   - else: predict_taken=0; predict_history=ghr
+3. Then at posedge (end of cycle), update state:
+   - PHT: if train_valid: idx = train_pc ^ train_history; pht[idx] = saturate(pht[idx] + (1 if train_taken else -1))
+   - GHR: per model rules.
+
+Note: the prediction uses pre-edge state. Training PHT update happens at edge, so prediction in same cycle sees old PHT. That's handled by computing outputs before state update.
+
+Also note: train_history is used for PHT index, not ghr. And for ghr recovery, train_history is used.
+
+Let's implement.
+
+For model 1 (afd006556ee4e5ec7c):
+- R5: ghr = {train_history[5:0], train_taken} when train_valid && train_mispredicted
+- R4: ghr = {ghr[5:0], predict_taken} when predict_valid && train_valid==0
+- Priority: R5 (priority 1) over R4 (priority 4). So if both conditions, R5 wins.
+- If train_valid=1 and not mispredicted, and predict_valid=1: R4 condition false (train_valid!=0), R5 false, so ghr unchanged.
+
+Model 2 (6c0da14e51cbf0a315): same as model 1.
+
+Model 3 (b8a3eb93047706347f):
+- R5: ghr = train_history (loaded directly) when train_valid && train_mispredicted
+- R4: ghr = {ghr[5:0], predict_taken} when predict_valid && train_valid==0
+- Same priority.
+
+Model 4 (274cba3473b76a83f1):
+- R5: ghr = train_history when train_valid && train_mispredicted
+- R4: ghr = {ghr[5:0], predict_taken} when predict_valid && !(train_valid && train_mispredicted)
+- Priority: R5 over R4.
+
+Now write Python code. No imports, no I/O, no top-level executable code. Just define reference(vectors).
+
+We need to handle mid input changes: "Optional mid input changes occur AFTER sampling, before the other edge, and are carried to the start of the next row." This means the vectors list already incorporates mid changes? The description says each row's values are driven before the sampled edge. Optional mid input changes occur AFTER sampling, before the other edge, and are carried to the start of the next row. So the vectors given already have the correct values for each cycle's sampling. We just process each vector as the inputs at the sampling edge. So we don't need to handle mid separately; the vectors already reflect the values at sampling time.
+
+So reference(vectors) iterates over vectors, for each vector computes outputs based on current state, then updates state for next cycle.
+
+Let's write.
+
+```python
+def reference(vectors):
+    ghr = 0
+    pht = [0]*128
+    out = []
+    for v in vectors:
+        areset = v['areset']
+        if areset:
+            ghr = 0
+            pht = [0]*128
+            out.append({'predict_taken':0, 'predict_history':0})
+            continue
+        # compute outputs
+        pv = v['predict_valid']
+        if pv:
+            idx = (v['predict_pc'] ^ ghr) & 0x7F
+            pt = 1 if pht[idx] >= 2 else 0
+            ph = ghr
+        else:
+            pt = 0
+            ph = ghr
+        out.append({'predict_taken':pt, 'predict_history':ph})
+        # update state at posedge
+        tv = v['train_valid']
+        tm = v['train_mispredicted']
+        tt = v['train_taken']
+        th = v['train_history']
+        tp = v['train_pc']
+        # PHT update
+        if tv:
+            idx = (tp ^ th) & 0x7F
+            if tt:
+                if pht[idx] < 3:
+                    pht[idx] += 1
+            else:
+                if pht[idx] > 0:
+                    pht[idx] -= 1
+        # GHR update per model
+        # model 1
+        if tv and tm:
+            ghr = ((th << 1) | tt) & 0x7F  # {th[5:0], tt}
+        elif pv and not tv:
+            ghr = ((ghr << 1) | pt) & 0x7F
+    return out
+```
+
+Wait, for model 1, R5 says `{train_history[5:0], train_taken}`. That's (th & 0x3F) << 1 | tt. Since th is 7 bits, th[5:0] is th & 0x3F. So `((th & 0x3F) << 1) | tt`. My code `((th << 1) | tt) & 0x7F` is equivalent because shifting left by 1 and masking 7 bits drops the top bit of th. Yes, (th << 1) & 0x7F = (th & 0x3F) << 1. So correct.
+
+For model 3 and 4, R5: ghr = th.
+
+Let's write each model separately.
+
+Model 1:
+```python
+def reference(vectors):
+    ghr = 0
+    pht = [0]*128
+    out = []
+    for v in vectors:
+        if v['areset']:
+            ghr = 0
+            pht = [0]*128
+            out.append({'predict_taken':0, 'predict_history':0})
+            continue
+        pv = v['predict_valid']
+        if pv:
+            idx = (v['predict_pc'] ^ ghr) & 0x7F
+            pt = 1 if pht[idx] >= 2 else 0
+            ph = ghr
+        else:
+            pt = 0
+            ph = ghr
+        out.append({'predict_taken':pt, 'predict_history':ph})
+        tv = v['train_valid']
+        tm = v['train_mispredicted']
+        tt = v['train_taken']
+        th = v['train_history']
+        tp = v['train_pc']
+        if tv:
+            idx = (tp ^ th) & 0x7F
+            if tt:
+                if pht[idx] < 3:
+                    pht[idx] += 1
+            else:
+                if pht[idx] > 0:
+                    pht[idx] -= 1
+        if tv and tm:
+            ghr = ((th << 1) | tt) & 0x7F
+        elif pv and not tv:
+            ghr = ((ghr << 1) | pt) & 0x7F
+    return out
+```
+
+Model 2: same as model 1.
+
+Model 3:
+```python
+def reference(vectors):
+    ghr = 0
+    pht = [0]*128
+    out = []
+    for v in vectors:
+        if v['areset']:
+            ghr = 0
+            pht = [0]*128
+            out.append({'predict_taken':0, 'predict_history':0})
+            continue
+        pv = v['predict_valid']
+        if pv:
+            idx = (v['predict_pc'] ^ ghr) & 0x7F
+            pt = 1 if pht[idx] >= 2 else 0
+            ph = ghr
+        else:
+            pt = 0
+            ph = ghr
+        out.append({'predict_taken':pt, 'predict_history':ph})
+        tv = v['train_valid']
+        tm = v['train_mispredicted']
+        tt = v['train_taken']
+        th = v['train_history']
+        tp = v['train_pc']
+        if tv:
+            idx = (tp ^ th) & 0x7F
+            if tt:
+                if pht[idx] < 3:
+                    pht[idx] += 1
+            else:
+                if pht[idx] > 0:
+                    pht[idx] -= 1
+        if tv and tm:
+            ghr = th
+        elif pv and not tv:
+            ghr = ((ghr << 1) | pt) & 0x7F
+    return out
+```
+
+Model 4:
+```python
+def reference(vectors):
+    ghr = 0
+    pht = [0]*128
+    out = []
+    for v in vectors:
+        if v['areset']:
+            ghr = 0
+            pht = [0]*128
+            out.append({'predict_taken':0, 'predict_history':0})
+            continue
+        pv = v['predict_valid']
+        if pv:
+            idx = (v['predict_pc'] ^ ghr) & 0x7F
+            pt = 1 if pht[idx] >= 2 else 0
+            ph = ghr
+        else:
+            pt = 0
+            ph = ghr
+        out.append({'predict_taken':pt, 'predict_history':ph})
+        tv = v['train_valid']
+        tm = v['train_mispredicted']
+        tt = v['train_taken']
+        th = v['train_history']
+        tp = v['train_pc']
+        if tv:
+            idx = (tp ^ th) & 0x7F
+            if tt:
+                if pht[idx] < 3:
+                    pht[idx] += 1
+            else:
+                if pht[idx] > 0:
+                    pht[idx] -= 1
+        if tv and tm:
+            ghr = th
+        elif pv and not (tv and tm):
+            ghr = ((ghr << 1) | pt) & 0x7F
+    return out
+```
+
+Wait, model 4 R4 condition: `predict_valid == 1 && !(train_valid == 1 && train_mispredicted == 1)`. So if pv and not (tv and tm), update ghr. That's what I wrote.
+
+But note: if tv and tm, R5 wins (priority 1). So the elif is only reached if not (tv and tm). So `elif pv and not (tv and tm)` is correct.
+
+Now, we need to return JSON with models dict mapping id to source string.
+
+Let's produce the final answer.
+
+Check: no imports, no I/O, no executable top-level code. Just function definitions. Good.
+
+We'll output JSON.
+
+```json
+{"models":{"afd006556ee4e5ec7c":"def reference(vectors):\n    ghr = 0\n    pht = [0]*128\n    out = []\n    for v in vectors:\n        if v['areset']:\n            ghr = 0\n            pht = [0]*128\n            out.append({'predict_taken':0, 'predict_history':0})\n            continue\n        pv = v['predict_valid']\n        if pv:\n            idx = (v['predict_pc'] ^ ghr) & 0x7F\n            pt = 1 if pht[idx] >= 2 else 0\n            ph = ghr\n        else:\n            pt = 0\n            ph = ghr\n        out.append({'predict_taken':pt, 'predict_history':ph})\n        tv = v['train_valid']\n        tm = v['train_mispredicted']\n        tt = v['train_taken']\n        th = v['train_history']\n        tp = v['train_pc']\n        if tv:\n            idx = (tp ^ th) & 0x7F\n            if tt:\n                if pht[idx] < 3:\n                    pht[idx] += 1\n            else:\n                if pht[idx] > 0:\n                    pht[idx] -= 1\n        if tv and tm:\n            ghr = ((th << 1) | tt) & 0x7F\n        elif pv and not tv:\n            ghr = ((ghr << 1) | pt) & 0x7F\n    return out\n","6c0da14e51cbf0a315":"def reference(vectors):\n    ghr = 0\n    pht = [0]*128\n    out = []\n    for v in vectors:\n        if v['areset']:\n            ghr = 0\n            pht = [0]*128\n            out.append({'predict_taken':0, 'predict_history':0})\n            continue\n        pv = v['predict_valid']\n        if pv:\n            idx = (v['predict_pc'] ^ ghr) & 0x7F\n            pt = 1 if pht[idx] >= 2 else 0\n            ph = ghr\n        else:\n            pt = 0\n            ph = ghr\n        out.append({'predict_taken':pt, 'predict_history':ph})\n        tv = v['train_valid']\n        tm = v['train_mispredicted']\n        tt = v['train_taken']\n        th = v['train_history']\n        tp = v['train_pc']\n        if tv:\n            idx = (tp ^ th) & 0x7F\n            if tt:\n                if pht[idx] < 3:\n                    pht[idx] += 1\n            else:\n                if pht[idx] > 0:\n                    pht[idx] -= 1\n        if tv and tm:\n            ghr = ((th << 1) | tt) & 0x7F\n        elif pv and not tv:\n            ghr = ((ghr << 1) | pt) & 0x7F\n    return out\n","b8a3eb93047706347f":"def reference(vectors):\n    ghr = 0\n    pht = [0]*128\n    out = []\n    for v in vectors:\n        if v['areset']:\n            ghr = 0\n            pht = [0]*128\n            out.append({'predict_taken':0, 'predict_history':0})\n            continue\n        pv = v['predict_valid']\n        if pv:\n            idx = (v['predict_pc'] ^ ghr) & 0x7F\n            pt = 1 if pht[idx] >= 2 else 0\n            ph = ghr\n        else:\n            pt = 0\n            ph = ghr\n        out.append({'predict_taken':pt, 'predict_history':ph})\n        tv = v['train_valid']\n        tm = v['train_mispredicted']\n        tt = v['train_taken']\n        th = v['train_history']\n        tp = v['train_pc']\n        if tv:\n            idx = (tp ^ th) & 0x7F\n            if tt:\n                if pht[idx] < 3:\n                    pht[idx] += 1\n            else:\n                if pht[idx] > 0:\n                    pht[idx] -= 1\n        if tv and tm:\n            ghr = th\n        elif pv and not tv:\n            ghr = ((ghr << 1) | pt) & 0x7F\n    return out\n","274cba3473b76a83f1":"def reference(vectors):\n    ghr = 0\n    pht = [0]*128\n    out = []\n    for v in vectors:\n        if v['areset']:\n            ghr = 0\n            pht = [0]*128\n            out.append({'predict_taken':0, 'predict_history':0})\n            continue\n        pv = v['predict_valid']\n        if pv:\n            idx = (v['predict_pc'] ^ ghr) & 0x7F\n            pt = 1 if pht[idx] >= 2 else 0\n            ph = ghr\n        else:\n            pt = 0\n            ph = ghr\n        out.append({'predict_taken':pt, 'predict_history':ph})\n        tv = v['train_valid']\n        tm = v['train_mispredicted']\n        tt = v['train_taken']\n        th = v['train_history']\n        tp = v['train_pc']\n        if tv:\n            idx = (tp ^ th) & 0x7F\n            if tt:\n                if pht[idx] < 3:\n                    pht[idx] += 1\n            else:\n                if pht[idx] > 0:\n                    pht[idx] -= 1\n        if tv and tm:\n            ghr = th\n        elif pv and not (tv and tm):\n            ghr = ((ghr << 1) | pt) & 0x7F\n    return out\n"}}
+```

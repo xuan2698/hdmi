@@ -1,0 +1,141 @@
+[
+  {
+    "issue": {
+      "issue_id": "I5",
+      "rule_id": "R1",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec waveform is consistent with state updating to a AND b, not a XOR b. Alternative semantics: next state = a AND b.",
+      "spec_evidence": "// 95ns            1               1               1               1               1",
+      "alternative": "next state = a AND b",
+      "sequence": [
+        {
+          "a": 0,
+          "b": 1
+        },
+        {
+          "a": 1,
+          "b": 0
+        },
+        {
+          "a": 1,
+          "b": 1
+        }
+      ]
+    },
+    "status": "no_effect",
+    "issue_id": "I5",
+    "outputs": {
+      "original": [
+        {
+          "q": 1,
+          "state": 0
+        },
+        {
+          "q": 1,
+          "state": 0
+        },
+        {
+          "q": 0,
+          "state": 0
+        }
+      ],
+      "alternative": [
+        {
+          "q": 1,
+          "state": 0
+        },
+        {
+          "q": 1,
+          "state": 0
+        },
+        {
+          "q": 0,
+          "state": 0
+        }
+      ]
+    },
+    "differences": []
+  },
+  {
+    "issue": {
+      "issue_id": "I6",
+      "rule_id": "R2",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec waveform is consistent with q = a AND b, not a XOR b. Alternative semantics: q = a AND b.",
+      "spec_evidence": "// 45ns            1               0               1               0               1",
+      "alternative": "q = a AND b",
+      "sequence": [
+        {
+          "a": 0,
+          "b": 0
+        },
+        {
+          "a": 0,
+          "b": 1
+        },
+        {
+          "a": 1,
+          "b": 1
+        }
+      ]
+    },
+    "status": "effect",
+    "issue_id": "I6",
+    "outputs": {
+      "original": [
+        {
+          "q": 0,
+          "state": 0
+        },
+        {
+          "q": 1,
+          "state": 0
+        },
+        {
+          "q": 0,
+          "state": 1
+        }
+      ],
+      "alternative": [
+        {
+          "q": 0,
+          "state": 0
+        },
+        {
+          "q": 0,
+          "state": 0
+        },
+        {
+          "q": 1,
+          "state": 1
+        }
+      ]
+    },
+    "differences": [
+      {
+        "cycle": 2,
+        "original": {
+          "q": 1,
+          "state": 0
+        },
+        "alternative": {
+          "q": 0,
+          "state": 0
+        }
+      },
+      {
+        "cycle": 3,
+        "original": {
+          "q": 0,
+          "state": 1
+        },
+        "alternative": {
+          "q": 1,
+          "state": 1
+        }
+      }
+    ]
+  }
+]

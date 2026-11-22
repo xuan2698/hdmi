@@ -1,0 +1,42 @@
+```python
+def reference(vectors):
+    # Contract rules implemented:
+    # - sync_reset_clear_out: reset == 1 at sampled posedge clears out to 0.
+    # - falling_edge_capture_and_hold: out_next = out | (prev_in & ~in) when reset == 0.
+    # - Override for falling_edge_capture_and_hold: prev_in is cleared during reset,
+    #   so a 1-to-0 transition spanning reset is not captured.
+    out_reg = 0          # 32-bit capture register
+    prev_in = 0          # 32-bit previous sampled input
+    cur_reset = 0        # current reset input (may be affected by mid)
+    cur_in = 0           # current in input (may be affected by mid)
+    results = []
+    for row in vectors:
+        # Drive row values before the sampled posedge.
+        if 'reset' in row:
+            cur_reset = row['reset'] & 1
+        if 'in' in row:
+            cur_in = row['in'] & 0xFFFFFFFF
+        # Sampled posedge: update states according to reset and in.
+        if cur_reset == 1:
+            # sync_reset_clear_out
+            out_next = 0
+            # falling_edge_capture_and_hold override: clear prev_in during reset
+            prev_in_next = 0
+        else:
+            # falling_edge_capture_and_hold
+            falling = prev_in & ((~cur_in) & 0xFFFFFFFF)
+            out_next = (out_reg | falling) & 0xFFFFFFFF
+            prev_in_next = cur_in & 0xFFFFFFFF
+        out_reg = out_next
+        prev_in = prev_in_next
+        # Output visible same cycle (after posedge settled)
+        results.append({'out': out_reg})
+        # Process mid changes after sampling, before other edge, carried to next row.
+        if 'mid' in row and row['mid'] is not None:
+            mid = row['mid']
+            if 'reset' in mid:
+                cur_reset = mid['reset'] & 1
+            if 'in' in mid:
+                cur_in = mid['in'] & 0xFFFFFFFF
+    return results
+```

@@ -1,0 +1,23 @@
+```python
+def reference(vectors):
+    # State: Q = stored flip-flop value (1 bit)
+    Q = 0  # power-up unspecified; use 0 as concrete value
+
+    results = []
+    for row in vectors:
+        d = row['d'] & 1
+        r = row['r'] & 1
+
+        # At posedge clk, sample inputs and update state.
+        # R1_sync_reset: r == 1 at posedge -> q <= 0 (priority 1)
+        # R2_capture_d: r == 0 at posedge -> q <= d (priority 2)
+        if r == 1:
+            Q = 0  # R1_sync_reset
+        else:
+            Q = d  # R2_capture_d
+
+        # Output q reflects the updated state (same_cycle visibility)
+        results.append({'q': Q & 1})
+
+    return results
+```

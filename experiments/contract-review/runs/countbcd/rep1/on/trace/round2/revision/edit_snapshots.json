@@ -1,0 +1,386 @@
+[
+  {
+    "issue_id": "I1",
+    "before": {
+      "ports": {
+        "inputs": {
+          "reset": 1
+        },
+        "outputs": {
+          "ena": 3,
+          "q": 16
+        },
+        "clock": "clk"
+      },
+      "states": [
+        {
+          "name": "bcd_count",
+          "meaning": "Registered 16-bit BCD counter value; q[3:0] is ones, q[7:4] tens, q[11:8] hundreds, q[15:12] thousands.",
+          "update_time": "posedge clk; reset has priority over increment",
+          "update_during_reset": true
+        }
+      ],
+      "rules": [
+        {
+          "id": "reset",
+          "outputs": [
+            "q",
+            "ena"
+          ],
+          "condition": "reset == 1 at posedge clk; q becomes 0x0000 and combinational ena becomes 0 after q settles.",
+          "edge": "posedge",
+          "visible": "same_cycle",
+          "priority": 1,
+          "spec_quote": "Include a synchronous active-high reset.",
+          "uncertain": true,
+          "example": {
+            "vectors": [
+              {
+                "reset": 1
+              },
+              {
+                "reset": 0
+              },
+              {
+                "reset": 0
+              }
+            ],
+            "expected": [
+              {
+                "q": 0,
+                "ena": 0
+              },
+              {
+                "q": 1,
+                "ena": 0
+              },
+              {
+                "q": 2,
+                "ena": 0
+              }
+            ]
+          }
+        },
+        {
+          "id": "bcd_increment",
+          "outputs": [
+            "q"
+          ],
+          "condition": "reset == 0 at posedge clk; q_next = BCD_add(q,1) modulo 10000, with carry across nibbles and wrap from 0x9999 to 0x0000.",
+          "edge": "posedge",
+          "visible": "same_cycle",
+          "priority": 2,
+          "spec_quote": "Build a 4-digit BCD (binary-coded decimal) counter.",
+          "uncertain": true,
+          "example": {
+            "vectors": [
+              {
+                "reset": 1
+              },
+              {
+                "reset": 0
+              },
+              {
+                "reset": 0
+              },
+              {
+                "reset": 0
+              }
+            ],
+            "expected": [
+              {
+                "q": 0,
+                "ena": 0
+              },
+              {
+                "q": 1,
+                "ena": 0
+              },
+              {
+                "q": 2,
+                "ena": 0
+              },
+              {
+                "q": 3,
+                "ena": 0
+              }
+            ]
+          }
+        },
+        {
+          "id": "ena_combinational",
+          "outputs": [
+            "ena"
+          ],
+          "condition": "ena[0] = (q[3:0] == 9); ena[1] = (q[7:4] == 9 && q[3:0] == 9); ena[2] = (q[11:8] == 9 && q[7:4] == 9 && q[3:0] == 9).",
+          "edge": "combinational",
+          "visible": "same_cycle",
+          "priority": 3,
+          "spec_quote": "For digits [3:1], also output an enable signal indicating when each of the upper three digits should be incremented.",
+          "uncertain": true,
+          "example": {
+            "vectors": [
+              {
+                "reset": 0
+              },
+              {
+                "reset": 0
+              },
+              {
+                "reset": 0
+              }
+            ],
+            "expected": [
+              {
+                "q": 2457,
+                "ena": 7
+              },
+              {
+                "q": 4096,
+                "ena": 0
+              },
+              {
+                "q": 4097,
+                "ena": 0
+              }
+            ]
+          }
+        }
+      ],
+      "reset": {
+        "kind": "sync",
+        "name": "reset",
+        "active": "high",
+        "values": {
+          "q": 0,
+          "ena": 0
+        },
+        "first_released_cycle": "first sampled posedge with reset low after a sampled reset high"
+      },
+      "mid": "Optional mid changes to reset after sampling are carried to the start of the next row and are evaluated at the next sampled posedge.",
+      "uncertain": [
+        {
+          "rule_id": "reset",
+          "note": "The active-high synchronous reset is explicit, but the reset value of q/ena is not stated; assumed q=0 and therefore ena=0 after the edge.",
+          "candidates": [
+            "reset clears q to 0 and ena to 0",
+            "reset leaves q and ena unchanged",
+            "reset sets q and ena to an unspecified value"
+          ]
+        },
+        {
+          "rule_id": "bcd_increment",
+          "note": "Normal increment is grounded by 'counter', but 4-digit overflow/wrap behavior is not explicitly stated; assumed modulo 10000.",
+          "candidates": [
+            "increments modulo 10000 with wrap from 9999 to 0000",
+            "saturates at 9999",
+            "overflow behavior undefined or unspecified"
+          ]
+        },
+        {
+          "rule_id": "ena_combinational",
+          "note": "Enable equations are inferred from BCD carry semantics; bit mapping and combinational vs registered timing are not explicitly stated.",
+          "candidates": [
+            "ena[0]=ones==9, ena[1]=tens==9&&ones==9, ena[2]=hundreds==9&&tens==9&&ones==9, combinational from q",
+            "same equations registered on posedge clk",
+            "reverse mapping of ena bits to upper digits"
+          ]
+        }
+      ]
+    },
+    "after": {
+      "ports": {
+        "inputs": {
+          "reset": 1
+        },
+        "outputs": {
+          "ena": 3,
+          "q": 16
+        },
+        "clock": "clk"
+      },
+      "states": [
+        {
+          "name": "bcd_count",
+          "meaning": "Registered 16-bit BCD counter value; q[3:0] is ones, q[7:4] tens, q[11:8] hundreds, q[15:12] thousands.",
+          "update_time": "posedge clk; reset has priority over increment",
+          "update_during_reset": true
+        }
+      ],
+      "rules": [
+        {
+          "id": "reset",
+          "outputs": [
+            "q",
+            "ena"
+          ],
+          "condition": "reset == 1 at posedge clk; q becomes 0x0000 and combinational ena becomes 0 after q settles.",
+          "edge": "posedge",
+          "visible": "same_cycle",
+          "priority": 1,
+          "spec_quote": "Include a synchronous active-high reset.",
+          "uncertain": true,
+          "example": {
+            "vectors": [
+              {
+                "reset": 1
+              },
+              {
+                "reset": 0
+              },
+              {
+                "reset": 0
+              }
+            ],
+            "expected": [
+              {
+                "q": 0,
+                "ena": 0
+              },
+              {
+                "q": 1,
+                "ena": 0
+              },
+              {
+                "q": 2,
+                "ena": 0
+              }
+            ]
+          }
+        },
+        {
+          "id": "bcd_increment",
+          "outputs": [
+            "q"
+          ],
+          "condition": "reset == 0 at posedge clk; q_next = BCD_add(q,1) modulo 10000, with carry across nibbles and wrap from 0x9999 to 0x0000.",
+          "edge": "posedge",
+          "visible": "same_cycle",
+          "priority": 2,
+          "spec_quote": "Build a 4-digit BCD (binary-coded decimal) counter.",
+          "uncertain": true,
+          "example": {
+            "vectors": [
+              {
+                "reset": 1
+              },
+              {
+                "reset": 0
+              },
+              {
+                "reset": 0
+              },
+              {
+                "reset": 0
+              }
+            ],
+            "expected": [
+              {
+                "q": 0,
+                "ena": 0
+              },
+              {
+                "q": 1,
+                "ena": 0
+              },
+              {
+                "q": 2,
+                "ena": 0
+              },
+              {
+                "q": 3,
+                "ena": 0
+              }
+            ]
+          }
+        },
+        {
+          "id": "ena_combinational",
+          "outputs": [
+            "ena"
+          ],
+          "condition": "ena[0] = (q[3:0] == 9); ena[1] = (q[7:4] == 9 && q[3:0] == 9); ena[2] = (q[11:8] == 9 && q[7:4] == 9 && q[3:0] == 9).",
+          "edge": "combinational",
+          "visible": "same_cycle",
+          "priority": 3,
+          "spec_quote": "For digits [3:1], also output an enable signal indicating when each of the upper three digits should be incremented.",
+          "uncertain": true,
+          "example": {
+            "vectors": [
+              {
+                "reset": 1
+              },
+              {
+                "reset": 0
+              },
+              {
+                "reset": 0
+              },
+              {
+                "reset": 0
+              }
+            ],
+            "expected": [
+              {
+                "q": 0,
+                "ena": 0
+              },
+              {
+                "q": 1,
+                "ena": 0
+              },
+              {
+                "q": 2,
+                "ena": 0
+              },
+              {
+                "q": 3,
+                "ena": 0
+              }
+            ]
+          }
+        }
+      ],
+      "reset": {
+        "kind": "sync",
+        "name": "reset",
+        "active": "high",
+        "values": {
+          "q": 0,
+          "ena": 0
+        },
+        "first_released_cycle": "first sampled posedge with reset low after a sampled reset high"
+      },
+      "mid": "Optional mid changes to reset after sampling are carried to the start of the next row and are evaluated at the next sampled posedge.",
+      "uncertain": [
+        {
+          "rule_id": "reset",
+          "note": "The active-high synchronous reset is explicit, but the reset value of q/ena is not stated; assumed q=0 and therefore ena=0 after the edge.",
+          "candidates": [
+            "reset clears q to 0 and ena to 0",
+            "reset leaves q and ena unchanged",
+            "reset sets q and ena to an unspecified value"
+          ]
+        },
+        {
+          "rule_id": "bcd_increment",
+          "note": "Normal increment is grounded by 'counter', but 4-digit overflow/wrap behavior is not explicitly stated; assumed modulo 10000.",
+          "candidates": [
+            "increments modulo 10000 with wrap from 9999 to 0000",
+            "saturates at 9999",
+            "overflow behavior undefined or unspecified"
+          ]
+        },
+        {
+          "rule_id": "ena_combinational",
+          "note": "Enable equations are inferred from BCD carry semantics; bit mapping and combinational vs registered timing are not explicitly stated.",
+          "candidates": [
+            "ena[0]=ones==9, ena[1]=tens==9&&ones==9, ena[2]=hundreds==9&&tens==9&&ones==9, combinational from q",
+            "same equations registered on posedge clk",
+            "reverse mapping of ena bits to upper digits"
+          ]
+        }
+      ]
+    }
+  }
+]

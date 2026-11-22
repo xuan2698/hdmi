@@ -1,0 +1,179 @@
+{
+  "responses": [
+    {
+      "issue_id": "I1",
+      "decision": "accept",
+      "reason": "Waveform shows state updates to a AND b, not XOR; e.g., at 95ns a=1,b=1 gives state=1, and at 45ns a=0,b=1 gives state=0.",
+      "spec_quote": "// 95ns            1               1               1               1               1",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R1",
+            "condition"
+          ],
+          "value": "next state = a AND b (state updates to a&b on posedge clk)"
+        }
+      ]
+    },
+    {
+      "issue_id": "I2",
+      "decision": "accept",
+      "reason": "Waveform shows q = a AND b, not XOR; at 45ns a=0,b=1 gives q=1, and at 55ns a=1,b=0 gives q=1.",
+      "spec_quote": "// 45ns            1               0               1               0               1",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R2",
+            "condition"
+          ],
+          "value": "q = a AND b (combinational output of current inputs)"
+        }
+      ]
+    },
+    {
+      "issue_id": "I3",
+      "decision": "accept",
+      "reason": "R1 example expected values must match AND semantics; for (0,1),(1,0),(1,1) state should be [0,0,1].",
+      "spec_quote": "// 65ns            1               1               1               0               0",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R1",
+            "example"
+          ],
+          "value": {
+            "vectors": [
+              {
+                "a": 0,
+                "b": 1
+              },
+              {
+                "a": 1,
+                "b": 0
+              },
+              {
+                "a": 1,
+                "b": 1
+              }
+            ],
+            "expected": [
+              {
+                "state": 0
+              },
+              {
+                "state": 0
+              },
+              {
+                "state": 1
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "issue_id": "I4",
+      "decision": "accept",
+      "reason": "R2 example expected values must match AND semantics; for (0,0),(0,1),(1,1) q should be [0,0,1].",
+      "spec_quote": "// 15ns            1               0               0               0               0",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R2",
+            "example"
+          ],
+          "value": {
+            "vectors": [
+              {
+                "a": 0,
+                "b": 0
+              },
+              {
+                "a": 0,
+                "b": 1
+              },
+              {
+                "a": 1,
+                "b": 1
+              }
+            ],
+            "expected": [
+              {
+                "q": 0
+              },
+              {
+                "q": 0
+              },
+              {
+                "q": 1
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "issue_id": "I5",
+      "decision": "accept",
+      "reason": "Alternative semantics next state = a AND b is consistent with waveform; adopt it.",
+      "spec_quote": "// 95ns            1               1               1               1               1",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R1",
+            "condition"
+          ],
+          "value": "next state = a AND b (state updates to a&b on posedge clk)"
+        }
+      ],
+      "already_applied_by_earlier_issue": true
+    },
+    {
+      "issue_id": "I6",
+      "decision": "accept",
+      "reason": "Alternative semantics q = a AND b is consistent with waveform; adopt it.",
+      "spec_quote": "// 45ns            1               0               1               0               1",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R2",
+            "condition"
+          ],
+          "value": "q = a AND b (combinational output of current inputs)"
+        }
+      ],
+      "already_applied_by_earlier_issue": true
+    },
+    {
+      "issue_id": "I7",
+      "decision": "accept",
+      "reason": "Global mismatch resolved by correcting both rules to AND semantics.",
+      "spec_quote": "// 45ns            1               0               1               0               1",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R1",
+            "condition"
+          ],
+          "value": "next state = a AND b (state updates to a&b on posedge clk)"
+        },
+        {
+          "path": [
+            "rules",
+            "R2",
+            "condition"
+          ],
+          "value": "q = a AND b (combinational output of current inputs)"
+        }
+      ],
+      "already_applied_by_earlier_issue": true
+    }
+  ]
+}

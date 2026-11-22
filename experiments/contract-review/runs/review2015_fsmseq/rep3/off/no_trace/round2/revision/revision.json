@@ -1,0 +1,141 @@
+{
+  "responses": [
+    {
+      "issue_id": "I1",
+      "decision": "accept",
+      "reason": "Spec does not state same-cycle vs registered assertion; R3 should be marked uncertain to reflect this ambiguity.",
+      "spec_quote": "When the sequence is found, it should set start_shifting to 1, forever, until reset.",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R3",
+            "uncertain"
+          ],
+          "value": true
+        }
+      ]
+    },
+    {
+      "issue_id": "I2",
+      "decision": "accept",
+      "reason": "R3 example asserts start_shifting=1 on the completing row, which conflicts with the acknowledged timing ambiguity; example should not commit to same-cycle timing.",
+      "spec_quote": "When the sequence is found, it should set start_shifting to 1, forever, until reset.",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R3",
+            "example"
+          ],
+          "value": {
+            "vectors": [
+              {
+                "reset": 0,
+                "data": 1
+              },
+              {
+                "reset": 0,
+                "data": 1
+              },
+              {
+                "reset": 0,
+                "data": 0
+              },
+              {
+                "reset": 0,
+                "data": 1
+              }
+            ],
+            "expected": [
+              {
+                "start_shifting": 0
+              },
+              {
+                "start_shifting": 0
+              },
+              {
+                "start_shifting": 0
+              },
+              {
+                "start_shifting": 0
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "issue_id": "I3",
+      "decision": "accept",
+      "reason": "R2 condition state==S4 with reset==0 must output start_shifting=1, but its example shows zeros; example must be corrected so the S4 row asserts 1.",
+      "spec_quote": "it should set start_shifting to 1, forever, until reset",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R2",
+            "example"
+          ],
+          "value": {
+            "vectors": [
+              {
+                "reset": 1,
+                "data": 0
+              },
+              {
+                "reset": 0,
+                "data": 1
+              },
+              {
+                "reset": 0,
+                "data": 1
+              },
+              {
+                "reset": 0,
+                "data": 0
+              }
+            ],
+            "expected": [
+              {
+                "start_shifting": 0
+              },
+              {
+                "start_shifting": 0
+              },
+              {
+                "start_shifting": 0
+              },
+              {
+                "start_shifting": 1
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "issue_id": "I4",
+      "decision": "accept",
+      "reason": "R4's next_state!=S4 condition implies assertion before state S4, which spec does not support; condition should depend only on current state.",
+      "spec_quote": "When the sequence is found, it should set start_shifting to 1, forever, until reset.",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R4",
+            "condition"
+          ],
+          "value": "reset == 0 and state != S4"
+        }
+      ]
+    },
+    {
+      "issue_id": "I5",
+      "decision": "rebut",
+      "reason": "Reset values already specify start_shifting=0 and states have update_during_reset=true; no additional state reset values are required by the contract.",
+      "spec_quote": "Reset is active high synchronous.",
+      "edits": []
+    }
+  ]
+}

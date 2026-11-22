@@ -1,0 +1,276 @@
+{
+  "coverage": {
+    "S01": [
+      "R1",
+      "R2",
+      "R4",
+      "R5",
+      "R6",
+      "R7"
+    ],
+    "S02": [
+      "R1",
+      "R2",
+      "R3",
+      "R4",
+      "R5",
+      "R6",
+      "R7"
+    ],
+    "S03": [
+      "R3"
+    ],
+    "S04": [
+      "R4",
+      "R5",
+      "R6",
+      "R7"
+    ],
+    "S05": [
+      "R4"
+    ],
+    "S06": [
+      "R5"
+    ],
+    "S07": [
+      "R6"
+    ],
+    "S08": [
+      "R7"
+    ]
+  },
+  "issues": [
+    {
+      "issue_id": "I1",
+      "rule_id": "R1",
+      "type": "grounding",
+      "severity": "high",
+      "detail": "R1 spec_quote 'A | A, B | 0' is a next-state row, not output evidence for A/B/C output 0; output 0 for A/B/C is only in S05-S07.",
+      "spec_evidence": "// A | A, B | 0",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I2",
+      "rule_id": "R2",
+      "type": "grounding",
+      "severity": "high",
+      "detail": "R2 spec_quote 'D | C, B | 1' is a next-state row; output 1 for D is only the trailing field of S08.",
+      "spec_evidence": "// D | C, B | 1",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I3",
+      "rule_id": "R3",
+      "type": "grounding",
+      "severity": "medium",
+      "detail": "R3 claims posedge/next_cycle for reset, but spec only says synchronous active high reset to A; no explicit output timing.",
+      "spec_evidence": "Include a synchronous active high reset that resets the FSM to state A.",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I4",
+      "rule_id": "R4",
+      "type": "grounding",
+      "severity": "medium",
+      "detail": "R4 spec_quote 'A | A, B | 0' does not verbatim state the transition condition 'reset == 0 and state == A and in == 0 -> A; in == 1 -> B'.",
+      "spec_evidence": "// A | A, B | 0",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I5",
+      "rule_id": "R5",
+      "type": "grounding",
+      "severity": "medium",
+      "detail": "R5 spec_quote 'B | C, B | 0' does not verbatim state the transition condition 'reset == 0 and state == B and in == 0 -> C; in == 1 -> B'.",
+      "spec_evidence": "// B | C, B | 0",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I6",
+      "rule_id": "R6",
+      "type": "grounding",
+      "severity": "medium",
+      "detail": "R6 spec_quote 'C | A, D | 0' does not verbatim state the transition condition 'reset == 0 and state == C and in == 0 -> A; in == 1 -> D'.",
+      "spec_evidence": "// C | A, D | 0",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I7",
+      "rule_id": "R7",
+      "type": "grounding",
+      "severity": "medium",
+      "detail": "R7 spec_quote 'D | C, B | 1' does not verbatim state the transition condition 'reset == 0 and state == D and in == 0 -> C; in == 1 -> B'.",
+      "spec_evidence": "// D | C, B | 1",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I8",
+      "rule_id": "R1",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "R1 example starts from unspecified state and expects out 0 for three cycles; if starting in D, out should be 1.",
+      "spec_evidence": "// D | C, B | 1",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I9",
+      "rule_id": "R2",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "R2 example expects out 1 for three cycles but first vector in=1,reset=0 from unspecified state; if state A, out is 0.",
+      "spec_evidence": "// A | A, B | 0",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I10",
+      "rule_id": "R3",
+      "type": "consistency",
+      "severity": "medium",
+      "detail": "R3 example has reset=1 then reset=0 and expects out 0 throughout; after reset release with in=0 from A, out remains 0, but example does not distinguish reset timing.",
+      "spec_evidence": "Include a synchronous active high reset that resets the FSM to state A.",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I11",
+      "rule_id": "R4",
+      "type": "consistency",
+      "severity": "medium",
+      "detail": "R4 example vectors [0,1,0] from A produce states A,B,B and outputs 0,0,0; expected matches only if initial state A, not stated.",
+      "spec_evidence": "// A | A, B | 0",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I12",
+      "rule_id": "R5",
+      "type": "consistency",
+      "severity": "medium",
+      "detail": "R5 example vectors [1,0,1] from B produce B,C,D and outputs 0,0,1; expected [0,0,0] contradicts D output 1 on third cycle.",
+      "spec_evidence": "// D | C, B | 1",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I13",
+      "rule_id": "R6",
+      "type": "consistency",
+      "severity": "medium",
+      "detail": "R6 example vectors [0,1,0] from C produce A,D,C and outputs 0,1,0; expected [0,0,0] contradicts D output 1 on second cycle.",
+      "spec_evidence": "// D | C, B | 1",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I14",
+      "rule_id": "R7",
+      "type": "consistency",
+      "severity": "medium",
+      "detail": "R7 example vectors [0,1,0] from D produce C,B,C and outputs 1,0,0; expected [1,1,1] contradicts B/C output 0.",
+      "spec_evidence": "// B | C, B | 0",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I15",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "high",
+      "detail": "Spec does not define whether output is registered or combinational; Moore output could be same-cycle or next-cycle.",
+      "spec_evidence": "The following is the state transition table for a Moore state machine with one input, one output, and four states.",
+      "alternative": "Output is registered on posedge (next-cycle) rather than combinational same-cycle.",
+      "sequence": [
+        {
+          "in": 1,
+          "reset": 0
+        },
+        {
+          "in": 0,
+          "reset": 0
+        },
+        {
+          "in": 1,
+          "reset": 0
+        }
+      ]
+    },
+    {
+      "issue_id": "I16",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec does not define initial state before first reset; examples assume A without stating it.",
+      "spec_evidence": "Include a synchronous active high reset that resets the FSM to state A.",
+      "alternative": "Initial state is D before any reset, so first output is 1.",
+      "sequence": [
+        {
+          "in": 0,
+          "reset": 0
+        },
+        {
+          "in": 0,
+          "reset": 0
+        }
+      ]
+    },
+    {
+      "issue_id": "I17",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec does not define reset priority relative to input transitions; contract gives reset priority 0.",
+      "spec_evidence": "Include a synchronous active high reset that resets the FSM to state A.",
+      "alternative": "Input transition has priority over reset when both active on same edge.",
+      "sequence": [
+        {
+          "in": 1,
+          "reset": 1
+        },
+        {
+          "in": 0,
+          "reset": 0
+        }
+      ]
+    },
+    {
+      "issue_id": "I18",
+      "rule_id": "global",
+      "type": "spec_example",
+      "severity": "high",
+      "detail": "Derived waveform from S05-S08: starting A, inputs 1,0,1,0,1 gives states B,C,D,C,D and outputs 0,0,1,0,1; contract examples do not match this.",
+      "spec_evidence": "// A | A, B | 0",
+      "alternative": "",
+      "sequence": [
+        {
+          "in": 1,
+          "reset": 0
+        },
+        {
+          "in": 0,
+          "reset": 0
+        },
+        {
+          "in": 1,
+          "reset": 0
+        },
+        {
+          "in": 0,
+          "reset": 0
+        },
+        {
+          "in": 1,
+          "reset": 0
+        }
+      ]
+    }
+  ]
+}

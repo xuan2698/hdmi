@@ -1,0 +1,80 @@
+def reference(vectors):
+    # Explicit named states.
+    S0 = 0       # No suffix matching a prefix of 1101
+    S1 = 1       # Longest matched suffix is 1
+    S11 = 2      # Longest matched suffix is 11
+    S110 = 3     # Longest matched suffix is 110
+    FOUND = 4    # 1101 has been detected
+
+    state = S0
+    start_shifting = 0
+    cur_reset = 0
+    cur_data = 0
+    outputs = []
+
+    for row in vectors:
+        # Drive start-of-row inputs before the sampled posedge.
+        if "reset" in row:
+            cur_reset = row["reset"]
+        if "data" in row:
+            cur_data = row["data"]
+
+        r = 1 if cur_reset == 1 else 0
+        d = 1 if cur_data == 1 else 0
+
+        if r == 1:
+            # R_RESET: active-high synchronous reset forces S0 and start_shifting=0.
+            next_state = S0
+            next_start = 0
+        else:
+            # Explicit state transition table.
+            if state == S0:
+                if d == 1:
+                    next_state = S1
+                else:
+                    next_state = S0
+            elif state == S1:
+                if d == 1:
+                    next_state = S11
+                else:
+                    next_state = S0
+            elif state == S11:
+                if d == 1:
+                    next_state = S11
+                else:
+                    next_state = S110
+            elif state == S110:
+                if d == 1:
+                    # R_COMPLETE_1101 transition: completes 1101 into FOUND.
+                    next_state = FOUND
+                else:
+                    next_state = S0
+            else:
+                # FOUND state stays FOUND.
+                next_state = FOUND
+
+            # R_HOLD_FOUND: start_shifting is registered and stays 1 once found.
+            # Candidate interpretation for R_COMPLETE_1101: the completion row
+            # does not assert start_shifting yet; it becomes 1 at the next posedge
+            # after entering FOUND.
+            if start_shifting == 1 or state == FOUND:
+                next_start = 1
+            else:
+                # R_ZERO_NOT_FOUND: while not found, start_shifting remains 0.
+                next_start = 0
+
+        # Update registers at the sampled posedge, then return post-edge output.
+        state = next_state
+        start_shifting = next_start
+        outputs.append({"start_shifting": start_shifting})
+
+        # Optional mid input changes occur AFTER sampling, before the other edge,
+        # and are carried to the start of the next row.
+        if "mid" in row:
+            mid = row["mid"]
+            if "reset" in mid:
+                cur_reset = mid["reset"]
+            if "data" in mid:
+                cur_data = mid["data"]
+
+    return outputs

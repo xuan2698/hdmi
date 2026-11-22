@@ -1,0 +1,49 @@
+def reference(vectors):
+    # rule reset: synchronous active-high reset clears q and ena
+    # rule bcd_increment: BCD increment modulo 10000
+    # rule ena_combinational: combinational enable from settled q
+    q = 0  # concrete initial state (power-up unspecified, assumed 0)
+    current_reset = 0
+    outputs = []
+    for row in vectors:
+        # row's main inputs are driven before the sampled posedge
+        if 'reset' in row:
+            current_reset = row['reset'] & 1
+        reset = current_reset
+        if reset == 1:
+            q_next = 0
+        else:
+            ones = q & 0xF
+            tens = (q >> 4) & 0xF
+            hundreds = (q >> 8) & 0xF
+            thousands = (q >> 12) & 0xF
+            ones += 1
+            if ones == 10:
+                ones = 0
+                tens += 1
+                if tens == 10:
+                    tens = 0
+                    hundreds += 1
+                    if hundreds == 10:
+                        hundreds = 0
+                        thousands += 1
+                        if thousands == 10:
+                            thousands = 0
+            q_next = (thousands << 12) | (hundreds << 8) | (tens << 4) | ones
+        q = q_next
+        ones = q & 0xF
+        tens = (q >> 4) & 0xF
+        hundreds = (q >> 8) & 0xF
+        ena0 = 1 if ones == 9 else 0
+        ena1 = 1 if (tens == 9 and ones == 9) else 0
+        ena2 = 1 if (hundreds == 9 and tens == 9 and ones == 9) else 0
+        ena = ena0 | (ena1 << 1) | (ena2 << 2)
+        outputs.append({'q': q, 'ena': ena})
+        # optional mid changes after sampling are carried to next row
+        if 'mid' in row:
+            mid = row['mid']
+            if mid is not None and 'reset' in mid:
+                current_reset = mid['reset'] & 1
+        if 'reset_mid' in row:
+            current_reset = row['reset_mid'] & 1
+    return outputs

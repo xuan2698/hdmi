@@ -1,0 +1,94 @@
+```python
+def reference(vectors):
+    # rule reset: synchronous active-high reset clears q to 0 at posedge
+    # rule bcd_increment: BCD counter increments modulo 10000 when reset low
+    # rule ena_combinational: combinational enable outputs based on BCD nibbles
+
+    def bcd_increment(val):
+        ones = val & 0xF
+        tens = (val >> 4) & 0xF
+        hundreds = (val >> 8) & 0xF
+        thousands = (val >> 12) & 0xF
+
+        if ones == 9:
+            ones = 0
+            carry = 1
+        else:
+            ones += 1
+            carry = 0
+
+        if carry:
+            if tens == 9:
+                tens = 0
+                carry = 1
+            else:
+                tens += 1
+                carry = 0
+
+        if carry:
+            if hundreds == 9:
+                hundreds = 0
+                carry = 1
+            else:
+                hundreds += 1
+                carry = 0
+
+        if carry:
+            if thousands == 9:
+                thousands = 0
+            else:
+                thousands += 1
+
+        return (thousands << 12) | (hundreds << 8) | (tens << 4) | ones
+
+    def compute_ena(val):
+        ones = val & 0xF
+        tens = (val >> 4) & 0xF
+        hundreds = (val >> 8) & 0xF
+        ena = 0
+        if ones == 9:
+            ena |= 1
+            if tens == 9:
+                ena |= 2
+                if hundreds == 9:
+                    ena |= 4
+        return ena
+
+    q = 0
+    current_inputs = {'reset': 0}
+    outputs = []
+
+    for row in vectors:
+        mid_changes = {}
+        if isinstance(row, dict):
+            # Extract mid changes (after-sampling assignments)
+            if 'mid' in row and isinstance(row['mid'], dict):
+                mid_changes.update(row['mid'])
+            for k, v in row.items():
+                if k.startswith('mid_'):
+                    mid_changes[k[4:]] = v
+
+            # Apply before-edge assignments (all keys except mid and mid_*)
+            for k, v in row.items():
+                if k == 'mid' or k.startswith('mid_'):
+                    continue
+                if k == 'reset':
+                    current_inputs[k] = v
+
+            # Sample at posedge
+            reset = current_inputs.get('reset', 0)
+            if reset == 1:
+                q = 0  # rule reset
+            else:
+                q = bcd_increment(q)  # rule bcd_increment
+
+            ena = compute_ena(q)  # rule ena_combinational
+            outputs.append({'q': q, 'ena': ena})
+
+            # Apply mid changes after sampling for the next cycle
+            for k, v in mid_changes.items():
+                if k == 'reset':
+                    current_inputs[k] = v
+
+    return outputs
+```

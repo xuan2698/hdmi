@@ -1,0 +1,20 @@
+def reference(vectors):
+    # Contract implementation.
+    # R1: state is a single flip-flop updated on posedge clk to a AND b.
+    # R2: q is combinational, equal to a AND b of current inputs.
+    # Reset: none; power-up state unspecified -> use 0 as concrete value.
+    # Mid-cycle changes: inputs are carried forward to next row (handled by
+    #   using each row's provided a,b for that row's sampling).
+    state = 0  # power-up unspecified; concrete default
+    out = []
+    for row in vectors:
+        a = row.get('a', 0)
+        b = row.get('b', 0)
+        # R2: combinational q = a AND b (same cycle)
+        q = a & b
+        # R1: state updates on posedge to a AND b (visible next cycle)
+        # The sampled edge uses the inputs driven before the edge.
+        next_state = a & b
+        out.append({'q': q & 1, 'state': state & 1})
+        state = next_state & 1
+    return out

@@ -1,0 +1,199 @@
+{
+  "ports": {
+    "inputs": {
+      "reset": 1,
+      "data": 1
+    },
+    "outputs": {
+      "start_shifting": 1
+    },
+    "clock": "clk"
+  },
+  "states": [
+    {
+      "name": "S0",
+      "meaning": "Reset/no-prefix state. No nonempty suffix of the input is a prefix of 1101. With reset==0 at a posedge, data=1 goes to S1 and data=0 stays S0. Synchronous reset forces S0.",
+      "update_time": "posedge",
+      "update_during_reset": true
+    },
+    {
+      "name": "S1",
+      "meaning": "Longest suffix matching a prefix of 1101 is '1'. With reset==0 at a posedge, data=1 goes to S11 and data=0 goes to S0.",
+      "update_time": "posedge",
+      "update_during_reset": false
+    },
+    {
+      "name": "S11",
+      "meaning": "Longest suffix matching a prefix of 1101 is '11'. With reset==0 at a posedge, data=0 goes to S110 and data=1 stays S11 because '111' has suffix '11'.",
+      "update_time": "posedge",
+      "update_during_reset": false
+    },
+    {
+      "name": "S110",
+      "meaning": "Longest suffix matching a prefix of 1101 is '110'. With reset==0 at a posedge, data=1 goes to FOUND and data=0 goes to S0.",
+      "update_time": "posedge",
+      "update_during_reset": false
+    },
+    {
+      "name": "FOUND",
+      "meaning": "Sequence 1101 has been detected; start_shifting is held at 1. With reset==0 at a posedge, any data stays FOUND. Synchronous reset forces S0.",
+      "update_time": "posedge",
+      "update_during_reset": false
+    }
+  ],
+  "rules": [
+    {
+      "id": "r_reset_clear",
+      "outputs": [
+        "start_shifting"
+      ],
+      "condition": "reset == 1",
+      "edge": "posedge",
+      "visible": "same_cycle",
+      "priority": 0,
+      "spec_quote": "Reset is active high synchronous.",
+      "uncertain": false,
+      "example": {
+        "vectors": [
+          {
+            "reset": 1,
+            "data": 1
+          },
+          {
+            "reset": 0,
+            "data": 0
+          }
+        ],
+        "expected": [
+          {
+            "start_shifting": 0
+          },
+          {
+            "start_shifting": 0
+          }
+        ]
+      }
+    },
+    {
+      "id": "r_set_or_hold",
+      "outputs": [
+        "start_shifting"
+      ],
+      "condition": "reset == 0 and (state == FOUND or (state == S110 and data == 1))",
+      "edge": "posedge",
+      "visible": "same_cycle",
+      "priority": 1,
+      "spec_quote": "When the sequence is found, it should set start_shifting to 1, forever, until reset.",
+      "uncertain": true,
+      "example": {
+        "vectors": [
+          {
+            "reset": 0,
+            "data": 1
+          },
+          {
+            "reset": 0,
+            "data": 1
+          },
+          {
+            "reset": 0,
+            "data": 0
+          },
+          {
+            "reset": 0,
+            "data": 1
+          }
+        ],
+        "expected": [
+          {
+            "start_shifting": 0
+          },
+          {
+            "start_shifting": 0
+          },
+          {
+            "start_shifting": 0
+          },
+          {
+            "start_shifting": 1
+          }
+        ]
+      }
+    },
+    {
+      "id": "r_default_clear",
+      "outputs": [
+        "start_shifting"
+      ],
+      "condition": "reset == 0 and state != FOUND and not (state == S110 and data == 1)",
+      "edge": "posedge",
+      "visible": "same_cycle",
+      "priority": 2,
+      "spec_quote": "searches for the sequence 1101",
+      "uncertain": false,
+      "example": {
+        "vectors": [
+          {
+            "reset": 0,
+            "data": 0
+          },
+          {
+            "reset": 0,
+            "data": 1
+          },
+          {
+            "reset": 0,
+            "data": 0
+          }
+        ],
+        "expected": [
+          {
+            "start_shifting": 0
+          },
+          {
+            "start_shifting": 0
+          },
+          {
+            "start_shifting": 0
+          }
+        ]
+      }
+    }
+  ],
+  "reset": {
+    "kind": "sync",
+    "name": "reset",
+    "active": "high",
+    "values": {
+      "start_shifting": 0
+    },
+    "first_released_cycle": "The first posedge with reset==0 after a sampled reset-high posedge; state S0 is active and normal 1101 detection may proceed from that release edge."
+  },
+  "mid": "Optional mid object may contain reset and/or data changes after the row's posedge sample; changed values are carried to the next row's pre-edge inputs.",
+  "uncertain": [
+    {
+      "rule_id": "r_set_or_hold",
+      "note": "The specification says start_shifting is set when 1101 is found but does not explicitly distinguish same-edge assertion after the final data bit from next-edge assertion; this contract selects same_cycle after the sampled posedge that completes 1101.",
+      "candidates": [
+        "start_shifting becomes 1 on the first sampled posedge that latches data=1 completing 1101",
+        "start_shifting becomes 1 on the next sampled posedge after data=1 completes 1101"
+      ]
+    },
+    {
+      "rule_id": "r_reset_clear",
+      "note": "The specification only states that reset is active high synchronous and does not explicitly specify the value of start_shifting while reset is asserted; this contract assumes it clears to 0.",
+      "candidates": [
+        "start_shifting is 0 while reset is asserted and on the release edge",
+        "start_shifting retains its previous value while reset is asserted"
+      ]
+    },
+    {
+      "rule_id": "r_default_clear",
+      "note": "The specification only says start_shifting is set to 1 when 1101 is found and does not explicitly specify its value before detection; this contract assumes it is 0.",
+      "candidates": [
+        "start_shifting is 0 before 1101 is detected",
+        "start_shifting is undefined or retains its previous value before 1101 is detected"
+      ]
+    }
+  ]
+}

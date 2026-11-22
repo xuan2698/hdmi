@@ -1,0 +1,58 @@
+```python
+def reference(vectors):
+    # Contract rules:
+    # R1: reset == 1 -> start_shifting = 0 (sync reset, same cycle visible)
+    # R2: reset == 0 and state == S4 -> start_shifting = 1 (latched forever)
+    # R3: sequence detection; selected interpretation: start_shifting asserts
+    #     same_cycle on the posedge that samples the completing 1101 bit.
+    #     (Example 2 expects 1 at cycle 4 when 1101 completes; example 3
+    #     expects 0 at cycle 4 because the completing bit is not yet seen.)
+    # R4: reset == 0 and state != S4 -> start_shifting = 0
+
+    # States: S0, S1, S2, S3, S4
+    state = "S0"
+    start_shifting = 0
+    out = []
+
+    for row in vectors:
+        reset = row.get("reset", 0) & 1
+        data = row.get("data", 0) & 1
+
+        # Compute next state and output based on current state and inputs
+        # (values driven before the sampled posedge)
+        if reset == 1:
+            # R1: synchronous reset
+            next_state = "S0"
+            next_start = 0
+        else:
+            # R2/R3/R4: state machine transitions
+            if state == "S4":
+                next_state = "S4"
+                next_start = 1  # R2: latched high forever
+            else:
+                next_start = 0  # R4
+                if state == "S0":
+                    next_state = "S1" if data == 1 else "S0"
+                elif state == "S1":
+                    next_state = "S2" if data == 1 else "S0"
+                elif state == "S2":
+                    next_state = "S3" if data == 0 else "S2"
+                elif state == "S3":
+                    if data == 1:
+                        # R3: completing bit sampled -> assert same cycle
+                        next_state = "S4"
+                        next_start = 1
+                    else:
+                        next_state = "S0"
+                else:
+                    next_state = "S0"
+
+        # Output visible same cycle (combinational from state/inputs at posedge)
+        out.append({"start_shifting": next_start})
+
+        # Update state after sampling
+        state = next_state
+        start_shifting = next_start
+
+    return out
+```

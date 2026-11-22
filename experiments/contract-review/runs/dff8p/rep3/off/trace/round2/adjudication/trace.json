@@ -1,0 +1,96 @@
+[
+  {
+    "issue": {
+      "issue_id": "I4",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec says synchronous reset but does not specify whether reset is sampled on negedge (as contract assumes) or posedge; contract uses negedge for both reset and data.",
+      "spec_evidence": "Create 8 D flip-flops with active high synchronous reset.",
+      "alternative": "Reset is sampled on the positive edge of clk while data is sampled on the negative edge.",
+      "sequence": [
+        {
+          "d": 0,
+          "reset": 1
+        },
+        {
+          "d": 255,
+          "reset": 0
+        }
+      ]
+    },
+    "status": "no_effect",
+    "issue_id": "I4",
+    "outputs": {
+      "original": [
+        {
+          "q": 52
+        },
+        {
+          "q": 255
+        }
+      ],
+      "alternative": [
+        {
+          "q": 52
+        },
+        {
+          "q": 255
+        }
+      ]
+    },
+    "differences": []
+  },
+  {
+    "issue": {
+      "issue_id": "I5",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "low",
+      "detail": "Spec does not define behavior when reset is asserted and d changes; contract assumes reset dominates and q becomes 0x34 regardless of d.",
+      "spec_evidence": "Create 8 D flip-flops with active high synchronous reset.",
+      "alternative": "When reset is high, q holds previous value instead of loading 0x34.",
+      "sequence": [
+        {
+          "d": 255,
+          "reset": 0
+        },
+        {
+          "d": 0,
+          "reset": 1
+        }
+      ]
+    },
+    "status": "effect",
+    "issue_id": "I5",
+    "outputs": {
+      "original": [
+        {
+          "q": 255
+        },
+        {
+          "q": 52
+        }
+      ],
+      "alternative": [
+        {
+          "q": 255
+        },
+        {
+          "q": 255
+        }
+      ]
+    },
+    "differences": [
+      {
+        "cycle": 2,
+        "original": {
+          "q": 52
+        },
+        "alternative": {
+          "q": 255
+        }
+      }
+    ]
+  }
+]

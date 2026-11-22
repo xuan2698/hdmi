@@ -1,0 +1,117 @@
+{
+  "coverage": {
+    "S01": [
+      "R1",
+      "R2",
+      "R3"
+    ],
+    "S02": [
+      "R1",
+      "R2",
+      "R3"
+    ],
+    "S03": [
+      "R3"
+    ],
+    "S04": [
+      "R4"
+    ],
+    "S05": [
+      "R4"
+    ]
+  },
+  "issues": [
+    {
+      "issue_id": "I1",
+      "rule_id": "R1",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "R1 example expected z=1 for x=1 in S0, but S0 meaning says output equals input bit; however for LSB-first 2's complement, first 1 should output 1 then switch to complement. Example is consistent with pass-through but R1 condition says pass through until first 1 seen; at the cycle where x=1, output should be 1 and state becomes S1 next cycle. No contradiction, but R1 example third vector x=1 expected z=1 is correct.",
+      "spec_evidence": "the output (Z) is the 2's complement of the input",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I2",
+      "rule_id": "R3",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "R3 example expected z values [0,1,1] for vectors x=[0,1,0] with areset=0. In S0 with x=0, z=0; next cycle x=1 in S0, z=1 and transition to S1; next cycle x=0 in S1, z=NOT 0=1. Expected [0,1,1] matches. No contradiction.",
+      "spec_evidence": "beginning with the least-significant bit of the number",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I3",
+      "rule_id": "R2",
+      "type": "consistency",
+      "severity": "medium",
+      "detail": "R2 example vectors start with areset=0,x=1 but do not establish state S1; if starting from reset S0, first x=1 gives z=1 not z=0. Example expected z=0 for first vector implies already in S1, but no prior 1 shown. This is a grounding/consistency issue: example assumes initial state S1 without evidence.",
+      "spec_evidence": "",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I4",
+      "rule_id": "R4",
+      "type": "consistency",
+      "severity": "medium",
+      "detail": "R4 example: first vector areset=0,x=1 expected z=1 (S0 pass-through). Second vector areset=1,x=0 expected z=0 (reset forces z=0). Third vector areset=0,x=0 expected z=0. After reset release, state S0, x=0 gives z=0. Consistent.",
+      "spec_evidence": "positive edge triggered asynchronous reset",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I5",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "high",
+      "detail": "Spec says conversion begins when Reset is released and stops when Reset is asserted. Contract reset is asynchronous active-high; 'released' means areset deasserted. Ambiguity: does the first posedge after release sample x as LSB, or is there a cycle delay? Contract says first posedge after deassert. Alternative semantics: conversion begins immediately on deassert (combinational) before next posedge.",
+      "spec_evidence": "The conversion begins when Reset is released and stops when Reset is asserted.",
+      "alternative": "Conversion begins combinationally on areset deassert, so z reflects x in same cycle as release without waiting for posedge.",
+      "sequence": [
+        {
+          "areset": 1,
+          "x": 0
+        },
+        {
+          "areset": 0,
+          "x": 1
+        },
+        {
+          "areset": 0,
+          "x": 0
+        }
+      ]
+    },
+    {
+      "issue_id": "I6",
+      "rule_id": "R1",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "R1 says in S0 z=x until first 1 seen. But for 2's complement LSB-first, the first 1 bit should be output as 1 and then complement subsequent bits. R1 passes through the first 1 correctly, but state transition R3 moves to S1 on posedge when x=1, so the same cycle's z uses S0 (z=x=1), next cycle uses S1. This is correct but ambiguous whether transition occurs before or after output in same cycle. Alternative: transition to S1 combinationally when x=1 so z=NOT x in same cycle (would give z=0 for first 1, incorrect).",
+      "spec_evidence": "the output (Z) is the 2's complement of the input",
+      "alternative": "State transitions to S1 combinationally when x=1, so the first 1 bit is complemented in the same cycle (z=0 instead of 1).",
+      "sequence": [
+        {
+          "areset": 0,
+          "x": 1
+        },
+        {
+          "areset": 0,
+          "x": 0
+        }
+      ]
+    },
+    {
+      "issue_id": "I7",
+      "rule_id": "global",
+      "type": "coverage",
+      "severity": "low",
+      "detail": "S03 arbitrary length is covered by S1->S1 always, but no explicit rule for very long sequences or overflow; acceptable.",
+      "spec_evidence": "The machine will accept input numbers of arbitrary length.",
+      "alternative": "",
+      "sequence": []
+    }
+  ]
+}

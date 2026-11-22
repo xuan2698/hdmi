@@ -1,0 +1,58 @@
+```json
+{
+  "module_name": "top_module",
+  "io": [
+    {
+      "name": "clk",
+      "dir": "input",
+      "width": 1,
+      "description": "Clock; all D flip-flops trigger on the negative edge."
+    },
+    {
+      "name": "reset",
+      "dir": "input",
+      "width": 1,
+      "description": "Active high synchronous reset; when asserted at the negative edge, q is loaded with 0x34."
+    },
+    {
+      "name": "d",
+      "dir": "input",
+      "width": 8,
+      "description": "Data input to the 8 D flip-flops."
+    },
+    {
+      "name": "q",
+      "dir": "output",
+      "width": 8,
+      "description": "Registered output of the 8 D flip-flops."
+    }
+  ],
+  "clocking": {
+    "clock": {
+      "name": "clk",
+      "edge": "negedge"
+    },
+    "reset": {
+      "name": "reset",
+      "active": "high",
+      "kind": "synchronous"
+    }
+  },
+  "timing": {
+    "outputs": {
+      "q": {
+        "latency_cycles": 1
+      }
+    }
+  },
+  "functional_summary": {
+    "overview": "Eight D flip-flops triggered on the negative edge of clk, with active high synchronous reset that loads 0x34 instead of zero.",
+    "rules": [
+      "On each negative edge of clk, if reset is high, q is synchronously loaded with 0x34.",
+      "On each negative edge of clk, if reset is low, q is loaded with d.",
+      "q holds its value between negative clock edges.",
+      "Reset has priority over data loading when asserted at the sampled negative edge."
+    ]
+  }
+}
+```

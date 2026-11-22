@@ -1,0 +1,170 @@
+{
+  "coverage": {
+    "S01": ["R8_full_wrap"],
+    "S02": ["R2_ones_count", "R3_ones_wrap", "R4_tens_increment", "R5_tens_wrap", "R6_hundreds_increment", "R7_thousands_increment"],
+    "S03": ["R9_ena_tens", "R10_ena_hundreds", "R11_ena_thousands"],
+    "S04": ["R1_reset"]
+  },
+  "issues": [
+    {
+      "issue_id": "I1",
+      "rule_id": "R1_reset",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "Reset example expected q=0,ena=0 on first vector but rule says visible same_cycle; with sync reset, q/ena should be 0 after the edge, not before. Example vectors lack initial state and expected values are inconsistent with same_cycle visibility.",
+      "spec_evidence": "Include a synchronous active-high reset.",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I2",
+      "rule_id": "R2_ones_count",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "Example expected q=1,2,3 for three reset=0 vectors, but rule condition requires q[3:0]!=9 and visible next_cycle; without initial state, first expected q=1 implies prior q=0, but no reset vector. Also ena=0 always contradicts R9 when q[3:0]==9.",
+      "spec_evidence": "q[3:0] is the ones digit",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I3",
+      "rule_id": "R3_ones_wrap",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "Example expected q=10,11,12 for three reset=0 vectors, but condition q[3:0]==9 only applies to first transition; subsequent transitions should follow R2. Expected q=10 then 11 then 12 implies first vector had q=9, but no initial state. Also ena=0 contradicts R9 when q[3:0]==9.",
+      "spec_evidence": "q[3:0] is the ones digit",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I4",
+      "rule_id": "R4_tens_increment",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "Example expected q=25,26,27 for three reset=0 vectors, but condition requires q[3:0]==9 and q[7:4]!=9; first transition from q=24? No, q=25 implies prior q=24, not q[3:0]==9. Inconsistent with condition.",
+      "spec_evidence": "q[7:4] is the tens digit",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I5",
+      "rule_id": "R5_tens_wrap",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "Example expected q=100,101,102 for three reset=0 vectors, but condition requires q[3:0]==9 and q[7:4]==9; first transition from q=99 to 100, but then q=101,102 do not satisfy condition. Inconsistent.",
+      "spec_evidence": "q[7:4] is the tens digit",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I6",
+      "rule_id": "R6_hundreds_increment",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "Example expected q=199,200,201 for three reset=0 vectors, but condition requires q[3:0]==9 and q[7:4]==9 and q[11:8]!=9; first transition from q=198? No, q=199 implies prior q=198, not satisfying. Inconsistent.",
+      "spec_evidence": "q[7:4] is the tens digit",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I7",
+      "rule_id": "R7_thousands_increment",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "Example expected q=999,1000,1001 for three reset=0 vectors, but condition requires q[3:0]==9 and q[7:4]==9 and q[11:8]==9 and q[15:12]!=9; first transition from q=998? No, q=999 implies prior q=998, not satisfying. Inconsistent.",
+      "spec_evidence": "q[7:4] is the tens digit",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I8",
+      "rule_id": "R8_full_wrap",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "Example expected q=9999,0,1 for three reset=0 vectors, but condition requires all digits 9; first transition from q=9998? No, q=9999 implies prior q=9998, not satisfying. Inconsistent.",
+      "spec_evidence": "Build a 4-digit BCD (binary-coded decimal) counter.",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I9",
+      "rule_id": "R9_ena_tens",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "Example expected ena=0,1,0 for q=8,9,10, but rule condition q[3:0]==9 gives ena=1 when q=9; however ena is 3-bit, and R9 only sets bit0? Example ena=1 at q=9 matches, but ena=0 at q=8 and q=10 matches. However, R10 and R11 also affect ena; at q=9, ena should be 1 (only tens enable), consistent. But example vectors lack initial state and expected q values are given, not inputs. Inconsistent with combinational visibility: ena should reflect current q, but example lists expected q and ena together, implying ena after edge? Ambiguous.",
+      "spec_evidence": "For digits [3:1], also output an enable signal indicating when each of the upper three digits should be incremented.",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I10",
+      "rule_id": "R10_ena_hundreds",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "Example expected ena=1 at q=98, ena=3 at q=99, ena=0 at q=100. At q=98, q[3:0]=8, so R9 condition false, R10 condition false (requires q[3:0]==9), so ena should be 0, not 1. Inconsistent.",
+      "spec_evidence": "For digits [3:1], also output an enable signal indicating when each of the upper three digits should be incremented.",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I11",
+      "rule_id": "R11_ena_thousands",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "Example expected ena=3 at q=998, ena=7 at q=999, ena=0 at q=1000. At q=998, q[3:0]=8, so R9 false, R10 false, R11 false (requires q[3:0]==9), so ena should be 0, not 3. Inconsistent.",
+      "spec_evidence": "For digits [3:1], also output an enable signal indicating when each of the upper three digits should be incremented.",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I12",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "high",
+      "detail": "Enable signal bit mapping is unspecified: ena[0] for tens, ena[1] for hundreds, ena[2] for thousands? Or reversed? Spec says 'For digits [3:1]' but not bit order. Alternative: ena[0] corresponds to digit3 (thousands), ena[1] to digit2, ena[2] to digit1. Distinguishing sequence: start at q=9, reset=0; after one clock, q=10, ena should be 1 if ena[0] is tens, or 4 if ena[2] is tens.",
+      "spec_evidence": "For digits [3:1], also output an enable signal indicating when each of the upper three digits should be incremented.",
+      "alternative": "ena[0] corresponds to digit3 (thousands), ena[1] to digit2 (hundreds), ena[2] to digit1 (tens).",
+      "sequence": [{"reset": 0}]
+    },
+    {
+      "issue_id": "I13",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Enable signal timing: combinational (same_cycle) vs registered (next_cycle). Spec says 'output an enable signal indicating when each of the upper three digits should be incremented.' Could be combinational based on current q, or registered to align with next increment. Alternative: ena is registered and reflects the enable for the next clock edge. Distinguishing sequence: start at q=8, reset=0; after one clock, q=9. If combinational, ena=1 at q=9; if registered, ena=1 at q=8 (before edge) and 0 at q=9? Actually registered would be ena=1 when q=8 to indicate next increment to 9? No, enable for tens increments when ones is 9, so at q=9, tens should increment next. Combinational ena=1 at q=9. Registered ena=1 at q=9 after edge? Ambiguous.",
+      "spec_evidence": "For digits [3:1], also output an enable signal indicating when each of the upper three digits should be incremented.",
+      "alternative": "ena is registered and reflects the enable for the next clock edge (i.e., ena at cycle t indicates whether digit will increment at edge t+1).",
+      "sequence": [{"reset": 0}]
+    },
+    {
+      "issue_id": "I14",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Reset behavior for ena: rule R1 sets ena=0 during reset, but ena is combinational per R9-R11. If reset is synchronous, ena should be 0 only after reset edge, but combinational ena might reflect q=0 during reset. Alternative: ena is forced to 0 asynchronously during reset. Distinguishing sequence: assert reset=1 while q=9; if synchronous, ena may remain 1 until clock edge; if asynchronous, ena=0 immediately.",
+      "spec_evidence": "Include a synchronous active-high reset.",
+      "alternative": "ena is asynchronously reset to 0 when reset=1.",
+      "sequence": [{"reset": 1}]
+    },
+    {
+      "issue_id": "I15",
+      "rule_id": "global",
+      "type": "coverage",
+      "severity": "medium",
+      "detail": "Spec S02 says 'q[3:0] is the ones digit, q[7:4] is the tens digit, etc.' The 'etc.' implies q[11:8] hundreds, q[15:12] thousands, but contract rules R6 and R7 quote only 'q[7:4] is the tens digit' for hundreds and thousands increments, not fully grounded. Missing explicit quote for hundreds/thousands digit encoding.",
+      "spec_evidence": "q[3:0] is the ones digit, q[7:4] is the tens digit, etc.",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I16",
+      "rule_id": "global",
+      "type": "grounding",
+      "severity": "medium",
+      "detail": "Rule R8_full_wrap condition and example are not directly grounded in spec; spec only says build a 4-digit BCD counter, which implies wrap at 9999, but no verbatim evidence. Uncertain flag is false but grounding is inferential.",
+      "spec_evidence": "Build a 4-digit BCD (binary-coded decimal) counter.",
+      "alternative": "",
+      "sequence": []
+    }
+  ]
+}

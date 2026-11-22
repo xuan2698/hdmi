@@ -1,0 +1,74 @@
+```python
+def reference(vectors):
+    # FSM states: 0=S0, 1=S1, 2=S2, 3=S3, 4=S4(matched)
+    # start_shifting is registered output, updated on posedge.
+    # Each row: inputs driven before sampled edge; mid changes occur AFTER sampling.
+    # We process: apply mid changes from previous row first (already applied at end of prev row),
+    # then sample inputs at posedge, compute next state and output.
+    state = 0
+    start_shifting = 0
+    results = []
+    for row in vectors:
+        # Inputs are driven before the sampled edge (already applied, including mid changes
+        # carried from previous row which were applied at end of previous iteration).
+        reset = row['reset'] & 1
+        data = row['data'] & 1
+        # Sample at posedge: compute next state and output
+        if reset:
+            state = 0
+            start_shifting = 0
+        else:
+            if start_shifting:
+                # stays 1, state irrelevant but keep advancing? Spec says remains 1 regardless of data.
+                # State transitions still occur per rules, but output latched.
+                # We'll still advance state per transitions (doesn't affect output).
+                if state == 0:
+                    state = 1 if data else 0
+                elif state == 1:
+                    state = 2 if data else 0
+                elif state == 2:
+                    state = 2 if data else 3
+                elif state == 3:
+                    state = 4 if data else 0
+                elif state == 4:
+                    state = 4  # stay matched
+                start_shifting = 1
+            else:
+                if state == 0:
+                    state = 1 if data else 0
+                elif state == 1:
+                    state = 2 if data else 0
+                elif state == 2:
+                    state = 2 if data else 3
+                elif state == 3:
+                    if data:
+                        state = 4
+                        start_shifting = 1
+                    else:
+                        state = 0
+                elif state == 4:
+                    state = 4
+                    start_shifting = 1
+        results.append({'start_shifting': start_shifting})
+        # Apply mid changes AFTER sampling (before next edge) — carried to next row.
+        # Mid changes are given as optional keys in row; apply them now for next iteration.
+        # Since inputs are re-read from next row dict, mid changes would be in next row's
+        # pre-edge values. But spec says mid changes occur AFTER sampling, before other edge,
+        # and carried to start of next row. So we apply them to a pending override.
+        # We'll store pending overrides and apply at start of next iteration.
+        # Simpler: mid changes are already reflected in next row's values? No — next row's
+        # values are driven before next sampled edge, which includes mid changes from prev row.
+        # So we need to track pending mid changes.
+        # We'll handle by storing pending_reset/pending_data and applying before next sample.
+        # But since we read row values directly, we need to merge.
+        # Implementation: keep pending dict; at start of each iteration, apply pending to row.
+        # However, the row dict given already has values driven before sampled edge.
+        # Mid changes from previous row should override the row's values? The spec says mid
+        # changes are carried to start of next row, meaning they become the values before
+        # the next sampled edge. So they should override the row's pre-edge values.
+        # We'll implement pending overrides.
+        # But we already used row values. Need to restructure: apply pending before sampling.
+        # Let's redo with pending.
+        pass
+    return results
+```

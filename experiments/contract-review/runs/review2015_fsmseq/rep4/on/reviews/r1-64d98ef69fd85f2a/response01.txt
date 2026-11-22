@@ -1,0 +1,46 @@
+{
+  "coverage": {
+    "S01": ["r_default_clear", "r_set_or_hold"],
+    "S02": ["r_set_or_hold", "r_reset_clear"],
+    "S03": ["r_reset_clear"]
+  },
+  "issues": [
+    {
+      "issue_id": "I1",
+      "rule_id": "r_set_or_hold",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec does not define same-posedge vs next-posedge assertion after 1101; contract selects same_cycle and marks r_set_or_hold uncertain.",
+      "spec_evidence": "When the sequence is found, it should set start_shifting to 1, forever, until reset.",
+      "alternative": "Assert start_shifting only on the next sampled posedge after the completing data=1 (next_cycle).",
+      "sequence": [
+        {"reset": 1, "data": 0},
+        {"reset": 0, "data": 1},
+        {"reset": 0, "data": 1},
+        {"reset": 0, "data": 0},
+        {"reset": 0, "data": 1},
+        {"reset": 0, "data": 0}
+      ]
+    },
+    {
+      "issue_id": "I2",
+      "rule_id": "r_reset_clear",
+      "type": "grounding",
+      "severity": "medium",
+      "detail": "Rule asserts start_shifting=0 while reset==1, but spec only states active-high synchronous reset; reset value for start_shifting is not specified.",
+      "spec_evidence": "Reset is active high synchronous.",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I3",
+      "rule_id": "r_default_clear",
+      "type": "grounding",
+      "severity": "low",
+      "detail": "Rule clears start_shifting to 0 when not found, but spec only says to set it to 1 when found; pre-found/default output value is not verbatim specified.",
+      "spec_evidence": "searches for the sequence 1101",
+      "alternative": "",
+      "sequence": []
+    }
+  ]
+}

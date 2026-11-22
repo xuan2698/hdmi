@@ -1,0 +1,51 @@
+def reference(vectors):
+    q = 0
+    current_reset = 0
+    outputs = []
+    for row in vectors:
+        if "reset" in row:
+            current_reset = row["reset"]
+        # rule reset: synchronous active-high reset has priority
+        if current_reset == 1:
+            q = 0
+        else:
+            # rule bcd_increment: increment with saturation at 0x9999 per override
+            if q == 0x9999:
+                q = 0x9999
+            else:
+                ones = q & 0xF
+                tens = (q >> 4) & 0xF
+                hundreds = (q >> 8) & 0xF
+                thousands = (q >> 12) & 0xF
+                ones = ones + 1
+                if ones == 10:
+                    ones = 0
+                    tens = tens + 1
+                    if tens == 10:
+                        tens = 0
+                        hundreds = hundreds + 1
+                        if hundreds == 10:
+                            hundreds = 0
+                            thousands = thousands + 1
+                q = (thousands << 12) | (hundreds << 8) | (tens << 4) | ones
+        # rule ena_combinational: enable equations from updated q
+        ones = q & 0xF
+        tens = (q >> 4) & 0xF
+        hundreds = (q >> 8) & 0xF
+        ena0 = 0
+        if ones == 9:
+            ena0 = 1
+        ena1 = 0
+        if tens == 9 and ones == 9:
+            ena1 = 1
+        ena2 = 0
+        if hundreds == 9 and tens == 9 and ones == 9:
+            ena2 = 1
+        ena = (ena2 << 2) | (ena1 << 1) | ena0
+        outputs.append({"q": q, "ena": ena})
+        # mid changes are applied after sampling for the next row
+        if "mid" in row:
+            mid = row["mid"]
+            if "reset" in mid:
+                current_reset = mid["reset"]
+    return outputs

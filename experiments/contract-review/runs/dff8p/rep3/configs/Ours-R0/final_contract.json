@@ -1,0 +1,113 @@
+{
+  "ports": {
+    "inputs": {
+      "d": 8,
+      "reset": 1
+    },
+    "outputs": {
+      "q": 8
+    },
+    "clock": "clk"
+  },
+  "states": [
+    {
+      "name": "Q",
+      "meaning": "8-bit flip-flop output register, reset value 0x34",
+      "update_time": "negedge",
+      "update_during_reset": true
+    }
+  ],
+  "rules": [
+    {
+      "id": "R1",
+      "outputs": [
+        "q"
+      ],
+      "condition": "reset == 1",
+      "edge": "negedge",
+      "visible": "same_cycle",
+      "priority": 1,
+      "spec_quote": "active high synchronous reset",
+      "uncertain": false,
+      "example": {
+        "vectors": [
+          {
+            "d": 255,
+            "reset": 1
+          },
+          {
+            "d": 0,
+            "reset": 1
+          },
+          {
+            "d": 18,
+            "reset": 0
+          }
+        ],
+        "expected": [
+          {
+            "q": 52
+          },
+          {
+            "q": 52
+          },
+          {
+            "q": 18
+          }
+        ]
+      }
+    },
+    {
+      "id": "R2",
+      "outputs": [
+        "q"
+      ],
+      "condition": "reset == 0",
+      "edge": "negedge",
+      "visible": "same_cycle",
+      "priority": 2,
+      "spec_quote": "All DFFs should be triggered by the negative edge of clk",
+      "uncertain": false,
+      "example": {
+        "vectors": [
+          {
+            "d": 52,
+            "reset": 0
+          },
+          {
+            "d": 200,
+            "reset": 0
+          },
+          {
+            "d": 7,
+            "reset": 0
+          }
+        ],
+        "expected": [
+          {
+            "q": 52
+          },
+          {
+            "q": 200
+          },
+          {
+            "q": 7
+          }
+        ]
+      }
+    }
+  ],
+  "reset": {
+    "kind": "sync",
+    "name": "reset",
+    "active": "high",
+    "values": {
+      "q": 52
+    },
+    "first_released_cycle": "first negedge after reset deasserts"
+  },
+  "mid": "Optional mid input changes occur AFTER sampling, before the other edge, and are carried to the start of the next row.",
+  "uncertain": [],
+  "remaining_uncertain_fields": {},
+  "selected_interpretations": []
+}

@@ -1,0 +1,74 @@
+```python
+def reference(vectors):
+    # State encoding for the 1101 sequence detector.
+    S0, S1, S11, S110, FOUND = 0, 1, 2, 3, 4
+
+    state = S0
+    carried = {"reset": 0, "data": 0}
+    result = []
+
+    for row in vectors:
+        if not isinstance(row, dict):
+            row = {}
+
+        # Input values driven before the sampled posedge. Values not explicitly
+        # driven on this row come from any prior mid-cycle changes.
+        inp = dict(carried)
+        for key in ("reset", "data"):
+            if key in row:
+                inp[key] = int(row[key]) & 1
+
+        reset = inp.get("reset", 0) & 1
+        data = inp.get("data", 0) & 1
+
+        # R_RESET: active-high synchronous reset forces S0 and start_shifting=0.
+        if reset == 1:
+            next_state = S0
+        else:
+            if state == S0:
+                next_state = S1 if data else S0
+            elif state == S1:
+                next_state = S11 if data else S0
+            elif state == S11:
+                next_state = S11 if data else S110
+            elif state == S110:
+                # R_COMPLETE_1101: completing 1101 enters FOUND, output becomes 1.
+                next_state = FOUND if data else S0
+            elif state == FOUND:
+                # R_HOLD_FOUND: once FOUND, remain FOUND until reset.
+                next_state = FOUND
+            else:
+                next_state = S0
+
+        state = next_state
+
+        # R_RESET / R_COMPLETE_1101 / R_HOLD_FOUND / R_ZERO_NOT_FOUND:
+        # start_shifting is 1 exactly in FOUND, else 0.
+        start_shifting = 1 if state == FOUND else 0
+        result.append({"start_shifting": int(start_shifting)})
+
+        # Values present at the sampled edge are carried forward.
+        carried = dict(inp)
+
+        # Optional mid-cycle changes occur after sampling and before the next row.
+        mid = row.get("mid", None)
+        if isinstance(mid, dict):
+            for key in ("reset", "data"):
+                if key in mid:
+                    carried[key] = int(mid[key]) & 1
+        elif isinstance(mid, (list, tuple)):
+            for change in mid:
+                if isinstance(change, dict):
+                    for key in ("reset", "data"):
+                        if key in change:
+                            carried[key] = int(change[key]) & 1
+
+        # Also accept explicit alternate mid-change keys such as reset_mid/data_mid
+        # or mid_reset/mid_data.
+        for key in ("reset", "data"):
+            for mid_key in (key + "_mid", "mid_" + key):
+                if mid_key in row:
+                    carried[key] = int(row[mid_key]) & 1
+
+    return result
+```

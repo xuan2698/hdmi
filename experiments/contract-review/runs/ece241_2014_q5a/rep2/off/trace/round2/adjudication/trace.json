@@ -1,0 +1,106 @@
+[
+  {
+    "issue": {
+      "issue_id": "I2",
+      "rule_id": "R3",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "R3 says transitions are 'registered, effective next cycle' yet also says same-cycle z uses current state; the example's expected z for row2 (x=1) is 1, consistent with combinational same-cycle, but the 'next_cycle' visible field contradicts same-cycle output.",
+      "spec_evidence": "beginning with the least-significant bit of the number",
+      "alternative": "State updates on posedge and z is combinational from current state, so first 1 appears same cycle; alternative is z registered one cycle later.",
+      "sequence": [
+        {
+          "areset": 0,
+          "x": 0
+        },
+        {
+          "areset": 0,
+          "x": 1
+        },
+        {
+          "areset": 0,
+          "x": 0
+        }
+      ]
+    },
+    "status": "no_effect",
+    "issue_id": "I2",
+    "outputs": {
+      "original": [
+        {
+          "z": 0
+        },
+        {
+          "z": 1
+        },
+        {
+          "z": 1
+        }
+      ],
+      "alternative": [
+        {
+          "z": 0
+        },
+        {
+          "z": 1
+        },
+        {
+          "z": 1
+        }
+      ]
+    },
+    "differences": []
+  },
+  {
+    "issue": {
+      "issue_id": "I4",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec S05 says conversion begins when Reset is released and stops when Reset is asserted; contract reset first_released_cycle says first posedge after deassert, but does not specify behavior of z during reset release cycle vs. first sampled bit. Alternative: first bit sampled on the same cycle reset deasserts (if posedge coincides) vs. next posedge.",
+      "spec_evidence": "The conversion begins when Reset is released and stops when Reset is asserted.",
+      "alternative": "Conversion starts sampling x on the first posedge where areset=0, including the cycle areset transitions 1->0 before that edge.",
+      "sequence": [
+        {
+          "areset": 1,
+          "x": 1
+        },
+        {
+          "areset": 0,
+          "x": 1
+        },
+        {
+          "areset": 0,
+          "x": 0
+        }
+      ]
+    },
+    "status": "no_effect",
+    "issue_id": "I4",
+    "outputs": {
+      "original": [
+        {
+          "z": 0
+        },
+        {
+          "z": 1
+        },
+        {
+          "z": 1
+        }
+      ],
+      "alternative": [
+        {
+          "z": 0
+        },
+        {
+          "z": 1
+        },
+        {
+          "z": 1
+        }
+      ]
+    },
+    "differences": []
+  }
+]

@@ -1,0 +1,25 @@
+def reference(vectors):
+    # State: q_state holds the 8-bit registered output.
+    # Power-up is unspecified (X). We track it with a sentinel None.
+    # R2 (candidate interpretation): q is X/unknown at time zero and only
+    # becomes defined after a posedge with reset=1 (q=0) or reset=0 (q=d).
+    q_state = None  # R2: unknown at time zero
+
+    results = []
+    for row in vectors:
+        d = row["d"]
+        reset = row["reset"]
+
+        # R1: reset == 1 at posedge -> q becomes 0 (priority 1)
+        # R2: reset == 0 at posedge -> q becomes d (priority 2)
+        if reset == 1:
+            q_state = 0  # R1
+        else:
+            q_state = d & 0xFF  # R2
+
+        # Output visible same cycle after posedge settles.
+        # If still unknown (shouldn't happen after first edge), emit 0.
+        out = q_state if q_state is not None else 0
+        results.append({"q": out & 0xFF})
+
+    return results

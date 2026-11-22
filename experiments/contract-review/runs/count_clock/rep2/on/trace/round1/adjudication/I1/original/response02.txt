@@ -1,0 +1,84 @@
+```python
+def reference(vectors):
+    # Initial concrete state: 12:00 AM (power-up unspecified, but must be concrete)
+    ss = 0
+    mm = 0
+    hh = 0x12  # 12 in BCD
+    pm = 0
+    cur_reset = 0
+    cur_ena = 0
+    results = []
+
+    for row in vectors:
+        # Inputs driven before the sampled posedge
+        if "reset" in row:
+            cur_reset = row["reset"]
+        if "ena" in row:
+            cur_ena = row["ena"]
+
+        # R_RESET: synchronous active-high reset, highest priority
+        if cur_reset == 1:
+            pm = 0
+            hh = 0x12
+            mm = 0
+            ss = 0
+        else:
+            # R_NORMAL: enabled BCD increment with 12-hour wrap
+            if cur_ena == 1:
+                if ss == 0x59:
+                    ss = 0x00
+                    if mm == 0x59:
+                        mm = 0x00
+                        # Hour increment; toggle AM/PM only on 11:59:59 -> 12:00:00
+                        if hh == 0x11:
+                            hh = 0x12
+                            pm = 1 - pm
+                        elif hh == 0x12:
+                            hh = 0x01
+                        else:
+                            units = hh & 0x0F
+                            tens = (hh >> 4) & 0x0F
+                            if units == 9:
+                                units = 0
+                                tens = tens + 1
+                            else:
+                                units = units + 1
+                            hh = (tens << 4) | units
+                    else:
+                        units = mm & 0x0F
+                        tens = (mm >> 4) & 0x0F
+                        if units == 9:
+                            units = 0
+                            tens = tens + 1
+                        else:
+                            units = units + 1
+                        mm = (tens << 4) | units
+                else:
+                    units = ss & 0x0F
+                    tens = (ss >> 4) & 0x0F
+                    if units == 9:
+                        units = 0
+                        tens = tens + 1
+                    else:
+                        units = units + 1
+                    ss = (tens << 4) | units
+
+        # Outputs after sampled posedge
+        out = {}
+        out["pm"] = pm
+        out["hh"] = hh
+        out["mm"] = mm
+        out["ss"] = ss
+        results.append(out)
+
+        # Optional mid changes occur after sampling and carry to next row
+        if "mid" in row:
+            mid = row["mid"]
+            if mid is not None:
+                if "reset" in mid:
+                    cur_reset = mid["reset"]
+                if "ena" in mid:
+                    cur_ena = mid["ena"]
+
+    return results
+```

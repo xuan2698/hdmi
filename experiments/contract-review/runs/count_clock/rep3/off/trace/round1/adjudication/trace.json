@@ -1,0 +1,141 @@
+[
+  {
+    "issue": {
+      "issue_id": "I8",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec says reset has higher priority than enable and can occur even when not enabled; contract reset rule condition only reset==1, but R7_hold condition reset==0 && ena==0. No rule covers reset==1 && ena==1 explicitly, though priority 1 implies reset wins. Ambiguous whether reset with ena=1 is handled.",
+      "spec_evidence": "Reset has higher priority than enable and can occur even when not enabled.",
+      "alternative": "Reset should override enable: when reset=1 and ena=1, outputs reset to 12:00 AM.",
+      "sequence": [
+        {
+          "reset": 1,
+          "ena": 1
+        },
+        {
+          "reset": 0,
+          "ena": 0
+        }
+      ]
+    },
+    "status": "no_effect",
+    "issue_id": "I8",
+    "outputs": {
+      "original": [
+        {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 0
+        },
+        {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 0
+        }
+      ],
+      "alternative": [
+        {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 0
+        },
+        {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 0
+        }
+      ]
+    },
+    "differences": []
+  },
+  {
+    "issue": {
+      "issue_id": "I9",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec says hh is 01-12, but contract state hh_lo meaning says '1-2 (or 0-9 within 01-12)' and hh_hi '0-1'. No rule defines hour increment from 12:59 PM to 01:00 PM or from 11:59 AM to 12:00 PM. R5 and R6 conditions are swapped relative to standard 12-hour clock semantics.",
+      "spec_evidence": "hours (01-12)",
+      "alternative": "Standard 12-hour clock: 11:59 AM -> 12:00 PM; 12:59 PM -> 01:00 PM; 11:59 PM -> 12:00 AM.",
+      "sequence": [
+        {
+          "reset": 0,
+          "ena": 1
+        },
+        {
+          "reset": 0,
+          "ena": 1
+        }
+      ]
+    },
+    "status": "effect",
+    "issue_id": "I9",
+    "outputs": {
+      "original": [
+        {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 0
+        },
+        {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 1
+        }
+      ],
+      "alternative": [
+        {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 1
+        },
+        {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 2
+        }
+      ]
+    },
+    "differences": [
+      {
+        "cycle": 1,
+        "original": {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 0
+        },
+        "alternative": {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 1
+        }
+      },
+      {
+        "cycle": 2,
+        "original": {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 1
+        },
+        "alternative": {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 2
+        }
+      }
+    ]
+  }
+]

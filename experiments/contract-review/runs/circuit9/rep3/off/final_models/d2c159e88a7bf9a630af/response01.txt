@@ -1,0 +1,43 @@
+```python
+def reference(vectors):
+    # Contract rules:
+    # - state "count": 3-bit counter stored in q; initial value 4 (no reset).
+    # - rule hold_when_a_high: on posedge, if a==1, q holds (priority 1).
+    # - rule increment_when_a_low: on posedge, if a==0, q increments by 1 (mod 8).
+    # - global interpretation: at first posedge with a=1, q loads 4; thereafter
+    #   hold when a=1 and increment when a=0.
+    # - mid changes occur AFTER sampling, before the other edge, carried to next row.
+    # - sample after posedge has settled; each row's values driven before sampled edge.
+
+    q = 4  # initial count value (no physical reset)
+    first_posedge_done = False
+    results = []
+
+    for row in vectors:
+        a = row.get('a', 0)
+        clk = row.get('clk', None)
+
+        # Determine if this row samples a posedge.
+        # The protocol: each row's values are driven before the sampled edge.
+        # We treat each row as a posedge sample (the waveform rows are posedges).
+        # Apply transition at posedge.
+        if not first_posedge_done:
+            # global: at first posedge with a=1, q loads 4
+            if a == 1:
+                q = 4
+            else:
+                # first posedge with a=0: increment from initial 4 -> 5
+                q = (q + 1) & 0x7
+            first_posedge_done = True
+        else:
+            if a == 1:
+                # hold_when_a_high
+                q = q
+            else:
+                # increment_when_a_low
+                q = (q + 1) & 0x7
+
+        results.append({'q': q & 0x7})
+
+    return results
+```

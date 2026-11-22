@@ -1,0 +1,35 @@
+def reference(vectors):
+    # Contract implementation.
+    # R1: state is a single flip-flop updated on posedge clk to a XOR b.
+    # R2: q is combinational, q = a XOR b for current inputs.
+    # Reset: none. Power-up state unspecified; we model it as 0 initially.
+    # Mid-cycle changes: inputs are carried to the next row (handled by caller
+    # passing the effective inputs for each row). We process each row's
+    # inputs as the values driven before the sampled posedge.
+
+    state = 0  # power-up unspecified; concrete choice 0
+    results = []
+
+    for row in vectors:
+        a = row.get('a', 0) & 1
+        b = row.get('b', 0) & 1
+
+        # R2: combinational output q = a XOR b (same cycle)
+        q = a ^ b
+
+        # R1: state updates on posedge clk to a XOR b (visible next cycle).
+        # The sampled row reflects the state value BEFORE this posedge's update
+        # for the 'state' output, while q reflects current inputs.
+        # Per waveform: at a posedge row, 'state' shows the value held from
+        # the previous update (i.e., the flip-flop output before the edge),
+        # and 'q' shows combinational a^b of the current inputs.
+        # Then the flip-flop captures a^b for the next cycle.
+        current_state = state
+        next_state = a ^ b
+
+        results.append({'q': q & 1, 'state': current_state & 1})
+
+        # Update flip-flop after sampling (posedge)
+        state = next_state
+
+    return results

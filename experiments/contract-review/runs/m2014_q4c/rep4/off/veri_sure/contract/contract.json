@@ -1,0 +1,56 @@
+{
+  "module_name": "top_module",
+  "io": [
+    {
+      "name": "clk",
+      "dir": "input",
+      "width": 1,
+      "description": "Clock; D flip flop samples on posedge."
+    },
+    {
+      "name": "d",
+      "dir": "input",
+      "width": 1,
+      "description": "Data input sampled on posedge clk."
+    },
+    {
+      "name": "r",
+      "dir": "input",
+      "width": 1,
+      "description": "Active high synchronous reset; when 1 at posedge, q becomes 0."
+    },
+    {
+      "name": "q",
+      "dir": "output",
+      "width": 1,
+      "description": "Registered output; 0 after reset, else previous d."
+    }
+  ],
+  "clocking": {
+    "clock": {
+      "name": "clk",
+      "edge": "posedge"
+    },
+    "reset": {
+      "name": "r",
+      "active": "high",
+      "kind": "synchronous"
+    }
+  },
+  "timing": {
+    "outputs": {
+      "q": {
+        "latency_cycles": 1
+      }
+    }
+  },
+  "functional_summary": {
+    "overview": "Single-bit D flip flop with active-high synchronous reset. On each posedge clk, q updates to 0 if r is 1, otherwise q updates to d.",
+    "rules": [
+      "On posedge clk: if r == 1, q <= 0.",
+      "On posedge clk: if r == 0, q <= d.",
+      "q holds its value between posedges.",
+      "Reset is synchronous: r only affects q at a posedge clk."
+    ]
+  }
+}

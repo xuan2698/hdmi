@@ -1,0 +1,52 @@
+def reference(vectors):
+    MASK = (1 << 32) - 1
+
+    # Named state. Power-up is unspecified by the contract, so use concrete 0s.
+    out_reg = 0
+    prev_in = 0
+    current_inputs = {"reset": 0, "in": 0}
+    responses = []
+
+    for row in vectors:
+        # Rule sync_reset_clear_out / falling_edge_capture_and_hold:
+        # Each row's non-mid values are driven before the sampled posedge.
+        if "reset" in row:
+            current_inputs["reset"] = int(row["reset"]) & 1
+        if "in" in row:
+            current_inputs["in"] = int(row["in"]) & MASK
+
+        sampled_reset = current_inputs["reset"] & 1
+        sampled_in = current_inputs["in"] & MASK
+
+        if sampled_reset:
+            # Rule sync_reset_clear_out: active-high synchronous reset clears out.
+            out_next = 0
+
+            # Chosen interpretation for falling_edge_capture_and_hold:
+            # prev_in is cleared during reset so a 1-to-0 transition spanning
+            # the reset interval is not captured on the first released edge.
+            prev_next = 0
+        else:
+            # Rule falling_edge_capture_and_hold:
+            # Capture each bit changing from previous sampled 1 to current 0,
+            # and hold all already-captured bits.
+            falling = prev_in & ((~sampled_in) & MASK)
+            out_next = (out_reg | falling) & MASK
+            prev_next = sampled_in
+
+        out_reg = out_next
+        prev_in = prev_next
+
+        # Output is visible after the sampled posedge has settled.
+        responses.append({"out": out_reg})
+
+        # Mid input changes occur after sampling and are carried to the start
+        # of the next row before that row's explicit pre-edge values are driven.
+        mid = row.get("mid")
+        if mid:
+            if "reset" in mid:
+                current_inputs["reset"] = int(mid["reset"]) & 1
+            if "in" in mid:
+                current_inputs["in"] = int(mid["in"]) & MASK
+
+    return responses

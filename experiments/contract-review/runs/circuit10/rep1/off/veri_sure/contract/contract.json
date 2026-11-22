@@ -1,0 +1,61 @@
+{
+  "module_name": "top_module",
+  "io": [
+    {
+      "name": "clk",
+      "dir": "input",
+      "width": 1,
+      "description": "Clock input, samples on posedge"
+    },
+    {
+      "name": "a",
+      "dir": "input",
+      "width": 1,
+      "description": "Data input a"
+    },
+    {
+      "name": "b",
+      "dir": "input",
+      "width": 1,
+      "description": "Data input b"
+    },
+    {
+      "name": "q",
+      "dir": "output",
+      "width": 1,
+      "description": "Registered output (flip-flop output)"
+    },
+    {
+      "name": "state",
+      "dir": "output",
+      "width": 1,
+      "description": "Observable flip-flop state (same as q)"
+    }
+  ],
+  "clocking": {
+    "clock": {
+      "name": "clk",
+      "edge": "posedge"
+    },
+    "reset": null
+  },
+  "timing": {
+    "outputs": {
+      "q": {
+        "latency_cycles": 1
+      },
+      "state": {
+        "latency_cycles": 1
+      }
+    }
+  },
+  "functional_summary": {
+    "overview": "Single flip-flop sequential circuit. On each posedge of clk, the flip-flop updates its state to the value of the combinational next-state function of inputs a, b and current state. Output q equals the registered state.",
+    "rules": [
+      "On posedge clk: state <= next_state, where next_state is a boolean function of (a, b, state).",
+      "Output q is the registered state (q == state).",
+      "From the waveform, next_state = a XOR b XOR state (i.e., state toggles when a XOR b is 1, holds when a XOR b is 0).",
+      "No reset; initial state is unspecified (x) until first posedge with defined inputs."
+    ]
+  }
+}

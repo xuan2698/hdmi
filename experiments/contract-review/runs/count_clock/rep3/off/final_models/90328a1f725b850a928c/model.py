@@ -1,0 +1,105 @@
+def reference(vectors):
+    # State: ss_lo, ss_hi, mm_lo, mm_hi, hh_lo, hh_hi, pm_reg
+    # Reset values: 12:00 AM -> hh=0x12, mm=0x00, ss=0x00, pm=0
+    ss_lo = 0
+    ss_hi = 0
+    mm_lo = 0
+    mm_hi = 0
+    hh_lo = 2
+    hh_hi = 1
+    pm_reg = 0
+
+    out = []
+    for row in vectors:
+        # Sample inputs at posedge (values driven before edge)
+        reset = row.get('reset', 0)
+        ena = row.get('ena', 0)
+
+        # Compute next state
+        if reset == 1:
+            # R1_reset: synchronous reset to 12:00 AM
+            n_ss_lo, n_ss_hi = 0, 0
+            n_mm_lo, n_mm_hi = 0, 0
+            n_hh_lo, n_hh_hi = 2, 1
+            n_pm = 0
+        elif ena == 1:
+            # R2_seconds / R3 / R4 / R5 / R6
+            ss = ss_hi * 10 + ss_lo
+            mm = mm_hi * 10 + mm_lo
+            hh = hh_hi * 10 + hh_lo
+
+            if ss != 59:
+                # R2_seconds: increment seconds
+                n_ss_lo, n_ss_hi = ss_lo, ss_hi
+                if ss_lo == 9:
+                    n_ss_lo, n_ss_hi = 0, ss_hi + 1
+                else:
+                    n_ss_lo = ss_lo + 1
+                n_mm_lo, n_mm_hi = mm_lo, mm_hi
+                n_hh_lo, n_hh_hi = hh_lo, hh_hi
+                n_pm = pm_reg
+            elif mm != 59:
+                # R3_seconds_rollover: ss=59, mm!=59 -> ss=00, mm+1
+                n_ss_lo, n_ss_hi = 0, 0
+                if mm_lo == 9:
+                    n_mm_lo, n_mm_hi = 0, mm_hi + 1
+                else:
+                    n_mm_lo, n_mm_hi = mm_lo + 1, mm_hi
+                n_hh_lo, n_hh_hi = hh_lo, hh_hi
+                n_pm = pm_reg
+            elif not (hh == 11 and pm_reg == 1):
+                # R4_minutes_rollover: ss=59, mm=59, not 11:59 PM
+                n_ss_lo, n_ss_hi = 0, 0
+                n_mm_lo, n_mm_hi = 0, 0
+                if hh == 11:
+                    # 11:59 AM -> 12:00 PM
+                    n_hh_lo, n_hh_hi = 2, 1
+                    n_pm = 1
+                elif hh == 12:
+                    # 12:59 PM -> 01:00 PM
+                    n_hh_lo, n_hh_hi = 1, 0
+                    n_pm = 1
+                else:
+                    # 01..10 -> increment
+                    if hh_lo == 9:
+                        n_hh_lo, n_hh_hi = 0, hh_hi + 1
+                    else:
+                        n_hh_lo, n_hh_hi = hh_lo + 1, hh_hi
+                    n_pm = pm_reg
+            elif hh == 11 and pm_reg == 1:
+                # R5_hour_rollover_am_pm: 11:59 PM -> 12:00 AM
+                n_ss_lo, n_ss_hi = 0, 0
+                n_mm_lo, n_mm_hi = 0, 0
+                n_hh_lo, n_hh_hi = 2, 1
+                n_pm = 0
+            else:
+                # R6_hour_rollover_1159pm: 12:59 PM -> 01:00 PM
+                n_ss_lo, n_ss_hi = 0, 0
+                n_mm_lo, n_mm_hi = 0, 0
+                n_hh_lo, n_hh_hi = 1, 0
+                n_pm = 1
+        else:
+            # R7_hold: ena=0, no reset -> hold
+            n_ss_lo, n_ss_hi = ss_lo, ss_hi
+            n_mm_lo, n_mm_hi = mm_lo, mm_hi
+            n_hh_lo, n_hh_hi = hh_lo, hh_hi
+            n_pm = pm_reg
+
+        # Outputs are driven before the sampled edge (current state)
+        hh_out = (hh_hi << 4) | hh_lo
+        mm_out = (mm_hi << 4) | mm_lo
+        ss_out = (ss_hi << 4) | ss_lo
+        out.append({
+            'pm': pm_reg,
+            'hh': hh_out,
+            'mm': mm_out,
+            'ss': ss_out,
+        })
+
+        # Commit next state
+        ss_lo, ss_hi = n_ss_lo, n_ss_hi
+        mm_lo, mm_hi = n_mm_lo, n_mm_hi
+        hh_lo, hh_hi = n_hh_lo, n_hh_hi
+        pm_reg = n_pm
+
+    return out

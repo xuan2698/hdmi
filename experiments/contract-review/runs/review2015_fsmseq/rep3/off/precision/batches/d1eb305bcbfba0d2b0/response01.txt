@@ -1,0 +1,198 @@
+We need to produce, for each of the three model IDs, a Python source string defining `reference(vectors)` that implements the FSM semantics independently. The three models differ in their rules:
+
+- **ff8a4f379f72b6a38a**: R2 says `reset==0 and state==S4` → start_shifting=1, but its example shows all zeros (contradictory). R3 also says state==S4 → 1 (uncertain). R4 says state!=S4 and next_state!=S4 → 0. This model's R2 example is inconsistent with its own condition, but we should follow the rule conditions as written. Actually the example for R2 shows expected all 0 even though state would be S4 at cycle 4. That's odd. But the rule condition says state==S4 → 1. The example contradicts. We need to decide: implement per rule conditions (priority order). Priority 1: reset→0. Priority 2: reset==0 and state==S4 → 1. Priority 3: same condition (redundant). Priority 4: reset==0 and state!=S4 and next_state!=S4 → 0. What about reset==0 and state!=S4 and next_state==S4? No rule covers that explicitly. That's the uncertain case (R3). R3 condition is state==S4, which doesn't cover next_state==S4 from state!=S4. So the uncertain case is when the completing bit arrives: state!=S4, next_state==S4. In that case, no rule fires → default? The spec says "When the sequence is found, it should set start_shifting to 1". So we should set 1 on the same cycle the completing bit is sampled (same_cycle visible). That's candidate 1. So for model 1, we'll implement: output = 1 if reset==0 and (state==S4 or next_state==S4) else 0. But R2 example contradicts. However, the example is just an example; the rule condition is authoritative. Actually the example for R2 in model 1 shows expected all 0, which would mean start_shifting never asserts. That can't be right. Possibly the example is just wrong. We'll follow the rule conditions and the uncertain resolution: same_cycle assertion.
+
+Wait, model 1's R2 example: vectors reset=1,0,1,1,0? Actually: [{"reset":1,"data":0},{"reset":0,"data":1},{"reset":0,"data":1},{"reset":0,"data":0}] expected all 0. That sequence: cycle1 reset=1→0. cycle2 reset=0 data=1 → state S1, next_state S1? Actually from S0 with data=1 → S1. So state after cycle2 is S1. cycle3 reset=0 data=1 → from S1 with 1 → S2. cycle4 reset=0 data=0 → from S2 with 0 → S3? Wait sequence 1101: need 1,1,0,1. Here we have 1,1,0 → state S3 after cycle4. So S4 not reached. So expected 0 is correct. My mistake. So R2 example is fine. Good.
+
+So model 1: R2 condition state==S4 → 1. R3 condition state==S4 → 1 (redundant). R4 condition state!=S4 and next_state!=S4 → 0. Missing: state!=S4 and next_state==S4 → uncertain. We'll resolve as same_cycle: output 1. So overall: output = 1 if reset==0 and (state==S4 or next_state==S4) else 0. But careful: state is current state before clock edge. next_state is computed from state and data. So on the posedge, we sample data, compute next_state, and output is based on state and next_state? The rules say visible same_cycle. So output is combinational based on current state and data? Actually "visible same_cycle" means the output is visible in the same cycle as the condition. The condition includes next_state, which depends on data. So output = f(state, data). That's fine.
+
+Model 2 (d1280f0b3397dbf3e8): R2 example shows expected last cycle 1. Let's check: vectors reset=1,0,1,1,0? Actually: [{"reset":1,"data":0},{"reset":0,"data":1},{"reset":0,"data":1},{"reset":0,"data":0}] expected [0,0,0,1]. Wait that's 4 cycles. Let's trace: cycle1 reset=1→0. cycle2 reset=0 data=1 → state S1, next S1? Actually from S0 with 1 → S1. So after cycle2 state=S1. cycle3 reset=0 data=1 → from S1 with 1 → S2. after cycle3 state=S2. cycle4 reset=0 data=0 → from S2 with 0 → S3. after cycle4 state=S3. So S4 not reached. But expected last is 1. That's inconsistent. Wait the example for R2 in model 2: vectors: reset=1,0,1,1,0? Actually it's [{"reset":1,"data":0},{"reset":0,"data":1},{"reset":0,"data":1},{"reset":0,"data":0}] expected [0,0,0,1]. That would mean start_shifting=1 at cycle4 even though sequence not complete. That's wrong. Possibly the example is misaligned. Let's re-read: model 2 R2 example: vectors: [{"reset":1,"data":0},{"reset":0,"data":1},{"reset":0,"data":1},{"reset":0,"data":0}] expected: [{"start_shifting":0},{"start_shifting":0},{"start_shifting":0},{"start_shifting":1}]. That's 4 cycles. The sequence of data: 0,1,1,0. That's not 1101. So expected 1 is wrong. Maybe the example is just illustrative and not correct. We'll follow rule conditions.
+
+Model 2 R4 condition: reset==0 and state!=S4 → 0. So if state!=S4, output 0 regardless of next_state. That means even if next_state==S4, output 0 on that cycle. Then next cycle state==S4 → output 1. So start_shifting asserts one cycle after completing bit. That's candidate 2 (registered). So model 2 implements delayed assertion.
+
+Model 3 (afcefb72c400b1eddc): R4 condition: reset==0 and state!=S4 → 0. Same as model 2? Actually model 3 R4: "reset == 0 and state != S4" → 0. So same as model 2. But model 3's R2 example is same as model 2? Let's check: model 3 R2 example: vectors: [{"reset":1,"data":0},{"reset":0,"data":1},{"reset":0,"data":1},{"reset":0,"data":0}] expected: [0,0,0,1]. Same as model 2. So model 3 also delayed? But model 3's R4 condition is state!=S4 → 0, which means if state!=S4, output 0 even if next_state==S4. So delayed. So models 2 and 3 are identical? Let's compare rules: model 2 R4: "reset == 0 and state != S4 and next_state != S4" → 0. Model 3 R4: "reset == 0 and state != S4" → 0. So model 2's R4 only fires when next_state!=S4. When state!=S4 and next_state==S4, no rule fires in model 2 → uncertain. Model 3's R4 fires when state!=S4 regardless of next_state → 0. So model 3 explicitly says 0 on the completing cycle. Model 2 leaves it uncertain. But model 2's R2 example shows 1 on the cycle after? Actually model 2's R2 example shows 1 on cycle4 when state would be S3, which is wrong. So examples are unreliable. We need to implement per rule conditions with priority.
+
+For model 2: priority 1: reset→0. priority 2: reset==0 and state==S4 → 1. priority 3: same condition (redundant). priority 4: reset==0 and state!=S4 and next_state!=S4 → 0. Missing: reset==0 and state!=S4 and next_state==S4. That's the uncertain case. We need to pick a resolution. The uncertain note says candidates: same_cycle or registered. For model 2, since R4 explicitly excludes next_state==S4, it suggests that when next_state==S4, the output might be 1 (same_cycle) or something else. But R2 only fires when state==S4. So if we choose same_cycle, then on the completing cycle, state!=S4 but next_state==S4, we would output 1. That would be consistent with "set start_shifting to 1 when sequence is found". So for model 2, we could implement same_cycle for the uncertain case. But then model 2 and model 1 would be identical? Model 1's R4 also excludes next_state==S4. So model 1 and model 2 have same rule conditions except model 1's R4 is "state!=S4 and next_state!=S4" and model 2's R4 is same. Actually model 1 R4: "reset == 0 and state != S4 and next_state != S4" → 0. Model 2 R4: same. So model 1 and model 2 have identical rules? Let's check model 1 R2: "reset == 0 and state == S4" → 1. Model 2 R2: same. Model 1 R3: "reset == 0 and state == S4" → 1 (uncertain). Model 2 R3: same. So model 1 and model 2 are identical in rules. The only difference is the example for R2: model 1 shows all 0, model 2 shows last 1. But examples are just examples. So models 1 and 2 are the same? That can't be. Let's re-read model 1 R2 example: vectors: [{"reset":1,"data":0},{"reset":0,"data":1},{"reset":0,"data":1},{"reset":0,"data":0}] expected: [0,0,0,0]. Model 2 R2 example: same vectors, expected: [0,0,0,1]. So the examples differ. But the rule conditions are identical. So the difference is in the uncertain resolution? Model 1's uncertain note is same as model 2's. So they are the same model? Possibly the examples are just wrong. We need to implement each model's exact state semantics independently. Since the rules are identical, we might implement them identically. But the problem says "For every assigned item, implement its exact state semantics independently with the same interface." So we need to produce three separate strings, but they can be identical if the semantics are identical. However, the examples suggest different behavior. Let's analyze the examples more carefully.
+
+Model 1 R2 example: vectors: reset=1,0,1,1,0? Actually it's 4 cycles: (1,0), (0,1), (0,1), (0,0). Expected: 0,0,0,0. Let's trace with same_cycle assertion: cycle1 reset=1→0. cycle2 reset=0 data=1: state S0, next S1. output? state!=S4, next!=S4 → 0. cycle3 reset=0 data=1: state S1, next S2. output 0. cycle4 reset=0 data=0: state S2, next S3. output 0. So all 0. That matches model 1 example. Now model 2 R2 example: same vectors, expected 0,0,0,1. That would require output 1 at cycle4 when state=S2, next=S3. That doesn't make sense. Unless the vectors are different? Let's check model 2 R2 example: vectors: [{"reset":1,"data":0},{"reset":0,"data":1},{"reset":0,"data":1},{"reset":0,"data":0}] expected: [0,0,0,1]. That's exactly the same vectors. So expected 1 at cycle4 when state=S2, next=S3. That would mean start_shifting=1 even though sequence not complete. That's clearly wrong. So the example is erroneous. We should ignore the example and follow the rules. So models 1 and 2 have identical rules. Model 3 has different R4: "reset == 0 and state != S4" → 0. So model 3 explicitly sets 0 when state!=S4, even if next_state==S4. So model 3 implements delayed assertion (registered). Model 1 and 2 have uncertain case: state!=S4 and next_state==S4. We need to resolve. The uncertain note says candidates: same_cycle or registered. We need to pick one for each model? The problem says "For every assigned item, implement its exact state semantics independently". The uncertain note is part of the model. We need to decide how to resolve the uncertainty for each model. Since the models are given with uncertain notes, we should probably implement the most likely interpretation. For model 1, the example shows all 0, which is consistent with both same_cycle and registered? Actually if same_cycle, on the completing cycle output would be 1. But the example doesn't reach S4. So it doesn't test the uncertain case. For model 2, the example shows 1 at cycle4 when state=S2, next=S3, which is not the uncertain case. So examples don't help. We need to make a choice. The spec says "When the sequence is found, it should set start_shifting to 1". That suggests same_cycle. So for models 1 and 2, we'll implement same_cycle: output 1 if reset==0 and (state==S4 or next_state==S4). For model 3, R4 explicitly says state!=S4 → 0, so even if next_state==S4, output 0. So model 3 implements registered: output 1 only if state==S4 (i.e., one cycle after completing bit). Let's verify model 3's R2 example: same vectors, expected 0,0,0,1. That would require output 1 at cycle4 when state=S2, next=S3. That's still wrong. So model 3's example is also wrong. But we follow rules.
+
+Wait, model 3 R4 condition: "reset == 0 and state != S4" → 0. So if state!=S4, output 0. That means on the completing cycle, state!=S4, so output 0. Next cycle state==S4, output 1. So registered. That matches candidate 2. So model 3 is registered.
+
+Model 1 and 2: R4 condition: "reset == 0 and state != S4 and next_state != S4" → 0. So when state!=S4 and next_state==S4, no rule fires. We need to decide. The uncertain note says candidates: same_cycle or registered. We'll pick same_cycle for model 1 and 2? But then model 1 and 2 would be identical to each other and different from model 3. That seems plausible. However, the problem might expect model 1 and 2 to be different? Let's check the model IDs: ff8a4f379f72b6a38a, d1280f0b3397dbf3e8, afcefb72c400b1eddc. They are three different models. The rules for model 1 and 2 are identical except the example for R2. But the example is just an example. The uncertain note is identical. So they are the same model? Possibly the examples are meant to indicate the resolution: model 1 example shows all 0 (which is consistent with registered? Actually if registered, on the completing cycle output 0, next cycle 1. The example doesn't reach S4, so it's consistent with both). Model 2 example shows 1 at cycle4 when state=S2, next=S3, which is not the uncertain case. So it's just wrong. I think we should implement model 1 and 2 with same_cycle, and model 3 with registered. But wait, model 3's R4 is different: it says state!=S4 → 0. That explicitly forces 0 on the completing cycle. So model 3 is registered. Model 1 and 2 have the uncertain case. We need to pick a resolution. The problem says "For every assigned item, implement its exact state semantics independently". The uncertain note is part of the model. We need to decide how to resolve it. Since the spec says "When the sequence is found, it should set start_shifting to 1", the most natural is same_cycle. So we'll implement same_cycle for models 1 and 2. But then model 1 and 2 are identical. That's fine.
+
+Let's double-check model 1 R2 example: vectors: reset=1,0,1,1,0? Actually it's 4 cycles: (1,0), (0,1), (0,1), (0,0). Expected: 0,0,0,0. With same_cycle, we get 0,0,0,0. Good. Model 2 R2 example: same vectors, expected 0,0,0,1. With same_cycle, we get 0,0,0,0. So model 2's example is inconsistent with same_cycle. With registered, we also get 0,0,0,0 because S4 not reached. So model 2's example is just wrong. So we ignore it.
+
+Thus, we will implement:
+
+- Model 1 (ff8a4f379f72b6a38a): same_cycle assertion. Output = 1 if reset==0 and (state==S4 or next_state==S4) else 0.
+- Model 2 (d1280f0b3397dbf3e8): same_cycle assertion. Same as model 1.
+- Model 3 (afcefb72c400b1eddc): registered assertion. Output = 1 if reset==0 and state==S4 else 0. (Because R4 forces 0 when state!=S4, and R2 gives 1 when state==S4). So output = 1 if reset==0 and state==S4 else 0.
+
+Wait, model 3 R4: "reset == 0 and state != S4" → 0. So if state!=S4, output 0. If state==S4, R2 gives 1. So output = 1 if reset==0 and state==S4 else 0. That's registered.
+
+Now we need to implement the FSM state transitions. The states are S0, S1, S2, S3, S4. S4 is absorbing (once reached, stays there). Reset is synchronous active high: on posedge with reset==1, state becomes S0 and start_shifting=0. On posedge with reset==0, state updates based on data. The output is visible same_cycle, meaning it's combinational based on current state and data (for same_cycle models) or just current state (for registered model). But careful: the output is sampled at the posedge? The problem says "Each row's values are driven before the sampled edge. Optional mid input changes occur AFTER sampling, before the other edge, and are carried to the start of the next row." So the vectors provide inputs for each cycle. The reference function should return the output for each cycle. The output is determined by the state at the beginning of the cycle (before the posedge) and the inputs for that cycle. For same_cycle, the output depends on the next_state which depends on data. So we need to compute next_state from current state and data, and then output based on state and next_state. For registered, output depends only on current state.
+
+We need to write a Python function `reference(vectors)` that takes a list of dicts with keys 'reset' and 'data', and returns a list of dicts with key 'start_shifting'. The function should simulate the FSM cycle by cycle. The state is updated at each posedge. The initial state is S0. The output for each cycle is computed based on the state at the start of the cycle and the inputs for that cycle. Then the state is updated for the next cycle.
+
+We need to follow v3 Python restrictions: no imports, no I/O, no executable top-level code. So we just define the function.
+
+Let's write the code for each model.
+
+For model 1 and 2 (same_cycle):
+```python
+def reference(vectors):
+    state = 0  # S0
+    outputs = []
+    for v in vectors:
+        reset = v['reset']
+        data = v['data']
+        # compute next_state
+        if reset == 1:
+            next_state = 0
+        else:
+            if state == 0:
+                next_state = 1 if data == 1 else 0
+            elif state == 1:
+                next_state = 2 if data == 1 else 0
+            elif state == 2:
+                next_state = 3 if data == 0 else 2  # 110 -> need 0, if 1 then still S2? Actually from S2 (matched 11), if data=1, we have 111, the last two bits are 11, so still S2. If data=0, we have 110, so S3.
+            elif state == 3:
+                next_state = 4 if data == 1 else 0  # 1101 -> S4, else 0? Actually from S3 (matched 110), if data=1, we have 1101 -> S4. If data=0, we have 1100, no prefix, so S0.
+            elif state == 4:
+                next_state = 4
+        # output
+        if reset == 1:
+            out = 0
+        else:
+            if state == 4 or next_state == 4:
+                out = 1
+            else:
+                out = 0
+        outputs.append({'start_shifting': out})
+        state = next_state
+    return outputs
+```
+Wait, for state S2, if data=1, we have 111. The last two bits are 11, so we are still in S2 (matched '11'). So next_state = 2. If data=0, we have 110, so S3. So correct.
+
+For state S3, if data=1, we have 1101 -> S4. If data=0, we have 1100, no prefix, so S0. Correct.
+
+For state S1, if data=1, we have 11 -> S2. If data=0, we have 10, no prefix, so S0. Correct.
+
+For state S0, if data=1, S1. If data=0, S0. Correct.
+
+Now for model 3 (registered):
+```python
+def reference(vectors):
+    state = 0
+    outputs = []
+    for v in vectors:
+        reset = v['reset']
+        data = v['data']
+        # compute next_state
+        if reset == 1:
+            next_state = 0
+        else:
+            if state == 0:
+                next_state = 1 if data == 1 else 0
+            elif state == 1:
+                next_state = 2 if data == 1 else 0
+            elif state == 2:
+                next_state = 3 if data == 0 else 2
+            elif state == 3:
+                next_state = 4 if data == 1 else 0
+            elif state == 4:
+                next_state = 4
+        # output
+        if reset == 1:
+            out = 0
+        else:
+            if state == 4:
+                out = 1
+            else:
+                out = 0
+        outputs.append({'start_shifting': out})
+        state = next_state
+    return outputs
+```
+
+We need to return JSON with models: {id: Python source string}. The source string should be the function definition. We need to ensure no imports, no I/O, no executable top-level code. So just the function.
+
+We'll produce a JSON object with three keys, each mapping to the string.
+
+Let's write the strings carefully. We'll use triple quotes or escape newlines. Since it's JSON, we need to escape newlines and quotes. We'll use a Python script to generate the JSON, but since we are writing the answer, we can just write the JSON with escaped strings.
+
+We'll produce the final answer as a JSON object.
+
+Let's construct the strings.
+
+For model 1:
+```
+def reference(vectors):
+    state = 0
+    outputs = []
+    for v in vectors:
+        reset = v['reset']
+        data = v['data']
+        if reset == 1:
+            next_state = 0
+        else:
+            if state == 0:
+                next_state = 1 if data == 1 else 0
+            elif state == 1:
+                next_state = 2 if data == 1 else 0
+            elif state == 2:
+                next_state = 3 if data == 0 else 2
+            elif state == 3:
+                next_state = 4 if data == 1 else 0
+            elif state == 4:
+                next_state = 4
+        if reset == 1:
+            out = 0
+        else:
+            if state == 4 or next_state == 4:
+                out = 1
+            else:
+                out = 0
+        outputs.append({'start_shifting': out})
+        state = next_state
+    return outputs
+```
+
+For model 2: same as model 1.
+
+For model 3:
+```
+def reference(vectors):
+    state = 0
+    outputs = []
+    for v in vectors:
+        reset = v['reset']
+        data = v['data']
+        if reset == 1:
+            next_state = 0
+        else:
+            if state == 0:
+                next_state = 1 if data == 1 else 0
+            elif state == 1:
+                next_state = 2 if data == 1 else 0
+            elif state == 2:
+                next_state = 3 if data == 0 else 2
+            elif state == 3:
+                next_state = 4 if data == 1 else 0
+            elif state == 4:
+                next_state = 4
+        if reset == 1:
+            out = 0
+        else:
+            if state == 4:
+                out = 1
+            else:
+                out = 0
+        outputs.append({'start_shifting': out})
+        state = next_state
+    return outputs
+```
+
+Now we need to put these into JSON. We'll escape newlines as \n and quotes as \". We'll write the JSON.
+
+Let's produce the final answer.

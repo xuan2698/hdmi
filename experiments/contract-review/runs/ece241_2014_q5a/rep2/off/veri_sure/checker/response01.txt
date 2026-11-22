@@ -1,0 +1,31 @@
+```python
+def reference(vectors):
+    # Moore 2's complementer, LSB first.
+    # State 0: no 1 seen yet -> z=0
+    # State 1: first 1 seen -> z=1
+    # Asynchronous active-high reset -> state 0.
+    # Output z is registered (Moore), latency 1 cycle.
+    out = []
+    state = 0
+    z = 0
+    for row in vectors:
+        # Apply asynchronous reset before sampling edge
+        if row.get('areset', 0):
+            state = 0
+            z = 0
+        # Sample at posedge: output reflects current state (registered)
+        # z is the registered output from previous state update
+        out.append({'z': z & 1})
+        # Update state on posedge using x (if not in reset)
+        if not row.get('areset', 0):
+            x = row.get('x', 0) & 1
+            if state == 0:
+                if x == 1:
+                    state = 1
+                    z = 1
+                else:
+                    z = 0
+            else:
+                z = 1
+    return out
+```

@@ -1,0 +1,96 @@
+{
+  "coverage": {
+    "S01": [
+      "R3",
+      "R4"
+    ],
+    "S02": [
+      "R1",
+      "R2"
+    ],
+    "S03": [
+      "R1"
+    ]
+  },
+  "issues": [
+    {
+      "issue_id": "I1",
+      "rule_id": "R3",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "R3 example expects start_shifting=1 on the same cycle that data=1 completes 1101, but R3 condition uses next_state==S4 (next-state logic), which would only be true after the edge; same-cycle visibility contradicts next_state-based condition.",
+      "spec_evidence": "searches for the sequence 1101 in an input bit stream",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I2",
+      "rule_id": "R2",
+      "type": "consistency",
+      "severity": "medium",
+      "detail": "R2 example starts with reset=0,data=1 and expects start_shifting=1 immediately, but state is not specified as S4 at that point; R2 condition requires state==S4, so example is not grounded by the rule condition.",
+      "spec_evidence": "it should set start_shifting to 1, forever, until reset",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I3",
+      "rule_id": "R3",
+      "type": "ambiguity",
+      "severity": "high",
+      "detail": "Spec does not define overlapping detection semantics (e.g., 1101101). Contract's S4 is terminal/latched, so after first detection no further matching occurs; alternative is to continue matching and re-detect, which would affect start_shifting only if reset clears it, but spec says forever until reset, so observable difference is only via reset timing.",
+      "spec_evidence": "searches for the sequence 1101 in an input bit stream",
+      "alternative": "After detecting 1101, remain in S4 and ignore further data until reset; start_shifting stays 1. Alternative: after detection, continue searching and allow re-detection, but start_shifting remains 1 until reset, so no observable difference unless reset occurs.",
+      "sequence": [
+        {
+          "reset": 0,
+          "data": 1
+        },
+        {
+          "reset": 0,
+          "data": 1
+        },
+        {
+          "reset": 0,
+          "data": 0
+        },
+        {
+          "reset": 0,
+          "data": 1
+        },
+        {
+          "reset": 0,
+          "data": 1
+        },
+        {
+          "reset": 0,
+          "data": 0
+        },
+        {
+          "reset": 0,
+          "data": 1
+        }
+      ]
+    },
+    {
+      "issue_id": "I4",
+      "rule_id": "global",
+      "type": "grounding",
+      "severity": "medium",
+      "detail": "Contract does not specify next-state transition function or state encoding; rules reference state and next_state but no transition table is given, so behavior for non-matching inputs and overlaps is underdetermined.",
+      "spec_evidence": "Build a finite-state machine that searches for the sequence 1101 in an input bit stream.",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I5",
+      "rule_id": "R1",
+      "type": "consistency",
+      "severity": "low",
+      "detail": "R1 example shows reset=1 for two cycles then reset=0,data=0 expecting start_shifting=0; this is consistent with reset clearing, but does not test that start_shifting was previously 1 and is cleared by reset, which is the key spec behavior.",
+      "spec_evidence": "Reset is active high synchronous.",
+      "alternative": "",
+      "sequence": []
+    }
+  ]
+}

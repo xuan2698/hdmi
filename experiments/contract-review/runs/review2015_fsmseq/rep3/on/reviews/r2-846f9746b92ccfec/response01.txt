@@ -1,0 +1,48 @@
+{
+  "coverage": {
+    "S01": ["R2_detect_set_and_hold", "R3_default_zero_while_searching"],
+    "S02": ["R2_detect_set_and_hold", "R1_reset_clear"],
+    "S03": ["R1_reset_clear"]
+  },
+  "issues": [
+    {
+      "issue_id": "I1",
+      "rule_id": "R1_reset_clear",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec S03 does not specify the reset value of start_shifting; contract chooses 0.",
+      "spec_evidence": "Reset is active high synchronous.",
+      "alternative": "Reset terminates the found-hold but does not clear start_shifting, so it remains 1 after reset.",
+      "sequence": [
+        {"reset": 0, "data": 1},
+        {"reset": 0, "data": 1},
+        {"reset": 0, "data": 0},
+        {"reset": 0, "data": 1},
+        {"reset": 1, "data": 0},
+        {"reset": 0, "data": 0}
+      ]
+    },
+    {
+      "issue_id": "I2",
+      "rule_id": "R3_default_zero_while_searching",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec S02 does not specify start_shifting before detection; contract chooses 0.",
+      "spec_evidence": "When the sequence is found, it should set start_shifting to 1, forever, until reset.",
+      "alternative": "start_shifting initializes to 1 before any detection and remains 1 until reset.",
+      "sequence": [
+        {"reset": 0, "data": 0}
+      ]
+    },
+    {
+      "issue_id": "I3",
+      "rule_id": "R3_default_zero_while_searching",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "reset.first_released_cycle says the first reset==0 edge leaves FSM S0, while R3 processes data on reset==0 as S0+1->S1; a first 1 after reset can be ignored.",
+      "spec_evidence": "Reset is active high synchronous.",
+      "alternative": "",
+      "sequence": []
+    }
+  ]
+}

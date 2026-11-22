@@ -1,0 +1,17 @@
+def reference(vectors):
+    # Contract implementation.
+    # R1: state <= a XOR b on posedge clk (candidate interpretation for R1).
+    # R2: q = a AND b (combinational, same cycle).
+    # Power-up state is unspecified; we start at 0.
+    state = 0
+    out = []
+    for v in vectors:
+        a = v.get('a', 0) & 1
+        b = v.get('b', 0) & 1
+        # R2: combinational output q = a AND b
+        q = a & b
+        # R1: next state = a XOR b, visible next cycle
+        next_state = a ^ b
+        out.append({'q': q, 'state': state})
+        state = next_state
+    return out

@@ -1,0 +1,29 @@
+{
+  "coverage": {
+    "S01": [
+      "falling_edge_capture_and_hold",
+      "sync_reset_clear_out"
+    ]
+  },
+  "issues": [
+    {
+      "issue_id": "amb_prev_in_reset",
+      "rule_id": "falling_edge_capture_and_hold",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec does not define prev_in history across synchronous reset; contract assumes it updates during reset, enabling capture spanning reset.",
+      "spec_evidence": "active high synchronous reset",
+      "alternative": "prev_in is cleared or held during reset, so a 1-to-0 transition spanning the reset interval is not captured on the first released edge.",
+      "sequence": [
+        {
+          "reset": 1,
+          "in": 1
+        },
+        {
+          "reset": 0,
+          "in": 0
+        }
+      ]
+    }
+  ]
+}

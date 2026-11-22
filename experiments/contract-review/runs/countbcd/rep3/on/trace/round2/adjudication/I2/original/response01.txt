@@ -1,0 +1,72 @@
+```python
+def reference(vectors):
+    # q_sync_reset: synchronous active-high reset clears q to 0 at posedge.
+    # q_bcd_count: BCD increment of q at posedge when reset==0.
+    # ena_upper_digit_increment: combinational ena from settled q.
+
+    q = 0  # 16-bit four-digit BCD state; power-up treated as concrete 0
+    current_inputs = {"reset": 0}
+    results = []
+
+    for row in vectors:
+        # Each row's values are driven before the sampled posedge.
+        if "reset" in row:
+            current_inputs["reset"] = row["reset"]
+
+        reset_val = current_inputs.get("reset", 0)
+
+        # Sample after the posedge edge has settled: update state.
+        if reset_val == 1:
+            # q_sync_reset
+            q = 0
+        else:
+            # q_bcd_count
+            ones = q & 0xF
+            tens = (q >> 4) & 0xF
+            hundreds = (q >> 8) & 0xF
+            thousands = (q >> 12) & 0xF
+
+            ones += 1
+            if ones == 10:
+                ones = 0
+                tens += 1
+                if tens == 10:
+                    tens = 0
+                    hundreds += 1
+                    if hundreds == 10:
+                        hundreds = 0
+                        thousands += 1
+                        if thousands == 10:
+                            thousands = 0
+
+            q = (thousands << 12) | (hundreds << 8) | (tens << 4) | ones
+            q &= 0xFFFF
+
+        # ena_upper_digit_increment: combinational from settled q
+        ones = q & 0xF
+        tens = (q >> 4) & 0xF
+        hundreds = (q >> 8) & 0xF
+
+        ena0 = 1 if ones == 9 else 0
+        ena1 = 1 if (ones == 9 and tens == 9) else 0
+        ena2 = 1 if (ones == 9 and tens == 9 and hundreds == 9) else 0
+        ena = (ena0 | (ena1 << 1) | (ena2 << 2)) & 0x7
+
+        results.append({"q": q, "ena": ena})
+
+        # Optional mid input changes occur after sampling, before the other edge,
+        # and are carried to the start of the next row.
+        mid = None
+        if isinstance(row, dict):
+            if "mid" in row:
+                mid = row["mid"]
+            elif "__mid__" in row:
+                mid = row["__mid__"]
+
+        if isinstance(mid, dict):
+            for key, value in mid.items():
+                if key == "reset":
+                    current_inputs[key] = value
+
+    return results
+```

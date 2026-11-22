@@ -1,0 +1,44 @@
+```python
+def reference(vectors):
+    # State encoding
+    A, B, C, D = 0, 1, 2, 3
+
+    # R3: synchronous active high reset -> state A (initial state A per candidate interpretation)
+    state = A
+
+    results = []
+    for vec in vectors:
+        inp = vec["in"]
+        rst = vec["reset"]
+
+        # R1/R2: combinational output based on current state (visible same_cycle)
+        # But candidate interpretation: output reflects next state immediately after posedge (next_cycle)
+        # Compute next state first, then output from next state.
+        if rst == 1:
+            # R3: reset -> A
+            next_state = A
+        else:
+            # R4-R7: explicit transitions
+            if state == A:
+                next_state = B if inp == 1 else A  # R4
+            elif state == B:
+                next_state = B if inp == 1 else C  # R5
+            elif state == C:
+                next_state = D if inp == 1 else A  # R6
+            else:  # state == D
+                next_state = B if inp == 1 else C  # R7
+
+        # Candidate interpretation: output reflects next state (next_cycle)
+        # R1: out=0 for A,B,C ; R2: out=1 for D
+        if next_state == D:
+            out = 1  # R2
+        else:
+            out = 0  # R1
+
+        results.append({"out": out})
+
+        # Advance state (posedge update)
+        state = next_state
+
+    return results
+```

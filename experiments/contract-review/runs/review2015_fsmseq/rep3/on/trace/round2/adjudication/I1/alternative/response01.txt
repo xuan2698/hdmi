@@ -1,0 +1,77 @@
+def reference(vectors):
+    # State encoding for the 1101 sequence detector.
+    S0, S1, S2, S3, S4 = 0, 1, 2, 3, 4
+
+    # Concrete power-up/reset state per contract: S0 with start_shifting=0.
+    state = S0
+    start_shifting = 0
+    current = {"reset": 0, "data": 0}
+    result = []
+
+    for vec in vectors:
+        # Each row's explicit values are driven before the sampled posedge.
+        for key in ("reset", "data"):
+            if key in vec:
+                current[key] = int(vec[key]) & 1
+
+        reset = current["reset"]
+        data = current["data"]
+
+        next_state = state
+        next_start_shifting = start_shifting
+
+        if reset == 1:
+            # R1_reset_clear (overridden interpretation): reset has priority for state,
+            # but it does not clear start_shifting; retain prior value across reset edge.
+            next_state = S0
+            next_start_shifting = start_shifting
+        else:
+            # reset == 0
+            if state == S4:
+                # R2_detect_set_and_hold: S4 holds start_shifting=1 for all data.
+                next_state = S4
+                next_start_shifting = 1
+            elif state == S3 and data == 1:
+                # R2_detect_set_and_hold: completing 1101 sets start_shifting and enters S4.
+                next_state = S4
+                next_start_shifting = 1
+            else:
+                # R3_default_zero_while_searching: not found, default output 0 and follow prefix transitions.
+                next_start_shifting = 0
+                if state == S0:
+                    if data == 0:
+                        next_state = S0
+                    else:
+                        next_state = S1
+                elif state == S1:
+                    if data == 0:
+                        next_state = S0
+                    else:
+                        next_state = S2
+                elif state == S2:
+                    if data == 0:
+                        next_state = S3
+                    else:
+                        next_state = S2
+                elif state == S3:
+                    # data==1 is handled by R2 above, so here data==0.
+                    next_state = S0
+                else:
+                    # Defensive fallback; should not be reached.
+                    next_state = S0
+
+        state = next_state
+        start_shifting = next_start_shifting
+
+        # Output visible after the sampled posedge has settled.
+        result.append({"start_shifting": start_shifting & 1})
+
+        # Mid changes occur after sampling, before the next edge, and are carried
+        # to the start of the next row.
+        if "mid" in vec and vec["mid"] is not None:
+            mid = vec["mid"]
+            for key in ("reset", "data"):
+                if key in mid:
+                    current[key] = int(mid[key]) & 1
+
+    return result

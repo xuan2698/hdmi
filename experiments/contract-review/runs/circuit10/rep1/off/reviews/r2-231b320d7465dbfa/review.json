@@ -1,0 +1,269 @@
+{
+  "coverage": {
+    "S01": [
+      "R1",
+      "R2"
+    ],
+    "S02": [
+      "R1",
+      "R2"
+    ],
+    "S03": [
+      "R1"
+    ],
+    "S04": [
+      "unrelated"
+    ],
+    "S05": [
+      "unrelated"
+    ],
+    "S06": [
+      "unrelated"
+    ],
+    "S07": [
+      "unrelated"
+    ],
+    "S08": [
+      "unrelated"
+    ],
+    "S09": [
+      "R1",
+      "R2"
+    ],
+    "S10": [
+      "R1",
+      "R2"
+    ],
+    "S11": [
+      "R1",
+      "R2"
+    ],
+    "S12": [
+      "R1",
+      "R2"
+    ],
+    "S13": [
+      "R1",
+      "R2"
+    ],
+    "S14": [
+      "R1",
+      "R2"
+    ],
+    "S15": [
+      "R1",
+      "R2"
+    ],
+    "S16": [
+      "R1",
+      "R2"
+    ],
+    "S17": [
+      "R1",
+      "R2"
+    ],
+    "S18": [
+      "R1",
+      "R2"
+    ],
+    "S19": [
+      "R1",
+      "R2"
+    ],
+    "S20": [
+      "R1",
+      "R2"
+    ],
+    "S21": [
+      "R1",
+      "R2"
+    ],
+    "S22": [
+      "R1",
+      "R2"
+    ],
+    "S23": [
+      "R1",
+      "R2"
+    ],
+    "S24": [
+      "R1",
+      "R2"
+    ],
+    "S25": [
+      "R1",
+      "R2"
+    ],
+    "S26": [
+      "R1",
+      "R2"
+    ],
+    "S27": [
+      "R1",
+      "R2"
+    ],
+    "S28": [
+      "R1",
+      "R2"
+    ],
+    "S29": [
+      "R1",
+      "R2"
+    ],
+    "S30": [
+      "R1",
+      "R2"
+    ],
+    "S31": [
+      "R1",
+      "R2"
+    ],
+    "S32": [
+      "R1",
+      "R2"
+    ],
+    "S33": [
+      "R1",
+      "R2"
+    ],
+    "S34": [
+      "R1",
+      "R2"
+    ],
+    "S35": [
+      "R1",
+      "R2"
+    ],
+    "S36": [
+      "R1",
+      "R2"
+    ],
+    "S37": [
+      "R1",
+      "R2"
+    ],
+    "S38": [
+      "R1",
+      "R2"
+    ],
+    "S39": [
+      "R1",
+      "R2"
+    ],
+    "S40": [
+      "R1",
+      "R2"
+    ],
+    "S41": [
+      "R1",
+      "R2"
+    ],
+    "S42": [
+      "R1",
+      "R2"
+    ],
+    "S43": [
+      "R1",
+      "R2"
+    ],
+    "S44": [
+      "R1",
+      "R2"
+    ]
+  },
+  "issues": [
+    {
+      "issue_id": "I1",
+      "rule_id": "R1",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "R1 says state<=q on negedge, but spec waveform shows state updating on posedge (e.g., 75ns posedge state 0->1).",
+      "spec_evidence": "// 75ns            1               0               0               1               1",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I2",
+      "rule_id": "R1",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "R1 condition text says posedge while edge field says negedge; internal contradiction.",
+      "spec_evidence": "// 75ns            1               0               0               1               1",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I3",
+      "rule_id": "R2",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "R2 q=state XOR a XOR b fails spec: at 75ns state=1,a=0,b=0 gives q=1 ok, but at 95ns state=1,a=1,b=1 gives q=1 while spec q=1 ok; check 105ns state=1,a=1,b=1 q=1 ok; 115ns state=1,a=1,b=0 q=0 ok; 125ns state=1,a=0,b=1 q=0 ok; 135ns state=1,a=0,b=0 q=1 ok; 145ns state=0,a=0,b=0 q=0 ok. Actually matches.",
+      "spec_evidence": "",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I4",
+      "rule_id": "R1",
+      "type": "spec_example",
+      "severity": "high",
+      "detail": "R1 example expected states [0,1,1] for vectors (0,0),(0,1),(1,0) inconsistent with state<=q semantics; q=state XOR a XOR b gives q sequence 0,1,0 so state should be 0,0,1.",
+      "spec_evidence": "// 75ns            1               0               0               1               1",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I5",
+      "rule_id": "R2",
+      "type": "spec_example",
+      "severity": "medium",
+      "detail": "R2 example expected q [0,1,1,0] for vectors (0,0),(0,1),(1,0),(1,1) with state presumably 0 gives [0,1,1,0] ok.",
+      "spec_evidence": "",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I6",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "high",
+      "detail": "Spec waveform shows state updates on posedge, contract says negedge; alternative semantics: state captures q on posedge.",
+      "spec_evidence": "// 75ns            1               0               0               1               1",
+      "alternative": "state updates on posedge instead of negedge",
+      "sequence": [
+        {
+          "a": 0,
+          "b": 0
+        },
+        {
+          "a": 0,
+          "b": 1
+        },
+        {
+          "a": 1,
+          "b": 0
+        }
+      ]
+    },
+    {
+      "issue_id": "I7",
+      "rule_id": "R1",
+      "type": "grounding",
+      "severity": "medium",
+      "detail": "R1 spec_quote at 75ns shows state=1,q=1 but does not verbatim show state<=q update; quote insufficient to ground condition.",
+      "spec_evidence": "// 75ns            1               0               0               1               1",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I8",
+      "rule_id": "R2",
+      "type": "grounding",
+      "severity": "medium",
+      "detail": "R2 spec_quote at 75ns only shows one row; does not verbatim establish XOR formula.",
+      "spec_evidence": "// 75ns            1               0               0               1               1",
+      "alternative": "",
+      "sequence": []
+    }
+  ]
+}

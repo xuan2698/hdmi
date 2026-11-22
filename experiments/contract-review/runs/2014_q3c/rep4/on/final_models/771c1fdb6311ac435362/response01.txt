@@ -1,0 +1,60 @@
+```python
+def reference(vectors):
+    # Initialize carried input values. Power-up unspecified; default to 0.
+    current = {'x': 0, 'y': 0}
+    outputs = []
+    for row in vectors:
+        # Determine sampled inputs before the edge. If a key is omitted, use carried value.
+        x = row['x'] if 'x' in row else current['x']
+        y = row['y'] if 'y' in row else current['y']
+        
+        # Combinational logic for Y0 and z based on present state y and input x.
+        # Mark rule IDs where implemented.
+        if y == 0:
+            if x == 0:
+                Y0, z = 0, 0  # Y0_z_S0_x0
+            else:
+                Y0, z = 1, 0  # Y0_z_S0_x1
+        elif y == 1:
+            if x == 0:
+                Y0, z = 1, 0  # Y0_z_S1_x0
+            else:
+                Y0, z = 0, 0  # Y0_z_S1_x1
+        elif y == 2:
+            if x == 0:
+                Y0, z = 0, 0  # Y0_z_S2_x0
+            else:
+                Y0, z = 1, 0  # Y0_z_S2_x1
+        elif y == 3:
+            if x == 0:
+                Y0, z = 1, 1  # Y0_z_S3_x0
+            else:
+                Y0, z = 0, 1  # Y0_z_S3_x1
+        elif y == 4:
+            if x == 0:
+                Y0, z = 1, 1  # Y0_z_S4_x0
+            else:
+                Y0, z = 0, 1  # Y0_z_S4_x1
+        else:  # y >= 5
+            Y0, z = 0, 0  # Y0_z_unused (interpretation: Y0=0,z=0)
+        
+        outputs.append({'Y0': int(Y0), 'z': int(z)})
+        
+        # After sampling, the inputs remain at their sampled values until mid changes.
+        current['x'] = x
+        current['y'] = y
+        
+        # Process optional mid input changes (after sampling, before other edge).
+        # Supported key patterns: x_mid, mid_x, and nested 'mid' dict.
+        for key in ('x', 'y'):
+            mid_key = key + '_mid'
+            if mid_key in row:
+                current[key] = row[mid_key]
+            alt_mid_key = 'mid_' + key
+            if alt_mid_key in row:
+                current[key] = row[alt_mid_key]
+            if 'mid' in row and isinstance(row['mid'], dict) and key in row['mid']:
+                current[key] = row['mid'][key]
+    
+    return outputs
+```

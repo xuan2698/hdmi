@@ -1,0 +1,70 @@
+def reference(vectors):
+    # Initialize state: q is 16-bit BCD counter, power-up assumed 0.
+    q = 0
+    # Initialize current input reset to 0.
+    current_reset = 0
+    outputs = []
+
+    for row in vectors:
+        # Apply main inputs driven before posedge
+        if "reset" in row:
+            current_reset = row["reset"]
+
+        # Posedge update
+        if current_reset == 1:
+            # reset rule: Synchronous reset leaves q unchanged (per override)
+            pass
+        else:
+            # bcd_increment rule: modulo 10000 BCD increment
+            ones = q & 15
+            tens = (q >> 4) & 15
+            hundreds = (q >> 8) & 15
+            thousands = (q >> 12) & 15
+            ones += 1
+            if ones == 10:
+                ones = 0
+                tens += 1
+                if tens == 10:
+                    tens = 0
+                    hundreds += 1
+                    if hundreds == 10:
+                        hundreds = 0
+                        thousands += 1
+                        if thousands == 10:
+                            thousands = 0
+            q = (thousands << 12) | (hundreds << 8) | (tens << 4) | ones
+
+        # ena_combinational rule: combinational from q
+        ones = q & 15
+        tens = (q >> 4) & 15
+        hundreds = (q >> 8) & 15
+        ena = 0
+        if ones == 9:
+            ena = ena | 1
+        if tens == 9 and ones == 9:
+            ena = ena | 2
+        if hundreds == 9 and tens == 9 and ones == 9:
+            ena = ena | 4
+
+        # Record outputs after posedge
+        outputs.append({"q": q, "ena": ena})
+
+        # Process mid changes after sampling, for next row
+        # 1. Nested mid dict
+        if "mid" in row:
+            mid_val = row["mid"]
+            try:
+                if "reset" in mid_val:
+                    current_reset = mid_val["reset"]
+            except:
+                # If not a dict, assume it's the mid value for reset
+                if mid_val == 0 or mid_val == 1:
+                    current_reset = mid_val
+        # 2. Keys ending with "_mid"
+        for key in row:
+            if key.endswith("_mid"):
+                base = key[:-4]
+                if base == "reset":
+                    current_reset = row[key]
+
+    return outputs

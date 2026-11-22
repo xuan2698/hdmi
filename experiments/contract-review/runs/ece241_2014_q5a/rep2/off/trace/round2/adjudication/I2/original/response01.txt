@@ -1,0 +1,63 @@
+```python
+def reference(vectors):
+    # Contract implementation for a serial 2's complementer Moore FSM.
+    #
+    # State encoding:
+    #   S0 = no 1-bit seen yet (all bits so far are 0); z = x
+    #   S1 = at least one 1-bit seen; z = NOT x
+    #
+    # Reset: asynchronous, active high. When areset=1, state -> S0 and z=0.
+    # Otherwise, z is combinational from current state and x (R1, R2).
+    # State updates on posedge (R3): S0->S1 if x=1 else S0; S1->S1.
+    #
+    # Timing model per row:
+    #   - Row values (areset, x) are driven before the sampled posedge.
+    #   - Outputs are sampled after the posedge has settled.
+    #   - Mid-cycle input changes occur AFTER sampling, before the other edge,
+    #     and are carried to the start of the next row.
+    #
+    # We model the state as the state AFTER the previous row's posedge
+    # (i.e., the state that the current row's combinational output uses).
+    # For the first row, state is S0 (power-up / reset default).
+
+    S0 = 0
+    S1 = 1
+
+    state = S0  # state used for current row's combinational output
+    results = []
+
+    for row in vectors:
+        areset = row.get('areset', 0)
+        x = row.get('x', 0)
+
+        # R4: asynchronous reset asserted -> state S0, z forced to 0 (same cycle)
+        if areset == 1:
+            # Reset is asynchronous and visible same cycle.
+            z = 0
+            # State becomes S0 (reset). update_during_reset is false for the
+            # states, but reset itself forces S0.
+            state = S0
+            results.append({'z': z & 1})
+            continue
+
+        # Combinational output based on current state and x (R1, R2)
+        if state == S0:
+            # R1: In state S0: z = x
+            z = x & 1
+        else:
+            # R2: In state S1: z = NOT x
+            z = (~x) & 1
+
+        results.append({'z': z & 1})
+
+        # R3: posedge state transition (effective next cycle)
+        if state == S0:
+            if x == 1:
+                state = S1
+            else:
+                state = S0
+        else:
+            state = S1
+
+    return results
+```

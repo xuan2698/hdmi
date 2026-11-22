@@ -1,0 +1,86 @@
+[
+  {
+    "issue": {
+      "issue_id": "I2",
+      "rule_id": "R1_sync_reset",
+      "type": "ambiguity",
+      "severity": "low",
+      "detail": "Spec says synchronous reset but does not state whether reset has priority over data capture when both are asserted at a clock edge; contract assigns priority 1 to reset, but an alternative equal-priority or data-priority interpretation is plausible.",
+      "spec_evidence": "active high synchronous reset (reset output to 0)",
+      "alternative": "Data capture takes priority over synchronous reset when r==1 and d is sampled at the same posedge, so q follows d instead of resetting to 0.",
+      "sequence": [
+        {
+          "d": 1,
+          "r": 1
+        },
+        {
+          "d": 0,
+          "r": 0
+        }
+      ]
+    },
+    "status": "effect",
+    "issue_id": "I2",
+    "outputs": {
+      "original": [
+        {
+          "q": 0
+        },
+        {
+          "q": 0
+        }
+      ],
+      "alternative": [
+        {
+          "q": 1
+        },
+        {
+          "q": 0
+        }
+      ]
+    },
+    "differences": [
+      {
+        "cycle": 1,
+        "original": {
+          "q": 0
+        },
+        "alternative": {
+          "q": 1
+        }
+      }
+    ]
+  },
+  {
+    "issue": {
+      "issue_id": "I3",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "low",
+      "detail": "Spec does not define initial power-up value of q before any posedge clk; contract states Q is stored and reset updates during reset, but no initial value is specified.",
+      "spec_evidence": "",
+      "alternative": "q has an unknown or implementation-defined initial value before the first posedge clk, rather than being defined by the first reset or capture edge.",
+      "sequence": [
+        {
+          "d": 0,
+          "r": 0
+        }
+      ]
+    },
+    "status": "no_effect",
+    "issue_id": "I3",
+    "outputs": {
+      "original": [
+        {
+          "q": 0
+        }
+      ],
+      "alternative": [
+        {
+          "q": 0
+        }
+      ]
+    },
+    "differences": []
+  }
+]

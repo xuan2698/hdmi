@@ -1,0 +1,54 @@
+def reference(vectors):
+    # Initial state: history_reg is concrete 0 at power-up.
+    history_reg = 0
+    # Current input values (used for missing keys to model holding).
+    current = {
+        'areset': 0,
+        'predict_valid': 0,
+        'predict_taken': 0,
+        'train_mispredicted': 0,
+        'train_taken': 0,
+        'train_history': 0,
+    }
+    results = []
+
+    for row in vectors:
+        # Main inputs are driven before the sampled posedge.
+        for k, v in row.items():
+            if k != 'mid':
+                current[k] = v
+
+        areset = current.get('areset', 0)
+        predict_valid = current.get('predict_valid', 0)
+        predict_taken = current.get('predict_taken', 0)
+        train_mispredicted = current.get('train_mispredicted', 0)
+        train_taken = current.get('train_taken', 0)
+        train_history = current.get('train_history', 0)
+
+        # R1_async_reset: reset overrides all clocked prediction/training updates.
+        if areset == 1:
+            history_reg = 0
+        else:
+            # R2_train_mispredicted_load: load after mispredicted branch,
+            # takes precedence over predict_valid.
+            if train_mispredicted == 1:
+                history_reg = ((train_history << 1) | train_taken) & 0xFFFFFFFF
+            # R3_predict_update: shift in predict_taken at LSB.
+            elif predict_valid == 1:
+                history_reg = ((history_reg << 1) | predict_taken) & 0xFFFFFFFF
+            # R4_hold: no update, hold previous value.
+            else:
+                pass
+
+        # Output after the posedge has settled.
+        results.append({'predict_history': history_reg & 0xFFFFFFFF})
+
+        # Mid-cycle changes occur after sampling.
+        mid = row.get('mid', {})
+        for k, v in mid.items():
+            current[k] = v
+            # Asynchronous reset takes effect immediately when it asserts mid-cycle.
+            if k == 'areset' and v == 1:
+                history_reg = 0
+
+    return results

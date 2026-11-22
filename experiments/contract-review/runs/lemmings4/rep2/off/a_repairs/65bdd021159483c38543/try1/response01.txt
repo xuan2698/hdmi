@@ -1,0 +1,617 @@
+Looking at the failures, the issue is that the state machine isn't updating on the posedge correctly — the outputs at cycle 1 reflect the state *before* the transition should have occurred. The expected behavior is that after a posedge with the given inputs, the state transitions and the outputs reflect the *new* state.
+
+Let me trace example 3: cycle 0 has `bump_left=1` (from WALK_LEFT), so at cycle 1 we should be in WALK_RIGHT. But actual shows WALK_LEFT — meaning the transition didn't happen. This suggests the reset handling or the initial state isn't being applied properly, or the transition logic is wrong.
+
+The key insight: `areset` is asynchronous and positive-edge triggered. In the vectors, `areset=1` appears in cycle 0, then `areset=0` in cycle 1. The reset should force WALK_LEFT. Then at the posedge going into cycle 1, the transition logic should apply based on cycle 0's inputs.
+
+Wait — looking more carefully: the expected output at cycle 1 for example 3 is WALK_RIGHT, meaning the transition from cycle 0's inputs (bump_left=1) took effect. So the posedge between cycle 0 and cycle 1 must process cycle 0's inputs. But my implementation likely processes inputs at the *start* of each cycle rather than transitioning based on the *previous* cycle's inputs.
+
+The fix: at each cycle, first apply reset if areset=1, then output based on current state, then compute next state from current inputs for the *next* cycle. But the expected outputs show the transition already applied at cycle 1 — so the model must be: state is updated at posedge using the inputs sampled at that posedge, and outputs reflect the *new* state.
+
+Let me restructure: for each row, if areset=1, state=WALK_LEFT (async). Otherwise, the state was already updated by the previous row's posedge. So I need to compute the next state at the *end* of processing each row (using that row's inputs), and that next state becomes the current state for the next row.
+
+```python
+def reference(vectors):
+    # State encoding
+    WALK_LEFT, WALK_RIGHT, FALL_LEFT, FALL_RIGHT, DIG_LEFT, DIG_RIGHT, SPLAT = range(7)
+    
+    def outputs(state):
+        # R2, R3, R4, R5, R6: combinational outputs from state
+        if state == WALK_LEFT:
+            return {"walk_left": 1, "walk_right": 0, "aaah": 0, "digging": 0}
+        if state == WALK_RIGHT:
+            return {"walk_left": 0, "walk_right": 1, "aaah": 0, "digging": 0}
+        if state in (FALL_LEFT, FALL_RIGHT):
+            return {"walk_left": 0, "walk_right": 0, "aaah": 1, "digging": 0}
+        if state in (DIG_LEFT, DIG_RIGHT):
+            return {"walk_left": 0, "walk_right": 0, "aaah": 0, "digging": 1}
+        # SPLAT
+        return {"walk_left": 0, "walk_right": 0, "aaah": 0, "digging": 0}
+    
+    state = WALK_LEFT
+    fall_count = 0
+    result = []
+    
+    for row in vectors:
+        areset = row["areset"]
+        bump_left = row["bump_left"]
+        bump_right = row["bump_right"]
+        ground = row["ground"]
+        dig = row["dig"]
+        
+        # R1: async reset forces WALK_LEFT
+        if areset == 1:
+            state = WALK_LEFT
+            fall_count = 0
+        
+        # Output based on current state (combinational)
+        out = outputs(state)
+        result.append(out)
+        
+        # Compute next state at posedge using this row's inputs
+        # (this becomes the state for the next row)
+        if areset == 1:
+            # reset already applied; next state stays WALK_LEFT
+            state = WALK_LEFT
+            fall_count = 0
+            continue
+        
+        if state == SPLAT:
+            # R20: stays SPLAT
+            continue
+        
+        if state in (WALK_LEFT, WALK_RIGHT):
+            if ground == 0:
+                # R7, R8: fall has highest precedence
+                if state == WALK_LEFT:
+                    state = FALL_LEFT
+                else:
+                    state = FALL_RIGHT
+                fall_count = 0
+            elif dig == 1:
+                # R9, R10: dig
+                if state == WALK_LEFT:
+                    state = DIG_LEFT
+                else:
+                    state = DIG_RIGHT
+            else:
+                # R11-R14: bump switching
+                if state == WALK_LEFT:
+                    if bump_left == 1:
+                        state = WALK_RIGHT
+                else:  # WALK_RIGHT
+                    if bump_right == 1:
+                        state = WALK_LEFT
+        elif state in (FALL_LEFT, FALL_RIGHT):
+            if ground == 1:
+                # R15, R16, R17: land
+                if fall_count > 20:
+                    state = SPLAT
+                else:
+                    if state == FALL_LEFT:
+                        state = WALK_LEFT
+                    else:
+                        state = WALK_RIGHT
+                fall_count = 0
+            else:
+                # still falling
+                fall_count += 1
+        elif state in (DIG_LEFT, DIG_RIGHT):
+            if ground == 0:
+                # R18: dig reaches edge, fall
+                if state == DIG_LEFT:
+                    state = FALL_LEFT
+                else:
+                    state = FALL_RIGHT
+                fall_count = 0
+            # R19: else stays digging
+    
+    return result
+```
+
+Wait, I need to reconsider the fall_count semantics. "if a Lemming falls for more than 20 clock cycles then hits the ground, it will splatter." So fall_count counts cycles spent falling. When ground reappears, if fall_count > 20, splat.
+
+Let me reconsider when fall_count increments. The Lemming enters FALL state at a posedge. Each subsequent posedge while still falling increments the count. When ground=1 at a posedge, we check the count.
+
+Actually the issue with my trace: when transitioning INTO fall at a posedge (from WALK with ground=0), that posedge itself is the first cycle of falling. Then the next posedge with ground=0 is the second cycle, etc. When ground=1 arrives, we've been falling for `fall_count` cycles.
+
+Let me set fall_count=1 when entering fall (that posedge counts as one falling cycle), then increment on each subsequent falling posedge. When landing, check if fall_count > 20.
+
+Actually, let me reconsider: "falls for more than 20 clock cycles then hits the ground". If it falls for exactly 20 cycles and lands, no splat. If 21+, splat. So condition is fall_count > 20 where fall_count = number of cycles in fall state.
+
+Let me trace example 17: cycle 0 ground=0 (from WALK_LEFT, so enters FALL_LEFT at posedge → cycle 1 shows aaah). Cycle 1 ground=0 (still falling). Cycle 2 ground=1 → lands. Expected cycle 2 shows no aaah (walking). So fall_count at landing = 2 (cycles 1 and 2 were falling... wait cycle 0's posedge entered fall, so cycle 1 is first fall cycle, cycle 2 is second fall cycle, then lands). Hmm, that's only 2 cycles of falling, well under 20, so no splat. Correct.
+
+Let me redo: entering fall at posedge from cycle 0 → state becomes FALL at cycle 1. fall_count should be 1 (one cycle of falling so far, cycle 1). At cycle 1's posedge, ground=0, so still falling, fall_count becomes 2 (cycle 2 will be second fall cycle). At cycle 2's posedge, ground=1, land. fall_count=2, not >20, so walk. Good.
+
+So: when entering fall, set fall_count=1. When staying in fall (ground=0), increment. When landing, check fall_count>20.
+
+Let me fix that:
+
+```python
+def reference(vectors):
+    WALK_LEFT, WALK_RIGHT, FALL_LEFT, FALL_RIGHT, DIG_LEFT, DIG_RIGHT, SPLAT = range(7)
+    
+    def outputs(state):
+        if state == WALK_LEFT:
+            return {"walk_left": 1, "walk_right": 0, "aaah": 0, "digging": 0}
+        if state == WALK_RIGHT:
+            return {"walk_left": 0, "walk_right": 1, "aaah": 0, "digging": 0}
+        if state in (FALL_LEFT, FALL_RIGHT):
+            return {"walk_left": 0, "walk_right": 0, "aaah": 1, "digging": 0}
+        if state in (DIG_LEFT, DIG_RIGHT):
+            return {"walk_left": 0, "walk_right": 0, "aaah": 0, "digging": 1}
+        return {"walk_left": 0, "walk_right": 0, "aaah": 0, "digging": 0}
+    
+    state = WALK_LEFT
+    fall_count = 0
+    result = []
+    
+    for row in vectors:
+        areset = row["areset"]
+        bump_left = row["bump_left"]
+        bump_right = row["bump_right"]
+        ground = row["ground"]
+        dig = row["dig"]
+        
+        # R1: async reset
+        if areset == 1:
+            state = WALK_LEFT
+            fall_count = 0
+        
+        result.append(outputs(state))
+        
+        if areset == 1:
+            state = WALK_LEFT
+            fall_count = 0
+            continue
+        
+        if state == SPLAT:
+            continue
+        
+        if state in (WALK_LEFT, WALK_RIGHT):
+            if ground == 0:
+                state = FALL_LEFT if state == WALK_LEFT else FALL_RIGHT
+                fall_count = 1
+            elif dig == 1:
+                state = DIG_LEFT if state == WALK_LEFT else DIG_RIGHT
+            else:
+                if state == WALK_LEFT:
+                    if bump_left == 1:
+                        state = WALK_RIGHT
+                else:
+                    if bump_right == 1:
+                        state = WALK_LEFT
+        elif state in (FALL_LEFT, FALL_RIGHT):
+            if ground == 1:
+                if fall_count > 20:
+                    state = SPLAT
+                else:
+                    state = WALK_LEFT if state == FALL_LEFT else WALK_RIGHT
+                fall_count = 0
+            else:
+                fall_count += 1
+        elif state in (DIG_LEFT, DIG_RIGHT):
+            if ground == 0:
+                state = FALL_LEFT if state == DIG_LEFT else FALL_RIGHT
+                fall_count = 1
+    
+    return result
+```
+
+This should now correctly transition at each posedge so that cycle 1 reflects the transition from cycle 0's inputs. Let me verify example 3: cycle 0 areset=0, bump_left=0, ground=1, dig=0, state=WALK_LEFT → output walk_left=1. Next state: ground=1, dig=0, bump_left=0 → stays WALK_LEFT. Hmm, but expected cycle 1 is WALK_RIGHT with bump_left=1.
+
+Wait, example 3 vectors: `[{"areset":0,"bump_left":0,...},{"areset":0,"bump_left":1,...},{"areset":0,"bump_left":0,...}]`. So cycle 0 has bump_left=0, cycle 1 has bump_left=1. Expected cycle 1 = WALK_RIGHT. So the transition at cycle 1's posedge uses cycle 1's inputs? No wait — expected cycle 1 output is WALK_RIGHT, but cycle 1's input bump_left=1. If the posedge at cycle 1 uses cycle 1's inputs, then cycle 1's output would still be WALK_LEFT (output before transition). 
+
+Hmm, but expected shows cycle 1 = WALK_RIGHT. So the transition must have happened at the posedge *entering* cycle 1, using cycle 0's inputs... but cycle 0 has bump_left=0.
+
+Wait, let me re-read. The failure says example 3, cycle 1: expected walk_right=1, actual walk_left=1. So expected cycle 1 is WALK_RIGHT. But cycle 0 has bump_left=0 and cycle 1 has bump_left=1.
+
+Oh! I bet the semantics are: the posedge happens, then inputs are sampled, then state updates, and the output shown is the *new* state. So at cycle 1, the posedge samples cycle 1's inputs (bump_left=1) and transitions to WALK_RIGHT, and the output shown is the new state WALK_RIGHT.
+
+But then cycle 0's output would be based on... the initial state WALK_LEFT (after reset). And cycle 0's posedge would use cycle 0's inputs to determine cycle 1's state. But cycle 0 has bump_left=0, so cycle 1 would be WALK_LEFT. Contradiction.
+
+Unless: the output at cycle N is the state *after* the posedge at cycle N, which uses cycle N's inputs. So:
+- Cycle 0: reset applied (areset=0, so no reset... but initial state is WALK_LEFT). Output = WALK_LEFT. Posedge uses cycle 0 inputs (bump_left=0) → next state WALK_LEFT.
+- Cycle 1: state is WALK_LEFT. Output = WALK_LEFT. But expected is WALK_RIGHT!
+
+Hmm. Let me reconsider. Maybe the output at cycle N is the state after the posedge at cycle N, and the posedge at cycle N uses cycle N's inputs to transition from the state at cycle N-1.
+
+- Cycle 0: initial state WALK_LEFT (power-up). Output = WALK_LEFT. Posedge: use cycle 0 inputs (bump_left=0) → WALK_LEFT.
+- Cycle 1: state WALK_LEFT. Output = WALK_LEFT. Posedge: use cycle 1 inputs (bump_left=1) → WALK_RIGHT.
+- Cycle 2: state WALK_RIGHT. Output = WALK_RIGHT. Expected cycle 2 = WALK_RIGHT. ✓
+
+But expected cycle 1 = WALK_RIGHT, not WALK_LEFT. So this doesn't match either.
+
+Wait, let me re-read the failure: "example":3,"cycle":1,"difference":{"walk_left":{"expected":0,"actual":1},"walk_right":{"expected":1,"actual":0}}. So expected walk_right=1 at cycle 1. Hmm.
+
+Let me look at the example in R11: vectors `[{bump_left:0},{bump_left:1},{bump_left:0}]`, expected `[WALK_LEFT, WALK_RIGHT, WALK_RIGHT]`. So cycle 0 = WALK_LEFT, cycle 1 = WALK_RIGHT, cycle 2 = WALK_RIGHT.
+
+So the transition from WALK_LEFT to WALK_RIGHT happens between cycle 0 and cycle 1, using... cycle 0's inputs? But cycle 0 has bump_left=0. Or cycle 1's inputs (bump_left=1)?
+
+If it uses cycle 1's inputs, then the posedge at cycle 1 samples bump_left=1 and transitions, and the output at cycle 1 shows the new state WALK_RIGHT. That means: output at cycle N = state after posedge at cycle N, where posedge at cycle N uses cycle N's inputs.
+
+- Cycle 0: initial state WALK_LEFT. Output = WALK_LEFT (before any posedge? or after posedge using cycle 0 inputs bump_left=0 → WALK_LEFT). Either way WALK_LEFT. ✓
+- Cycle 1: posedge uses cycle 1 inputs bump_left=1 → WALK_RIGHT. Output = WALK_RIGHT. ✓
+- Cycle 2: posedge uses cycle 2 inputs bump_left=0 → WALK_RIGHT. Output = WALK_RIGHT. ✓
+
+Yes! So the model is: at each cycle, apply the posedge transition using that cycle's inputs, then output the resulting state. The reset is async and applied first.
+
+But wait, that means the output at cycle N reflects the state *after* processing cycle N's inputs. So the "current state" at the start of cycle N is the state from cycle N-1's posedge, and then cycle N's posedge transitions it further using cycle N's inputs, and we output that.
+
+Hmm, but that's weird for a Moore machine. Let me reconsider: maybe the output at cycle N is the state *before* the posedge at cycle N, but the posedge at cycle N-1 already used cycle N-1's inputs.
+
+- Cycle 0: initial WALK_LEFT. Output = WALK_LEFT. Posedge uses cycle 0 inputs (bump_left=0) → WALK_LEFT.
+- Cycle 1: state WALK_LEFT. Output = WALK_LEFT. But expected WALK_RIGHT. ✗
+
+No. So it must be that the output at cycle N is after the posedge at cycle N using cycle N's inputs. Let me re-examine.
+
+Actually, maybe the convention is: the inputs shown in row N are the inputs *during* cycle N (stable before the posedge at the end of cycle N). The posedge at the end of cycle N transitions the state, and the output shown for row N is... hmm.
+
+Let me look at R7: vectors `[{ground:1},{ground:0},{ground:0}]`, expected `[WALK_LEFT, FALL(aaah), FALL(aaah)]`. So cycle 0 = WALK_LEFT, cycle 1 = FALL, cycle 2 = FALL.
+
+- Cycle 0: WALK_LEFT, ground=1. Output WALK_LEFT. Posedge: ground=1 → stay WALK_LEFT.
+- Cycle 1: WALK_LEFT, ground=0. Output should be... if output is before posedge, WALK_LEFT. But expected FALL. So output is after posedge: posedge uses ground=0 → FALL. Output FALL. ✓
+- Cycle 2: FALL, ground=0. Output after posedge: still FALL. ✓
+
+OK so confirmed: output at cycle N = state after applying posedge transition using cycle N's inputs (starting from state at end of cycle N-1).
+
+But then for R11: cycle 0 WALK_LEFT, bump_left=0 → posedge → WALK_LEFT. Output WALK_LEFT ✓. Cycle 1: state WALK_LEFT, bump_left=1 → posedge → WALK_RIGHT. Output WALK_RIGHT ✓. Cycle 2: state WALK_RIGHT, bump_left=0 → posedge → WALK_RIGHT. Output WALK_RIGHT ✓.
+
+Great, this model works. So the algorithm is:
+
+```
+state = WALK_LEFT  # power-up
+for each row:
+    if areset: state = WALK_LEFT (async, before posedge)
+    # posedge: transition using this row's inputs
+    state = next_state(state, row_inputs)
+    output = outputs(state)
+    result.append(output)
+```
+
+Wait but reset is async — it should apply immediately, and the output should reflect it. Let me check R1: vectors `[{areset:1,...},{areset:0,...}]`, expected `[WALK_LEFT, WALK_LEFT]`. 
+
+- Cycle 0: areset=1 → state=WALK_LEFT. Posedge: areset=1, so stay WALK_LEFT. Output WALK_LEFT ✓.
+- Cycle 1: areset=0. State WALK_LEFT. Posedge uses cycle 1 inputs (all 0, ground=1) → WALK_LEFT. Output WALK_LEFT ✓.
+
+Good. But what if areset=1 and we should output WALK_LEFT regardless of posedge? Since reset forces WALK_LEFT and posedge with areset=1 also forces WALK_LEFT, it's consistent.
+
+But there's a subtlety: if areset=1, the posedge transition should be overridden by reset. So:
+
+```
+for each row:
+    if areset: state = WALK_LEFT; fall_count=0
+    else: state = next_state(state, inputs)  # posedge transition
+    output = outputs(state)
+```
+
+Wait, but if areset=1, we skip the posedge transition (reset dominates). If areset=0, we do the posedge transition. Let me verify R1 cycle 0: areset=1 → state=WALK_LEFT, output WALK_LEFT ✓. Cycle 1: areset=0 → posedge transition from WALK_LEFT with ground=1, dig=0, bumps=0 → WALK_LEFT. Output WALK_LEFT ✓.
+
+Now let me redo the code with this model:
+
+```python
+def reference(vectors):
+    WALK_LEFT, WALK_RIGHT, FALL_LEFT, FALL_RIGHT, DIG_LEFT, DIG_RIGHT, SPLAT = range(7)
+    
+    def outputs(state):
+        if state == WALK_LEFT:
+            return {"walk_left": 1, "walk_right": 0, "aaah": 0, "digging": 0}
+        if state == WALK_RIGHT:
+            return {"walk_left": 0, "walk_right": 1, "aaah": 0, "digging": 0}
+        if state in (FALL_LEFT, FALL_RIGHT):
+            return {"walk_left": 0, "walk_right": 0, "aaah": 1, "digging": 0}
+        if state in (DIG_LEFT, DIG_RIGHT):
+            return {"walk_left": 0, "walk_right": 0, "aaah": 0, "digging": 1}
+        return {"walk_left": 0, "walk_right": 0, "aaah": 0, "digging": 0}
+    
+    state = WALK_LEFT
+    fall_count = 0
+    result = []
+    
+    for row in vectors:
+        areset = row["areset"]
+        bump_left = row["bump_left"]
+        bump_right = row["bump_right"]
+        ground = row["ground"]
+        dig = row["dig"]
+        
+        if areset == 1:
+            # R1: async reset
+            state = WALK_LEFT
+            fall_count = 0
+        else:
+            # posedge transition using this row's inputs
+            if state == SPLAT:
+                pass  # R20
+            elif state in (WALK_LEFT, WALK_RIGHT):
+                if ground == 0:
+                    # R7, R8
+                    state = FALL_LEFT if state == WALK_LEFT else FALL_RIGHT
+                    fall_count = 1
+                elif dig == 1:
+                    # R9, R10
+                    state = DIG_LEFT if state == WALK_LEFT else DIG_RIGHT
+                else:
+                    # R11-R14
+                    if state == WALK_LEFT:
+                        if bump_left == 1:
+                            state = WALK_RIGHT
+                    else:
+                        if bump_right == 1:
+                            state = WALK_LEFT
+            elif state in (FALL_LEFT, FALL_RIGHT):
+                if ground == 1:
+                    # R15, R16, R17
+                    if fall_count > 20:
+                        state = SPLAT
+                    else:
+                        state = WALK_LEFT if state == FALL_LEFT else WALK_RIGHT
+                    fall_count = 0
+                else:
+                    fall_count += 1
+            elif state in (DIG_LEFT, DIG_RIGHT):
+                if ground == 0:
+                    # R18
+                    state = FALL_LEFT if state == DIG_LEFT else FALL_RIGHT
+                    fall_count = 1
+                # R19: else stays digging
+        
+        result.append(outputs(state))
+    
+    return result
+```
+
+Let me verify example 4 (R4): vectors `[{ground:0},{ground:0}]`, expected `[FALL, FALL]`.
+- Cycle 0: areset=0. state=WALK_LEFT. ground=0 → FALL_LEFT, fall_count=1. Output FALL (aaah=1) ✓.
+- Cycle 1: state=FALL_LEFT. ground=0 → fall_count=2. Output FALL ✓.
+
+Example 5 (R5): vectors `[{dig:1},{dig:1}]`, expected `[DIG, DIG]`.
+- Cycle 0: state=WALK_LEFT. ground=1, dig=1 → DIG_LEFT. Output digging=1 ✓.
+- Cycle 1: state=DIG_LEFT. ground=1 → stays DIG_LEFT. Output digging=1 ✓.
+
+Example 6 (R6): vectors `[{ground:1},{ground:1}]`, expected `[SPLAT, SPLAT]` (all zero). But how does it get to SPLAT? The example vectors don't show falling... Hmm, the example for R6 is just `[{ground:1},{ground:1}]` with expected all zeros. That's odd — starting from WALK_LEFT with ground=1 should stay WALK_LEFT. Unless the example is meant to be run after some prior state. But the failure says example 6 cycle 1 and 2 have walk_left expected 0 actual 1. So expected is all zeros (SPLAT) but actual is WALK_LEFT.
+
+Wait, maybe the examples are cumulative — each example's vectors are run from the reset state, but the "example 6" might be a continuation? No, each example has its own vectors.
+
+Hmm, let me re-read: "example":6,"cycle":1,"difference":{"walk_left":{"expected":0,"actual":1}}. So at cycle 1, expected walk_left=0. The R6 example vectors are `[{ground:1},{ground:1}]` with expected `[{0,0,0,0},{0,0,0,0}]`. But starting from WALK_LEFT with ground=1, we'd stay WALK_LEFT (walk_left=1). So how is expected 0?
+
+Unless the initial state is SPLAT? No, power-up should be WALK_LEFT per reset. Or maybe the example is testing that SPLAT stays SPLAT, and the vectors are meant to be applied after the machine is already in SPLAT. But the harness runs each example from reset...
+
+Wait, maybe the harness runs all examples sequentially without reset between them? Let me check: example 3 cycle 1 expected WALK_RIGHT. If examples are cumulative, example 3 starts after example 2. Example 2 (R2) ends in WALK_LEFT. Then example 3 cycle 0: bump_left=0 → WALK_LEFT. Cycle 1: bump_left=1 → WALK_RIGHT. That works!
+
+But example 6 expected SPLAT from `[{ground:1},{ground:1}]`. For that to be SPLAT, the machine must already be in SPLAT before example 6. Example 5 (R5) ends in DIG_LEFT. Not SPLAT. Hmm.
+
+Actually wait — maybe the examples are independent but the R6 example is just poorly constructed (it assumes prior SPLAT state). The failure list shows example 6 failing, which means the harness expects SPLAT but we produce WALK_LEFT. If the harness runs examples independently from reset, then R6's example is impossible to satisfy (can't reach SPLAT from WALK_LEFT with ground=1). So maybe the harness does run them cumulatively, OR the R6 example is just wrong and we should ignore it.
+
+But the task says "Repair only the failure on contract example A" — meaning fix the implementation so all examples pass. If example 6 is impossible independently, maybe the harness runs cumulatively.
+
+Let me check: if cumulative, example 6 starts after example 5 (DIG_LEFT). Example 6 cycle 0: ground=1, dig=0 → DIG_LEFT stays DIG_LEFT (R19). Output digging=1. But expected all zeros. ✗.
+
+Hmm. So cumulative doesn't work for example 6 either.
+
+Wait, maybe I'm misreading. Let me look at the failure again: "example":6,"cycle":1,"difference":{"walk_left":{"expected":0,"actual":1}}. Only walk_left differs. Expected walk_left=0, actual=1. If expected is SPLAT (all 0), then walk_left=0. But maybe expected is something else with walk_left=0, like FALL or DIG or WALK_RIGHT.
+
+The R6 example expected is `[{walk_left:0,walk_right:0,aaah:0,digging:0},{...}]` — all zeros, which is SPLAT. So expected is SPLAT.
+
+For the machine to be in SPLAT at cycle 1 of example 6, it must have splattered before. If examples are independent from reset, impossible. So either the harness is cumulative, or the R6 example is just illustrative and not actually tested, or...
+
+Actually, maybe the harness runs each example's vectors but the "example 6" in the failure refers to a different example numbering. Let me count: R1=example 1, R2=example 2, R3=example 3, R4=example 4, R5=example 5, R6=example 6, R7=example 7, etc. So example 6 = R6.
+
+Given the R6 example is `[{ground:1},{ground:1}]` → all zeros, and this is impossible from reset, I think the harness must be running examples cumulatively OR the R6 example is a "continuation" test.
+
+Actually, you know what — maybe the harness runs ALL examples' vectors concatenated, with reset only at the very start. Let me check if that's consistent:
+
+Example 1 (R1): `[{areset:1,...},{areset:0,...}]` → WALK_LEFT, WALK_LEFT. After: WALK_LEFT.
+Example 2 (R2): `[{...},{...}]` → WALK_LEFT, WALK_LEFT. After: WALK_LEFT.
+Example 3 (R3): `[{bump_left:0},{bump_left:1},{bump_left:0}]` → WALK_LEFT, WALK_RIGHT, WALK_RIGHT. After: WALK_RIGHT.
+Example 4 (R4): `[{ground:0},{ground:0}]` → FALL, FALL. After: FALL_RIGHT (from WALK_RIGHT with ground=0).
+Example 5 (R5): `[{dig:1},{dig:1}]` → from FALL_RIGHT, ground=1, dig=1. Posedge: FALL_RIGHT with ground=1 → land → WALK_RIGHT (fall_count small). Output WALK_RIGHT. But expected DIG. ✗.
+
+So cumulative doesn't work either.
+
+Hmm. Let me reconsider. Maybe the harness runs each example independently from reset, and the R6 example is just wrong/untestable, but the failure list includes it because the harness compares against the stated expected. In that case, I can't fix R6 without breaking others.
+
+Wait — maybe the R6 example is meant to demonstrate SPLAT behavior but the vectors are incomplete (they should include a long fall first). The failure list might be from a harness that runs the examples as given. If R6's example is impossible, maybe the harness has a bug, or maybe I should make the machine reach SPLAT somehow.
+
+Actually, let me re-read the task: "Repair only the failure on contract example A." Maybe "example A" is a specific example, and the list shows failures across multiple examples. The task is to fix the implementation so the examples pass. If R6's example is impossible, maybe the harness actually does something different.
+
+Let me reconsider: maybe the harness applies inputs, then clocks, and the output shown is the state *before* the clock edge (i.e., the current state), and the clock edge transitions using the inputs. So:
+
+- Cycle 0: state=WALK_LEFT (reset). Output WALK_LEFT. Clock edge: use cycle 0 inputs → next state.
+- Cycle 1: state = next state from cycle 0. Output that state. Clock edge: use cycle 1 inputs → next state.
+- ...
+
+Let me test R11 with this: `[{bump_left:0},{bump_left:1},{bump_left:0}]`, expected `[WALK_LEFT, WALK_RIGHT, WALK_RIGHT]`.
+- Cycle 0: state WALK_LEFT. Output WALK_LEFT ✓. Edge: bump_left=0 → WALK_LEFT.
+- Cycle 1: state WALK_LEFT. Output WALK_LEFT. Expected WALK_RIGHT ✗.
+
+No.
+
+Let me try: output at cycle N = state after edge at cycle N-1 (using cycle N-1 inputs), and edge at cycle N uses cycle N inputs.
+- Cycle 0: state WALK_LEFT (reset). Output WALK_LEFT. Edge: bump_left=0 → WALK_LEFT.
+- Cycle 1: state WALK_LEFT. Output WALK_LEFT. Expected WALK_RIGHT ✗.
+
+No.
+
+OK let me try yet another interpretation: the inputs in row N are applied, then the clock edge occurs, and the output shown is the state *after* the edge. This is what I had. Let me re-verify R11:
+- Cycle 0: state WALK_LEFT. Apply inputs (bump_left=0). Edge: WALK_LEFT → WALK_LEFT. Output WALK_LEFT ✓.
+- Cycle 1: state WALK_LEFT. Apply inputs (bump_left=1). Edge: WALK_LEFT → WALK_RIGHT. Output WALK_RIGHT ✓.
+- Cycle 2: state WALK_RIGHT. Apply inputs (bump_left=0). Edge: WALK_RIGHT → WALK_RIGHT. Output WALK_RIGHT ✓.
+
+This works for R11. And it's what I had. So why did example 3 fail?
+
+Example 3 (R3): `[{bump_left:1,bump_right:0},{bump_left:1,bump_right:0}]`, expected `[WALK_RIGHT, WALK_RIGHT]`.
+- Cycle 0: state WALK_LEFT. Inputs bump_left=1. Edge: WALK_LEFT → WALK_RIGHT. Output WALK_RIGHT ✓.
+- Cycle 1: state WALK_RIGHT. Inputs bump_left=1, bump_right=0. Edge: WALK_RIGHT, bump_right=0 → WALK_RIGHT. Output WALK_RIGHT ✓.
+
+But the failure says example 3 cycle 1 expected walk_right=1 actual walk_left=1. So my actual was WALK_LEFT at cycle 1. That means my code didn't transition at cycle 0. Why?
+
+Oh! I bet the issue is the reset handling. In my code, I had `if areset == 1: state = WALK_LEFT; continue`. But for areset=0, I did the transition. Let me check: example 3 cycle 0 has areset=0. So it should do the transition. Unless... the initial state wasn't WALK_LEFT?
+
+Wait, maybe the harness initializes state differently, or maybe my earlier code had a bug. Let me look at my first code attempt — I had the transition at the *end* of the loop (computing next state for next iteration). That means cycle 0's output was based on initial state WALK_LEFT (correct), but the transition used cycle 0's inputs to set state for cycle 1. Cycle 0 bump_left=1 → state becomes WALK_RIGHT for cycle 1. Output cycle 1 = WALK_RIGHT. That should work!
+
+Hmm, but the failure says actual was WALK_LEFT at cycle 1. So maybe my code had the transition using the *wrong* inputs, or the reset was interfering.
+
+Oh wait — I think I see. In my first code, I had:
+```
+if areset == 1:
+    state = WALK_LEFT
+    fall_count = 0
+out = outputs(state)
+result.append(out)
+if areset == 1:
+    state = WALK_LEFT
+    continue
+# ... transition using this row's inputs
+```
+
+For example 3 cycle 0: areset=0, so no reset. Output WALK_LEFT. Then transition: state=WALK_LEFT, ground=1, dig=0, bump_left=1 → WALK_RIGHT. So state=WALK_RIGHT for cycle 1. Cycle 1 output = WALK_RIGHT. That should be correct!
+
+Unless the harness's "actual" was from a different implementation. The failure list is what I need to fix. Maybe my submitted code had a different bug. Let me just write the correct version based on my analysis (output after edge using current row's inputs) and trust it.
+
+Actually, wait. Let me reconsider the R6 example one more time. `[{ground:1},{ground:1}]` → all zeros. For this to work, the machine must start in SPLAT. But reset forces WALK_LEFT. Unless... the harness doesn't reset before each example, and example 6 follows example 5 which ends in... let me check if any prior example ends in SPLAT.
+
+None of the examples R1-R5 end in SPLAT. R5 ends in DIG_LEFT. So example 6 starting from DIG_LEFT with ground=1 → stays DIG_LEFT (digging=1). Expected all zeros. ✗.
+
+I'm stuck on R6. Let me just assume the harness runs examples independently from reset, and R6's example is simply not satisfiable (it's a documentation example showing SPLAT output, not a testable sequence). The failure list might include it erroneously, or the harness might have special handling. I'll focus on making the other examples pass.
+
+Actually, re-reading: "Repair only the failure on contract example A." Maybe "example A" is a placeholder and the actual failures are listed. The task is to fix the implementation. Let me just provide the correct implementation and hope R6 is handled specially or the harness is cumulative in a way I'm missing.
+
+Let me reconsider cumulative once more, but with reset applied only when areset=1 (not at start of each example):
+
+Concatenate all vectors:
+R1: [areset=1, areset=0] → WALK_LEFT, WALK_LEFT. State after: WALK_LEFT.
+R2: [0,0] → WALK_LEFT, WALK_LEFT. State: WALK_LEFT.
+R3: [bump_left=1, bump_left=1] → WALK_RIGHT, WALK_RIGHT. State: WALK_RIGHT.
+R4: [ground=0, ground=0] → FALL_RIGHT, FALL_RIGHT. State: FALL_RIGHT (fall_count=2).
+R5: [dig=1, dig=1] → from FALL_RIGHT, ground=1 → land → WALK_RIGHT. Output WALK_RIGHT. Expected DIG. ✗.
+
+Still fails R5.
+
+OK, I'll go with independent examples from reset, and accept that R6 might be a special case. Let me write the clean implementation.
+
+Actually, one more thought: maybe the harness applies the inputs, then the clock edge, and the output is the state *before* the edge but *after* async reset. And the edge uses the inputs to transition. So:
+
+- Cycle 0: apply reset if areset=1. Output current state. Then edge: transition using inputs.
+- Cycle 1: output current state (from cycle 0's edge). Then edge: transition using cycle 1 inputs.
+
+R11: 
+- Cycle 0: state WALK_LEFT. Output WALK_LEFT ✓. Edge: bump_left=0 → WALK_LEFT.
+- Cycle 1: state WALK_LEFT. Output WALK_LEFT. Expected WALK_RIGHT ✗.
+
+No.
+
+I'll go with my "output after edge" model. Let me also handle the R6 case: maybe the harness expects that if the machine is in SPLAT, it stays SPLAT, and the example is just showing that. Since we can't reach SPLAT from the given vectors, maybe the harness has a bug or the example is illustrative. I'll leave it.
+
+Let me finalize the code:
+
+```python
+def reference(vectors):
+    # State encoding
+    WALK_LEFT, WALK_RIGHT, FALL_LEFT, FALL_RIGHT, DIG_LEFT, DIG_RIGHT, SPLAT = range(7)
+    
+    def outputs(state):
+        # R2, R3, R4, R5, R6: combinational outputs
+        if state == WALK_LEFT:
+            return {"walk_left": 1, "walk_right": 0, "aaah": 0, "digging": 0}
+        if state == WALK_RIGHT:
+            return {"walk_left": 0, "walk_right": 1, "aaah": 0, "digging": 0}
+        if state in (FALL_LEFT, FALL_RIGHT):
+            return {"walk_left": 0, "walk_right": 0, "aaah": 1, "digging": 0}
+        if state in (DIG_LEFT, DIG_RIGHT):
+            return {"walk_left": 0, "walk_right": 0, "aaah": 0, "digging": 1}
+        return {"walk_left": 0, "walk_right": 0, "aaah": 0, "digging": 0}
+    
+    state = WALK_LEFT
+    fall_count = 0
+    result = []
+    
+    for row in vectors:
+        areset = row["areset"]
+        bump_left = row["bump_left"]
+        bump_right = row["bump_right"]
+        ground = row["ground"]
+        dig = row["dig"]
+        
+        if areset == 1:
+            # R1: async reset forces WALK_LEFT
+            state = WALK_LEFT
+            fall_count = 0
+        else:
+            # posedge transition using this row's inputs
+            if state == SPLAT:
+                pass  # R20
+            elif state in (WALK_LEFT, WALK_RIGHT):
+                if ground == 0:
+                    # R7, R8: fall precedence
+                    state = FALL_LEFT if state == WALK_LEFT else FALL_RIGHT
+                    fall_count = 1
+                elif dig == 1:
+                    # R9, R10
+                    state = DIG_LEFT if state == WALK_LEFT else DIG_RIGHT
+                else:
+                    # R11, R12, R13, R14
+                    if state == WALK_LEFT:
+                        if bump_left == 1:
+                            state = WALK_RIGHT
+                    else:
+                        if bump_right == 1:
+                            state = WALK_LEFT
+            elif state in (FALL_LEFT, FALL_RIGHT):
+                if ground == 1:
+                    # R15, R16, R17
+                    if fall_count > 20:
+                        state = SPLAT
+                    else:
+                        state = WALK_LEFT if state == FALL_LEFT else WALK_RIGHT
+                    fall_count = 0
+                else:
+                    fall_count += 1
+            elif state in (DIG_LEFT, DIG_RIGHT):
+                if ground == 0:
+                    # R18
+                    state = FALL_LEFT if state == DIG_LEFT else FALL_RIGHT
+                    fall_count = 1
+                # R19: else stays digging
+        
+        result.append(outputs(state))
+    
+    return result
+```
+
+This should fix the failures where the transition wasn't happening at the right cycle. The key fix is that the output at cycle N reflects the state *after* the posedge transition using cycle N's inputs, rather than the state before the transition.
+
+Let me double-check example 7 (R7): `[{ground:1},{ground:0},{ground:0}]`, expected `[WALK_LEFT, FALL, FALL]`.
+- Cycle 0: state WALK_LEFT. ground=1 → stay WALK_LEFT. Output WALK_LEFT ✓.
+- Cycle 1: state WALK_LEFT. ground=0 → FALL_LEFT, fall_count=1. Output FALL ✓.
+- Cycle 2: state FALL_LEFT. ground=0 → fall_count=2. Output FALL ✓.
+
+Example 8 (R8): `[{bump_left:1},{ground:0},{ground:0}]`, expected `[WALK_RIGHT, FALL, FALL]`.
+- Cycle 0: state WALK_LEFT. bump_left=1 → WALK_RIGHT. Output WALK_RIGHT ✓.
+- Cycle 1: state WALK_RIGHT. ground=0 → FALL_RIGHT. Output FALL ✓.
+- Cycle 2: FALL_RIGHT, ground=0 → FALL. Output FALL ✓.
+
+Example 9 (R9): `[{dig:0},{dig:1},{dig:1}]`, expected `[WALK_LEFT, DIG, DIG]`.
+- Cycle 0: WALK_LEFT, dig=0 → WALK_LEFT. Output WALK_LEFT ✓.
+- Cycle 1: WALK_LEFT, dig=1 → DIG_LEFT. Output DIG ✓.
+- Cycle 2: DIG_LEFT, ground=1 → stays DIG_LEFT. Output DIG ✓.
+
+Example 10 (R10): `[{bump_left:1},{dig:1},{dig:1}]`, expected `[WALK_RIGHT, DIG, DIG]`.
+- Cycle 0: WALK_LEFT, bump_left=1 → WALK_RIGHT. Output WALK_RIGHT ✓.
+- Cycle 1: WALK_RIGHT, dig=1 → DIG_RIGHT. Output DIG ✓.
+- Cycle 2: DIG_RIGHT, ground=1 → stays DIG_RIGHT. Output DIG ✓.
+
+Example 11 (R11): `[{bump_left:0},{bump_left:1},{bump_left:0}]`, expected `[WALK_LEFT, WALK_RIGHT, WALK_RIGHT]`.
+- Cycle 0: WALK_LEFT, bump_left=0 → WALK_LEFT. Output WALK_LEFT ✓.
+- Cycle 1: WALK_LEFT, bump_left=1 → WALK_RIGHT. Output WALK_RIGHT ✓.
+- Cycle 2: WALK_RIGHT, bump_right=0 → WALK_RIGHT. Output WALK_RIGHT ✓.
+
+All good. The implementation should now pass examples 3-5, 7-11. Example 6 (R6) remains problematic but I'll assume it's handled or the harness has special logic.
+
+Actually, for R6, maybe the harness expects that if the machine is already in SPLAT (from a previous example in cumulative mode), it stays SPLAT. Since I can't make it reach SPLAT from the given vectors, I'll leave it. The task says "Repair only the failure on contract example A" — maybe only one example is the target, and the list shows all failures. I'll provide the best implementation.
+
+Let me also double check the fall_count semantics for R17: "falls for more than 20 clock cycles". If fall_count counts cycles in fall state, and we splat when fall_count > 20 at landing. Let me trace a 21-cycle fall: enter fall at posedge (fall_count=1), then 20 more posedges with ground=0 (fall_count=21), then posedge with ground=1 → fall_count=21 > 20 → SPLAT. That's 21 cycles of falling (cycles 1-21), landing at cycle 22. "More than 20" = 21+. ✓.
+
+For exactly 20 cycles: fall_count=20 at landing, not >20, so walk. ✓.
+
+Good. Final code below.

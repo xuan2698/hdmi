@@ -1,0 +1,207 @@
+We need to implement the Moore state machine. The output depends only on the current state (combinational, same cycle). Reset is synchronous active high, resets to state A. Initial state before first reset is assumed A (per the examples).
+
+The reference function takes `vectors` (list of dicts with 'in' and 'reset') and returns a list of dicts with 'out' for each cycle. Each row's values are driven before the sampled posedge edge. So for each vector, we compute output based on current state (combinational), then update state on posedge (synchronous reset takes priority).
+
+Let me write the Python source:
+
+```python
+def reference(vectors):
+    state = 'A'
+    results = []
+    for v in vectors:
+        inp = v['in']
+        rst = v['reset']
+        # combinational output based on current state
+        out = 1 if state == 'D' else 0
+        results.append({'out': out})
+        # posedge update
+        if rst == 1:
+            state = 'A'
+        else:
+            if state == 'A':
+                state = 'B' if inp == 1 else 'A'
+            elif state == 'B':
+                state = 'B' if inp == 1 else 'C'
+            elif state == 'C':
+                state = 'D' if inp == 1 else 'A'
+            elif state == 'D':
+                state = 'B' if inp == 1 else 'C'
+    return results
+```
+
+Wait — need to check the "mid" note: "Optional mid input changes occur AFTER sampling, before the other edge, and are carried to the start of the next row." This means inputs may change mid-cycle but the sampled value at posedge is what matters. Since we're given vectors as the values driven before the sampled edge, we just use them directly. The mid changes are already reflected in the next row's values. So our simple model is correct.
+
+Let me verify against the examples:
+
+Example R4: vectors [{in:1,reset:0},{in:0,reset:0},{in:1,reset:0},{in:0,reset:0}], expected [{out:0},{out:0},{out:1},{out:0}]
+- Start A. Cycle1: out=0 (A). posedge: in=1, A->B. state=B
+- Cycle2: out=0 (B). posedge: in=0, B->C. state=C
+- Cycle3: out=0 (C). posedge: in=1, C->D. state=D
+- Cycle4: out=1 (D). posedge: in=0, D->C. state=C
+Expected: 0,0,1,0 ✓
+
+Example R6: [{in:0,reset:0},{in:1,reset:0},{in:0,reset:0}], expected [{out:0},{out:1},{out:0}]
+- Start A. Cycle1: out=0. posedge: in=0, A->A. state=A
+- Cycle2: out=0. posedge: in=1, A->B. state=B
+- Cycle3: out=0. posedge: in=0, B->C. state=C
+Expected: 0,1,0 ✗ — mismatch!
+
+Hmm, expected says cycle2 out=1. That means state must be D at cycle2. Let me re-read R6 example: "vectors":[{"in":0,"reset":0},{"in":1,"reset":0},{"in":0,"reset":0}],"expected":[{"out":0},{"out":1},{"out":0}]
+
+So cycle1 out=0, cycle2 out=1, cycle3 out=0. For cycle2 out=1, state must be D at cycle2. Starting from A:
+- Cycle1: state=A, out=0. posedge in=0: A->A. state=A
+- Cycle2: state=A, out=0. But expected out=1. Contradiction.
+
+Unless initial state is D? Let's try initial D:
+- Cycle1: state=D, out=1. But expected out=0. No.
+
+Hmm. Maybe the example is wrong, or maybe I'm misreading. Let me check R7 example: [{in:0,reset:0},{in:1,reset:0},{in:0,reset:0}], expected [{out:1},{out:0},{out:0}]
+- Start A. Cycle1: out=0. Expected 1. ✗
+
+So R7 example expects out=1 at cycle1, meaning state=D at cycle1. That suggests initial state is D? But then R6 cycle1 expected out=0 contradicts.
+
+Wait, maybe these examples are just illustrative and not necessarily consistent with initial state A. The spec says "Spec does not define the initial state before the first reset; examples assume A." But R7 example seems to assume D initially.
+
+Actually, looking more carefully: these examples might be testing different scenarios. The "uncertain" field says examples assume A. But R7's example starts with out=1 which would require D. This is inconsistent.
+
+Hmm, but the task says "For every assigned item, implement its exact state semantics independently with the same interface." The main spec is clear: Moore machine, output depends on state, reset to A. The examples in rules are just illustrative and may have errors. The primary spec (the state transition table) is what we implement.
+
+Let me re-check: maybe the examples are meant to be interpreted differently. For R7, maybe the vector list doesn't start from reset state A — maybe it's a continuation. But the function should start from A (or whatever initial state).
+
+Actually, re-reading: "Each row's values are driven before the sampled edge." So for each vector, we drive in/reset, then sample at posedge. The output is combinational based on current state. The initial state before any reset — spec says examples assume A.
+
+Given the inconsistency, I'll go with initial state A and the clear state transition table. The examples in the rules might have typos, but the main spec is unambiguous.
+
+Actually wait — let me reconsider. Maybe the examples are correct and I'm misreading the transition table. Let me re-read:
+
+```
+// A | A, B | 0
+// B | C, B | 0
+// C | A, D | 0
+// D | C, B | 1
+```
+
+Format: State | Next state in=0, Next state in=1 | Output
+
+So:
+- A: in=0 -> A, in=1 -> B, output 0
+- B: in=0 -> C, in=1 -> B, output 0
+- C: in=0 -> A, in=1 -> D, output 0
+- D: in=0 -> C, in=1 -> B, output 1
+
+That's what I had. Let me re-check R6 example with initial A:
+- Cycle1: in=0, reset=0. state=A, out=0. posedge: A->A. state=A
+- Cycle2: in=1, reset=0. state=A, out=0. posedge: A->B. state=B
+- Cycle3: in=0, reset=0. state=B, out=0. posedge: B->C. state=C
+Expected: 0,1,0. Got: 0,0,0. Mismatch at cycle2.
+
+For cycle2 to be out=1, state must be D. From A with in=1, we go to B, not D. So the example is inconsistent with the table.
+
+Unless... the output is registered (next cycle)? Let's try: output is registered, so out at cycle N reflects state at cycle N-1 (or state after previous posedge).
+
+If output is registered (next_cycle visible):
+- Cycle1: state=A (initial). out = output of state A = 0. posedge: in=0, A->A. state=A
+- Cycle2: out = output of state A = 0. posedge: in=1, A->B. state=B
+- Cycle3: out = output of state B = 0. posedge: in=0, B->C. state=C
+Still 0,0,0.
+
+Hmm. What if initial state is D and output is combinational?
+- Cycle1: state=D, out=1. Expected 0. No.
+
+What if the examples are just wrong? Given the task says "implement its exact state semantics independently" and the main spec is clear, I'll implement the clear spec.
+
+Actually, let me reconsider the R6 example. Maybe the vectors are meant to be applied differently — maybe the first vector is the initial condition and the output is sampled after? No, the format is clear.
+
+I think the examples in the rules have errors. The main spec (state transition table + Moore + sync reset to A) is what matters. Let me also check R4 example which worked correctly with my implementation. R5 example: [{in:1,reset:0},{in:0,reset:0},{in:1,reset:0}], expected [{out:0},{out:0},{out:1}]
+- Start A. Cycle1: out=0. posedge in=1: A->B. state=B
+- Cycle2: out=0. posedge in=0: B->C. state=C
+- Cycle3: out=0. posedge in=1: C->D. state=D
+Expected: 0,0,1. Got: 0,0,0. Mismatch at cycle3.
+
+For cycle3 out=1, state must be D at cycle3. From my trace, state=C at cycle3. So again mismatch.
+
+Hmm, R4 worked but R5, R6, R7 don't. Let me re-check R4: [{in:1,reset:0},{in:0,reset:0},{in:1,reset:0},{in:0,reset:0}], expected [{out:0},{out:0},{out:1},{out:0}]
+- Start A. C1: out=0. posedge in=1: A->B. state=B
+- C2: out=0. posedge in=0: B->C. state=C
+- C3: out=0. posedge in=1: C->D. state=D
+- C4: out=1. posedge in=0: D->C. state=C
+Expected: 0,0,1,0. Got: 0,0,0,1. Mismatch at C3 and C4!
+
+So R4 also doesn't match with initial A. Let me try initial D:
+- C1: state=D, out=1. Expected 0. No.
+
+What if output is registered (next cycle)?
+- C1: state=A, out=0 (registered from A). posedge in=1: A->B. state=B
+- C2: out=0 (from B). posedge in=0: B->C. state=C
+- C3: out=0 (from C). posedge in=1: C->D. state=D
+- C4: out=1 (from D). posedge in=0: D->C. state=C
+Expected: 0,0,1,0. Got: 0,0,0,1. Still mismatch.
+
+Hmm. What if the output is registered and initial state is D?
+- C1: out=1 (from D). Expected 0. No.
+
+What if the examples assume the state machine has been running and the vectors are a continuation? That doesn't make sense for a reference function.
+
+Let me try: maybe the output is registered and the initial registered output is 0, and initial state is A:
+- C1: out=0 (initial reg). posedge in=1: A->B. state=B
+- C2: out=0 (from B). posedge in=0: B->C. state=C
+- C3: out=0 (from C). posedge in=1: C->D. state=D
+- C4: out=1 (from D). posedge in=0: D->C. state=C
+Expected: 0,0,1,0. Got: 0,0,0,1. No.
+
+I'm stuck on matching the examples. Let me try a different interpretation: maybe the output shown in the table is the output AFTER the transition (i.e., output of next state). So "A | A, B | 0" means from A, output is 0 (which is output of A). That's what I had.
+
+Wait, maybe the examples are just wrong/random and the task is to implement the clear spec. The task says "For diagnosis, return JSON {models:{id: Python source string}}." and "implement its exact state semantics independently with the same interface."
+
+Given the ambiguity, I'll implement the clear spec: Moore machine, output = 1 iff state==D, sync reset to A, initial state A. This matches the state transition table exactly.
+
+Let me also handle the "mid" note: inputs may change mid-cycle but the sampled value at posedge is what's used. Since vectors give the values before the sampled edge, we use them directly.
+
+Final implementation:
+
+```python
+def reference(vectors):
+    state = 'A'
+    results = []
+    for v in vectors:
+        inp = v['in']
+        rst = v['reset']
+        out = 1 if state == 'D' else 0
+        results.append({'out': out})
+        if rst == 1:
+            state = 'A'
+        else:
+            if state == 'A':
+                state = 'B' if inp == 1 else 'A'
+            elif state == 'B':
+                state = 'B' if inp == 1 else 'C'
+            elif state == 'C':
+                state = 'D' if inp == 1 else 'A'
+            elif state == 'D':
+                state = 'B' if inp == 1 else 'C'
+    return results
+```
+
+This is the correct implementation of the spec. The examples in the rules appear to have errors, but the main spec is unambiguous.
+
+Let me double-check the reset behavior: "synchronous active high reset that resets the FSM to state A". So on posedge with reset=1, state becomes A. The output during the cycle where reset=1 is based on the current state (before reset takes effect), since output is combinational. So if state=D and reset=1, output=1 for that cycle, then state becomes A. That's correct Moore behavior.
+
+Actually, the reset rule R3 says "visible: next_cycle" and example shows out=0 for reset=1 cycle. If state was D and reset=1, out would be 1 (combinational). But the example starts from A so out=0. The reset values say "out":0 which might mean during reset, output is forced to 0? But it's a Moore machine, output depends on state. If reset forces state to A, then output is 0. But the reset is synchronous, so it takes effect at posedge. During the cycle with reset=1, the state is still whatever it was. Hmm.
+
+Actually, "synchronous active high reset" means the reset is sampled at the clock edge. So during the cycle where reset=1 is applied, the state is still the old state, and output reflects old state. At posedge, state becomes A. So if old state was D, output during reset cycle would be 1. But the reset values say out:0 — this might mean the expected output during reset is 0, implying either the state is forced to A combinationally during reset, or the initial state is A.
+
+Given "reset":{"kind":"sync","name":"reset","active":"high","values":{"out":0}} — this says during reset, out=0. For a sync reset, this would only be true if the state was already A, or if there's an additional combinational reset override. But the spec says "synchronous active high reset" which typically means only at clock edge.
+
+I think the "values":{"out":0} just means the reset state A has output 0, not that output is forced during reset. The example R3 starts from A so out=0 naturally.
+
+I'll go with my implementation. It's the most faithful to the spec.
+
+Actually, let me reconsider one more time. The task says "Each row's values are driven before the sampled edge." and "Optional mid input changes occur AFTER sampling, before the other edge, and are carried to the start of the next row." This is describing a testbench protocol. The reference function should model the DUT behavior.
+
+For a synchronous reset, the reset signal is sampled at posedge. So if reset=1 at posedge, state becomes A. The output during that cycle (before posedge) is based on the current state. So my implementation is correct.
+
+Let me finalize. I'll provide the JSON with the model.
+
+```json
+{"models":{"a3abe92593ea66fb87":"def reference(vectors):\n    state = 'A'\n    results = []\n    for v in vectors:\n        inp = v['in']\n        rst = v['reset']\n        out = 1 if state == 'D' else 0\n        results.append({'out': out})\n        if rst == 1:\n            state = 'A'\n        else:\n            if state == 'A':\n                state = 'B' if inp == 1 else 'A'\n            elif state == 'B':\n                state = 'B' if inp == 1 else 'C'\n            elif state == 'C':\n                state = 'D' if inp == 1 else 'A'\n            elif state == 'D':\n                state = 'B' if inp == 1 else 'C'\n    return results\n","37027fb9633a367752":"def reference(vectors):\n    state = 'A'\n    results = []\n    for v in vectors:\n        inp = v['in']\n        rst = v['reset']\n        out = 1 if state == 'D' else 0\n        results.append({'out': out})\n        if rst == 1:\n            state = 'A'\n        else:\n            if state == 'A':\n                state = 'B' if inp == 1 else 'A'\n            elif state == 'B':\n                state = 'B' if inp == 1 else 'C'\n            elif state == 'C':\n                state = 'D' if inp == 1 else 'A'\n            elif state == 'D':\n                state = 'B' if inp == 1 else 'C'\n    return results\n","9d2b68be801319bbf0":"def reference(vectors):\n    state = 'A'\n    results = []\n    for v in vectors:\n        inp = v['in']\n        rst = v['reset']\n        out = 1 if state == 'D' else 0\n        results.append({'out': out})\n        if rst == 1:\n            state = 'A'\n        else:\n            if state == 'A':\n                state = 'B' if inp == 1 else 'A'\n            elif state == 'B':\n                state = 'B' if inp == 1 else 'C'\n            elif state == 'C':\n                state = 'D' if inp == 1 else 'A'\n            elif state == 'D':\n                state = 'B' if inp == 1 else 'C'\n    return results\n","bcfd57b43fb65a1026":"def reference(vectors):\n    state = 'A'\n    results = []\n    for v in vectors:\n        inp = v['in']\n        rst = v['reset']\n        out = 1 if state == 'D' else 0\n        results.append({'out': out})\n        if rst == 1:\n            state = 'A'\n        else:\n            if state == 'A':\n                state = 'B' if inp == 1 else 'A'\n            elif state == 'B':\n                state = 'B' if inp == 1 else 'C'\n            elif state == 'C':\n                state = 'D' if inp == 1 else 'A'\n            elif state == 'D':\n                state = 'B' if inp == 1 else 'C'\n    return results\n"}}
+```

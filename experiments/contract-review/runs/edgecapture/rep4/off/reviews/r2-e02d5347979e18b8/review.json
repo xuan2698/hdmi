@@ -1,0 +1,93 @@
+{
+  "coverage": {
+    "S01": [
+      "R1_reset_clear",
+      "R2_capture_falling",
+      "R3_hold"
+    ]
+  },
+  "issues": [
+    {
+      "issue_id": "I1",
+      "rule_id": "R2_capture_falling",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "Condition uses (in & ~in_prev) which detects 0->1 rising, not 1->0 falling; contradicts quote and example.",
+      "spec_evidence": "capture when the input signal changes from 1 in one clock cycle to 0 the next",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I2",
+      "rule_id": "R2_capture_falling",
+      "type": "spec_example",
+      "severity": "high",
+      "detail": "Example expected out=all-ones after in goes 0xFFFFFFFF->0, but with stated condition (in & ~in_prev) no bit qualifies; also out visible next_cycle vs expected row alignment inconsistent.",
+      "spec_evidence": "capture when the input signal changes from 1 in one clock cycle to 0 the next",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I3",
+      "rule_id": "R1_reset_clear",
+      "type": "consistency",
+      "severity": "medium",
+      "detail": "Example shows reset=1 row expected out=0 same cycle, but R2/R3 examples show out lagging one cycle; visible timing inconsistent across rules.",
+      "spec_evidence": "active high synchronous reset",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I4",
+      "rule_id": "R3_hold",
+      "type": "spec_example",
+      "severity": "medium",
+      "detail": "Example expected out=1 at third row after in 1->0, but R2 says visible next_cycle; row alignment off by one.",
+      "spec_evidence": "the output will remain 1 until the register is reset",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I5",
+      "rule_id": "R2_capture_falling",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Whether out reflects transition in same cycle or next cycle is ambiguous between R1 same_cycle and R2 next_cycle.",
+      "spec_evidence": "",
+      "alternative": "out updates same cycle as sampled transition (combinational visibility)",
+      "sequence": [
+        {
+          "reset": 0,
+          "in": 1
+        },
+        {
+          "reset": 0,
+          "in": 0
+        }
+      ]
+    },
+    {
+      "issue_id": "I6",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "low",
+      "detail": "in_prev initialization to 0 means first cycle in=0 could falsely trigger falling if condition were correct; spec silent on initial prev.",
+      "spec_evidence": "",
+      "alternative": "in_prev initialized to current in on first cycle (no spurious capture)",
+      "sequence": [
+        {
+          "reset": 0,
+          "in": 0
+        },
+        {
+          "reset": 0,
+          "in": 1
+        },
+        {
+          "reset": 0,
+          "in": 0
+        }
+      ]
+    }
+  ]
+}

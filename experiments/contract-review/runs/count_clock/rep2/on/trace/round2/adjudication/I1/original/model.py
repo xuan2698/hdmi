@@ -1,0 +1,87 @@
+def reference(vectors):
+    # Initial state (power-up unspecified; using 0 for concreteness)
+    ss = 0
+    mm = 0
+    hh = 0
+    pm = 0
+    inputs = {"reset": 0, "ena": 0}
+    out = []
+
+    for row in vectors:
+        mid = None
+        for k, v in row.items():
+            if k == "mid":
+                mid = v
+            else:
+                inputs[k] = v
+
+        # Sample at posedge clk (after inputs have settled)
+        if inputs.get("reset", 0) == 1:
+            # R_RESET: synchronous reset to 12:00 AM, highest priority
+            pm = 0
+            hh = 0x12
+            mm = 0
+            ss = 0
+        else:
+            ena = inputs.get("ena", 0)
+            if ena == 1:
+                # R_NORMAL: one BCD second increment with carries
+                ss_was = ss
+                mm_was = mm
+                hh_was = hh
+                pm_was = pm
+
+                # Increment seconds
+                carry_ss = 0
+                if ss_was == 0x59:
+                    ss = 0x00
+                    carry_ss = 1
+                else:
+                    ss = ss_was + 1
+                    if (ss & 0xF) == 0x0A:
+                        ss = (ss & 0xF0) + 0x10
+
+                # Increment minutes if seconds carried
+                carry_mm = 0
+                if carry_ss:
+                    if mm_was == 0x59:
+                        mm = 0x00
+                        carry_mm = 1
+                    else:
+                        mm = mm_was + 1
+                        if (mm & 0xF) == 0x0A:
+                            mm = (mm & 0xF0) + 0x10
+                else:
+                    mm = mm_was
+
+                # Increment hours if minutes carried
+                if carry_mm:
+                    # PM toggles on 11:59:59 -> 12:00:00
+                    if hh_was == 0x11 and mm_was == 0x59 and ss_was == 0x59:
+                        pm = pm_was ^ 1
+                    else:
+                        pm = pm_was
+
+                    # Hour wrap 12 -> 01
+                    if hh_was == 0x12:
+                        hh = 0x01
+                    else:
+                        hh = hh_was + 1
+                        if (hh & 0xF) == 0x0A:
+                            hh = (hh & 0xF0) + 0x10
+                else:
+                    hh = hh_was
+                    pm = pm_was
+            else:
+                # ena == 0: hold all outputs
+                pass
+
+        # Output after posedge clk has settled
+        out.append({"pm": pm, "hh": hh, "mm": mm, "ss": ss})
+
+        # Apply mid changes after sampling, for the next row
+        if mid is not None:
+            for k, v in mid.items():
+                inputs[k] = v
+
+    return out

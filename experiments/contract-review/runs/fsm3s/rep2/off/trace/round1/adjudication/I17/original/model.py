@@ -1,0 +1,35 @@
+def reference(vectors):
+    # State encoding: A=0, B=1, C=2, D=3
+    # R3: synchronous active high reset -> state A
+    state = 0  # power-up unspecified; start at A (reset state)
+    out = 0
+    results = []
+    for vec in vectors:
+        # R1/R2: combinational output based on current state (visible same cycle)
+        # R1: state A/B/C -> out 0
+        # R2: state D -> out 1
+        if state == 3:
+            out = 1
+        else:
+            out = 0
+        results.append({"out": out})
+        # Sample inputs at posedge
+        rst = vec.get("reset", 0)
+        inp = vec.get("in", 0)
+        # R3: sync reset priority 0 -> next state A
+        if rst == 1:
+            state = 0
+        else:
+            # R4: A: in=0->A, in=1->B
+            if state == 0:
+                state = 1 if inp == 1 else 0
+            # R5: B: in=0->C, in=1->B
+            elif state == 1:
+                state = 2 if inp == 0 else 1
+            # R6: C: in=0->A, in=1->D
+            elif state == 2:
+                state = 3 if inp == 1 else 0
+            # R7: D: in=0->C, in=1->B
+            elif state == 3:
+                state = 2 if inp == 0 else 1
+    return results

@@ -1,0 +1,31 @@
+```json
+{
+  "module_name": "top_module",
+  "io": [
+    {"name": "clk", "dir": "input", "width": 1, "description": "Clock; all sampling on posedge."},
+    {"name": "reset", "dir": "input", "width": 1, "description": "Active-high synchronous reset."},
+    {"name": "data", "dir": "input", "width": 1, "description": "Input bit stream."},
+    {"name": "start_shifting", "dir": "output", "width": 1, "description": "Set to 1 forever once 1101 is detected; cleared only by reset."}
+  ],
+  "clocking": {
+    "clock": {"name": "clk", "edge": "posedge"},
+    "reset": {"name": "reset", "active": "high", "kind": "synchronous"}
+  },
+  "timing": {
+    "outputs": {
+      "start_shifting": {"latency_cycles": 1}
+    }
+  },
+  "functional_summary": {
+    "overview": "Finite-state machine that scans a serial input bit stream for the pattern 1101. Upon detection, start_shifting is asserted and remains asserted until a synchronous active-high reset. Reset returns the FSM to the initial state and clears start_shifting.",
+    "rules": [
+      "On posedge clk with reset=1: state <= S0 and start_shifting <= 0.",
+      "On posedge clk with reset=0: update state per pattern-matching transitions on data.",
+      "State transitions (reset=0): S0 --1--> S1, S0 --0--> S0; S1 --1--> S2, S1 --0--> S0; S2 --0--> S3, S2 --1--> S2; S3 --1--> S4, S3 --0--> S0.",
+      "On entering S4 (pattern 1101 detected), start_shifting is set to 1 and remains 1 thereafter regardless of further input, until reset.",
+      "start_shifting is a registered output updated on posedge clk (latency 1 cycle from the sampling edge that completes detection).",
+      "Reset is synchronous and active high; it takes effect on the posedge clk."
+    ]
+  }
+}
+```

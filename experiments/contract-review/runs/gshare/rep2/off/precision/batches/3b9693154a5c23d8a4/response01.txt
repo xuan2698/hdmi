@@ -1,0 +1,672 @@
+We need to produce Python source strings for each of the four models (ids: 98d56a0d17b1b8361d, 1e056b6f527ff21ad2, 5179a803096c0a8f19, 5efa323a86a43acd0b). They share the same interface and mostly the same rules; differences are in the "uncertain" assumptions. Let me analyze each model's uncertain choices:
+
+**Model 98d56a0d17b1b8361d** uncertain:
+- R3: predict_taken=0, predict_history=current ghr
+- R2: counters init to 0 (weakly-not-taken)
+- (no R6 uncertainty listed)
+
+**Model 1e056b6f527ff21ad2** uncertain:
+- R3: predict_taken=0, predict_history=current ghr
+- R2: counters init to 0
+- R6: init 0, saturating +1 on taken, -1 on not-taken
+
+**Model 5179a803096c0a8f19** uncertain:
+- R3: predict_taken=0, predict_history=current ghr
+- R2: counters init to 0
+- R6: init 0, saturating +1 on taken, -1 on not-taken
+- R5: ghr = train_history (train_history already includes outcome)
+
+**Model 5efa323a86a43acd0b** uncertain:
+- R3: predict_taken=0, predict_history=current ghr
+- R2: counters init to 0
+- R6: init 0, saturating +1 on taken, -1 on not-taken
+- R5: ghr = train_history
+
+So all four models actually resolve to the same concrete behavior! The differences are only in which uncertainties are explicitly listed, but the chosen candidates are identical across all four. Let me verify:
+
+- 98d56a0d17b1b8361d: R3 → 0/ghr, R2 → init 0. No R6/R5 uncertainty listed, but the rules R6 and R5 as written imply init 0 and ghr=train_history (the R6 example shows init 0 with +1 on taken flipping to taken; R5 example loads train_history=3 directly).
+- 1e056b6f527ff21ad2: same as above plus explicit R6.
+- 5179a803096c0a8f19: same plus explicit R5 (ghr=train_history).
+- 5efa323a86a43acd0b: same.
+
+So all four models have identical semantics. I'll write one implementation and use it for all four.
+
+Now let me carefully define the semantics:
+
+**State:**
+- `ghr`: 7-bit, init 0
+- `pht`: 128 entries of 2-bit counters, init 0
+
+**Combinational outputs (same cycle):**
+- If areset: predict_taken=0, predict_history=0
+- Else if predict_valid: 
+  - index = predict_pc ^ ghr (both 7-bit)
+  - predict_taken = (pht[index] >= 2) ? 1 : 0  (2-bit counter: 0,1 → not taken; 2,3 → taken)
+  - predict_history = ghr
+- Else (predict_valid=0, not reset): predict_taken=0, predict_history=ghr
+
+Wait — need to check: does predict_history output the ghr value used for prediction (i.e., current ghr before update)? Yes, "state of the branch history register used to make the prediction". So predict_history = current ghr.
+
+For predict_valid=0: predict_history = current ghr (per R3 assumption).
+
+**Sequential updates (at posedge):**
+- If areset: ghr=0, pht all 0
+- Else:
+  - PHT training: if train_valid: index = train_pc ^ train_history (note: training uses train_history, not current ghr!). Wait — the spec says "the branch predictor is told the pc and branch history register value for the branch that is being trained". So the index for training is train_pc XOR train_history. Let me re-read: "indexed by (pc[6:0] XOR ghr[6:0])". For training, the ghr value is train_history. So index = train_pc ^ train_history.
+    - Update counter: if train_taken: counter = min(counter+1, 3); else: counter = max(counter-1, 0)
+  - GHR update:
+    - If train_valid && train_mispredicted: ghr = train_history (priority 1)
+    - Else if predict_valid: ghr = ((ghr << 1) | predict_taken) & 0x7F
+    - Else: ghr unchanged
+
+Wait, but there's a subtlety: the prediction's predict_taken is computed combinationally from the current pht and ghr. The ghr update uses predict_taken (the predicted direction). Yes.
+
+Also, "If training and prediction of the same PHT entry happen at the same time, the prediction sees the PHT state before training" — this is naturally handled since prediction is combinational from current state, and training updates at posedge.
+
+Now, one more subtlety: when train_valid && train_mispredicted && predict_valid, training takes precedence for GHR. But does the PHT still get trained? Yes, R6 says train_valid → PHT update. And R7 says training takes precedence over prediction for GHR. So PHT update happens regardless.
+
+Also: does prediction still happen (combinational output) when train_valid && train_mispredicted && predict_valid? Yes, the combinational output is still produced (the prediction is discarded by the pipeline, but the output is still valid). The spec says "the branch being predicted will be discarded anyway" — but the output is still produced. So combinational output follows R2/R3 regardless of training.
+
+Let me also double check the GHR update for prediction: "shifted left on each predicted branch, with the predicted direction inserted at the LSB". So ghr = ((ghr << 1) | predict_taken) & 0x7F. Yes.
+
+Now let me write the reference function. The vectors are a list of dicts with input values. We need to return a list of dicts with output values for each cycle.
+
+Timing: "sample after the posedge edge has settled. Each row's values are driven before the sampled edge." So for each vector, we compute the combinational outputs based on current state (before posedge), then apply posedge updates for the next cycle.
+
+Wait, but the reset is asynchronous. Let me think about the cycle model:
+
+For each vector (cycle):
+1. Inputs are driven before the sampled edge.
+2. If areset is high: outputs are 0/0 (async reset visible same cycle). State is reset (ghr=0, pht=0). This happens asynchronously, so it's visible in the same cycle.
+3. Else: compute combinational outputs from current state.
+4. At posedge: apply updates.
+
+But the "sample after posedge" means the outputs we report are the values after the posedge has settled? Hmm, let me re-read: "Clock clk; sample after the posedge edge has settled. Each row's values are driven before the sampled edge."
+
+So the sampling happens after posedge. The inputs are driven before the edge. So the sequence per row is:
+- Inputs driven (before edge)
+- Posedge occurs
+- Sample outputs (after edge settled)
+
+But the combinational outputs depend on state. If we sample after posedge, the state has already been updated. But the spec says "the prediction request in cycle 4 outputs the PHT state at cycle 4, without considering the effect of the training request in cycle 4" — meaning the prediction output reflects the state BEFORE the posedge update.
+
+Hmm, this is a bit confusing. Let me think about it as: the outputs reported for a cycle are the combinational outputs computed from the state at the beginning of that cycle (before the posedge that ends the cycle). The posedge updates the state for the next cycle.
+
+Actually, the standard way to model this: for each cycle, we have inputs. The outputs are combinational functions of the current state and inputs. Then at the end of the cycle (posedge), the state updates.
+
+But the phrase "sample after the posedge edge has settled" suggests the outputs are sampled after the edge. However, the combinational outputs (predict_taken, predict_history) are computed from the state before the edge (since the edge updates state). So sampling after the edge gives the same combinational values as before the edge (since combinational logic settles quickly, and the state change at the edge affects the next cycle's combinational outputs).
+
+Wait, but if we sample after the posedge, and the posedge updates ghr, then predict_history (which is combinational = ghr when predict_valid=0) would reflect the NEW ghr, not the old one. That contradicts "predict_history = state of the branch history register used to make the prediction".
+
+I think the intended model is: the outputs for cycle N are computed from the state at the start of cycle N (before the posedge at the end of cycle N). The posedge at the end of cycle N updates the state for cycle N+1. The "sample after posedge" just means we're sampling the registered/combinational outputs which have settled.
+
+Actually, let me reconsider. In typical RTL simulation with this kind of testbench:
+- At time T (before posedge), inputs are driven.
+- At posedge (time T+delta), state updates.
+- After posedge settles, outputs are sampled.
+
+But the combinational outputs (predict_taken, predict_history) are functions of the state. If state updates at posedge, then after posedge, the combinational outputs reflect the NEW state. But the spec says prediction sees the PHT state before training. So the prediction output must be computed from the OLD state.
+
+This means the prediction output must be registered (computed before the edge and held). Or, the testbench samples the outputs just before the posedge (but the description says after).
+
+Hmm, let me look at the example in R6:
+```
+vectors: [
+  {train_valid:1, train_taken:1, ...},  // cycle 0
+  {predict_valid:1, predict_pc:0, ...}  // cycle 1
+]
+expected: [
+  {predict_taken:0, predict_history:0},  // cycle 0
+  {predict_taken:1, predict_history:0}   // cycle 1
+]
+```
+
+Cycle 0: train_valid=1, train_taken=1, train_pc=0, train_history=0. Index = 0^0 = 0. PHT[0] goes from 0 to 1 at posedge. Output in cycle 0: predict_valid=0, so predict_taken=0, predict_history=ghr=0. ✓
+
+Cycle 1: predict_valid=1, predict_pc=0. ghr is now 0 (no prediction in cycle 0, no mispredicted training). Index = 0^0 = 0. PHT[0] = 1 (from cycle 0's training). predict_taken = (1 >= 2) ? 1 : 0 = 0. But expected is predict_taken=1!
+
+Hmm, that contradicts. Let me re-read the R6 example. Oh wait, maybe the counter is 2-bit and the threshold is different. Let me reconsider: 2-bit saturating counter. Values 0,1,2,3. Typically: 0=strongly not taken, 1=weakly not taken, 2=weakly taken, 3=strongly taken. Prediction: taken if counter >= 2.
+
+With init 0, one taken training → counter becomes 1. Prediction from 1 → not taken. But expected is taken.
+
+So maybe the init is different, or the threshold is different. Let me check the R6 uncertainty note: "R6 example assumes init weakly-not-taken and one taken training flips prediction to taken." So init weakly-not-taken, and one taken training flips to taken. That means weakly-not-taken must be 1 (so +1 → 2 = weakly taken → predicts taken). Or the threshold is >= 1.
+
+Hmm, "init weakly-not-taken (0)" is listed as a candidate. But then one taken training gives 1, which should predict not taken if threshold is >=2.
+
+Wait, maybe the counter encoding is different: 0=strongly not taken, 1=weakly not taken, 2=weakly taken, 3=strongly taken. Prediction taken if counter[1] == 1 (i.e., >= 2). Init 0 → predict not taken. One taken → 1 → still not taken. That doesn't match.
+
+Alternatively, maybe the counter is: 0=strongly not taken, 1=weakly not taken, 2=weakly taken, 3=strongly taken, and prediction is taken if counter >= 1? No, that's not standard.
+
+Let me reconsider: maybe "weakly-not-taken" is value 1, and "strongly-not-taken" is 0. Init to weakly-not-taken = 1. One taken training: 1→2 (weakly taken). Prediction from 2: taken. ✓ That matches!
+
+But the uncertainty note says "init weakly-not-taken (0)" — implying weakly-not-taken is 0. Hmm, contradictory.
+
+Wait, let me re-read: "all counters init to 0 (predict not-taken)" and "counters init to weakly-not-taken (0)". So weakly-not-taken = 0. Then one taken training: 0→1. Prediction from 1: if threshold is >=2, not taken. But expected is taken.
+
+Unless the saturating counter update is different: maybe taken increments by 2? No, that's not standard.
+
+Or maybe the prediction is taken if counter >= 1? Let me check: with init 0, predict not taken (0 < 1). One taken → 1, predict taken (1 >= 1). ✓ That works!
+
+But then what's the point of 2-bit counters? With threshold >=1, counter 0 = not taken, 1,2,3 = taken. That's effectively a 1-bit predictor with hysteresis on the not-taken side. Hmm, that's unusual but possible.
+
+Actually, wait. Let me reconsider the standard 2-bit saturating counter. The standard is:
+- 00: strongly not taken
+- 01: weakly not taken
+- 10: weakly taken
+- 11: strongly taken
+- Prediction: taken if MSB is 1 (i.e., >= 2)
+
+With init 00, one taken → 01, predict not taken. That doesn't match the example.
+
+Unless the example is wrong, or the init is 01 (weakly not taken). Let me check: init 01, one taken → 10, predict taken. ✓
+
+So the R6 example is consistent with init = 1 (weakly not taken), not init = 0.
+
+But the uncertainty note says "init weakly-not-taken (0)". This is contradictory. Let me re-read the note: "R6 example assumes init weakly-not-taken and one taken training flips prediction to taken." So the example assumes init weakly-not-taken. And the candidates list "counters init to weakly-not-taken (0)". So weakly-not-taken = 0 per the candidates.
+
+But then the example doesn't work with threshold >=2. Unless the threshold is >=1.
+
+Hmm, let me think about this differently. Maybe the counter update is: taken → counter = min(counter+1, 3), not taken → counter = max(counter-1, 0). And prediction is taken if counter >= 2. With init 0, one taken → 1, predict not taken. Example says taken. Contradiction.
+
+Maybe the counter update for taken is +2? No.
+
+Maybe the init is 1 (weakly not taken), and the candidates list is just wrong about the value. The note says "init weakly-not-taken (0)" but maybe that's a typo and it should be (1).
+
+Actually, let me look at the other models. Model 1e056b6f527ff21ad2 has the same R6 example with the same expected output. So all models agree on this example.
+
+Given the example, I need to make the implementation match. The simplest interpretation that matches: init = 1 (weakly not taken), threshold >= 2, +1/-1 saturating. Let me verify:
+- Init 1. One taken → 2. Predict taken (2 >= 2). ✓
+- Init 1. One not taken → 0. Predict not taken. ✓
+
+But wait, the R2 example: predict_valid=1, predict_pc=5, no training. Expected predict_taken=0. With init 1, predict_taken = (1 >= 2) ? 1 : 0 = 0. ✓
+
+And the R6 example cycle 0: train_valid=1, train_taken=1, train_pc=0, train_history=0. Index=0. PHT[0]: 1→2. Output cycle 0: predict_valid=0, predict_taken=0, predict_history=0. ✓
+Cycle 1: predict_valid=1, predict_pc=0. ghr=0. Index=0. PHT[0]=2. predict_taken = (2>=2) ? 1 : 0 = 1. ✓ predict_history=0. ✓
+
+So init = 1 works for all examples. But the uncertainty note says init 0. Hmm.
+
+Wait, let me re-read the R2 example more carefully. It's just predict_valid=1, predict_pc=5, no training, expected predict_taken=0. With init 0: predict_taken = (0>=2)?1:0 = 0. ✓ With init 1: (1>=2)?1:0 = 0. ✓ Both work.
+
+The R6 example is the discriminator. It requires init 1 (or threshold >=1 with init 0).
+
+Let me check if threshold >=1 with init 0 works for all examples:
+- R2: init 0, predict_taken = (0>=1)?1:0 = 0. ✓
+- R6 cycle 0: train taken, PHT[0]: 0→1. Output 0/0. ✓
+- R6 cycle 1: PHT[0]=1, predict_taken = (1>=1)?1:0 = 1. ✓
+
+So threshold >=1 with init 0 also works. But that's a weird predictor (only 0 predicts not taken).
+
+Which is more likely intended? The standard 2-bit counter uses threshold >=2. The init is typically 0 (strongly not taken) or 1 (weakly not taken). Given the example, init 1 with threshold >=2 is the most standard interpretation.
+
+But the uncertainty note explicitly says "init weakly-not-taken (0)". This suggests the intended init is 0. Then the example must use threshold >=1, or the example is inconsistent.
+
+Hmm, let me re-read the note: "R6 example assumes init weakly-not-taken and one taken training flips prediction to taken." Maybe "weakly-not-taken" here means value 1, and the "(0)" in the candidates list is a separate candidate (init to 0 = strongly not taken). Let me re-read the candidates:
+
+"candidates":["init 0, saturating +1 on taken, -1 on not-taken","init 1, saturating +1 on taken, -1 on not-taken","init 2 (weakly-taken)","init 3 (strongly-taken)"]
+
+So the candidates are init 0, 1, 2, 3. The note says the example assumes "init weakly-not-taken". If weakly-not-taken is 1 (standard), then init 1. If weakly-not-taken is 0 (non-standard), then init 0.
+
+Given the example works with init 1 and threshold >=2, I'll go with init 1. But wait, the note says "init weakly-not-taken (0)" in the R2 uncertainty: "counters init to weakly-not-taken (0)". So weakly-not-taken = 0 per that note.
+
+Ugh, this is ambiguous. Let me look at the R2 uncertainty candidates: "all counters init to 0 (predict not-taken)","all counters init to 1 (predict taken)","counters init to weakly-not-taken (0)","counters init to weakly-taken (1)".
+
+So "init to 0 (predict not-taken)" and "init to weakly-not-taken (0)" are the same thing. And "init to 1 (predict taken)" and "init to weakly-taken (1)" are the same. So weakly-not-taken = 0, weakly-taken = 1. That means the counter encoding is: 0=weakly not taken, 1=weakly taken? That's only 2 states, not 4.
+
+Wait, maybe the encoding is: 0=strongly not taken, 1=weakly not taken, 2=weakly taken, 3=strongly taken. Then "weakly-not-taken" = 1, not 0. But the note says (0). Contradiction.
+
+I think there's confusion in the uncertainty notes. Let me just go with what makes the examples work. The R6 example requires that after one taken training from init, the prediction flips to taken. With standard threshold >=2, this requires init >= 1. So init = 1 (weakly not taken).
+
+But wait, let me check the R6 example again. Maybe I'm misreading it. The example has two vectors and two expected outputs. Let me re-read:
+
+```
+"example":{"vectors":[
+  {"areset":0,"predict_valid":0,"predict_pc":0,"train_valid":1,"train_taken":1,"train_mispredicted":0,"train_history":0,"train_pc":0},
+  {"areset":0,"predict_valid":1,"predict_pc":0,"train_valid":0,"train_taken":0,"train_mispredicted":0,"train_history":0,"train_pc":0}
+],"expected":[
+  {"predict_taken":0,"predict_history":0},
+  {"predict_taken":1,"predict_history":0}
+]}
+```
+
+Cycle 0: train_valid=1, train_taken=1, train_pc=0, train_history=0. Index = 0^0 = 0. PHT[0] updates at posedge.
+Cycle 1: predict_valid=1, predict_pc=0. ghr is still 0 (no prediction in cycle 0). Index = 0^0 = 0. PHT[0] is the updated value. Expected predict_taken=1.
+
+So after one taken training, PHT[0] must predict taken. With init 0 and threshold >=2: 0→1, predict not taken. ✗
+With init 1 and threshold >=2: 1→2, predict taken. ✓
+With init 0 and threshold >=1: 0→1, predict taken. ✓
+
+Both init 1/threshold>=2 and init 0/threshold>=1 work. Which is more standard? Init 1 (weakly not taken) with threshold >=2 is the standard 2-bit counter. I'll go with that.
+
+But wait, the uncertainty note says "init weakly-not-taken (0)". If weakly-not-taken is 0, then init 0. Then threshold must be >=1. But threshold >=1 is non-standard.
+
+Hmm, let me reconsider. Maybe the counter is 2-bit but the encoding is different: 0=strongly not taken, 1=weakly not taken, 2=weakly taken, 3=strongly taken. Prediction: taken if counter[1] == 1 (MSB). Init 0 → predict not taken. One taken → 1 → predict not taken (MSB=0). ✗
+
+What if the update is: taken → counter = min(counter+1, 3), not taken → counter = max(counter-1, 0), and prediction is taken if counter >= 1? Then init 0 → not taken, one taken → 1 → taken. ✓ But then counter 1,2,3 all predict taken, and only 0 predicts not taken. That's a 1-bit predictor with hysteresis on the not-taken side. Unusual but possible.
+
+Actually, you know what, let me just look at the R6 uncertainty note again: "R6 example assumes init weakly-not-taken and one taken training flips prediction to taken." This is a statement about what the example assumes. It says the example assumes init weakly-not-taken. If weakly-not-taken = 0, then init 0. And one taken training flips prediction to taken. So with init 0, one taken → predict taken. This requires threshold >=1 (or the counter update is different).
+
+But the candidates list "init 0, saturating +1 on taken, -1 on not-taken" as a candidate. If this candidate is chosen, then with threshold >=2, one taken from 0 gives 1, predict not taken. That contradicts the example. So either the example is inconsistent with this candidate, or the threshold is >=1.
+
+I think the safest interpretation that matches all examples is: init 0, threshold >=1? No wait, let me check R2 example with init 0, threshold >=1: predict_taken = (0>=1)?1:0 = 0. ✓
+
+But then what about the R6 example cycle 1: PHT[0]=1, predict_taken = (1>=1)?1:0 = 1. ✓
+
+So init 0, threshold >=1 works for all examples. But it's a weird predictor.
+
+Alternatively, init 1, threshold >=2 works for all examples and is standard.
+
+I'll go with init 1, threshold >=2 because it's the standard 2-bit saturating counter. The uncertainty notes are just listing candidates, and the example is the ground truth. The example is consistent with init 1, threshold >=2.
+
+Wait, but the note says "init weakly-not-taken (0)". If I use init 1, I'm contradicting the note. But the note is just describing a candidate, not necessarily the correct one. The example is what matters.
+
+Actually, let me re-read the R2 uncertainty note: "PHT counter initial value is unspecified; predict_taken before any training depends on assumed init (e.g., weakly-not-taken=0)." So it's saying "e.g., weakly-not-taken=0" as an example of an assumption. It's not saying that's the correct assumption.
+
+OK, I'll go with init 1, threshold >=2. Let me double-check all examples:
+
+R1: areset=1 → 0/0. ✓
+R2: predict_valid=1, predict_pc=5, init PHT=1. Index=5^0=5. PHT[5]=1. predict_taken=(1>=2)?1:0=0. ✓ predict_history=0. ✓
+R3: predict_valid=0 → predict_taken=0, predict_history=ghr=0. ✓
+R4: predict_valid=1, predict_pc=5. predict_taken=0 (PHT[5]=1). ghr updates to (0<<1)|0 = 0. Next cycle predict_history=0. ✓
+R5: train_valid=1, train_mispredicted=1, train_history=3. ghr=3 at posedge. Next cycle predict_history=3? But expected is 0. Wait, the R5 example has two vectors: first with train, second with all zeros. Expected: first 0/0, second 0/0. In the second cycle, predict_valid=0, so predict_history=ghr=3. But expected is 0!
+
+Hmm, let me re-read the R5 example:
+```
+"vectors":[
+  {"areset":0,"predict_valid":0,"predict_pc":0,"train_valid":1,"train_taken":1,"train_mispredicted":1,"train_history":3,"train_pc":7},
+  {"areset":0,"predict_valid":0,"predict_pc":0,"train_valid":0,"train_taken":0,"train_mispredicted":0,"train_history":0,"train_pc":0}
+],"expected":[
+  {"predict_taken":0,"predict_history":0},
+  {"predict_taken":0,"predict_history":0}
+]
+```
+
+Cycle 0: train_valid=1, train_mispredicted=1, train_history=3. ghr updates to 3 at posedge. Output cycle 0: predict_valid=0, predict_taken=0, predict_history=ghr=0 (before update). ✓
+Cycle 1: predict_valid=0, predict_taken=0, predict_history=ghr=3. But expected is 0!
+
+So the expected output for cycle 1 is predict_history=0, but ghr should be 3. This contradicts R3 (predict_history=current ghr when predict_valid=0).
+
+Unless... the R5 example is showing that ghr is NOT updated? Or maybe the expected output is wrong? Or maybe predict_history is 0 when predict_valid=0 regardless of ghr?
+
+Let me re-read R3: "Spec does not state output values when predict_valid=0; assumed predict_taken=0 and predict_history=current ghr." So predict_history should be current ghr = 3. But the R5 example expects 0.
+
+This is a contradiction. Unless the R5 example is using a different assumption for R3 (e.g., predict_history=0 when predict_valid=0).
+
+Hmm, let me check the R5 example in other models. Model 5179a803096c0a8f19 has the same R5 example with the same expected output. So all models agree on this example.
+
+So the R5 example implies that when predict_valid=0, predict_history=0 (not current ghr). But R3 says predict_history=current ghr. Contradiction.
+
+Wait, maybe I'm misreading the R5 example. Let me look at it again. The first vector has train_valid=1, train_mispredicted=1, train_history=3. The second vector has all zeros. Expected: both cycles 0/0.
+
+If ghr=3 after cycle 0, then cycle 1 with predict_valid=0 should output predict_history=3 (per R3). But expected is 0.
+
+Unless the R5 example is testing something else. Maybe the train_mispredicted with train_history=3 doesn't actually update ghr to 3? Or maybe the expected output is just showing that predict_taken=0 and predict_history=0 because predict_valid=0 and the testbench doesn't care about predict_history when predict_valid=0?
+
+Actually, maybe the testbench only checks predict_history when predict_valid=1? No, the expected output includes predict_history=0 for cycle 1.
+
+Hmm, let me reconsider. Maybe the R5 example is from a model where R3 assumes predict_history=0 when predict_valid=0. But R3's uncertainty note says "assumed predict_taken=0 and predict_history=current ghr". So the assumption is current ghr.
+
+Wait, maybe the R5 example is just poorly constructed and the expected output is wrong. Or maybe I'm misunderstanding the timing.
+
+Let me think about the timing again. "sample after the posedge edge has settled. Each row's values are driven before the sampled edge."
+
+So for cycle 0: inputs driven before posedge. Posedge occurs. Sample outputs after posedge. The outputs sampled are the combinational outputs AFTER the posedge. But the posedge updates ghr to 3. So predict_history (combinational = ghr when predict_valid=0) would be 3 after the posedge. But expected is 0.
+
+This suggests that the outputs are sampled BEFORE the posedge (or the outputs are registered from before the posedge). But the description says after.
+
+Alternatively, maybe the outputs are computed from the state BEFORE the posedge, and then held (registered) until the next sample point. So the output for cycle 0 is computed from state before posedge (ghr=0), giving predict_history=0. Then posedge updates ghr to 3. The output for cycle 1 is computed from state before cycle 1's posedge (ghr=3), giving predict_history=3. But expected is 0.
+
+Still contradiction.
+
+Unless the R5 example is just wrong. Let me check if there's any interpretation where cycle 1 gives predict_history=0.
+
+If ghr is NOT updated by train_mispredicted (i.e., R5 doesn't actually update ghr), then ghr stays 0, and cycle 1 gives predict_history=0. But R5 says ghr = train_history = 3.
+
+Or if train_history=3 is somehow masked to 0? No.
+
+Or if the reset is active in cycle 1? No, areset=0.
+
+I think the R5 example might be inconsistent with the stated rules. But since all models have the same example, I need to decide what to implement.
+
+Let me look at the R7 example:
+```
+"vectors":[
+  {"areset":0,"predict_valid":1,"predict_pc":9,"train_valid":1,"train_taken":0,"train_mispredicted":1,"train_history":2,"train_pc":4},
+  {"areset":0,"predict_valid":0,"predict_pc":0,"train_valid":0,"train_taken":0,"train_mispredicted":0,"train_history":0,"train_pc":0}
+],"expected":[
+  {"predict_taken":0,"predict_history":0},
+  {"predict_taken":0,"predict_history":0}
+]
+```
+
+Cycle 0: predict_valid=1, predict_pc=9, train_valid=1, train_mispredicted=1, train_history=2. 
+- Combinational output: index = 9^0 = 9. PHT[9]=1 (init). predict_taken=(1>=2)?1:0=0. predict_history=ghr=0. ✓
+- Posedge: PHT training: index = 4^2 = 6. PHT[6]: 1→0 (train_taken=0). GHR: train_mispredicted → ghr=2.
+Cycle 1: predict_valid=0. predict_taken=0, predict_history=ghr=2. But expected is 0!
+
+Again, predict_history=0 when ghr=2. So the examples consistently show predict_history=0 when predict_valid=0, regardless of ghr.
+
+This suggests that the intended behavior for R3 is: predict_taken=0, predict_history=0 (not current ghr). But R3's uncertainty note says "assumed predict_taken=0 and predict_history=current ghr". Contradiction.
+
+Wait, maybe the examples are just showing that the testbench doesn't check predict_history when predict_valid=0? But the expected output explicitly includes predict_history=0.
+
+Hmm, let me reconsider. Maybe the R5 and R7 examples are from a model where R3 assumes predict_history=0. But the uncertainty note says current ghr. Maybe the note is wrong, or maybe the examples are from a different assumption.
+
+Actually, let me re-read the R5 example in model 5179a803096c0a8f19. It has an additional uncertainty for R5: "ghr = train_history (train_history already includes outcome)" vs "ghr = (train_history << 1) | train_taken". If the second candidate is chosen, then ghr = (3<<1)|1 = 7. Then cycle 1 predict_history=7. Still not 0.
+
+So neither candidate gives 0.
+
+I think the examples might just be poorly constructed, or the testbench only checks predict_taken when predict_valid=0 and ignores predict_history. But the expected output includes predict_history=0.
+
+Let me try a different interpretation: maybe predict_history is only valid when predict_valid=1, and is 0 otherwise. This would match the examples (R5 cycle 1: predict_valid=0 → predict_history=0; R7 cycle 1: predict_valid=0 → predict_history=0). And R3's uncertainty note is just wrong about "current ghr".
+
+But then R3's example: predict_valid=0, expected predict_history=0. With ghr=0, both interpretations give 0. So R3's example doesn't discriminate.
+
+Given the R5 and R7 examples, I'll implement: when predict_valid=0, predict_taken=0, predict_history=0. This matches all examples.
+
+Wait, but R3's uncertainty note says "assumed predict_taken=0 and predict_history=current ghr". If I implement predict_history=0, I'm contradicting the note. But the examples are more concrete.
+
+Actually, let me re-read the R3 example: it's just two cycles with predict_valid=0, expected 0/0. With ghr=0, both interpretations give 0. So it doesn't help.
+
+Let me check if there's any example where predict_valid=0 and ghr != 0. R5 cycle 1: ghr=3 (after mispredicted training), predict_valid=0, expected predict_history=0. R7 cycle 1: ghr=2, predict_valid=0, expected predict_history=0. Both show predict_history=0 when ghr != 0.
+
+So the examples clearly show predict_history=0 when predict_valid=0. I'll implement that.
+
+But wait, maybe the ghr is not actually updated in those examples? Let me check R5: train_mispredicted=1, train_history=3. If ghr is NOT updated (maybe because train_valid is somehow gated?), then ghr stays 0. But R5 says ghr = train_history.
+
+Or maybe the R5 example is from a model where R5 is not implemented? No, R5 is a rule.
+
+I think the most consistent interpretation with all examples is:
+- predict_valid=1: predict_taken from PHT, predict_history=ghr
+- predict_valid=0: predict_taken=0, predict_history=0
+
+Let me verify R2 example: predict_valid=1, predict_pc=5, ghr=0. predict_taken=0 (PHT[5]=1), predict_history=0. ✓
+
+R4 example: predict_valid=1, predict_pc=5. predict_taken=0, predict_history=0. ghr updates to 0. Next cycle same. ✓
+
+R6 example: cycle 0 predict_valid=0 → 0/0. ✓ cycle 1 predict_valid=1, predict_pc=0, ghr=0, PHT[0]=2. predict_taken=1, predict_history=0. ✓
+
+R7 example: cycle 0 predict_valid=1, predict_pc=9, ghr=0, PHT[9]=1. predict_taken=0, predict_history=0. ✓ cycle 1 predict_valid=0 → 0/0. ✓
+
+R5 example: cycle 0 predict_valid=0 → 0/0. ✓ cycle 1 predict_valid=0 → 0/0. ✓
+
+All examples pass with this interpretation!
+
+So I'll implement:
+- predict_valid=1: predict_taken = (pht[pc^ghr] >= 2), predict_history = ghr
+- predict_valid=0: predict_taken = 0, predict_history = 0
+
+And PHT init = 1 (weakly not taken), threshold >= 2.
+
+Wait, let me double-check R6 with init 1: cycle 0 train taken, PHT[0]: 1→2. cycle 1 predict: PHT[0]=2, predict_taken=1. ✓
+
+And R2 with init 1: PHT[5]=1, predict_taken=0. ✓
+
+What about init 0 with threshold >=1? R6: 0→1, predict_taken=1. ✓ R2: 0, predict_taken=0. ✓ Both work. But init 1/threshold>=2 is more standard. I'll go with init 1.
+
+Actually, wait. Let me reconsider the R6 uncertainty note: "R6 example assumes init weakly-not-taken and one taken training flips prediction to taken." If weakly-not-taken = 1, then init 1. One taken → 2 (weakly taken), predict taken. ✓ This matches init 1.
+
+But the candidates list says "init 0, saturating +1 on taken, -1 on not-taken" and "init 1, saturating +1 on taken, -1 on not-taken". Both are candidates. The example works with init 1 (threshold >=2) or init 0 (threshold >=1). Since the note says "init weakly-not-taken" and weakly-not-taken is typically 1, I'll go with init 1.
+
+Hmm, but the R2 uncertainty note says "counters init to weakly-not-taken (0)". So weakly-not-taken = 0 per that note. Then init 0. And threshold must be >=1 for R6 to work.
+
+Ugh, conflicting notes. Let me just pick one that works for all examples. Both init 1/threshold>=2 and init 0/threshold>=1 work. I'll go with init 1/threshold>=2 because it's the standard 2-bit saturating counter.
+
+Wait, actually, let me reconsider. The R2 uncertainty note says "all counters init to 0 (predict not-taken)" and "counters init to weakly-not-taken (0)". These are the same. So weakly-not-taken = 0. Then init 0. For R6 to work, threshold must be >=1.
+
+But threshold >=1 means counter 0 = not taken, 1,2,3 = taken. That's a 1-bit predictor with hysteresis on the not-taken side. It's unusual but possible.
+
+Alternatively, maybe the counter update is different: taken → counter = min(counter+2, 3)? No, that's not saturating +1.
+
+I think the most likely intended behavior is init 0, threshold >=2, but the R6 example is just wrong. Or init 1, threshold >=2, and the R2 note is wrong about weakly-not-taken=0.
+
+Given the ambiguity, I'll go with init 1, threshold >=2, because it's the standard 2-bit saturating counter and matches the R6 example. The R2 note's "(0)" might be a typo.
+
+Actually, let me reconsider one more time. What if the counter is 2-bit but the prediction is taken if counter >= 1? Then init 0 → not taken, one taken → 1 → taken. This matches R6. And R2: init 0 → not taken. ✓
+
+But then what's the point of 2-bit counters? With threshold >=1, counter 0 = not taken, 1,2,3 = taken. The counter saturates at 3 and 0. So it takes 3 not-taken to go from taken to not-taken, but only 1 taken to go from not-taken to taken. That's a biased predictor.
+
+I think the standard interpretation is more likely: init 1 (weakly not taken), threshold >=2. I'll go with that.
+
+Let me now write the code.
+
+```python
+def reference(vectors):
+    ghr = 0
+    pht = [1] * 128  # init weakly not taken
+    results = []
+    for v in vectors:
+        areset = v['areset']
+        predict_valid = v['predict_valid']
+        predict_pc = v['predict_pc']
+        train_valid = v['train_valid']
+        train_taken = v['train_taken']
+        train_mispredicted = v['train_mispredicted']
+        train_history = v['train_history']
+        train_pc = v['train_pc']
+        
+        if areset:
+            # async reset: outputs 0/0, state reset
+            results.append({'predict_taken': 0, 'predict_history': 0})
+            ghr = 0
+            pht = [1] * 128
+            continue
+        
+        # combinational outputs
+        if predict_valid:
+            idx = (predict_pc ^ ghr) & 0x7F
+            predict_taken = 1 if pht[idx] >= 2 else 0
+            predict_history = ghr
+        else:
+            predict_taken = 0
+            predict_history = 0
+        
+        results.append({'predict_taken': predict_taken, 'predict_history': predict_history})
+        
+        # posedge updates
+        # PHT training
+        if train_valid:
+            tidx = (train_pc ^ train_history) & 0x7F
+            if train_taken:
+                pht[tidx] = min(pht[tidx] + 1, 3)
+            else:
+                pht[tidx] = max(pht[tidx] - 1, 0)
+        
+        # GHR update
+        if train_valid and train_mispredicted:
+            ghr = train_history & 0x7F
+        elif predict_valid:
+            ghr = ((ghr << 1) | predict_taken) & 0x7F
+    
+    return results
+```
+
+Wait, but the reset is asynchronous. In my loop, if areset is high, I reset state and output 0/0. But what if areset goes high mid-cycle? The vectors are per-cycle, so areset is the value at the sampling point. If areset=1, the async reset has already taken effect, so outputs are 0/0 and state is reset. That's what I have.
+
+But there's a subtlety: if areset=1, should the posedge updates still happen? No, reset overrides everything. My code does `continue` after reset, so no posedge updates. That's correct.
+
+But wait, the reset is asynchronous, so it takes effect immediately when areset goes high, not at posedge. In my cycle model, if areset=1 in a cycle, the state is reset at the beginning of that cycle (async), and outputs are 0/0. Then at posedge, since areset is still high (presumably), state stays reset. My code handles this by resetting and continuing.
+
+But what if areset goes high and then low within a cycle? The vectors don't capture that. I'll assume areset is stable during the cycle.
+
+Also, the "mid" note: "Optional mid input changes occur AFTER sampling, before the other edge, and are carried to the start of the next row." This means inputs can change mid-cycle. But the vectors only give one value per cycle. I'll ignore mid changes since they're not in the vectors.
+
+Let me also double-check the GHR update for prediction: "shifted left on each predicted branch, with the predicted direction inserted at the LSB". So ghr = ((ghr << 1) | predict_taken) & 0x7F. Yes.
+
+And for training mispredicted: ghr = train_history. Yes.
+
+Now, one more check: when train_valid && train_mispredicted && predict_valid, the GHR update is train_history (training takes precedence). But the PHT training still happens. And the prediction output is still computed (combinational). My code does this correctly.
+
+Let me verify R7 example with my code:
+Cycle 0: areset=0, predict_valid=1, predict_pc=9, train_valid=1, train_taken=0, train_mispredicted=1, train_history=2, train_pc=4.
+- ghr=0, pht all 1.
+- predict: idx = 9^0 = 9. pht[9]=1. predict_taken=0. predict_history=0. ✓
+- posedge: PHT training: tidx = 4^2 = 6. train_taken=0 → pht[6] = max(1-1,0) = 0.
+- GHR: train_mispredicted → ghr = 2.
+Cycle 1: areset=0, predict_valid=0.
+- predict_taken=0, predict_history=0. ✓
+- posedge: no train, no predict. ghr stays 2.
+Result: [{0,0}, {0,0}]. ✓
+
+R5 example:
+Cycle 0: train_valid=1, train_mispredicted=1, train_history=3, train_pc=7, train_taken=1.
+- predict_valid=0 → 0/0. ✓
+- posedge: PHT training: tidx = 7^3 = 4. pht[4]: 1→2.
+- GHR: ghr = 3.
+Cycle 1: predict_valid=0 → 0/0. ✓
+Result: [{0,0}, {0,0}]. ✓
+
+R6 example:
+Cycle 0: train_valid=1, train_taken=1, train_pc=0, train_history=0.
+- predict_valid=0 → 0/0. ✓
+- posedge: PHT[0]: 1→2.
+Cycle 1: predict_valid=1, predict_pc=0.
+- ghr=0. idx=0. pht[0]=2. predict_taken=1. predict_history=0. ✓
+Result: [{0,0}, {1,0}]. ✓
+
+R2 example:
+Cycle 0: predict_valid=1, predict_pc=5.
+- ghr=0. idx=5. pht[5]=1. predict_taken=0. predict_history=0. ✓
+Cycle 1: same. ✓
+Result: [{0,0}, {0,0}]. ✓
+
+R4 example:
+Cycle 0: predict_valid=1, predict_pc=5.
+- predict_taken=0, predict_history=0. ✓
+- posedge: ghr = (0<<1)|0 = 0.
+Cycle 1: same. ✓
+Result: [{0,0}, {0,0}]. ✓
+
+R1 example:
+Cycle 0: areset=1 → 0/0. ✓
+Cycle 1: areset=0, predict_valid=0 → 0/0. ✓
+Result: [{0,0}, {0,0}]. ✓
+
+All examples pass!
+
+Now, the four models have different uncertainty notes but the same examples. Since the examples are the same and my implementation passes all of them, I'll use the same implementation for all four models.
+
+Wait, but model 5179a803096c0a8f19 has an additional R5 uncertainty: "ghr = train_history (train_history already includes outcome)" vs "ghr = (train_history << 1) | train_taken". My implementation uses ghr = train_history. The R5 example: train_history=3, train_taken=1. If ghr = (3<<1)|1 = 7, then cycle 1 predict_history would be 7 (if predict_valid=0 gives current ghr) or 0 (if predict_valid=0 gives 0). Since my implementation gives 0 for predict_valid=0, both candidates give 0 for the R5 example. So the R5 example doesn't discriminate. But the R5 rule text says "train_history is the GHR value immediately after the mispredicting branch, loaded directly into ghr". So ghr = train_history. I'll use that.
+
+OK, I'll use the same implementation for all four models.
+
+Let me finalize the code. I need to make sure it's valid Python with no imports, no I/O, no executable top-level code. The function `reference(vectors)` is defined.
+
+```python
+def reference(vectors):
+    ghr = 0
+    pht = [1] * 128
+    results = []
+    for v in vectors:
+        areset = v['areset']
+        predict_valid = v['predict_valid']
+        predict_pc = v['predict_pc']
+        train_valid = v['train_valid']
+        train_taken = v['train_taken']
+        train_mispredicted = v['train_mispredicted']
+        train_history = v['train_history']
+        train_pc = v['train_pc']
+        
+        if areset:
+            results.append({'predict_taken': 0, 'predict_history': 0})
+            ghr = 0
+            pht = [1] * 128
+            continue
+        
+        if predict_valid:
+            idx = (predict_pc ^ ghr) & 0x7F
+            predict_taken = 1 if pht[idx] >= 2 else 0
+            predict_history = ghr
+        else:
+            predict_taken = 0
+            predict_history = 0
+        
+        results.append({'predict_taken': predict_taken, 'predict_history': predict_history})
+        
+        if train_valid:
+            tidx = (train_pc ^ train_history) & 0x7F
+            if train_taken:
+                pht[tidx] = min(pht[tidx] + 1, 3)
+            else:
+                pht[tidx] = max(pht[tidx] - 1, 0)
+        
+        if train_valid and train_mispredicted:
+            ghr = train_history & 0x7F
+        elif predict_valid:
+            ghr = ((ghr << 1) | predict_taken) & 0x7F
+    
+    return results
+```
+
+Wait, I need to double-check the reset behavior. The reset is asynchronous active-high. In my model, if areset=1 in a cycle, I reset state and output 0/0. But what if areset goes high mid-cycle? The vectors don't capture that. I'll assume areset is stable.
+
+Also, the "first_released_cycle": "cycle after areset deasserts". So if areset=1 in cycle 0 and areset=0 in cycle 1, then cycle 1 is the first released cycle. My code handles this: cycle 0 resets, cycle 1 operates normally.
+
+One more thing: the reset values for predict_taken and predict_history are 0. My code outputs 0/0 when areset=1. ✓
+
+I think this is correct. Let me also consider: should the PHT training happen when areset=1? No, reset overrides. My code does `continue` after reset, so no training. ✓
+
+Should the GHR update happen when areset=1? No. ✓
+
+OK, I'm confident. Let me write the final JSON.
+
+Actually, wait. Let me reconsider the R3 behavior one more time. The R3 uncertainty note says "assumed predict_taken=0 and predict_history=current ghr". But my implementation gives predict_history=0 when predict_valid=0. The R5 and R7 examples support predict_history=0. But R3's note says current ghr. 
+
+If I implement predict_history=current ghr when predict_valid=0, then R5 cycle 1 would give predict_history=3 (ghr=3), but expected is 0. So that fails.
+
+If I implement predict_history=0 when predict_valid=0, all examples pass. So I'll go with that.
+
+But wait, maybe the R5 example is from a model where R5 doesn't update ghr? No, R5 is a rule.
+
+Or maybe the R5 example is just wrong? But all four models have the same example. So it's likely intentional.
+
+I'll go with predict_history=0 when predict_valid=0.
+
+Hmm, but actually, let me reconsider. Maybe the R5 example is testing that ghr is NOT updated by train_mispredicted when predict_valid=0? No, R5 says ghr = train_history regardless of predict_valid.
+
+Or maybe the R5 example is from a model where train_mispredicted only updates ghr if predict_valid=1? No, R5 doesn't have that condition.
+
+I think the examples are just showing that predict_history=0 when predict_valid=0. I'll implement that.
+
+Let me also check: in R5 cycle 1, if predict_history=ghr=3, the expected would be 3, not 0. So the example clearly expects 0. I'll implement 0.
+
+OK, final code. I'll use the same for all four models.
+
+Actually, one more thought: maybe the R5 example is from a model where the reset is still active in cycle 1? No, areset=0 in cycle 1.
+
+Or maybe the R5 example is from a model where train_history=3 is somehow not loaded because train_valid is not set? No, train_valid=1.
+
+I'll stick with my implementation.
+
+Let me also double-check the PHT index for training: "indexed by (pc[6:0] XOR ghr[6:0])". For training, the ghr value is train_history. So index = train_pc ^ train_history. Yes.
+
+And for prediction: index = predict_pc ^ ghr. Yes.
+
+OK, I'm done. Let me write the JSON.
+
+```json
+{"models":{"98d56a0d17b1b8361d":"def reference(vectors):\n    ghr = 0\n    pht = [1] * 128\n    results = []\n    for v in vectors:\n        areset = v['areset']\n        predict_valid = v['predict_valid']\n        predict_pc = v['predict_pc']\n        train_valid = v['train_valid']\n        train_taken = v['train_taken']\n        train_mispredicted = v['train_mispredicted']\n        train_history = v['train_history']\n        train_pc = v['train_pc']\n        if areset:\n            results.append({'predict_taken': 0, 'predict_history': 0})\n            ghr = 0\n            pht = [1] * 128\n            continue\n        if predict_valid:\n            idx = (predict_pc ^ ghr) & 0x7F\n            predict_taken = 1 if pht[idx] >= 2 else 0\n            predict_history = ghr\n        else:\n            predict_taken = 0\n            predict_history = 0\n        results.append({'predict_taken': predict_taken, 'predict_history': predict_history})\n        if train_valid:\n            tidx = (train_pc ^ train_history) & 0x7F\n            if train_taken:\n                pht[tidx] = min(pht[tidx] + 1, 3)\n            else:\n                pht[tidx] = max(pht[tidx] - 1, 0)\n        if train_valid and train_mispredicted:\n            ghr = train_history & 0x7F\n        elif predict_valid:\n            ghr = ((ghr << 1) | predict_taken) & 0x7F\n    return results\n","1e056b6f527ff21ad2":"def reference(vectors):\n    ghr = 0\n    pht = [1] * 128\n    results = []\n    for v in vectors:\n        areset = v['areset']\n        predict_valid = v['predict_valid']\n        predict_pc = v['predict_pc']\n        train_valid = v['train_valid']\n        train_taken = v['train_taken']\n        train_mispredicted = v['train_mispredicted']\n        train_history = v['train_history']\n        train_pc = v['train_pc']\n        if areset:\n            results.append({'predict_taken': 0, 'predict_history': 0})\n            ghr = 0\n            pht = [1] * 128\n            continue\n        if predict_valid:\n            idx = (predict_pc ^ ghr) & 0x7F\n            predict_taken = 1 if pht[idx] >= 2 else 0\n            predict_history = ghr\n        else:\n            predict_taken = 0\n            predict_history = 0\n        results.append({'predict_taken': predict_taken, 'predict_history': predict_history})\n        if train_valid:\n            tidx = (train_pc ^ train_history) & 0x7F\n            if train_taken:\n                pht[tidx] = min(pht[tidx] + 1, 3)\n            else:\n                pht[tidx] = max(pht[tidx] - 1, 0)\n        if train_valid and train_mispredicted:\n            ghr = train_history & 0x7F\n        elif predict_valid:\n            ghr = ((ghr << 1) | predict_taken) & 0x7F\n    return results\n","5179a803096c0a8f19":"def reference(vectors):\n    ghr = 0\n    pht = [1] * 128\n    results = []\n    for v in vectors:\n        areset = v['areset']\n        predict_valid = v['predict_valid']\n        predict_pc = v['predict_pc']\n        train_valid = v['train_valid']\n        train_taken = v['train_taken']\n        train_mispredicted = v['train_mispredicted']\n        train_history = v['train_history']\n        train_pc = v['train_pc']\n        if areset:\n            results.append({'predict_taken': 0, 'predict_history': 0})\n            ghr = 0\n            pht = [1] * 128\n            continue\n        if predict_valid:\n            idx = (predict_pc ^ ghr) & 0x7F\n            predict_taken = 1 if pht[idx] >= 2 else 0\n            predict_history = ghr\n        else:\n            predict_taken = 0\n            predict_history = 0\n        results.append({'predict_taken': predict_taken, 'predict_history': predict_history})\n        if train_valid:\n            tidx = (train_pc ^ train_history) & 0x7F\n            if train_taken:\n                pht[tidx] = min(pht[tidx] + 1, 3)\n            else:\n                pht[tidx] = max(pht[tidx] - 1, 0)\n        if train_valid and train_mispredicted:\n            ghr = train_history & 0x7F\n        elif predict_valid:\n            ghr = ((ghr << 1) | predict_taken) & 0x7F\n    return results\n","5efa323a86a43acd0b":"def reference(vectors):\n    ghr = 0\n    pht = [1] * 128\n    results = []\n    for v in vectors:\n        areset = v['areset']\n        predict_valid = v['predict_valid']\n        predict_pc = v['predict_pc']\n        train_valid = v['train_valid']\n        train_taken = v['train_taken']\n        train_mispredicted = v['train_mispredicted']\n        train_history = v['train_history']\n        train_pc = v['train_pc']\n        if areset:\n            results.append({'predict_taken': 0, 'predict_history': 0})\n            ghr = 0\n            pht = [1] * 128\n            continue\n        if predict_valid:\n            idx = (predict_pc ^ ghr) & 0x7F\n            predict_taken = 1 if pht[idx] >= 2 else 0\n            predict_history = ghr\n        else:\n            predict_taken = 0\n            predict_history = 0\n        results.append({'predict_taken': predict_taken, 'predict_history': predict_history})\n        if train_valid:\n            tidx = (train_pc ^ train_history) & 0x7F\n            if train_taken:\n                pht[tidx] = min(pht[tidx] + 1, 3)\n            else:\n                pht[tidx] = max(pht[tidx] - 1, 0)\n        if train_valid and train_mispredicted:\n            ghr = train_history & 0x7F\n        elif predict_valid:\n            ghr = ((ghr << 1) | predict_taken) & 0x7F\n    return results\n"}}
+```
+
+Wait, I should double-check that the JSON is valid. The strings contain newlines and quotes. I need to escape them properly. In JSON, newlines in strings must be `\n`, and double quotes must be `\"`. Let me make sure the Python code doesn't contain any double quotes that would break the JSON. The Python code uses single quotes for dict keys and strings, so no double quotes. Good.
+
+But the JSON itself uses double quotes for keys and string values. The Python code is a string value, so it's enclosed in double quotes. Any double quotes inside the Python code would need escaping. Since the Python code uses only single quotes, there are no double quotes inside. Good.
+
+Let me also make sure there are no backslashes that need escaping. The Python code has `\n` in the JSON string, which represents a newline. That's fine.
+
+Actually, I realize I should write the JSON with the Python code as a single-line string with `\n` for newlines. Let me format it properly.
+
+Let me write the final answer. I'll use the same code for all four models since they have identical semantics based on the examples.
+
+Actually, wait. Let me reconsider whether the four models really have identical semantics. The uncertainty notes differ, but the examples are the same. Since the examples are the ground truth for testing, and my implementation passes all examples, it should pass for all four models. The uncertainty notes are just describing what's uncertain, not what the correct behavior is. The correct behavior is determined by the examples (and the rules). Since all four models have the same rules and examples, they should have the same behavior.
+
+But wait, model 5179a803096c0a8f19 has an additional R5 uncertainty about whether ghr = train_history or ghr = (train_history << 1) | train_taken. The R5 example doesn't discriminate because predict_valid=0 gives predict_history=0 in both cases. But the R5 rule text says "train_history is the GHR value immediately after the mispredicting branch, loaded directly into ghr". So ghr = train_history. I'll use that.
+
+OK, I'm confident. Let me write the final JSON.
+
+One more thing: the problem says "For every assigned item, implement its exact state semantics independently with the same interface." So I need to provide a separate implementation for each model, even if they're identical. I'll provide the same code for all four.
+
+Let me also make sure the code doesn't have any issues with the `min` and `max` functions. They're built-in, so no imports needed. Good.
+
+Final check: the code uses `v['areset']` etc. The vectors are dicts with these keys. Good.
+
+I'll now write the final JSON.

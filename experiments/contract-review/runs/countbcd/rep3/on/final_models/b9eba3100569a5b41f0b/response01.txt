@@ -1,0 +1,120 @@
+```python
+def reference(vectors):
+    # Initial state is taken as post-reset q=0, matching the BCD counter assumption.
+    q = 0
+    current_reset = 0
+
+    def apply_mid(changes):
+        nonlocal current_reset
+        if changes is None:
+            return
+        if isinstance(changes, dict):
+            if "reset" in changes:
+                current_reset = int(changes["reset"])
+            if "mid_reset" in changes:
+                current_reset = int(changes["mid_reset"])
+            if "mid" in changes:
+                apply_mid(changes["mid"])
+        elif isinstance(changes, (list, tuple)):
+            for item in changes:
+                apply_mid(item)
+        else:
+            current_reset = int(changes)
+
+    result = []
+
+    for row in vectors:
+        row_mid = None
+
+        if isinstance(row, dict):
+            # Inputs driven before the sampled posedge.
+            if "reset" in row:
+                current_reset = int(row["reset"])
+
+            # Optional mid input changes occur after sampling.
+            if "mid" in row:
+                row_mid = row["mid"]
+            elif "mid_inputs" in row:
+                row_mid = row["mid_inputs"]
+            elif "mid_changes" in row:
+                row_mid = row["mid_changes"]
+
+            if "mid_reset" in row:
+                extra = {"reset": row["mid_reset"]}
+                row_mid = extra if row_mid is None else [row_mid, extra]
+
+        elif isinstance(row, (list, tuple)):
+            if len(row) > 0:
+                edge_inputs = row[0]
+                if isinstance(edge_inputs, dict):
+                    if "reset" in edge_inputs:
+                        current_reset = int(edge_inputs["reset"])
+                else:
+                    current_reset = int(edge_inputs)
+            if len(row) > 1:
+                row_mid = row[1]
+
+        else:
+            current_reset = int(row)
+
+        # Rule q_sync_reset (priority 1): synchronous active-high reset at posedge.
+        # Rule q_bcd_count (priority 2): otherwise perform a 4-digit BCD increment.
+        if current_reset:
+            q = 0
+        else:
+            d0 = q & 0xF
+            d1 = (q >> 4) & 0xF
+            d2 = (q >> 8) & 0xF
+            d3 = (q >> 12) & 0xF
+
+            carry = 1
+
+            if carry:
+                if d0 == 9:
+                    d0 = 0
+                else:
+                    d0 += 1
+                    carry = 0
+
+            if carry:
+                if d1 == 9:
+                    d1 = 0
+                else:
+                    d1 += 1
+                    carry = 0
+
+            if carry:
+                if d2 == 9:
+                    d2 = 0
+                else:
+                    d2 += 1
+                    carry = 0
+
+            if carry:
+                if d3 == 9:
+                    d3 = 0
+                else:
+                    d3 += 1
+                    carry = 0
+
+            q = d0 | (d1 << 4) | (d2 << 8) | (d3 << 12)
+
+        # Rule ena_upper_digit_increment (priority 3):
+        # combinational from settled q after the posedge update.
+        d0 = q & 0xF
+        d1 = (q >> 4) & 0xF
+        d2 = (q >> 8) & 0xF
+
+        e0 = 1 if d0 == 9 else 0
+        e1 = 1 if (d0 == 9 and d1 == 9) else 0
+        e2 = 1 if (d0 == 9 and d1 == 9 and d2 == 9) else 0
+
+        ena = e0 | (e1 << 1) | (e2 << 2)
+
+        result.append({"q": q, "ena": ena})
+
+        # Mid changes are carried to the start of the next row.
+        apply_mid(row_mid)
+
+    return result
+```

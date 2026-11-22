@@ -1,0 +1,208 @@
+{
+  "ports": {
+    "inputs": {
+      "reset": 1,
+      "data": 1
+    },
+    "outputs": {
+      "start_shifting": 1
+    },
+    "clock": "clk"
+  },
+  "states": [
+    {
+      "name": "S0",
+      "meaning": "Initial/reset state: no nonempty suffix of the received stream matches a prefix of 1101; start_shifting=0. On posedge: reset==1 forces S0; else data==1 -> S1, data==0 -> S0.",
+      "update_time": "posedge clk; synchronous reset forces S0",
+      "update_during_reset": true
+    },
+    {
+      "name": "S1",
+      "meaning": "Last received bit is the first 1 of 1101; start_shifting=0. On posedge with reset==0: data==1 -> S2, data==0 -> S0.",
+      "update_time": "posedge clk when reset==0",
+      "update_during_reset": false
+    },
+    {
+      "name": "S2",
+      "meaning": "Last two received bits are 11; start_shifting=0. On posedge with reset==0: data==0 -> S3, data==1 -> S2.",
+      "update_time": "posedge clk when reset==0",
+      "update_during_reset": false
+    },
+    {
+      "name": "S3",
+      "meaning": "Last three received bits are 110; start_shifting=0. On posedge with reset==0: data==1 -> S4, data==0 -> S0.",
+      "update_time": "posedge clk when reset==0",
+      "update_during_reset": false
+    },
+    {
+      "name": "S4",
+      "meaning": "Sequence 1101 has been found; start_shifting is latched at 1. On posedge: reset==1 -> S0; else any data stays S4 and start_shifting remains 1.",
+      "update_time": "posedge clk when reset==0",
+      "update_during_reset": false
+    }
+  ],
+  "rules": [
+    {
+      "id": "R1_reset_clear",
+      "outputs": [
+        "start_shifting"
+      ],
+      "condition": "On a posedge with reset==1, reset has priority: state becomes S0 and start_shifting becomes 0 after the edge regardless of data.",
+      "edge": "posedge",
+      "visible": "same_cycle",
+      "priority": 1,
+      "spec_quote": "Reset is active high synchronous.",
+      "uncertain": true,
+      "example": {
+        "vectors": [
+          {
+            "reset": 1,
+            "data": 0
+          },
+          {
+            "reset": 0,
+            "data": 1
+          }
+        ],
+        "expected": [
+          {
+            "start_shifting": 0
+          },
+          {
+            "start_shifting": 0
+          }
+        ]
+      }
+    },
+    {
+      "id": "R2_detect_set_and_hold",
+      "outputs": [
+        "start_shifting"
+      ],
+      "condition": "On a posedge with reset==0, if state==S4 or (state==S3 and data==1), then after the edge start_shifting=1 and state is S4; while reset==0, S4 holds start_shifting=1 for all data.",
+      "edge": "posedge",
+      "visible": "same_cycle",
+      "priority": 2,
+      "spec_quote": "When the sequence is found, it should set start_shifting to 1, forever, until reset.",
+      "uncertain": false,
+      "example": {
+        "vectors": [
+          {
+            "reset": 0,
+            "data": 1
+          },
+          {
+            "reset": 0,
+            "data": 1
+          },
+          {
+            "reset": 0,
+            "data": 0
+          },
+          {
+            "reset": 0,
+            "data": 1
+          }
+        ],
+        "expected": [
+          {
+            "start_shifting": 0
+          },
+          {
+            "start_shifting": 0
+          },
+          {
+            "start_shifting": 0
+          },
+          {
+            "start_shifting": 1
+          }
+        ]
+      }
+    },
+    {
+      "id": "R3_default_zero_while_searching",
+      "outputs": [
+        "start_shifting"
+      ],
+      "condition": "On a posedge with reset==0 and not [state==S4 or (state==S3 and data==1)], after the edge start_shifting=0; state follows the 1101-prefix transitions: S0+0->S0, S0+1->S1, S1+0->S0, S1+1->S2, S2+0->S3, S2+1->S2, S3+0->S0.",
+      "edge": "posedge",
+      "visible": "same_cycle",
+      "priority": 3,
+      "spec_quote": "searches for the sequence 1101",
+      "uncertain": true,
+      "example": {
+        "vectors": [
+          {
+            "reset": 0,
+            "data": 0
+          },
+          {
+            "reset": 0,
+            "data": 1
+          },
+          {
+            "reset": 0,
+            "data": 0
+          }
+        ],
+        "expected": [
+          {
+            "start_shifting": 0
+          },
+          {
+            "start_shifting": 0
+          },
+          {
+            "start_shifting": 0
+          }
+        ]
+      }
+    }
+  ],
+  "reset": {
+    "kind": "sync",
+    "name": "reset",
+    "active": "high",
+    "values": {
+      "start_shifting": 0
+    },
+    "first_released_cycle": "The first posedge with reset==0 after a posedge with reset==1; on that edge reset is released and the FSM processes data from S0: data==1 -> S1, data==0 -> S0, with start_shifting=0 after the edge."
+  },
+  "mid": "If a vector has mid, it changes reset/data after the sampled posedge and before the next posedge; the changed values are carried to the start of the next row's pre-edge inputs.",
+  "uncertain": [
+    {
+      "rule_id": "R1_reset_clear",
+      "note": "The spec states synchronous active-high reset and that the found condition lasts until reset, but it does not explicitly state the reset value of start_shifting; this contract chooses 0 on reset.",
+      "candidates": [
+        "start_shifting=0 after reset",
+        "start_shifting retains previous value after reset",
+        "start_shifting undefined after reset"
+      ]
+    },
+    {
+      "rule_id": "R3_default_zero_while_searching",
+      "note": "The spec says start_shifting is set to 1 when 1101 is found and held until reset, but it does not explicitly state the pre-detection/default value; this contract chooses 0 before detection.",
+      "candidates": [
+        "start_shifting=0 before detection",
+        "start_shifting=1 before detection",
+        "start_shifting undefined before detection"
+      ]
+    }
+  ],
+  "remaining_uncertain_fields": {
+    "R1_reset_clear": [
+      "start_shifting=0 after reset",
+      "start_shifting retains previous value after reset",
+      "start_shifting undefined after reset",
+      "Reset terminates the found-hold but does not clear start_shifting, so it remains 1 after reset."
+    ],
+    "R3_default_zero_while_searching": [
+      "start_shifting=0 before detection",
+      "start_shifting=1 before detection",
+      "start_shifting undefined before detection",
+      "start_shifting initializes to 1 before any detection and remains 1 until reset."
+    ]
+  },
+  "selected_interpretations": []
+}

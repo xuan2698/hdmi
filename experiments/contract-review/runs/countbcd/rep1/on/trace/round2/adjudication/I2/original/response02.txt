@@ -1,0 +1,56 @@
+```python
+def reference(vectors):
+    # Rule reset: synchronous active-high reset; q becomes 0, ena becomes 0 after q settles.
+    # Rule bcd_increment: BCD add 1 modulo 10000, wrap 0x9999 -> 0x0000.
+    # Rule ena_combinational: ena[0]=ones==9; ena[1]=tens==9 and ones==9; ena[2]=hundreds==9 and tens==9 and ones==9.
+    q = 0  # power-up assumed 0
+    current_reset = 0
+    result = []
+    for row in vectors:
+        mid = None
+        if type(row) is dict:
+            if 'reset' in row:
+                current_reset = row['reset'] & 1
+            if 'mid' in row:
+                mid = row['mid']
+        # At posedge clk, sample reset and update state.
+        if current_reset:
+            # Rule reset
+            q = 0
+        else:
+            # Rule bcd_increment
+            ones = q & 0xF
+            tens = (q >> 4) & 0xF
+            hundreds = (q >> 8) & 0xF
+            thousands = (q >> 12) & 0xF
+            if ones < 9:
+                q += 1
+            elif tens < 9:
+                q = (q & 0xFFF0) + 0x10
+            elif hundreds < 9:
+                q = (q & 0xFF00) + 0x100
+            elif thousands < 9:
+                q = (q & 0xF000) + 0x1000
+            else:
+                q = 0
+        # Rule ena_combinational
+        ones = q & 0xF
+        tens = (q >> 4) & 0xF
+        hundreds = (q >> 8) & 0xF
+        ena = 0
+        if ones == 9:
+            ena |= 1
+        if tens == 9 and ones == 9:
+            ena |= 2
+        if hundreds == 9 and tens == 9 and ones == 9:
+            ena |= 4
+        result.append({'q': q, 'ena': ena})
+        # Apply mid changes after sampling, carried to start of next row.
+        if mid is not None:
+            if type(mid) is dict:
+                if 'reset' in mid:
+                    current_reset = mid['reset'] & 1
+            elif type(mid) is int:
+                current_reset = mid & 1
+    return result
+```

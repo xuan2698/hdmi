@@ -1,0 +1,57 @@
+{
+  "module_name": "top_module",
+  "io": [
+    {
+      "name": "clk",
+      "dir": "input",
+      "width": 1,
+      "description": "Clock signal; all sampling occurs on the posedge."
+    },
+    {
+      "name": "reset",
+      "dir": "input",
+      "width": 1,
+      "description": "Active-high synchronous reset; when asserted at a posedge, all out bits are cleared to 0."
+    },
+    {
+      "name": "in",
+      "dir": "input",
+      "width": 32,
+      "description": "32-bit input vector sampled on each posedge."
+    },
+    {
+      "name": "out",
+      "dir": "output",
+      "width": 32,
+      "description": "32-bit output vector; each bit is set to 1 when the corresponding in bit transitions from 1 to 0 between consecutive posedges, and remains 1 until reset."
+    }
+  ],
+  "clocking": {
+    "clock": {
+      "name": "clk",
+      "edge": "posedge"
+    },
+    "reset": {
+      "name": "reset",
+      "active": "high",
+      "kind": "synchronous"
+    }
+  },
+  "timing": {
+    "outputs": {
+      "out": {
+        "latency_cycles": 1
+      }
+    }
+  },
+  "functional_summary": {
+    "overview": "Detects 1-to-0 transitions on each bit of a 32-bit input across consecutive clock cycles. When a bit of in is 1 at one posedge and 0 at the next posedge, the corresponding out bit is set to 1 and latched until an active-high synchronous reset clears it.",
+    "rules": [
+      "On each posedge of clk, if reset is high, out is set to 0 (all 32 bits cleared).",
+      "Otherwise, for each bit i in [0,31]: if in[i] was 1 at the previous posedge and is 0 at the current posedge, then out[i] is set to 1.",
+      "Once an out bit is set to 1, it remains 1 on subsequent posedges until cleared by reset, regardless of further in transitions.",
+      "out bits not triggered by a 1-to-0 transition retain their previous value (sticky behavior).",
+      "The first cycle after reset has no prior in value; no transition is detected on that cycle (out stays 0 unless reset is asserted)."
+    ]
+  }
+}

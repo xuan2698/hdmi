@@ -1,0 +1,106 @@
+{
+  "ports": {
+    "inputs": {
+      "d": 8,
+      "reset": 1
+    },
+    "outputs": {
+      "q": 8
+    },
+    "clock": "clk"
+  },
+  "states": [
+    {
+      "name": "q",
+      "meaning": "8-bit D flip-flop output register; synchronous active-high reset loads 0x34 (52), otherwise loads d on the negative clock edge.",
+      "update_time": "negative edge of clk",
+      "update_during_reset": true
+    }
+  ],
+  "rules": [
+    {
+      "id": "sync_reset_to_34",
+      "outputs": [
+        "q"
+      ],
+      "condition": "reset == 1 at the sampled negative edge of clk",
+      "edge": "negedge",
+      "visible": "same_cycle",
+      "priority": 1,
+      "spec_quote": "active high synchronous reset. The flip-flops must be reset to 0x34 rather than zero.",
+      "uncertain": false,
+      "example": {
+        "vectors": [
+          {
+            "d": 0,
+            "reset": 1
+          },
+          {
+            "d": 255,
+            "reset": 1
+          }
+        ],
+        "expected": [
+          {
+            "q": 52
+          },
+          {
+            "q": 52
+          }
+        ]
+      }
+    },
+    {
+      "id": "load_d_on_negedge_when_not_reset",
+      "outputs": [
+        "q"
+      ],
+      "condition": "reset == 0 at the sampled negative edge of clk",
+      "edge": "negedge",
+      "visible": "same_cycle",
+      "priority": 2,
+      "spec_quote": "All DFFs should be triggered by the negative edge of clk.",
+      "uncertain": false,
+      "example": {
+        "vectors": [
+          {
+            "d": 17,
+            "reset": 0
+          },
+          {
+            "d": 0,
+            "reset": 0
+          },
+          {
+            "d": 255,
+            "reset": 0
+          }
+        ],
+        "expected": [
+          {
+            "q": 17
+          },
+          {
+            "q": 0
+          },
+          {
+            "q": 255
+          }
+        ]
+      }
+    }
+  ],
+  "reset": {
+    "kind": "sync",
+    "name": "reset",
+    "active": "high",
+    "values": {
+      "q": 52
+    },
+    "first_released_cycle": "first sampled negedge on which reset is low"
+  },
+  "mid": "Optional mid input changes occur after sampling, before the other edge, and are carried to the start of the next row; examples do not use mid changes.",
+  "uncertain": [],
+  "remaining_uncertain_fields": {},
+  "selected_interpretations": []
+}

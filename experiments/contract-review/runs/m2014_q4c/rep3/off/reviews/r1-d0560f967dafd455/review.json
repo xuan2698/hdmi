@@ -1,0 +1,45 @@
+{
+  "coverage": {
+    "S01": [
+      "R1_sync_reset",
+      "R2_capture_d"
+    ]
+  },
+  "issues": [
+    {
+      "issue_id": "I1",
+      "rule_id": "R1_sync_reset",
+      "type": "consistency",
+      "severity": "medium",
+      "detail": "Rule example expected q=0 on first vector with r=0, but no prior state is defined; a DFF with d=1,r=0 should capture 1, not 0.",
+      "spec_evidence": "Implement a simple D flip flop with active high synchronous reset (reset output to 0).",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I2",
+      "rule_id": "R2_capture_d",
+      "type": "consistency",
+      "severity": "medium",
+      "detail": "Rule example expected q=0 on first vector with d=0,r=0, but initial state is unspecified; expected value is not derivable from spec.",
+      "spec_evidence": "Implement a simple D flip flop with active high synchronous reset (reset output to 0).",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I3",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "low",
+      "detail": "Initial power-up state of Q is unspecified; contract examples assume q=0 before any reset.",
+      "spec_evidence": "Implement a simple D flip flop with active high synchronous reset (reset output to 0).",
+      "alternative": "Q initializes to 1 at time zero before any clock edge.",
+      "sequence": [
+        {
+          "d": 0,
+          "r": 0
+        }
+      ]
+    }
+  ]
+}

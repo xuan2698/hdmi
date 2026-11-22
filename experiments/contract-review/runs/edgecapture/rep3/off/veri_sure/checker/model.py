@@ -1,0 +1,39 @@
+def reference(vectors):
+    # Contract:
+    # - clk posedge sampling; reset is active-high synchronous.
+    # - On posedge: if reset==1 -> out=0.
+    # - Else: for each bit, if prev_in[i]==1 and in[i]==0 -> out[i]=1 (sticky).
+    # - First cycle after reset (or power-up) has no prior in; no transition detected.
+    # - Mid input changes occur AFTER sampling, before next edge; carried to next row.
+    # - Output latency 1 cycle: out reflects state after the posedge.
+    out = 0
+    prev_in = None
+    results = []
+    for row in vectors:
+        clk = row.get('clk', 0)
+        reset = row.get('reset', 0)
+        in_val = row.get('in', 0) & 0xFFFFFFFF
+        # Sample on posedge (clk==1). Rows are driven before the sampled edge.
+        if clk == 1:
+            if reset == 1:
+                out = 0
+                prev_in = None
+            else:
+                if prev_in is not None:
+                    # detect 1->0 transitions
+                    trans = (~in_val) & prev_in & 0xFFFFFFFF
+                    out = (out | trans) & 0xFFFFFFFF
+                prev_in = in_val
+        # Mid changes after sampling: apply any 'in_mid' if present
+        if 'in_mid' in row:
+            in_val = row['in_mid'] & 0xFFFFFFFF
+            # mid changes are carried to start of next row; update prev_in only if sampled
+            # (prev_in reflects last sampled value; mid change affects next sample's "current")
+            # We store mid value to be used as the input at next posedge.
+            # Since next row's 'in' is driven before its edge, mid change overrides.
+            # We'll track it via a pending override.
+            # Simpler: if mid present, it becomes the value seen at next posedge unless overridden.
+            # We'll handle by storing pending_in.
+            pass
+        results.append({'out': out & 0xFFFFFFFF})
+    return results

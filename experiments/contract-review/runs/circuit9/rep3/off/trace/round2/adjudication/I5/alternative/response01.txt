@@ -1,0 +1,28 @@
+```python
+def reference(vectors):
+    # Contract implementation.
+    # State: count = 3-bit counter stored in q; initial value 4 (no reset).
+    # Rule hold_when_a_high: on posedge, if a==1, q holds.
+    # Rule increment_when_a_low: on posedge, if a==0, q increments by 1 (mod 8).
+    # Candidate interpretation "global": increment on a=0 posedge except skip when q==4
+    #   (or skip first a=0 after a=1). We implement: skip increment when q==4.
+    # Mid changes occur after sampling, carried to next row.
+
+    q = 4  # initial state (no physical reset)
+    out = []
+
+    for row in vectors:
+        a = row.get('a', 0)
+        # posedge sampling: apply transition based on current a
+        if a == 1:
+            # hold_when_a_high
+            pass
+        else:
+            # increment_when_a_low with candidate interpretation:
+            # skip increment when q == 4
+            if q != 4:
+                q = (q + 1) & 0x7
+        out.append({'q': q})
+
+    return out
+```

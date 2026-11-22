@@ -1,0 +1,49 @@
+{
+  "coverage": {
+    "S01": [
+      "R_NORMAL",
+      "R_RESET"
+    ],
+    "S02": [
+      "R_NORMAL"
+    ],
+    "S03": [
+      "R_NORMAL",
+      "R_RESET"
+    ],
+    "S04": [
+      "R_RESET"
+    ]
+  },
+  "issues": [
+    {
+      "issue_id": "I1",
+      "rule_id": "R_NORMAL",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Rule fixes 12-hour wrap/PM-toggle point; spec only says 12-hour clock with am/pm, so hour rollover point is not explicit.",
+      "spec_evidence": "Create a set of counters suitable for use as a 12-hour clock (with am/pm indicator).",
+      "alternative": "Hour wraps 12->01 immediately on the first increment after reset 12:00:00, instead of after 12:59:59.",
+      "sequence": [
+        {
+          "reset": 1,
+          "ena": 0
+        },
+        {
+          "reset": 0,
+          "ena": 1
+        }
+      ]
+    },
+    {
+      "issue_id": "I2",
+      "rule_id": "R_NORMAL",
+      "type": "consistency",
+      "severity": "low",
+      "detail": "R_NORMAL example first vector has reset=1 while R_NORMAL condition requires reset==0; expected outputs rely on R_RESET.",
+      "spec_evidence": "Reset has higher priority than enable and can occur even when not enabled.",
+      "alternative": "",
+      "sequence": []
+    }
+  ]
+}

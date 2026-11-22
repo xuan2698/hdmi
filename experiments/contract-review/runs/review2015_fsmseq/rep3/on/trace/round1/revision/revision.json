@@ -1,0 +1,44 @@
+{
+  "responses": [
+    {
+      "issue_id": "A1",
+      "decision": "rebut",
+      "reason": "The current contract already records this ambiguity for R1_reset_clear and includes the alternative where start_shifting retains its pre-reset value as a candidate; it also explicitly chooses 0 on reset. No field change is needed.",
+      "spec_quote": "Reset is active high synchronous.",
+      "edits": []
+    },
+    {
+      "issue_id": "A2",
+      "decision": "accept",
+      "reason": "The current uncertain entry for R3_default_zero_while_searching lists 0 and undefined before detection, but not the plausible alternative that start_shifting is 1 before detection. Add that candidate while preserving the chosen behavior.",
+      "spec_quote": "When the sequence is found, it should set start_shifting to 1, forever, until reset.",
+      "edits": [
+        {
+          "path": [
+            "uncertain"
+          ],
+          "value": [
+            {
+              "rule_id": "R1_reset_clear",
+              "note": "The spec states synchronous active-high reset and that the found condition lasts until reset, but it does not explicitly state the reset value of start_shifting; this contract chooses 0 on reset.",
+              "candidates": [
+                "start_shifting=0 after reset",
+                "start_shifting retains previous value after reset",
+                "start_shifting undefined after reset"
+              ]
+            },
+            {
+              "rule_id": "R3_default_zero_while_searching",
+              "note": "The spec says start_shifting is set to 1 when 1101 is found and held until reset, but it does not explicitly state the pre-detection/default value; this contract chooses 0 before detection.",
+              "candidates": [
+                "start_shifting=0 before detection",
+                "start_shifting=1 before detection",
+                "start_shifting undefined before detection"
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

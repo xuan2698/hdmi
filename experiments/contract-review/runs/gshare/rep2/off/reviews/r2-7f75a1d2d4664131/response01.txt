@@ -1,0 +1,116 @@
+{
+  "coverage": {
+    "S01": ["R2_predict", "R6_pht_train"],
+    "S02": ["R6_pht_train"],
+    "S03": ["R4_ghr_update_predict", "R5_ghr_update_train_mispredicted"],
+    "S04": ["R2_predict", "R6_pht_train"],
+    "S05": ["R2_predict"],
+    "S06": ["R6_pht_train"],
+    "S07": ["R6_pht_train"],
+    "S08": ["R2_predict"],
+    "S09": ["R4_ghr_update_predict"],
+    "S10": ["R5_ghr_update_train_mispredicted", "R6_pht_train"],
+    "S11": ["R6_pht_train"],
+    "S12": ["R5_ghr_update_train_mispredicted"],
+    "S13": ["R7_train_priority_over_predict"],
+    "S14": ["R7_train_priority_over_predict"],
+    "S15": ["R6_pht_train"],
+    "S16": ["R6_pht_train"],
+    "S17": ["R6_pht_train"],
+    "S18": ["R1_reset"]
+  },
+  "issues": [
+    {
+      "issue_id": "I1",
+      "rule_id": "R6_pht_train",
+      "type": "grounding",
+      "severity": "high",
+      "detail": "R6 example expects predict_taken=1 after training with train_taken=1, but no rule specifies counter increment/decrement or initial counter value.",
+      "spec_evidence": "Update the pattern history table (PHT) to train the branch predictor to predict this branch more accurately next time.",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I2",
+      "rule_id": "R5_ghr_update_train_mispredicted",
+      "type": "grounding",
+      "severity": "high",
+      "detail": "R5 says recover GHR to state after mispredicting branch but never defines how train_history and train_taken produce that state.",
+      "spec_evidence": "recover the branch history register to the state immediately after the mispredicting branch completes execution",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I3",
+      "rule_id": "R7_train_priority_over_predict",
+      "type": "consistency",
+      "severity": "medium",
+      "detail": "R7 example has predict_valid=1 and train_mispredicted=1 but expected predict_history=0; R2 would output current GHR, and no rule states prediction outputs are suppressed.",
+      "spec_evidence": "When this happens, training takes precedence, because the branch being predicted will be discarded anyway.",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I4",
+      "rule_id": "R3_predict_no_valid",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec only defines prediction when predict_valid=1; contract assumes outputs when predict_valid=0.",
+      "spec_evidence": "When a branch prediction is requested (predict_valid = 1)",
+      "alternative": "Outputs hold their previous values when predict_valid=0.",
+      "sequence": [
+        {"areset":0,"predict_valid":1,"predict_pc":0,"train_valid":0,"train_taken":0,"train_mispredicted":0,"train_history":0,"train_pc":0},
+        {"areset":0,"predict_valid":0,"predict_pc":0,"train_valid":0,"train_taken":0,"train_mispredicted":0,"train_history":0,"train_pc":0}
+      ]
+    },
+    {
+      "issue_id": "I5",
+      "rule_id": "R6_pht_train",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec does not define PHT counter update direction, saturation, or initial state; contract omits these semantics.",
+      "spec_evidence": "Update the pattern history table (PHT) to train the branch predictor to predict this branch more accurately next time.",
+      "alternative": "Training increments a 2-bit counter on taken and decrements on not-taken, saturating at 0/3, with initial state 0.",
+      "sequence": [
+        {"areset":0,"predict_valid":0,"predict_pc":0,"train_valid":1,"train_taken":1,"train_mispredicted":0,"train_history":0,"train_pc":0},
+        {"areset":0,"predict_valid":1,"predict_pc":0,"train_valid":0,"train_taken":0,"train_mispredicted":0,"train_history":0,"train_pc":0}
+      ]
+    },
+    {
+      "issue_id": "I6",
+      "rule_id": "R5_ghr_update_train_mispredicted",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec does not define how to compute recovered GHR from train_history and train_taken.",
+      "spec_evidence": "recover the branch history register to the state immediately after the mispredicting branch completes execution",
+      "alternative": "Recovered GHR = (train_history << 1) | train_taken.",
+      "sequence": [
+        {"areset":0,"predict_valid":0,"predict_pc":0,"train_valid":1,"train_taken":1,"train_mispredicted":1,"train_history":3,"train_pc":7},
+        {"areset":0,"predict_valid":1,"predict_pc":0,"train_valid":0,"train_taken":0,"train_mispredicted":0,"train_history":0,"train_pc":0}
+      ]
+    },
+    {
+      "issue_id": "I7",
+      "rule_id": "R4_ghr_update_predict",
+      "type": "ambiguity",
+      "severity": "low",
+      "detail": "Spec says GHR updated for predicted branch but does not explicitly state predicted direction is inserted at LSB.",
+      "spec_evidence": "The branch history register is then updated (at the next positive clock edge) for the predicted branch.",
+      "alternative": "GHR update uses predicted direction as new LSB: ghr_next = (ghr << 1) | predict_taken.",
+      "sequence": [
+        {"areset":0,"predict_valid":1,"predict_pc":0,"train_valid":0,"train_taken":0,"train_mispredicted":0,"train_history":0,"train_pc":0},
+        {"areset":0,"predict_valid":1,"predict_pc":0,"train_valid":0,"train_taken":0,"train_mispredicted":0,"train_history":0,"train_pc":0}
+      ]
+    },
+    {
+      "issue_id": "I8",
+      "rule_id": "R1_reset",
+      "type": "consistency",
+      "severity": "low",
+      "detail": "Contract states reset update_during_reset=true for ghr and pht, but spec only defines asynchronous active-high reset and output reset values.",
+      "spec_evidence": "Reset is asynchronous active-high.",
+      "alternative": "",
+      "sequence": []
+    }
+  ]
+}

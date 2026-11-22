@@ -1,0 +1,19 @@
+```python
+def reference(vectors):
+    # Contract implementation.
+    # R1: state (flip-flop) updates to a XOR b on posedge clk, visible next cycle.
+    # R2: q = a XOR b combinationally, visible same cycle.
+    # Reset: none. Power-up state unspecified -> use 0 as concrete value.
+    state = 0
+    out = []
+    for v in vectors:
+        a = v.get('a', 0) & 1
+        b = v.get('b', 0) & 1
+        # R2: combinational q from current inputs
+        q = a ^ b
+        # R1: state output reflects current flip-flop value (before this edge's update)
+        out.append({'q': q & 1, 'state': state & 1})
+        # R1: on posedge, state updates to a XOR b
+        state = a ^ b
+    return out
+```

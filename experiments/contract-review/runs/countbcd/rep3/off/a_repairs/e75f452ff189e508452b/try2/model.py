@@ -1,0 +1,58 @@
+def reference(vectors):
+    # State: 4-digit BCD counter value (16 bits)
+    # q[3:0]=ones, q[7:4]=tens, q[11:8]=hundreds, q[15:12]=thousands
+    state = {"q": 0}
+    out = []
+
+    def decode(q):
+        return (q & 0xF, (q >> 4) & 0xF, (q >> 8) & 0xF, (q >> 12) & 0xF)
+
+    def encode(o, t, h, th):
+        return (o & 0xF) | ((t & 0xF) << 4) | ((h & 0xF) << 8) | ((th & 0xF) << 12)
+
+    def compute_ena(q):
+        o, t, h, th = decode(q)
+        # R2_ones_ena: ena[0] always 1 when not reset
+        e0 = 1
+        # R3_tens_ena: ena[1] = 1 iff ones == 9
+        e1 = 1 if o == 9 else 0
+        # R4_hundreds_ena: ena[2] = 1 iff ones==9 and tens==9
+        e2 = 1 if (o == 9 and t == 9) else 0
+        return (e2 << 2) | (e1 << 1) | e0
+
+    for vec in vectors:
+        reset = vec.get("reset", 0)
+        # R1_reset: synchronous active-high reset -> outputs 0 same cycle
+        if reset == 1:
+            q_out = 0
+            ena_out = 0
+        else:
+            q_out = state["q"]
+            ena_out = compute_ena(q_out)
+        out.append({"q": q_out & 0xFFFF, "ena": ena_out & 0x7})
+
+        # R5_count: posedge update (next cycle visible)
+        if reset == 1:
+            state["q"] = 0
+        else:
+            o, t, h, th = decode(state["q"])
+            # ones always increments
+            o_new = (o + 1) % 10
+            # tens increments iff ones==9
+            if o == 9:
+                t_new = (t + 1) % 10
+            else:
+                t_new = t
+            # hundreds increments iff ones==9 and tens==9
+            if o == 9 and t == 9:
+                h_new = (h + 1) % 10
+            else:
+                h_new = h
+            # thousands increments iff ones==9, tens==9, hundreds==9
+            if o == 9 and t == 9 and h == 9:
+                th_new = (th + 1) % 10
+            else:
+                th_new = th
+            state["q"] = encode(o_new, t_new, h_new, th_new)
+
+    return out

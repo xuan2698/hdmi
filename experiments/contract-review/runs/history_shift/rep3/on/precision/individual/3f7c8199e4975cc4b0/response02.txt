@@ -1,0 +1,69 @@
+def reference(vectors):
+    # R1_async_reset: history_reg is forced to 0 while areset is active.
+    history_reg = 0
+    cur_areset = 0
+    cur_predict_valid = 0
+    cur_predict_taken = 0
+    cur_train_mispredicted = 0
+    cur_train_taken = 0
+    cur_train_history = 0
+    result = []
+    for row in vectors:
+        # Values driven before the sampled posedge edge.
+        if "areset" in row:
+            cur_areset = row["areset"]
+        if "predict_valid" in row:
+            cur_predict_valid = row["predict_valid"]
+        if "predict_taken" in row:
+            cur_predict_taken = row["predict_taken"]
+        if "train_mispredicted" in row:
+            cur_train_mispredicted = row["train_mispredicted"]
+        if "train_taken" in row:
+            cur_train_taken = row["train_taken"]
+        if "train_history" in row:
+            cur_train_history = row["train_history"]
+
+        # R1_async_reset: asynchronous reset before the edge.
+        if cur_areset == 1:
+            history_reg = 0
+
+        # Clocked update at posedge, with reset overriding all updates.
+        if cur_areset == 1:
+            # R1_async_reset
+            history_reg = 0
+        else:
+            if cur_train_mispredicted == 1:
+                # R2_train_mispredicted_load: train result has priority.
+                history_reg = ((cur_train_history << 1) | cur_train_taken) & 0xFFFFFFFF
+            else:
+                if cur_predict_valid == 1:
+                    # R3_predict_update: shift predicted direction into LSB.
+                    history_reg = ((history_reg << 1) | cur_predict_taken) & 0xFFFFFFFF
+                else:
+                    # R4_hold: no update.
+                    pass
+
+        # Sample output after the posedge has settled.
+        result.append({"predict_history": history_reg & 0xFFFFFFFF})
+
+        # Mid-cycle changes occur after sampling and carry to next row.
+        mid = row.get("mid")
+        if mid is not None:
+            if "areset" in mid:
+                cur_areset = mid["areset"]
+            if "predict_valid" in mid:
+                cur_predict_valid = mid["predict_valid"]
+            if "predict_taken" in mid:
+                cur_predict_taken = mid["predict_taken"]
+            if "train_mispredicted" in mid:
+                cur_train_mispredicted = mid["train_mispredicted"]
+            if "train_taken" in mid:
+                cur_train_taken = mid["train_taken"]
+            if "train_history" in mid:
+                cur_train_history = mid["train_history"]
+
+            # R1_async_reset: mid-cycle assertion takes effect immediately.
+            if cur_areset == 1:
+                history_reg = 0
+
+    return result

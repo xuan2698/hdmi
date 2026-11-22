@@ -1,0 +1,130 @@
+Looking at the four model variants, they differ in subtle ways. Let me analyze each:
+
+1. **d16b030d1f2ac7fd34**: R6 example expects `predict_taken: 0` after training with `train_taken=1` — this suggests the PHT update doesn't actually take effect (or the counter starts at 0 and one increment isn't enough to reach 2). This is inconsistent with a proper saturating counter (0→1, still predicts not-taken, so 0 is correct actually). Wait — counter starts at 0, increment to 1, predict_taken = (1>=2) = 0. So this is consistent.
+
+2. **7f75a1d2d4664131e7**: R6 example expects `predict_taken: 1` after one training with `train_taken=1`. This means the counter must reach ≥2 after one increment, OR the prediction threshold is different. This is inconsistent with standard 2-bit saturating counter starting at 0.
+
+3. **0e8dbaaa393cebbb73**: Same as #2 (R6 expects 1).
+
+4. **c77dc22b937c405495**: Same as #2 (R6 expects 1), but adds explicit ghr update formula `{train_history[5:0], train_taken}`.
+
+The spec says "two-bit saturating counters" initialized to 0, increment on taken. After one taken training: counter=1, predict_taken=(1>=2)=0. So model #1's R6 example is correct per spec. Models #2, #3, #4 have inconsistent R6 examples.
+
+However, the task asks me to implement each model's exact state semantics independently. The R6 example in models #2/#3/#4 showing predict_taken=1 after one training implies their PHT semantics differ — perhaps counters initialized to 1, or threshold is >=1, or increment is by 2. But the state description says "initialized to 0... increment if train_taken=1 (saturate at 3)... predict_taken = (counter >= 2)". That contradicts the example.
+
+Given the ambiguity, I'll implement the standard spec-compliant behavior (matching model #1's semantics) for all four, since the state descriptions are identical across all four models. The examples in #2/#3/#4 appear to be erroneous. The safest interpretation: implement per the written state semantics (counter init 0, saturating inc/dec, predict = counter>=2).
+
+Let me write the reference implementation:
+
+```python
+def reference(vectors):
+    # State
+    ghr = 0
+    pht = [0] * 128
+    outputs = []
+    
+    for v in vectors:
+        areset = v['areset']
+        predict_valid = v['predict_valid']
+        predict_pc = v['predict_pc']
+        train_valid = v['train_valid']
+        train_taken = v['train_taken']
+        train_mispredicted = v['train_mispredicted']
+        train_history = v['train_history']
+        train_pc = v['train_pc']
+        
+        # Asynchronous reset
+        if areset:
+            ghr = 0
+            pht = [0] * 128
+            outputs.append({'predict_taken': 0, 'predict_history': 0})
+            continue
+        
+        # Combinational prediction
+        if predict_valid:
+            idx = (predict_pc ^ ghr) & 0x7F
+            predict_taken = 1 if pht[idx] >= 2 else 0
+            predict_history = ghr
+        else:
+            predict_taken = 0
+            predict_history = ghr
+        
+        outputs.append({'predict_taken': predict_taken, 'predict_history': predict_history})
+        
+        # Sequential updates (posedge)
+        # PHT training
+        if train_valid:
+            tidx = (train_pc ^ train_history) & 0x7F
+            if train_taken:
+                if pht[tidx] < 3:
+                    pht[tidx] += 1
+            else:
+                if pht[tidx] > 0:
+                    pht[tidx] -= 1
+        
+        # GHR update: training mispredicted takes priority
+        if train_valid and train_mispredicted:
+            ghr = ((train_history << 1) | train_taken) & 0x7F
+        elif predict_valid and not train_valid:
+            ghr = ((ghr << 1) | predict_taken) & 0x7F
+    
+    return outputs
+```
+
+Wait — for the GHR update on predict, the spec says "shifted left on each predicted branch, with the predicted direction inserted at the LSB". The predicted direction is `predict_taken`. So `ghr = ((ghr << 1) | predict_taken) & 0x7F`. Good.
+
+For mispredicted training: "recover the branch history register to the state immediately after the mispredicting branch completes execution" — that's `{train_history[5:0], train_taken}` = `((train_history << 1) | train_taken) & 0x7F`. Good.
+
+Now, the four models have identical state semantics descriptions. The only differences are in the R6 example expected values (which are inconsistent with the written semantics in #2/#3/#4). Since the task says "implement its exact state semantics independently with the same interface" and the state semantics are identical, I'll produce the same implementation for all four. The examples are just illustrative and the written semantics govern.
+
+Actually, re-reading: "For every assigned item, implement its exact state semantics independently". The state semantics (the `states` array descriptions) are identical across all four. So the same implementation is correct for all four.
+
+Let me finalize:
+
+```python
+def reference(vectors):
+    ghr = 0
+    pht = [0] * 128
+    outputs = []
+    for v in vectors:
+        areset = v['areset']
+        predict_valid = v['predict_valid']
+        predict_pc = v['predict_pc']
+        train_valid = v['train_valid']
+        train_taken = v['train_taken']
+        train_mispredicted = v['train_mispredicted']
+        train_history = v['train_history']
+        train_pc = v['train_pc']
+        if areset:
+            ghr = 0
+            pht = [0] * 128
+            outputs.append({'predict_taken': 0, 'predict_history': 0})
+            continue
+        if predict_valid:
+            idx = (predict_pc ^ ghr) & 0x7F
+            predict_taken = 1 if pht[idx] >= 2 else 0
+            predict_history = ghr
+        else:
+            predict_taken = 0
+            predict_history = ghr
+        outputs.append({'predict_taken': predict_taken, 'predict_history': predict_history})
+        if train_valid:
+            tidx = (train_pc ^ train_history) & 0x7F
+            if train_taken:
+                if pht[tidx] < 3:
+                    pht[tidx] += 1
+            else:
+                if pht[tidx] > 0:
+                    pht[tidx] -= 1
+        if train_valid and train_mispredicted:
+            ghr = ((train_history << 1) | train_taken) & 0x7F
+        elif predict_valid and not train_valid:
+            ghr = ((ghr << 1) | predict_taken) & 0x7F
+    return outputs
+```
+
+This is the same for all four model IDs since their state semantics are identical.
+
+```json
+{"models":{"d16b030d1f2ac7fd34":"def reference(vectors):\n    ghr = 0\n    pht = [0] * 128\n    outputs = []\n    for v in vectors:\n        areset = v['areset']\n        predict_valid = v['predict_valid']\n        predict_pc = v['predict_pc']\n        train_valid = v['train_valid']\n        train_taken = v['train_taken']\n        train_mispredicted = v['train_mispredicted']\n        train_history = v['train_history']\n        train_pc = v['train_pc']\n        if areset:\n            ghr = 0\n            pht = [0] * 128\n            outputs.append({'predict_taken': 0, 'predict_history': 0})\n            continue\n        if predict_valid:\n            idx = (predict_pc ^ ghr) & 0x7F\n            predict_taken = 1 if pht[idx] >= 2 else 0\n            predict_history = ghr\n        else:\n            predict_taken = 0\n            predict_history = ghr\n        outputs.append({'predict_taken': predict_taken, 'predict_history': predict_history})\n        if train_valid:\n            tidx = (train_pc ^ train_history) & 0x7F\n            if train_taken:\n                if pht[tidx] < 3:\n                    pht[tidx] += 1\n            else:\n                if pht[tidx] > 0:\n                    pht[tidx] -= 1\n        if train_valid and train_mispredicted:\n            ghr = ((train_history << 1) | train_taken) & 0x7F\n        elif predict_valid and not train_valid:\n            ghr = ((ghr << 1) | predict_taken) & 0x7F\n    return outputs\n","7f75a1d2d4664131e7":"def reference(vectors):\n    ghr = 0\n    pht = [0] * 128\n    outputs = []\n    for v in vectors:\n        areset = v['areset']\n        predict_valid = v['predict_valid']\n        predict_pc = v['predict_pc']\n        train_valid = v['train_valid']\n        train_taken = v['train_taken']\n        train_mispredicted = v['train_mispredicted']\n        train_history = v['train_history']\n        train_pc = v['train_pc']\n        if areset:\n            ghr = 0\n            pht = [0] * 128\n            outputs.append({'predict_taken': 0, 'predict_history': 0})\n            continue\n        if predict_valid:\n            idx = (predict_pc ^ ghr) & 0x7F\n            predict_taken = 1 if pht[idx] >= 2 else 0\n            predict_history = ghr\n        else:\n            predict_taken = 0\n            predict_history = ghr\n        outputs.append({'predict_taken': predict_taken, 'predict_history': predict_history})\n        if train_valid:\n            tidx = (train_pc ^ train_history) & 0x7F\n            if train_taken:\n                if pht[tidx] < 3:\n                    pht[tidx] += 1\n            else:\n                if pht[tidx] > 0:\n                    pht[tidx] -= 1\n        if train_valid and train_mispredicted:\n            ghr = ((train_history << 1) | train_taken) & 0x7F\n        elif predict_valid and not train_valid:\n            ghr = ((ghr << 1) | predict_taken) & 0x7F\n    return outputs\n","0e8dbaaa393cebbb73":"def reference(vectors):\n    ghr = 0\n    pht = [0] * 128\n    outputs = []\n    for v in vectors:\n        areset = v['areset']\n        predict_valid = v['predict_valid']\n        predict_pc = v['predict_pc']\n        train_valid = v['train_valid']\n        train_taken = v['train_taken']\n        train_mispredicted = v['train_mispredicted']\n        train_history = v['train_history']\n        train_pc = v['train_pc']\n        if areset:\n            ghr = 0\n            pht = [0] * 128\n            outputs.append({'predict_taken': 0, 'predict_history': 0})\n            continue\n        if predict_valid:\n            idx = (predict_pc ^ ghr) & 0x7F\n            predict_taken = 1 if pht[idx] >= 2 else 0\n            predict_history = ghr\n        else:\n            predict_taken = 0\n            predict_history = ghr\n        outputs.append({'predict_taken': predict_taken, 'predict_history': predict_history})\n        if train_valid:\n            tidx = (train_pc ^ train_history) & 0x7F\n            if train_taken:\n                if pht[tidx] < 3:\n                    pht[tidx] += 1\n            else:\n                if pht[tidx] > 0:\n                    pht[tidx] -= 1\n        if train_valid and train_mispredicted:\n            ghr = ((train_history << 1) | train_taken) & 0x7F\n        elif predict_valid and not train_valid:\n            ghr = ((ghr << 1) | predict_taken) & 0x7F\n    return outputs\n","c77dc22b937c405495":"def reference(vectors):\n    ghr = 0\n    pht = [0] * 128\n    outputs = []\n    for v in vectors:\n        areset = v['areset']\n        predict_valid = v['predict_valid']\n        predict_pc = v['predict_pc']\n        train_valid = v['train_valid']\n        train_taken = v['train_taken']\n        train_mispredicted = v['train_mispredicted']\n        train_history = v['train_history']\n        train_pc = v['train_pc']\n        if areset:\n            ghr = 0\n            pht = [0] * 128\n            outputs.append({'predict_taken': 0, 'predict_history': 0})\n            continue\n        if predict_valid:\n            idx = (predict_pc ^ ghr) & 0x7F\n            predict_taken = 1 if pht[idx] >= 2 else 0\n            predict_history = ghr\n        else:\n            predict_taken = 0\n            predict_history = ghr\n        outputs.append({'predict_taken': predict_taken, 'predict_history': predict_history})\n        if train_valid:\n            tidx = (train_pc ^ train_history) & 0x7F\n            if train_taken:\n                if pht[tidx] < 3:\n                    pht[tidx] += 1\n            else:\n                if pht[tidx] > 0:\n                    pht[tidx] -= 1\n        if train_valid and train_mispredicted:\n            ghr = ((train_history << 1) | train_taken) & 0x7F\n        elif predict_valid and not train_valid:\n            ghr = ((ghr << 1) | predict_taken) & 0x7F\n    return outputs\n"}}
+```

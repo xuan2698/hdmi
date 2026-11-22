@@ -1,0 +1,129 @@
+{
+  "ports": {
+    "inputs": {
+      "a": 1
+    },
+    "outputs": {
+      "q": 3
+    },
+    "clock": "clk"
+  },
+  "states": [
+    {
+      "name": "q",
+      "meaning": "3-bit modulo-7 counter state; synchronous load to 4 when a is high, otherwise increments by 1 modulo 7 when a is low",
+      "update_time": "posedge clk",
+      "update_during_reset": true
+    }
+  ],
+  "rules": [
+    {
+      "id": "q_load4_when_a_high",
+      "outputs": [
+        "q"
+      ],
+      "condition": "a == 1",
+      "edge": "posedge",
+      "visible": "next_cycle",
+      "priority": 1,
+      "spec_quote": "// 5ns             1               1               4",
+      "uncertain": true,
+      "example": {
+        "vectors": [
+          {
+            "a": 1
+          },
+          {
+            "a": 1
+          },
+          {
+            "a": 1
+          }
+        ],
+        "expected": [
+          {
+            "q": 4
+          },
+          {
+            "q": 4
+          },
+          {
+            "q": 4
+          }
+        ]
+      }
+    },
+    {
+      "id": "q_increment_mod7_when_a_low",
+      "outputs": [
+        "q"
+      ],
+      "condition": "a == 0",
+      "edge": "posedge",
+      "visible": "next_cycle",
+      "priority": 0,
+      "spec_quote": "// 55ns            1               0               5",
+      "uncertain": true,
+      "example": {
+        "vectors": [
+          {
+            "a": 1
+          },
+          {
+            "a": 0
+          },
+          {
+            "a": 0
+          },
+          {
+            "a": 0
+          }
+        ],
+        "expected": [
+          {
+            "q": 4
+          },
+          {
+            "q": 5
+          },
+          {
+            "q": 6
+          },
+          {
+            "q": 0
+          }
+        ]
+      }
+    }
+  ],
+  "reset": {
+    "kind": "sync",
+    "name": "a",
+    "active": "high",
+    "values": {
+      "q": 4
+    },
+    "first_released_cycle": "45ns mid-cycle (a=0 carried; first sampled low at 55ns posedge)"
+  },
+  "mid": "Optional mid-cycle input changes occur after the sampled edge and are carried to the next sampled edge; examples use no mid changes.",
+  "uncertain": [
+    {
+      "rule_id": "q_load4_when_a_high",
+      "note": "Waveform-only inference: a=1 always shows q=4, but the role as synchronous reset/load versus an external load value is not uniquely determined.",
+      "candidates": [
+        "synchronous active-high reset to q=4",
+        "synchronous load of constant 4 when a=1",
+        "hold q at 4 when a=1 after an initial condition"
+      ]
+    },
+    {
+      "rule_id": "q_increment_mod7_when_a_low",
+      "note": "Increment and modulo-7 wrap are inferred from the observed sequence 4,5,6,0,1; unobserved values 2,3 and illegal state 7 are not directly exercised.",
+      "candidates": [
+        "q_next = (q + 1) mod 7 when a=0",
+        "modulo-7 up counter enabled when a=0",
+        "increment by one and wrap 6 to 0 when a=0"
+      ]
+    }
+  ]
+}

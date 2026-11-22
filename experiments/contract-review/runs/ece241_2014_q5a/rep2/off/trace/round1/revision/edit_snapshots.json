@@ -1,0 +1,788 @@
+[
+  {
+    "issue_id": "I3",
+    "before": {
+      "ports": {
+        "inputs": {
+          "areset": 1,
+          "x": 1
+        },
+        "outputs": {
+          "z": 1
+        },
+        "clock": "clk"
+      },
+      "states": [
+        {
+          "name": "S0",
+          "meaning": "No 1-bit has been seen yet in the input stream (all bits so far are 0); output equals input bit.",
+          "update_time": "posedge",
+          "update_during_reset": false
+        },
+        {
+          "name": "S1",
+          "meaning": "At least one 1-bit has been seen; now complementing subsequent bits (2's complement conversion in progress).",
+          "update_time": "posedge",
+          "update_during_reset": false
+        }
+      ],
+      "rules": [
+        {
+          "id": "R1",
+          "outputs": [
+            "z"
+          ],
+          "condition": "In state S0: z = x (pass through bits until first 1 is seen).",
+          "edge": "combinational",
+          "visible": "same_cycle",
+          "priority": 1,
+          "spec_quote": "the output (Z) is the 2's complement of the input",
+          "uncertain": false,
+          "example": {
+            "vectors": [
+              {
+                "areset": 0,
+                "x": 0
+              },
+              {
+                "areset": 0,
+                "x": 0
+              },
+              {
+                "areset": 0,
+                "x": 1
+              }
+            ],
+            "expected": [
+              {
+                "z": 0
+              },
+              {
+                "z": 0
+              },
+              {
+                "z": 1
+              }
+            ]
+          }
+        },
+        {
+          "id": "R2",
+          "outputs": [
+            "z"
+          ],
+          "condition": "In state S1: z = NOT x (complement remaining bits).",
+          "edge": "combinational",
+          "visible": "same_cycle",
+          "priority": 1,
+          "spec_quote": "the output (Z) is the 2's complement of the input",
+          "uncertain": false,
+          "example": {
+            "vectors": [
+              {
+                "areset": 0,
+                "x": 1
+              },
+              {
+                "areset": 0,
+                "x": 0
+              },
+              {
+                "areset": 0,
+                "x": 1
+              }
+            ],
+            "expected": [
+              {
+                "z": 0
+              },
+              {
+                "z": 1
+              },
+              {
+                "z": 0
+              }
+            ]
+          }
+        },
+        {
+          "id": "R3",
+          "outputs": [
+            "z"
+          ],
+          "condition": "State transition on posedge: S0 -> S1 when x=1; S0 -> S0 when x=0; S1 -> S1 always.",
+          "edge": "posedge",
+          "visible": "next_cycle",
+          "priority": 2,
+          "spec_quote": "beginning with the least-significant bit of the number",
+          "uncertain": false,
+          "example": {
+            "vectors": [
+              {
+                "areset": 0,
+                "x": 0
+              },
+              {
+                "areset": 0,
+                "x": 1
+              },
+              {
+                "areset": 0,
+                "x": 0
+              }
+            ],
+            "expected": [
+              {
+                "z": 0
+              },
+              {
+                "z": 1
+              },
+              {
+                "z": 1
+              }
+            ]
+          }
+        },
+        {
+          "id": "R4",
+          "outputs": [
+            "z"
+          ],
+          "condition": "Asynchronous reset asserted (areset=1): machine returns to S0; z forced to 0.",
+          "edge": "asynchronous",
+          "visible": "same_cycle",
+          "priority": 0,
+          "spec_quote": "positive edge triggered asynchronous reset",
+          "uncertain": false,
+          "example": {
+            "vectors": [
+              {
+                "areset": 0,
+                "x": 1
+              },
+              {
+                "areset": 1,
+                "x": 0
+              },
+              {
+                "areset": 0,
+                "x": 0
+              }
+            ],
+            "expected": [
+              {
+                "z": 1
+              },
+              {
+                "z": 0
+              },
+              {
+                "z": 0
+              }
+            ]
+          }
+        }
+      ],
+      "reset": {
+        "kind": "async",
+        "name": "areset",
+        "active": "high",
+        "values": {
+          "z": 0
+        },
+        "first_released_cycle": "The first posedge clk after areset is deasserted; conversion begins from LSB at that point."
+      },
+      "mid": "Optional mid-cycle input changes occur after the sampling edge and are carried to the start of the next row; they do not affect the current row's sampled values.",
+      "uncertain": []
+    },
+    "after": {
+      "ports": {
+        "inputs": {
+          "areset": 1,
+          "x": 1
+        },
+        "outputs": {
+          "z": 1
+        },
+        "clock": "clk"
+      },
+      "states": [
+        {
+          "name": "S0",
+          "meaning": "No 1-bit has been seen yet in the input stream (all bits so far are 0); output equals input bit.",
+          "update_time": "posedge",
+          "update_during_reset": false
+        },
+        {
+          "name": "S1",
+          "meaning": "At least one 1-bit has been seen; now complementing subsequent bits (2's complement conversion in progress).",
+          "update_time": "posedge",
+          "update_during_reset": false
+        }
+      ],
+      "rules": [
+        {
+          "id": "R1",
+          "outputs": [
+            "z"
+          ],
+          "condition": "In state S0: z = x (pass through bits until first 1 is seen).",
+          "edge": "combinational",
+          "visible": "same_cycle",
+          "priority": 1,
+          "spec_quote": "the output (Z) is the 2's complement of the input",
+          "uncertain": false,
+          "example": {
+            "vectors": [
+              {
+                "areset": 0,
+                "x": 0
+              },
+              {
+                "areset": 0,
+                "x": 0
+              },
+              {
+                "areset": 0,
+                "x": 1
+              }
+            ],
+            "expected": [
+              {
+                "z": 0
+              },
+              {
+                "z": 0
+              },
+              {
+                "z": 1
+              }
+            ]
+          }
+        },
+        {
+          "id": "R2",
+          "outputs": [
+            "z"
+          ],
+          "condition": "In state S1: z = NOT x (complement remaining bits).",
+          "edge": "combinational",
+          "visible": "same_cycle",
+          "priority": 1,
+          "spec_quote": "the output (Z) is the 2's complement of the input",
+          "uncertain": false,
+          "example": {
+            "vectors": [
+              {
+                "areset": 0,
+                "x": 1
+              },
+              {
+                "areset": 0,
+                "x": 0
+              },
+              {
+                "areset": 0,
+                "x": 1
+              }
+            ],
+            "expected": [
+              {
+                "z": 1
+              },
+              {
+                "z": 1
+              },
+              {
+                "z": 0
+              }
+            ]
+          }
+        },
+        {
+          "id": "R3",
+          "outputs": [
+            "z"
+          ],
+          "condition": "State transition on posedge: S0 -> S1 when x=1; S0 -> S0 when x=0; S1 -> S1 always.",
+          "edge": "posedge",
+          "visible": "next_cycle",
+          "priority": 2,
+          "spec_quote": "beginning with the least-significant bit of the number",
+          "uncertain": false,
+          "example": {
+            "vectors": [
+              {
+                "areset": 0,
+                "x": 0
+              },
+              {
+                "areset": 0,
+                "x": 1
+              },
+              {
+                "areset": 0,
+                "x": 0
+              }
+            ],
+            "expected": [
+              {
+                "z": 0
+              },
+              {
+                "z": 1
+              },
+              {
+                "z": 1
+              }
+            ]
+          }
+        },
+        {
+          "id": "R4",
+          "outputs": [
+            "z"
+          ],
+          "condition": "Asynchronous reset asserted (areset=1): machine returns to S0; z forced to 0.",
+          "edge": "asynchronous",
+          "visible": "same_cycle",
+          "priority": 0,
+          "spec_quote": "positive edge triggered asynchronous reset",
+          "uncertain": false,
+          "example": {
+            "vectors": [
+              {
+                "areset": 0,
+                "x": 1
+              },
+              {
+                "areset": 1,
+                "x": 0
+              },
+              {
+                "areset": 0,
+                "x": 0
+              }
+            ],
+            "expected": [
+              {
+                "z": 1
+              },
+              {
+                "z": 0
+              },
+              {
+                "z": 0
+              }
+            ]
+          }
+        }
+      ],
+      "reset": {
+        "kind": "async",
+        "name": "areset",
+        "active": "high",
+        "values": {
+          "z": 0
+        },
+        "first_released_cycle": "The first posedge clk after areset is deasserted; conversion begins from LSB at that point."
+      },
+      "mid": "Optional mid-cycle input changes occur after the sampling edge and are carried to the start of the next row; they do not affect the current row's sampled values.",
+      "uncertain": []
+    }
+  },
+  {
+    "issue_id": "I6",
+    "before": {
+      "ports": {
+        "inputs": {
+          "areset": 1,
+          "x": 1
+        },
+        "outputs": {
+          "z": 1
+        },
+        "clock": "clk"
+      },
+      "states": [
+        {
+          "name": "S0",
+          "meaning": "No 1-bit has been seen yet in the input stream (all bits so far are 0); output equals input bit.",
+          "update_time": "posedge",
+          "update_during_reset": false
+        },
+        {
+          "name": "S1",
+          "meaning": "At least one 1-bit has been seen; now complementing subsequent bits (2's complement conversion in progress).",
+          "update_time": "posedge",
+          "update_during_reset": false
+        }
+      ],
+      "rules": [
+        {
+          "id": "R1",
+          "outputs": [
+            "z"
+          ],
+          "condition": "In state S0: z = x (pass through bits until first 1 is seen).",
+          "edge": "combinational",
+          "visible": "same_cycle",
+          "priority": 1,
+          "spec_quote": "the output (Z) is the 2's complement of the input",
+          "uncertain": false,
+          "example": {
+            "vectors": [
+              {
+                "areset": 0,
+                "x": 0
+              },
+              {
+                "areset": 0,
+                "x": 0
+              },
+              {
+                "areset": 0,
+                "x": 1
+              }
+            ],
+            "expected": [
+              {
+                "z": 0
+              },
+              {
+                "z": 0
+              },
+              {
+                "z": 1
+              }
+            ]
+          }
+        },
+        {
+          "id": "R2",
+          "outputs": [
+            "z"
+          ],
+          "condition": "In state S1: z = NOT x (complement remaining bits).",
+          "edge": "combinational",
+          "visible": "same_cycle",
+          "priority": 1,
+          "spec_quote": "the output (Z) is the 2's complement of the input",
+          "uncertain": false,
+          "example": {
+            "vectors": [
+              {
+                "areset": 0,
+                "x": 1
+              },
+              {
+                "areset": 0,
+                "x": 0
+              },
+              {
+                "areset": 0,
+                "x": 1
+              }
+            ],
+            "expected": [
+              {
+                "z": 1
+              },
+              {
+                "z": 1
+              },
+              {
+                "z": 0
+              }
+            ]
+          }
+        },
+        {
+          "id": "R3",
+          "outputs": [
+            "z"
+          ],
+          "condition": "State transition on posedge: S0 -> S1 when x=1; S0 -> S0 when x=0; S1 -> S1 always.",
+          "edge": "posedge",
+          "visible": "next_cycle",
+          "priority": 2,
+          "spec_quote": "beginning with the least-significant bit of the number",
+          "uncertain": false,
+          "example": {
+            "vectors": [
+              {
+                "areset": 0,
+                "x": 0
+              },
+              {
+                "areset": 0,
+                "x": 1
+              },
+              {
+                "areset": 0,
+                "x": 0
+              }
+            ],
+            "expected": [
+              {
+                "z": 0
+              },
+              {
+                "z": 1
+              },
+              {
+                "z": 1
+              }
+            ]
+          }
+        },
+        {
+          "id": "R4",
+          "outputs": [
+            "z"
+          ],
+          "condition": "Asynchronous reset asserted (areset=1): machine returns to S0; z forced to 0.",
+          "edge": "asynchronous",
+          "visible": "same_cycle",
+          "priority": 0,
+          "spec_quote": "positive edge triggered asynchronous reset",
+          "uncertain": false,
+          "example": {
+            "vectors": [
+              {
+                "areset": 0,
+                "x": 1
+              },
+              {
+                "areset": 1,
+                "x": 0
+              },
+              {
+                "areset": 0,
+                "x": 0
+              }
+            ],
+            "expected": [
+              {
+                "z": 1
+              },
+              {
+                "z": 0
+              },
+              {
+                "z": 0
+              }
+            ]
+          }
+        }
+      ],
+      "reset": {
+        "kind": "async",
+        "name": "areset",
+        "active": "high",
+        "values": {
+          "z": 0
+        },
+        "first_released_cycle": "The first posedge clk after areset is deasserted; conversion begins from LSB at that point."
+      },
+      "mid": "Optional mid-cycle input changes occur after the sampling edge and are carried to the start of the next row; they do not affect the current row's sampled values.",
+      "uncertain": []
+    },
+    "after": {
+      "ports": {
+        "inputs": {
+          "areset": 1,
+          "x": 1
+        },
+        "outputs": {
+          "z": 1
+        },
+        "clock": "clk"
+      },
+      "states": [
+        {
+          "name": "S0",
+          "meaning": "No 1-bit has been seen yet in the input stream (all bits so far are 0); output equals input bit.",
+          "update_time": "posedge",
+          "update_during_reset": false
+        },
+        {
+          "name": "S1",
+          "meaning": "At least one 1-bit has been seen; now complementing subsequent bits (2's complement conversion in progress).",
+          "update_time": "posedge",
+          "update_during_reset": false
+        }
+      ],
+      "rules": [
+        {
+          "id": "R1",
+          "outputs": [
+            "z"
+          ],
+          "condition": "In state S0: z = x (pass through bits until first 1 is seen).",
+          "edge": "combinational",
+          "visible": "same_cycle",
+          "priority": 1,
+          "spec_quote": "the output (Z) is the 2's complement of the input",
+          "uncertain": false,
+          "example": {
+            "vectors": [
+              {
+                "areset": 0,
+                "x": 0
+              },
+              {
+                "areset": 0,
+                "x": 0
+              },
+              {
+                "areset": 0,
+                "x": 1
+              }
+            ],
+            "expected": [
+              {
+                "z": 0
+              },
+              {
+                "z": 0
+              },
+              {
+                "z": 1
+              }
+            ]
+          }
+        },
+        {
+          "id": "R2",
+          "outputs": [
+            "z"
+          ],
+          "condition": "In state S1: z = NOT x (complement remaining bits).",
+          "edge": "combinational",
+          "visible": "same_cycle",
+          "priority": 1,
+          "spec_quote": "the output (Z) is the 2's complement of the input",
+          "uncertain": false,
+          "example": {
+            "vectors": [
+              {
+                "areset": 0,
+                "x": 1
+              },
+              {
+                "areset": 0,
+                "x": 0
+              },
+              {
+                "areset": 0,
+                "x": 1
+              }
+            ],
+            "expected": [
+              {
+                "z": 1
+              },
+              {
+                "z": 1
+              },
+              {
+                "z": 0
+              }
+            ]
+          }
+        },
+        {
+          "id": "R3",
+          "outputs": [
+            "z"
+          ],
+          "condition": "State transition on posedge (registered, effective next cycle): S0 -> S1 when x=1; S0 -> S0 when x=0; S1 -> S1 always. Same-cycle z uses the current state, so the first 1 is passed through as z=1 and subsequent bits are complemented.",
+          "edge": "posedge",
+          "visible": "next_cycle",
+          "priority": 2,
+          "spec_quote": "beginning with the least-significant bit of the number",
+          "uncertain": false,
+          "example": {
+            "vectors": [
+              {
+                "areset": 0,
+                "x": 0
+              },
+              {
+                "areset": 0,
+                "x": 1
+              },
+              {
+                "areset": 0,
+                "x": 0
+              }
+            ],
+            "expected": [
+              {
+                "z": 0
+              },
+              {
+                "z": 1
+              },
+              {
+                "z": 1
+              }
+            ]
+          }
+        },
+        {
+          "id": "R4",
+          "outputs": [
+            "z"
+          ],
+          "condition": "Asynchronous reset asserted (areset=1): machine returns to S0; z forced to 0.",
+          "edge": "asynchronous",
+          "visible": "same_cycle",
+          "priority": 0,
+          "spec_quote": "positive edge triggered asynchronous reset",
+          "uncertain": false,
+          "example": {
+            "vectors": [
+              {
+                "areset": 0,
+                "x": 1
+              },
+              {
+                "areset": 1,
+                "x": 0
+              },
+              {
+                "areset": 0,
+                "x": 0
+              }
+            ],
+            "expected": [
+              {
+                "z": 1
+              },
+              {
+                "z": 0
+              },
+              {
+                "z": 0
+              }
+            ]
+          }
+        }
+      ],
+      "reset": {
+        "kind": "async",
+        "name": "areset",
+        "active": "high",
+        "values": {
+          "z": 0
+        },
+        "first_released_cycle": "The first posedge clk after areset is deasserted; conversion begins from LSB at that point."
+      },
+      "mid": "Optional mid-cycle input changes occur after the sampling edge and are carried to the start of the next row; they do not affect the current row's sampled values.",
+      "uncertain": []
+    }
+  }
+]

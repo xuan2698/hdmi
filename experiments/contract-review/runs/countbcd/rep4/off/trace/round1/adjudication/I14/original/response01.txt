@@ -1,0 +1,73 @@
+```python
+def reference(vectors):
+    # Contract implementation.
+    # State: BCD digits d0 (ones), d1 (tens), d2 (hundreds), d3 (thousands).
+    # Outputs computed combinationally from current state (R9, R10, R11).
+    # State updates on posedge clk (R1-R8). Reset is synchronous active-high.
+    # Mid input changes occur AFTER sampling, before the other edge, and are
+    # carried to the start of the next row.
+
+    d0 = 0
+    d1 = 0
+    d2 = 0
+    d3 = 0
+
+    results = []
+
+    for vec in vectors:
+        reset = vec.get('reset', 0)
+
+        # R9_ena_tens / R10_ena_hundreds / R11_ena_thousands:
+        # combinational enables based on current state (same_cycle visible).
+        ena_tens = 1 if (reset == 0 and d0 == 9) else 0
+        ena_hundreds = 1 if (reset == 0 and d0 == 9 and d1 == 9) else 0
+        ena_thousands = 1 if (reset == 0 and d0 == 9 and d1 == 9 and d2 == 9) else 0
+        ena = (ena_thousands << 2) | (ena_hundreds << 1) | ena_tens
+
+        q = (d3 << 12) | (d2 << 8) | (d1 << 4) | d0
+
+        results.append({'q': q, 'ena': ena})
+
+        # Synchronous state update at posedge clk.
+        if reset == 1:
+            # R1_reset: synchronous active-high reset clears all digits.
+            d0 = 0
+            d1 = 0
+            d2 = 0
+            d3 = 0
+        else:
+            # Compute next state based on current digits.
+            if d0 != 9:
+                # R2_ones_count: ones digit increments.
+                nd0 = d0 + 1
+                nd1 = d1
+                nd2 = d2
+                nd3 = d3
+            else:
+                # R3_ones_wrap: ones wraps to 0.
+                nd0 = 0
+                if d1 != 9:
+                    # R4_tens_increment: tens increments.
+                    nd1 = d1 + 1
+                    nd2 = d2
+                    nd3 = d3
+                else:
+                    # R5_tens_wrap: tens wraps to 0.
+                    nd1 = 0
+                    if d2 != 9:
+                        # R6_hundreds_increment: hundreds increments.
+                        nd2 = d2 + 1
+                        nd3 = d3
+                    else:
+                        # R7_thousands_increment / R8_full_wrap.
+                        nd2 = 0
+                        if d3 != 9:
+                            # R7_thousands_increment: thousands increments.
+                            nd3 = d3 + 1
+                        else:
+                            # R8_full_wrap: full wrap to 0.
+                            nd3 = 0
+            d0, d1, d2, d3 = nd0, nd1, nd2, nd3
+
+    return results
+```

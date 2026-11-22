@@ -1,0 +1,87 @@
+def reference(vectors):
+    q = 0
+    ena = 0
+    carried = {}
+    result = []
+
+    for row in vectors:
+        pre = {}
+        mid = {}
+
+        if isinstance(row, dict):
+            for k, v in row.items():
+                if k == "mid" and isinstance(v, dict):
+                    for mk, mv in v.items():
+                        mid[mk] = mv
+                elif isinstance(k, str) and (k.endswith("_mid") or k.startswith("mid_")):
+                    if k.endswith("_mid"):
+                        mid[k[:-4]] = v
+                    else:
+                        mid[k[4:]] = v
+                elif k not in ("pre", "inputs"):
+                    pre[k] = v
+            if "pre" in row and isinstance(row["pre"], dict):
+                pre.update(row["pre"])
+            if "inputs" in row and isinstance(row["inputs"], dict):
+                pre.update(row["inputs"])
+        elif isinstance(row, (list, tuple)):
+            if len(row) > 0 and isinstance(row[0], dict):
+                pre.update(row[0])
+            if len(row) > 1 and isinstance(row[1], dict):
+                mid.update(row[1])
+
+        eff = carried.copy()
+        eff.update(pre)
+
+        # q_sync_reset: synchronous active-high reset has priority and clears q and registered ena.
+        if eff.get("reset", 0) == 1:
+            q = 0
+            ena = 0
+        else:
+            old = q
+            ones = old & 0xF
+            tens = (old >> 4) & 0xF
+            hundreds = (old >> 8) & 0xF
+            thousands = (old >> 12) & 0xF
+
+            carry0 = 1 if ones == 9 else 0
+            carry1 = 1 if (carry0 and tens == 9) else 0
+            carry2 = 1 if (carry1 and hundreds == 9) else 0
+
+            # q_bcd_count: increment four BCD digits with carries, wrapping 9999 to 0000.
+            if carry0:
+                ones = 0
+            else:
+                ones += 1
+
+            if carry0:
+                if tens == 9:
+                    tens = 0
+                else:
+                    tens += 1
+
+            if carry1:
+                if hundreds == 9:
+                    hundreds = 0
+                else:
+                    hundreds += 1
+
+            if carry2:
+                if thousands == 9:
+                    thousands = 0
+                else:
+                    thousands += 1
+
+            q = (thousands << 12) | (hundreds << 8) | (tens << 4) | ones
+
+            # ena_upper_digit_increment: candidate interpretation, registered carry pulses on the
+            # posedge that actually increments the corresponding upper digit.
+            ena = carry0 | (carry1 << 1) | (carry2 << 2)
+
+        carried = eff.copy()
+        for k, v in mid.items():
+            carried[k] = v
+
+        result.append({"q": q & 0xFFFF, "ena": ena & 0x7})
+
+    return result

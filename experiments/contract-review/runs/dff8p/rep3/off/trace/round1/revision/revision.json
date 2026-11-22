@@ -1,0 +1,60 @@
+{
+  "responses": [
+    {
+      "issue_id": "I1",
+      "decision": "rebut",
+      "reason": "R1 example is consistent: reset=1 at negedge loads 0x34=52, matching expected q=52; no contradiction exists to fix.",
+      "spec_quote": "The flip-flops must be reset to 0x34 rather than zero.",
+      "edits": []
+    },
+    {
+      "issue_id": "I2",
+      "decision": "rebut",
+      "reason": "R2 example's first row d=52 reset=0 expecting q=52 is already expressed by the existing example; the contract's example already encodes this rule and no change is warranted.",
+      "spec_quote": "All DFFs should be triggered by the negative edge of clk.",
+      "edits": []
+    },
+    {
+      "issue_id": "I3",
+      "decision": "accept",
+      "reason": "Add an explicit vector showing reset overriding a nonzero prior q to demonstrate reset to 0x34.",
+      "spec_quote": "The flip-flops must be reset to 0x34 rather than zero.",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R1",
+            "example"
+          ],
+          "value": {
+            "vectors": [
+              {
+                "d": 255,
+                "reset": 0
+              },
+              {
+                "d": 0,
+                "reset": 1
+              },
+              {
+                "d": 18,
+                "reset": 0
+              }
+            ],
+            "expected": [
+              {
+                "q": 255
+              },
+              {
+                "q": 52
+              },
+              {
+                "q": 18
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

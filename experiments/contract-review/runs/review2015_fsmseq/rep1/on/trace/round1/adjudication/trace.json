@@ -1,0 +1,176 @@
+[
+  {
+    "issue": {
+      "issue_id": "I3",
+      "rule_id": "R_COMPLETE_1101",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec does not define detection-to-output latency; contract requires start_shifting visible on the completion posedge.",
+      "spec_evidence": "When the sequence is found, it should set start_shifting to 1",
+      "alternative": "start_shifting is registered and becomes 1 only at the next posedge after the completing 1101, not on the completion row.",
+      "sequence": [
+        {
+          "reset": 0,
+          "data": 1
+        },
+        {
+          "reset": 0,
+          "data": 1
+        },
+        {
+          "reset": 0,
+          "data": 0
+        },
+        {
+          "reset": 0,
+          "data": 1
+        },
+        {
+          "reset": 0,
+          "data": 0
+        }
+      ]
+    },
+    "status": "effect",
+    "issue_id": "I3",
+    "outputs": {
+      "original": [
+        {
+          "start_shifting": 0
+        },
+        {
+          "start_shifting": 0
+        },
+        {
+          "start_shifting": 0
+        },
+        {
+          "start_shifting": 1
+        },
+        {
+          "start_shifting": 1
+        }
+      ],
+      "alternative": [
+        {
+          "start_shifting": 0
+        },
+        {
+          "start_shifting": 0
+        },
+        {
+          "start_shifting": 0
+        },
+        {
+          "start_shifting": 0
+        },
+        {
+          "start_shifting": 1
+        }
+      ]
+    },
+    "differences": [
+      {
+        "cycle": 4,
+        "original": {
+          "start_shifting": 1
+        },
+        "alternative": {
+          "start_shifting": 0
+        }
+      }
+    ]
+  },
+  {
+    "issue": {
+      "issue_id": "I4",
+      "rule_id": "R_RESET",
+      "type": "ambiguity",
+      "severity": "low",
+      "detail": "Spec says forever until reset but does not define whether start_shifting clears while reset is high or on the first deasserted reset edge.",
+      "spec_evidence": "forever, until reset",
+      "alternative": "Reset restarts the detector but start_shifting remains 1 while reset==1 and clears on the first posedge with reset==0.",
+      "sequence": [
+        {
+          "reset": 0,
+          "data": 1
+        },
+        {
+          "reset": 0,
+          "data": 1
+        },
+        {
+          "reset": 0,
+          "data": 0
+        },
+        {
+          "reset": 0,
+          "data": 1
+        },
+        {
+          "reset": 1,
+          "data": 0
+        },
+        {
+          "reset": 0,
+          "data": 0
+        }
+      ]
+    },
+    "status": "effect",
+    "issue_id": "I4",
+    "outputs": {
+      "original": [
+        {
+          "start_shifting": 0
+        },
+        {
+          "start_shifting": 0
+        },
+        {
+          "start_shifting": 0
+        },
+        {
+          "start_shifting": 1
+        },
+        {
+          "start_shifting": 0
+        },
+        {
+          "start_shifting": 0
+        }
+      ],
+      "alternative": [
+        {
+          "start_shifting": 0
+        },
+        {
+          "start_shifting": 0
+        },
+        {
+          "start_shifting": 0
+        },
+        {
+          "start_shifting": 1
+        },
+        {
+          "start_shifting": 1
+        },
+        {
+          "start_shifting": 0
+        }
+      ]
+    },
+    "differences": [
+      {
+        "cycle": 5,
+        "original": {
+          "start_shifting": 0
+        },
+        "alternative": {
+          "start_shifting": 1
+        }
+      }
+    ]
+  }
+]

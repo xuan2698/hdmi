@@ -1,0 +1,33 @@
+```python
+def reference(vectors):
+    # Initial state: power-up q is treated as 0 for concrete simulation.
+    q = 0
+    # Current value of the reset input, held across cycles unless changed.
+    current_reset = 0
+    outputs = []
+    
+    for row in vectors:
+        # Apply start-of-row driven input values before the sampling edge.
+        if "reset" in row:
+            current_reset = row["reset"] & 1
+        
+        # reset_sync_active_high: active-high synchronous reset has priority.
+        if current_reset == 1:
+            q_next = 0
+        else:
+            # count_decade_mod10: count 0..9 with period 10.
+            q_next = (q + 1) % 10
+        
+        # Update state at posedge clk and settle.
+        q = q_next
+        
+        # Output visible same cycle after the edge has settled.
+        outputs.append({"q": q})
+        
+        # Process optional mid-cycle input changes after sampling.
+        # These carry to the start of the next row.
+        if "reset_mid" in row:
+            current_reset = row["reset_mid"] & 1
+    
+    return outputs
+```

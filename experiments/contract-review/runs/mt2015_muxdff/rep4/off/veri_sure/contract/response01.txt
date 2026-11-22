@@ -1,0 +1,29 @@
+```json
+{
+  "module_name": "top_module",
+  "io": [
+    {"name": "clk", "dir": "input", "width": 1, "description": "Clock; all state updates on posedge."},
+    {"name": "r", "dir": "input", "width": 3, "description": "Load data bus; each bit feeds one submodule's r_in."},
+    {"name": "L", "dir": "input", "width": 1, "description": "Load enable; broadcast to all three submodules."},
+    {"name": "q", "dir": "output", "width": 3, "description": "State output bus; each bit from one submodule's Q."}
+  ],
+  "clocking": {
+    "clock": {"name": "clk", "edge": "posedge"},
+    "reset": null
+  },
+  "timing": {
+    "outputs": {
+      "q": {"latency_cycles": 1}
+    }
+  },
+  "functional_summary": {
+    "overview": "top_module instantiates three identical submodules, each containing a 1-bit flipflop and a 2-to-1 multiplexer. Bit i of q is driven by submodule i, whose flipflop captures r[i] when L=1, otherwise updates to q[i][1]^q[i][2] (i.e., the XOR of the other two state bits) with the remaining bits shifted per the LFSR-style recurrence q <= {q[1]^q[2], q[0], q[2]}. All three submodules share clk and L.",
+    "rules": [
+      "On each posedge of clk, for each i in 0..2: if L==1 then q[i] <= r[i]; else q[i] <= q[(i+1)%3] ^ q[(i+2)%3].",
+      "Output q reflects the registered state after the posedge (1-cycle latency from inputs sampled at that edge).",
+      "No reset; initial state is undefined until first posedge with L=1 or until the recurrence is exercised.",
+      "L and r are sampled at the posedge; changes after the edge affect only subsequent cycles."
+    ]
+  }
+}
+```

@@ -1,0 +1,70 @@
+```python
+def reference(vectors):
+    # Contract rules implemented below.
+    # R1_reset: synchronous active-high reset -> q=0, ena=0 on posedge when reset==1.
+    # R2_ones_count / R3_ones_wrap: ones digit counts 0..9 then wraps.
+    # R4_tens_increment / R5_tens_wrap: tens increments when ones==9.
+    # R6_hundreds_increment: hundreds increments when tens&ones==9.
+    # R7_thousands_increment: thousands increments when hundreds,tens,ones==9.
+    # R8_full_wrap: full 9999 -> 0000 wrap.
+    # R9_ena_tens: ena[0] = (ones==9).
+    # R10_ena_hundreds: ena[1] = (ones==9 and tens==9).
+    # R11_ena_thousands: ena[2] = (ones==9 and tens==9 and hundreds==9).
+    # Outputs are driven before the sampled posedge; mid changes occur after sampling.
+
+    # Internal state: BCD digits
+    d0 = 0  # ones
+    d1 = 0  # tens
+    d2 = 0  # hundreds
+    d3 = 0  # thousands
+
+    results = []
+
+    for row in vectors:
+        reset = row.get('reset', 0)
+
+        # Compute combinational outputs based on current state (before edge)
+        # R9_ena_tens
+        ena0 = 1 if (reset == 0 and d0 == 9) else 0
+        # R10_ena_hundreds
+        ena1 = 1 if (reset == 0 and d0 == 9 and d1 == 9) else 0
+        # R11_ena_thousands
+        ena2 = 1 if (reset == 0 and d0 == 9 and d1 == 9 and d2 == 9) else 0
+
+        ena = (ena2 << 2) | (ena1 << 1) | ena0
+        q = (d3 << 12) | (d2 << 8) | (d1 << 4) | d0
+
+        results.append({'q': q, 'ena': ena})
+
+        # Synchronous update on posedge clk
+        if reset == 1:
+            # R1_reset
+            d0 = d1 = d2 = d3 = 0
+        else:
+            # Compute next state
+            if d0 != 9:
+                # R2_ones_count
+                d0 += 1
+            else:
+                # R3_ones_wrap
+                d0 = 0
+                if d1 != 9:
+                    # R4_tens_increment
+                    d1 += 1
+                else:
+                    # R5_tens_wrap
+                    d1 = 0
+                    if d2 != 9:
+                        # R6_hundreds_increment
+                        d2 += 1
+                    else:
+                        d2 = 0
+                        if d3 != 9:
+                            # R7_thousands_increment
+                            d3 += 1
+                        else:
+                            # R8_full_wrap
+                            d3 = 0
+
+    return results
+```

@@ -1,0 +1,229 @@
+{
+  "ports": {
+    "inputs": {
+      "areset": 1,
+      "predict_valid": 1,
+      "predict_taken": 1,
+      "train_mispredicted": 1,
+      "train_taken": 1,
+      "train_history": 32
+    },
+    "outputs": {
+      "predict_history": 32
+    },
+    "clock": "clk"
+  },
+  "states": [
+    {
+      "name": "history_reg",
+      "meaning": "32-bit speculative global branch history register; predict_history[0] is the direction of the youngest branch and older branches are at higher bit positions.",
+      "update_time": "asynchronously to 0 when areset is high; otherwise at posedge clk when train_mispredicted is high or when predict_valid is high with no train_mispredicted",
+      "update_during_reset": true
+    }
+  ],
+  "rules": [
+    {
+      "id": "R1_async_reset",
+      "outputs": [
+        "predict_history"
+      ],
+      "condition": "areset == 1; reset overrides all clocked prediction/training updates and forces predict_history to 0.",
+      "edge": "asynchronous",
+      "visible": "same_cycle",
+      "priority": 100,
+      "spec_quote": "areset is a positive edge triggered asynchronous reset that resets the history counter to zero.",
+      "uncertain": false,
+      "example": {
+        "vectors": [
+          {
+            "areset": 1,
+            "predict_valid": 0,
+            "predict_taken": 0,
+            "train_mispredicted": 0,
+            "train_taken": 0,
+            "train_history": 0
+          },
+          {
+            "areset": 1,
+            "predict_valid": 1,
+            "predict_taken": 1,
+            "train_mispredicted": 1,
+            "train_taken": 0,
+            "train_history": 4294967295
+          }
+        ],
+        "expected": [
+          {
+            "predict_history": 0
+          },
+          {
+            "predict_history": 0
+          }
+        ]
+      }
+    },
+    {
+      "id": "R2_train_mispredicted_load",
+      "outputs": [
+        "predict_history"
+      ],
+      "condition": "areset == 0 && train_mispredicted == 1; at posedge clk, load with history after the mispredicted branch. With 32-bit truncation, new predict_history = ((train_history << 1) | train_taken) & 0xFFFFFFFF. This takes precedence over predict_valid.",
+      "edge": "posedge",
+      "visible": "same_cycle",
+      "priority": 90,
+      "spec_quote": "load the branch history register with the history after the completion of the mispredicted branch.",
+      "uncertain": true,
+      "example": {
+        "vectors": [
+          {
+            "areset": 1,
+            "predict_valid": 0,
+            "predict_taken": 0,
+            "train_mispredicted": 0,
+            "train_taken": 0,
+            "train_history": 0
+          },
+          {
+            "areset": 0,
+            "predict_valid": 1,
+            "predict_taken": 0,
+            "train_mispredicted": 1,
+            "train_taken": 1,
+            "train_history": 5
+          }
+        ],
+        "expected": [
+          {
+            "predict_history": 0
+          },
+          {
+            "predict_history": 11
+          }
+        ]
+      }
+    },
+    {
+      "id": "R3_predict_update",
+      "outputs": [
+        "predict_history"
+      ],
+      "condition": "areset == 0 && train_mispredicted == 0 && predict_valid == 1; at posedge clk, shift in predict_taken at the LSB side: new predict_history = ((old_predict_history << 1) | predict_taken) & 0xFFFFFFFF.",
+      "edge": "posedge",
+      "visible": "same_cycle",
+      "priority": 80,
+      "spec_quote": "shift in predict_taken from the LSB side",
+      "uncertain": false,
+      "example": {
+        "vectors": [
+          {
+            "areset": 1,
+            "predict_valid": 0,
+            "predict_taken": 0,
+            "train_mispredicted": 0,
+            "train_taken": 0,
+            "train_history": 0
+          },
+          {
+            "areset": 0,
+            "predict_valid": 1,
+            "predict_taken": 1,
+            "train_mispredicted": 0,
+            "train_taken": 0,
+            "train_history": 0
+          },
+          {
+            "areset": 0,
+            "predict_valid": 1,
+            "predict_taken": 0,
+            "train_mispredicted": 0,
+            "train_taken": 0,
+            "train_history": 0
+          }
+        ],
+        "expected": [
+          {
+            "predict_history": 0
+          },
+          {
+            "predict_history": 1
+          },
+          {
+            "predict_history": 2
+          }
+        ]
+      }
+    },
+    {
+      "id": "R4_hold",
+      "outputs": [
+        "predict_history"
+      ],
+      "condition": "areset == 0 && train_mispredicted == 0 && predict_valid == 0; at posedge clk, no branch-history update occurs and predict_history holds its previous value.",
+      "edge": "posedge",
+      "visible": "same_cycle",
+      "priority": 0,
+      "spec_quote": "predict_history is the value of the branch history register.",
+      "uncertain": false,
+      "example": {
+        "vectors": [
+          {
+            "areset": 1,
+            "predict_valid": 0,
+            "predict_taken": 0,
+            "train_mispredicted": 0,
+            "train_taken": 0,
+            "train_history": 0
+          },
+          {
+            "areset": 0,
+            "predict_valid": 1,
+            "predict_taken": 1,
+            "train_mispredicted": 0,
+            "train_taken": 0,
+            "train_history": 0
+          },
+          {
+            "areset": 0,
+            "predict_valid": 0,
+            "predict_taken": 0,
+            "train_mispredicted": 0,
+            "train_taken": 0,
+            "train_history": 0
+          }
+        ],
+        "expected": [
+          {
+            "predict_history": 0
+          },
+          {
+            "predict_history": 1
+          },
+          {
+            "predict_history": 1
+          }
+        ]
+      }
+    }
+  ],
+  "reset": {
+    "kind": "async",
+    "name": "areset",
+    "active": "high",
+    "values": {
+      "predict_history": 0
+    },
+    "first_released_cycle": "the first sampled posedge with areset low; normal clocked updates may occur on that edge, otherwise the history remains at its current value."
+  },
+  "mid": "Optional mid-cycle input changes occur after sampling and before the next sampled edge; they are used only for the next row/edge and do not change the already sampled predict_history.",
+  "uncertain": [
+    {
+      "rule_id": "R2_train_mispredicted_load",
+      "note": "The specification says to load a 32-bit register with train_history concatenated with train_taken, but does not explicitly state which bit is discarded when forming the 32-bit result. This contract assumes the standard shift-in-at-LSB truncation.",
+      "candidates": [
+        "new = ((train_history << 1) | train_taken) & 0xFFFFFFFF; discard train_history[31]",
+        "new = ((train_history >> 1) | (train_taken << 31)) & 0xFFFFFFFF; shift train_taken into the MSB side",
+        "new = train_history; ignore the extra train_taken bit because the register is already 32 bits"
+      ]
+    }
+  ]
+}

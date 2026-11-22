@@ -1,0 +1,51 @@
+```python
+def reference(vectors):
+    # State machine for 2's complementer (LSB first).
+    # States: S0 = no 1-bit seen yet (copy phase), S1 = 1-bit seen (invert phase).
+    # Contract rules implemented below with rule IDs in comments.
+
+    # Internal state
+    state = "S0"   # current state
+    z_reg = 0      # registered output (candidate interpretation: z registered, visible next cycle)
+
+    results = []
+
+    for row in vectors:
+        areset = row.get("areset", 0)
+        x = row.get("x", 0)
+
+        # R3: asynchronous reset forces state to S0 and z to 0 (same cycle visible)
+        if areset == 1:
+            state = "S0"
+            z_reg = 0
+            results.append({"z": z_reg & 1})
+            continue
+
+        # Candidate interpretation: z is registered, updates on posedge clk, visible next cycle.
+        # So the output for this row reflects the value latched at the previous posedge.
+        # We compute the next state and next z based on current state and x,
+        # then present the *current* registered z for this row, and update registers
+        # for the next row (simulating posedge at end of this cycle).
+
+        # Current visible output is z_reg (registered value from previous posedge)
+        results.append({"z": z_reg & 1})
+
+        # Compute next state and next registered output based on current state and x.
+        # R1: state == S0: z = x (combinational in spec, but registered per candidate interpretation)
+        # R2: state == S1: z = ~x
+        if state == "S0":
+            next_z = x & 1          # R1
+            if x == 1:
+                next_state = "S1"   # R4: S0 and x==1 -> S1
+            else:
+                next_state = "S0"   # R4: else unchanged
+        else:  # state == "S1"
+            next_z = (~x) & 1       # R2
+            next_state = "S1"       # R4: state unchanged in S1
+
+        # Update registers at posedge (end of cycle)
+        state = next_state
+        z_reg = next_z
+
+    return results
+```

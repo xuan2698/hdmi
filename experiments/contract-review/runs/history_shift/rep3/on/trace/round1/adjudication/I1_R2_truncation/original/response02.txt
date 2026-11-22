@@ -1,0 +1,46 @@
+```python
+def reference(vectors):
+    # history_reg: 32-bit speculative global branch history register
+    history = 0
+    inputs = {
+        "areset": 0,
+        "predict_valid": 0,
+        "predict_taken": 0,
+        "train_mispredicted": 0,
+        "train_taken": 0,
+        "train_history": 0,
+    }
+    outputs = []
+    for row in vectors:
+        # Drive input values for the sampled edge
+        for k in inputs:
+            if k in row:
+                inputs[k] = row[k]
+
+        # R1_async_reset: asynchronous reset overrides all clocked updates
+        if inputs["areset"]:
+            history = 0
+        else:
+            # R2_train_mispredicted_load: takes precedence over predict_valid
+            if inputs["train_mispredicted"]:
+                history = ((inputs["train_history"] << 1) | inputs["train_taken"]) & 0xFFFFFFFF
+            # R3_predict_update: shift in predict_taken at LSB
+            elif inputs["predict_valid"]:
+                history = ((history << 1) | inputs["predict_taken"]) & 0xFFFFFFFF
+            # R4_hold: no branch-history update occurs
+
+        outputs.append({"predict_history": history & 0xFFFFFFFF})
+
+        # Apply optional mid-cycle input changes after sampling
+        if "mid" in row:
+            mid = row["mid"]
+            if mid is not None:
+                for k in inputs:
+                    if k in mid:
+                        inputs[k] = mid[k]
+                # Asynchronous reset via mid-cycle change
+                if inputs["areset"]:
+                    history = 0
+
+    return outputs
+```

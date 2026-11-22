@@ -1,0 +1,47 @@
+```python
+def reference(vectors):
+    # Contract:
+    # R1: state <= q on negedge (visible next cycle). state is the flip-flop.
+    # R2: q = state XOR a XOR b (combinational, same cycle).
+    # Mid input changes occur AFTER sampling (posedge), before negedge,
+    # and are carried to the start of the next row.
+    #
+    # Timing model per row:
+    #   - Inputs a,b are driven before the posedge.
+    #   - At posedge: sample a,b (and current state) to compute q.
+    #   - After posedge (mid): inputs may change; these carry to next row.
+    #   - At negedge: state <= q (the q computed at this posedge).
+    #
+    # So for each row: q = state XOR a XOR b using the a,b present at posedge.
+    # Then state for next row = q (captured at negedge).
+    # Mid changes affect next row's a,b.
+
+    results = []
+    state = 0  # power-up unspecified; use 0 as concrete value
+    # We track current inputs; mid changes update them for next row.
+    cur_a = 0
+    cur_b = 0
+
+    for i, vec in enumerate(vectors):
+        # Inputs driven before posedge (may have been updated by previous mid)
+        a = vec.get('a', cur_a)
+        b = vec.get('b', cur_b)
+        cur_a, cur_b = a, b
+
+        # R2: combinational q = state XOR a XOR b (same cycle)
+        q = (state ^ a ^ b) & 1
+
+        # Outputs for this row
+        results.append({'q': q, 'state': state})
+
+        # R1: at negedge, state <= q (visible next cycle)
+        state = q
+
+        # Mid changes: if the vector provides 'mid_a'/'mid_b', apply after sampling
+        if 'mid_a' in vec:
+            cur_a = vec['mid_a']
+        if 'mid_b' in vec:
+            cur_b = vec['mid_b']
+
+    return results
+```

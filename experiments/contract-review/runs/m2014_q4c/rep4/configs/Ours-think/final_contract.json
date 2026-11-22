@@ -1,0 +1,106 @@
+{
+  "ports": {
+    "inputs": {
+      "d": 1,
+      "r": 1
+    },
+    "outputs": {
+      "q": 1
+    },
+    "clock": "clk"
+  },
+  "states": [
+    {
+      "name": "q",
+      "meaning": "Single-bit D flip-flop output/state; synchronously forced to 0 when r is high, otherwise captures d.",
+      "update_time": "on each posedge of clk after r and d have settled",
+      "update_during_reset": true
+    }
+  ],
+  "rules": [
+    {
+      "id": "sync_reset",
+      "outputs": [
+        "q"
+      ],
+      "condition": "at a sampled posedge of clk, r == 1; q becomes 0 regardless of d",
+      "edge": "posedge",
+      "visible": "same_cycle",
+      "priority": 2,
+      "spec_quote": "active high synchronous reset (reset output to 0)",
+      "uncertain": false,
+      "example": {
+        "vectors": [
+          {
+            "d": 0,
+            "r": 1
+          },
+          {
+            "d": 1,
+            "r": 1
+          }
+        ],
+        "expected": [
+          {
+            "q": 0
+          },
+          {
+            "q": 0
+          }
+        ]
+      }
+    },
+    {
+      "id": "d_load",
+      "outputs": [
+        "q"
+      ],
+      "condition": "at a sampled posedge of clk, r == 0; q becomes d",
+      "edge": "posedge",
+      "visible": "same_cycle",
+      "priority": 1,
+      "spec_quote": "Implement a simple D flip flop",
+      "uncertain": false,
+      "example": {
+        "vectors": [
+          {
+            "d": 1,
+            "r": 0
+          },
+          {
+            "d": 0,
+            "r": 0
+          },
+          {
+            "d": 1,
+            "r": 0
+          }
+        ],
+        "expected": [
+          {
+            "q": 1
+          },
+          {
+            "q": 0
+          },
+          {
+            "q": 1
+          }
+        ]
+      }
+    }
+  ],
+  "reset": {
+    "kind": "sync",
+    "name": "r",
+    "active": "high",
+    "values": {
+      "q": 0
+    },
+    "first_released_cycle": "first sampled posedge with r=0; at that same edge q loads d instead of being forced to 0"
+  },
+  "mid": "Changes listed in mid occur after the sampled posedge and before the other clock edge; they are carried to the start of the next row and do not affect the already sampled q.",
+  "uncertain": [],
+  "remaining_uncertain_fields": {},
+  "selected_interpretations": []
+}

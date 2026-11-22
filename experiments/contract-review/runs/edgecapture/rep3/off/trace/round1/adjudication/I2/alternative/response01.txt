@@ -1,0 +1,50 @@
+```python
+def reference(vectors):
+    # State: out_reg (32-bit), prev_in (32-bit)
+    # Contract rules:
+    # R1_reset_clear: reset==1 -> out <= 0 (sync, posedge, same cycle visible)
+    # R2_capture_falling: reset==0 && (prev_in & ~in)!=0 -> out <= out | (prev_in & ~in)
+    #   Candidate interpretation: capture only when entire vector goes 0xFFFFFFFF -> 0x00000000
+    # R3_hold: reset==0 && no falling -> out <= out
+    # Mid changes occur AFTER sampling, before other edge, carried to start of next row.
+
+    out_reg = 0
+    prev_in = 0
+    results = []
+
+    for row in vectors:
+        reset = row.get('reset', 0) & 1
+        cur_in = row.get('in', 0) & 0xFFFFFFFF
+
+        # Sample at posedge: compute next state based on current inputs and prev_in
+        # R1_reset_clear (priority 1)
+        if reset == 1:
+            next_out = 0
+        else:
+            # R2_capture_falling with candidate interpretation:
+            # capture only when entire vector goes 0xFFFFFFFF -> 0x00000000
+            if prev_in == 0xFFFFFFFF and cur_in == 0x00000000:
+                next_out = out_reg | 0xFFFFFFFF
+            else:
+                # R3_hold
+                next_out = out_reg
+
+        # Output visible same cycle for reset (R1), next cycle for R2/R3.
+        # Per examples: R1 example shows out=0 on the same row where reset=1.
+        # R2 example: row0 in=FFFFFFFF out=0; row1 in=0 out=FFFFFFFF (next cycle).
+        # So: if reset==1, output this row is 0 (same_cycle). Otherwise output is
+        # the value of out_reg BEFORE this posedge (i.e., previous state).
+        if reset == 1:
+            results.append({'out': 0})
+        else:
+            results.append({'out': out_reg})
+
+        # Update state
+        out_reg = next_out
+        prev_in = cur_in
+
+        # Mid changes: carried to start of next row (already handled since we
+        # read row values at start of each iteration).
+
+    return results
+```

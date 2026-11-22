@@ -1,0 +1,102 @@
+def reference(vectors):
+    # State encoding
+    WALK_LEFT, WALK_RIGHT, FALL_LEFT, FALL_RIGHT, DIG_LEFT, DIG_RIGHT, SPLAT = range(7)
+
+    # Outputs per state (R2, R3, R4, R5, R6)
+    def outputs(state):
+        if state == WALK_LEFT:
+            return {"walk_left": 1, "walk_right": 0, "aaah": 0, "digging": 0}  # R2
+        if state == WALK_RIGHT:
+            return {"walk_left": 0, "walk_right": 1, "aaah": 0, "digging": 0}  # R3
+        if state in (FALL_LEFT, FALL_RIGHT):
+            return {"walk_left": 0, "walk_right": 0, "aaah": 1, "digging": 0}  # R4
+        if state in (DIG_LEFT, DIG_RIGHT):
+            return {"walk_left": 0, "walk_right": 0, "aaah": 0, "digging": 1}  # R5
+        # SPLAT
+        return {"walk_left": 0, "walk_right": 0, "aaah": 0, "digging": 0}  # R6
+
+    state = WALK_LEFT
+    fall_count = 0
+    result = []
+
+    for vec in vectors:
+        areset = vec.get("areset", 0)
+        bump_left = vec.get("bump_left", 0)
+        bump_right = vec.get("bump_right", 0)
+        ground = vec.get("ground", 0)
+        dig = vec.get("dig", 0)
+
+        # R1: async reset on posedge of areset forces WALK_LEFT
+        if areset == 1:
+            state = WALK_LEFT
+            fall_count = 0
+
+        # Outputs are combinational from current state (R2-R6)
+        result.append(outputs(state))
+
+        # Compute next state on posedge
+        if areset == 1:
+            # Reset already applied; next state stays WALK_LEFT
+            state = WALK_LEFT
+            fall_count = 0
+            continue
+
+        if state == SPLAT:
+            # R20: SPLAT stays SPLAT
+            state = SPLAT
+            continue
+
+        if state in (WALK_LEFT, WALK_RIGHT):
+            if ground == 0:
+                # R7/R8: fall has higher precedence than dig and bump
+                # R24: bumps ignored when ground disappears
+                if state == WALK_LEFT:
+                    state = FALL_LEFT
+                else:
+                    state = FALL_RIGHT
+                fall_count = 0
+            elif dig == 1:
+                # R9/R10: dig has higher precedence than bump
+                if state == WALK_LEFT:
+                    state = DIG_LEFT
+                else:
+                    state = DIG_RIGHT
+            else:
+                # R11/R12/R13/R14: bump switches direction
+                if state == WALK_LEFT:
+                    if bump_left == 1:
+                        state = WALK_RIGHT
+                    else:
+                        state = WALK_LEFT
+                else:
+                    if bump_right == 1:
+                        state = WALK_LEFT
+                    else:
+                        state = WALK_RIGHT
+        elif state in (FALL_LEFT, FALL_RIGHT):
+            if ground == 1:
+                # R15/R16/R17: land
+                if fall_count <= 20:
+                    if state == FALL_LEFT:
+                        state = WALK_LEFT
+                    else:
+                        state = WALK_RIGHT
+                else:
+                    state = SPLAT
+                fall_count = 0
+            else:
+                # R21/R23/R24: bumps and dig ignored while falling
+                fall_count += 1
+        elif state in (DIG_LEFT, DIG_RIGHT):
+            if ground == 0:
+                # R18: dig reaches other side -> fall
+                if state == DIG_LEFT:
+                    state = FALL_LEFT
+                else:
+                    state = FALL_RIGHT
+                fall_count = 0
+            else:
+                # R19/R22: continue digging, bumps ignored
+                pass
+
+    return result

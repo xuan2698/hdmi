@@ -1,0 +1,16 @@
+def reference(vectors):
+    # State: q_state holds the 8-bit registered output.
+    # Power-up unspecified -> start at 0 (concrete value required).
+    q_state = 0
+    out = []
+    for row in vectors:
+        d = row.get('d', 0) & 0xFF
+        reset = row.get('reset', 0) & 0x1
+        # R1: active high synchronous reset -> q becomes 0 at posedge.
+        # R2: otherwise D flip-flop captures d at posedge.
+        if reset == 1:
+            q_state = 0
+        else:
+            q_state = d & 0xFF
+        out.append({'q': q_state & 0xFF})
+    return out

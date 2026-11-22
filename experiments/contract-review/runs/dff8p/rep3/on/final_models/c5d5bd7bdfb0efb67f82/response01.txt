@@ -1,0 +1,52 @@
+```python
+def reference(vectors):
+    # State: 8-bit D flip-flop output register.
+    # Power-up is unspecified, but every row represents a sampled negative edge,
+    # so q is updated before each output is observed.
+    q = 0
+    carried = {"d": 0, "reset": 0}
+    outputs = []
+
+    for row in vectors:
+        # Support optional tuple format: (main_inputs, mid_inputs)
+        if isinstance(row, tuple) and len(row) == 2 and isinstance(row[0], dict):
+            main = row[0]
+            mid = row[1]
+        else:
+            main = row
+            mid = row.get("mid") if isinstance(row, dict) else None
+
+        # Start with carried values from previous mid changes, then drive row inputs.
+        cur = {"d": carried.get("d", 0), "reset": carried.get("reset", 0)}
+        if isinstance(main, dict):
+            if "d" in main:
+                cur["d"] = main["d"]
+            if "reset" in main:
+                cur["reset"] = main["reset"]
+
+        # Sampled negative edge:
+        # sync_reset_to_34: active-high synchronous reset loads 0x34.
+        # load_d_on_negedge_when_not_reset: otherwise load d.
+        if cur["reset"] == 1:
+            q = 0x34  # sync_reset_to_34
+        else:
+            q = cur["d"] & 0xFF  # load_d_on_negedge_when_not_reset
+        q &= 0xFF
+        outputs.append({"q": q})
+
+        # After sampling, inputs remain as cur, then apply optional mid changes.
+        carried = {"d": cur["d"], "reset": cur["reset"]}
+        if isinstance(mid, dict):
+            for k, v in mid.items():
+                if k in ("d", "reset"):
+                    carried[k] = v
+        # Also support flat mid_* keys in the main row.
+        if isinstance(main, dict):
+            for k, v in main.items():
+                if isinstance(k, str) and k.startswith("mid_"):
+                    base = k[4:]
+                    if base in ("d", "reset"):
+                        carried[base] = v
+
+    return outputs
+```

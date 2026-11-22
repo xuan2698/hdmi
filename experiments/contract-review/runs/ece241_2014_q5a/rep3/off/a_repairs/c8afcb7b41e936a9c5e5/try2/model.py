@@ -1,0 +1,40 @@
+def reference(vectors):
+    # Contract implementation.
+    # State: S0 (no 1 seen yet, copy phase), S1 (1 seen, invert phase).
+    # Outputs are Moore-style: registered on posedge, visible next cycle.
+    # R3: async reset forces state=S0 and z=0 same cycle.
+    # R1: state==S0 -> z = x (registered, next cycle)
+    # R2: state==S1 -> z = ~x (registered, next cycle)
+    # R4: posedge, areset==0: if state==S0 and x==1 -> next state=S1; else unchanged.
+
+    state = "S0"
+    z_reg = 0
+    out = []
+
+    for row in vectors:
+        areset = row["areset"]
+        x = row["x"]
+
+        # R3: asynchronous reset forces state to S0 and z to 0 (same cycle)
+        if areset == 1:
+            state = "S0"
+            z_reg = 0
+            out.append({"z": z_reg & 1})
+            continue
+
+        # R1/R2: Moore output based on current state and current x,
+        # registered on posedge -> visible next cycle.
+        if state == "S0":
+            z_next = x & 1          # R1
+        else:
+            z_next = (~x) & 1       # R2
+
+        # R4: state transition on posedge
+        if state == "S0" and x == 1:
+            state = "S1"
+        # else state unchanged
+
+        z_reg = z_next
+        out.append({"z": z_reg & 1})
+
+    return out

@@ -1,0 +1,37 @@
+def reference(vectors):
+    # Contract implementation for a serial 2's complementer Moore FSM.
+    # States: S0 (no 1-bit seen yet, copy phase), S1 (1-bit seen, invert phase).
+    # Reset: asynchronous, active high, forces state=S0 and z=0.
+    # Outputs are registered on posedge clk (Moore, visible next cycle).
+
+    # Internal state
+    state = "S0"   # R3: power-up / reset state
+    z = 0          # R3: reset value
+
+    results = []
+
+    for vec in vectors:
+        areset = vec.get("areset", 0)
+        x = vec.get("x", 0)
+
+        # R3: asynchronous reset forces state to S0 and z to 0 (same cycle)
+        if areset == 1:
+            state = "S0"
+            z = 0
+            results.append({"z": z & 1})
+            continue
+
+        # R1: state == S0 -> z = x (registered, visible next cycle)
+        # R2: state == S1 -> z = ~x (registered, visible next cycle)
+        # R4: posedge clk, areset == 0: if state == S0 and x == 1 -> next state = S1
+        if state == "S0":
+            z = x & 1                       # R1
+            if x == 1:
+                state = "S1"                # R4
+        else:  # state == "S1"
+            z = (~x) & 1                    # R2
+            # state unchanged                # R4
+
+        results.append({"z": z & 1})
+
+    return results

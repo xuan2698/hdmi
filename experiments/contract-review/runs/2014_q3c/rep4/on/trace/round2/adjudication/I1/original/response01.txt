@@ -1,0 +1,61 @@
+def reference(vectors):
+    result = []
+    for vector in vectors:
+        x = int(vector['x']) & 1
+        y = int(vector['y']) & 7
+        Y0 = 0
+        z = 0
+
+        if y == 0:
+            if x == 0:
+                # Y0_z_S0_x0
+                Y0 = 0
+                z = 0
+            else:
+                # Y0_z_S0_x1
+                Y0 = 1
+                z = 0
+        elif y == 1:
+            if x == 0:
+                # Y0_z_S1_x0
+                Y0 = 1
+                z = 0
+            else:
+                # Y0_z_S1_x1
+                Y0 = 0
+                z = 0
+        elif y == 2:
+            if x == 0:
+                # Y0_z_S2_x0
+                Y0 = 0
+                z = 0
+            else:
+                # Y0_z_S2_x1
+                Y0 = 1
+                z = 0
+        elif y == 3:
+            if x == 0:
+                # Y0_z_S3_x0
+                Y0 = 1
+                z = 1
+            else:
+                # Y0_z_S3_x1
+                Y0 = 0
+                z = 1
+        elif y == 4:
+            if x == 0:
+                # Y0_z_S4_x0
+                Y0 = 1
+                z = 1
+            else:
+                # Y0_z_S4_x1
+                Y0 = 0
+                z = 1
+        else:
+            # Y0_z_unused: y in {5,6,7}; unspecified/don't-care, use concrete 0,0 per contract example
+            Y0 = 0
+            z = 0
+
+        result.append({'Y0': Y0, 'z': z})
+
+    return result

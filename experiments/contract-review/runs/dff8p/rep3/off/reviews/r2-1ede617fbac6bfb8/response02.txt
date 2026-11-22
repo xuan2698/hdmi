@@ -1,0 +1,75 @@
+{
+  "coverage": {
+    "S01": ["R1", "R2"],
+    "S02": ["R1"],
+    "S03": ["R1", "R2"]
+  },
+  "issues": [
+    {
+      "issue_id": "I1",
+      "rule_id": "R1",
+      "type": "grounding",
+      "severity": "high",
+      "detail": "Spec quote for reset value is absent; R1 only quotes 'active high synchronous reset' and does not include the required reset value 0x34.",
+      "spec_evidence": "The flip-flops must be reset to 0x34 rather than zero.",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I2",
+      "rule_id": "R2",
+      "type": "grounding",
+      "severity": "medium",
+      "detail": "R2 condition reset==0 and example are grounded, but the rule does not explicitly state the reset value 0x34 for the reset case; however reset behavior is covered by R1.",
+      "spec_evidence": "The flip-flops must be reset to 0x34 rather than zero.",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I3",
+      "rule_id": "R1",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "R1 example expected q=52 for reset=1 matches 0x34, but the rule's spec_quote omits the reset value, creating a contradiction between the rule's quoted evidence and its example.",
+      "spec_evidence": "The flip-flops must be reset to 0x34 rather than zero.",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I4",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec says synchronous reset but does not specify whether reset is sampled on negedge (as contract assumes) or posedge; contract uses negedge for both reset and data.",
+      "spec_evidence": "Create 8 D flip-flops with active high synchronous reset.",
+      "alternative": "Reset is sampled on the positive edge of clk while data is sampled on the negative edge.",
+      "sequence": [
+        {"d": 0, "reset": 1},
+        {"d": 255, "reset": 0}
+      ]
+    },
+    {
+      "issue_id": "I5",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "low",
+      "detail": "Spec does not define behavior when reset is asserted and d changes; contract assumes reset dominates and q becomes 0x34 regardless of d.",
+      "spec_evidence": "Create 8 D flip-flops with active high synchronous reset.",
+      "alternative": "When reset is high, q holds previous value instead of loading 0x34.",
+      "sequence": [
+        {"d": 255, "reset": 0},
+        {"d": 0, "reset": 1}
+      ]
+    },
+    {
+      "issue_id": "I6",
+      "rule_id": "R1",
+      "type": "spec_example",
+      "severity": "low",
+      "detail": "R1 example expected q=52 for reset=1 is correct per spec (0x34=52), but the example does not show reset deassertion behavior; no contradiction found.",
+      "spec_evidence": "The flip-flops must be reset to 0x34 rather than zero.",
+      "alternative": "",
+      "sequence": []
+    }
+  ]
+}

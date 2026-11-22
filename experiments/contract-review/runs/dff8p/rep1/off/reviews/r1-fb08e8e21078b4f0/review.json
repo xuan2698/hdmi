@@ -1,0 +1,66 @@
+{
+  "coverage": {
+    "S01": [
+      "R1",
+      "R2"
+    ],
+    "S02": [
+      "R1"
+    ],
+    "S03": [
+      "R1",
+      "R2"
+    ]
+  },
+  "issues": [
+    {
+      "issue_id": "I1",
+      "rule_id": "R1",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "R1 example expected q=52 on first reset negedge, but reset value 0x34=52 is only applied at reset; first vector d=0 reset=1 should yield 52 only if reset applied—consistent actually; however second vector d=255 reset=1 expected 52 ok; third d=0 reset=0 expected 255 contradicts: after reset deassert, q should load d=0, not 255.",
+      "spec_evidence": "The flip-flops must be reset to 0x34 rather than zero.",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I2",
+      "rule_id": "R2",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "R2 example expected q=18,200,7 matches d values, but R1 third vector expected 255 while d=0 reset=0; cross-rule example inconsistency.",
+      "spec_evidence": "All DFFs should be triggered by the negative edge of clk.",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I3",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec says synchronous reset active high; contract reset kind sync active high matches, but 'first_released_cycle' wording ambiguous whether reset deassert sampled at same negedge loads d or holds.",
+      "spec_evidence": "active high synchronous reset",
+      "alternative": "Reset deassertion at a negedge loads d on that same negedge (synchronous release).",
+      "sequence": [
+        {
+          "d": 0,
+          "reset": 1
+        },
+        {
+          "d": 77,
+          "reset": 0
+        }
+      ]
+    },
+    {
+      "issue_id": "I4",
+      "rule_id": "R1",
+      "type": "grounding",
+      "severity": "low",
+      "detail": "R1 spec_quote 'active high synchronous reset' is verbatim from S01 but omits reset value 0x34 from S02; rule condition covers reset but quote incomplete.",
+      "spec_evidence": "Create 8 D flip-flops with active high synchronous reset.",
+      "alternative": "",
+      "sequence": []
+    }
+  ]
+}

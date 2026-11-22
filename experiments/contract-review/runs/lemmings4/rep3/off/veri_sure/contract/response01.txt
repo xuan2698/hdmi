@@ -1,0 +1,41 @@
+```json
+{
+  "module_name": "top_module",
+  "io": [
+    {"name": "clk", "dir": "input", "width": 1, "description": "Clock; state sampled on posedge after settling."},
+    {"name": "areset", "dir": "input", "width": 1, "description": "Asynchronous positive-edge reset; resets FSM to walk_left."},
+    {"name": "bump_left", "dir": "input", "width": 1, "description": "Bump from left; forces walking right when walking."},
+    {"name": "bump_right", "dir": "input", "width": 1, "description": "Bump from right; forces walking left when walking."},
+    {"name": "ground", "dir": "input", "width": 1, "description": "Ground present (1) or absent (0)."},
+    {"name": "dig", "dir": "input", "width": 1, "description": "Command to dig when walking on ground."},
+    {"name": "walk_left", "dir": "output", "width": 1, "description": "Lemming walking left."},
+    {"name": "walk_right", "dir": "output", "width": 1, "description": "Lemming walking right."},
+    {"name": "aaah", "dir": "output", "width": 1, "description": "Lemming falling."},
+    {"name": "digging", "dir": "output", "width": 1, "description": "Lemming digging."}
+  ],
+  "clocking": {
+    "clock": {"name": "clk", "edge": "posedge"},
+    "reset": {"name": "areset", "active": "high", "kind": "asynchronous"}
+  },
+  "timing": {
+    "outputs": {
+      "walk_left": {"latency_cycles": 0},
+      "walk_right": {"latency_cycles": 0},
+      "aaah": {"latency_cycles": 0},
+      "digging": {"latency_cycles": 0}
+    }
+  },
+  "functional_summary": {
+    "overview": "Moore FSM modeling a Lemming that walks left/right, switches direction on bumps, falls when ground=0, digs when commanded on ground, and splatters after falling more than 20 cycles then landing. Asynchronous positive-edge reset to walk_left.",
+    "rules": [
+      "Reset: areset posedge asynchronously forces state to WALK_LEFT (walk_left=1, others 0).",
+      "Walking: in WALK_LEFT/WALK_RIGHT, if ground=0 -> FALL (aaah=1), preserving direction; else if dig=1 -> DIG (digging=1); else if bump_left or bump_right (or both) -> switch direction.",
+      "Falling: in FALL, if ground=1 -> resume walking in stored direction (or SPLAT if fall counter > 20); bumps and dig ignored while falling.",
+      "Digging: in DIG, if ground=0 -> FALL (aaah=1), preserving direction; bumps ignored; dig ignored.",
+      "Splatter: if fall duration exceeds 20 cycles and ground returns, enter SPLAT with all outputs 0 permanently until reset.",
+      "Precedence within walking: fall > dig > direction switch.",
+      "Outputs are Moore-type, combinational functions of current state."
+    ]
+  }
+}
+```

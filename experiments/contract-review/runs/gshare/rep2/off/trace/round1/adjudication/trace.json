@@ -1,0 +1,118 @@
+[
+  {
+    "issue": {
+      "issue_id": "I3",
+      "rule_id": "R5_ghr_update_train_mispredicted",
+      "type": "ambiguity",
+      "severity": "high",
+      "detail": "Spec says recover GHR to state immediately after mispredicting branch, but contract does not specify whether train_history is that state or pre-branch state.",
+      "spec_evidence": "recover the branch history register to the state immediately after the mispredicting branch completes execution",
+      "alternative": "train_history is the GHR value before the mispredicting branch; recovery should shift in train_taken to form post-branch GHR.",
+      "sequence": [
+        {
+          "areset": 0,
+          "predict_valid": 0,
+          "predict_pc": 0,
+          "train_valid": 1,
+          "train_taken": 1,
+          "train_mispredicted": 1,
+          "train_history": 3,
+          "train_pc": 7
+        },
+        {
+          "areset": 0,
+          "predict_valid": 1,
+          "predict_pc": 0,
+          "train_valid": 0,
+          "train_taken": 0,
+          "train_mispredicted": 0,
+          "train_history": 0,
+          "train_pc": 0
+        }
+      ]
+    },
+    "status": "no_effect",
+    "issue_id": "I3",
+    "outputs": {
+      "original": [
+        {
+          "predict_taken": 0,
+          "predict_history": 0
+        },
+        {
+          "predict_taken": 0,
+          "predict_history": 7
+        }
+      ],
+      "alternative": [
+        {
+          "predict_taken": 0,
+          "predict_history": 0
+        },
+        {
+          "predict_taken": 0,
+          "predict_history": 7
+        }
+      ]
+    },
+    "differences": []
+  },
+  {
+    "issue": {
+      "issue_id": "I4",
+      "rule_id": "R7_train_priority_over_predict",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec says training takes precedence when both modify GHR, but contract does not state whether prediction still updates GHR when train_valid=1 but train_mispredicted=0.",
+      "spec_evidence": "If training for a misprediction and a prediction (for a different, younger instruction) occurs in the same cycle, both operations will want to modify the branch history register. When this happens, training takes precedence",
+      "alternative": "Prediction updates GHR only when train_valid=0; any train_valid=1 suppresses prediction GHR update regardless of mispredicted.",
+      "sequence": [
+        {
+          "areset": 0,
+          "predict_valid": 1,
+          "predict_pc": 5,
+          "train_valid": 1,
+          "train_taken": 0,
+          "train_mispredicted": 0,
+          "train_history": 0,
+          "train_pc": 5
+        },
+        {
+          "areset": 0,
+          "predict_valid": 1,
+          "predict_pc": 5,
+          "train_valid": 0,
+          "train_taken": 0,
+          "train_mispredicted": 0,
+          "train_history": 0,
+          "train_pc": 0
+        }
+      ]
+    },
+    "status": "no_effect",
+    "issue_id": "I4",
+    "outputs": {
+      "original": [
+        {
+          "predict_taken": 0,
+          "predict_history": 0
+        },
+        {
+          "predict_taken": 0,
+          "predict_history": 0
+        }
+      ],
+      "alternative": [
+        {
+          "predict_taken": 0,
+          "predict_history": 0
+        },
+        {
+          "predict_taken": 0,
+          "predict_history": 0
+        }
+      ]
+    },
+    "differences": []
+  }
+]

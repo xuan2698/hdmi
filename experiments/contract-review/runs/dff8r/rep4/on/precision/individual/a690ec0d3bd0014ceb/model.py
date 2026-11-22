@@ -1,0 +1,37 @@
+def reference(vectors):
+    # Initial concrete state: power-up unspecified -> choose 0 for q.
+    q = 0
+    # Carried inputs at the start of each row, initially 0.
+    d_carry = 0
+    reset_carry = 0
+    results = []
+
+    for row in vectors:
+        # Drive this row's input values before the sampled posedge.
+        # If a value is not driven this row, the carried value persists.
+        if "d" in row:
+            d_carry = row["d"]
+        if "reset" in row:
+            reset_carry = row["reset"]
+
+        # Sample the posedge after input values have settled.
+        # RULE sync_reset_high: active high synchronous reset sets q to 0 (priority 1).
+        if reset_carry == 1:
+            q = 0
+        else:
+            # RULE dff_load_d: 8 D flip-flops load d on posedge when reset is low (priority 2).
+            q = d_carry & 255
+
+        results.append({"q": q})
+
+        # Optional mid input changes occur after sampling and are carried forward.
+        mid = None
+        if "mid" in row:
+            mid = row["mid"]
+        if mid is not None:
+            if "d" in mid:
+                d_carry = mid["d"]
+            if "reset" in mid:
+                reset_carry = mid["reset"]
+
+    return results

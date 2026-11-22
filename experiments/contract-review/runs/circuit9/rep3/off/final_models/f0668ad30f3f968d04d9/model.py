@@ -1,0 +1,50 @@
+def reference(vectors):
+    # Contract implementation.
+    # State: q (3-bit counter), prev_a (previous sampled a), initialized flag.
+    # No physical reset: q is x before first posedge.
+    # Rule hold_when_a_high: a==1 -> q holds (first posedge with a=1 loads 4).
+    # Rule first_low_after_high_holds: a==0 and prev_a==1 -> q holds.
+    # Rule increment_when_a_low: a==0 and prev_a==0 -> q increments mod 8.
+    # Mid changes occur after sampling, carried to next row.
+
+    q = None          # unknown before first posedge
+    prev_a = None     # previous sampled a
+    started = False   # whether first posedge has occurred
+
+    results = []
+
+    for row in vectors:
+        a = row['a']
+
+        # Determine next q at posedge based on current a and prev_a.
+        if not started:
+            # First posedge: if a==1 load 4; if a==0, q stays unknown (x).
+            # Contract: first posedge with a=1 loads 4. If a==0 first, q remains x.
+            if a == 1:
+                q = 4
+            else:
+                q = None  # still unknown
+            started = True
+        else:
+            if a == 1:
+                # hold_when_a_high: q holds (already 4 from load, or whatever)
+                pass
+            else:
+                if prev_a == 1:
+                    # first_low_after_high_holds: hold
+                    pass
+                else:
+                    # increment_when_a_low: increment mod 8
+                    if q is None:
+                        q = None
+                    else:
+                        q = (q + 1) % 8
+
+        # Output q (concrete unsigned int within 3 bits; use 0 if unknown)
+        out_q = q if q is not None else 0
+        results.append({'q': out_q})
+
+        # Update prev_a for next cycle (mid changes carried to next row start)
+        prev_a = a
+
+    return results

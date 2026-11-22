@@ -1,0 +1,53 @@
+def reference(vectors):
+    # State encoding
+    S0, S1, S2, S3, S4 = 0, 1, 2, 3, 4
+
+    # Initialize state and output
+    state = S0
+    start_shifting = 0
+
+    results = []
+
+    for vec in vectors:
+        reset = vec.get('reset', 0)
+        data = vec.get('data', 0)
+
+        # R1: synchronous reset, active high, priority 1
+        # Reset forces start_shifting to 0 and state to S0 on posedge
+        if reset == 1:
+            state = S0
+            start_shifting = 0
+        else:
+            # R2/R3: state == S4 -> start_shifting stays 1 (latched forever until reset)
+            # R4: state != S4 -> start_shifting stays 0
+            # Compute next state based on current state and data
+            if state == S0:
+                if data == 1:
+                    state = S1
+                else:
+                    state = S0
+            elif state == S1:
+                if data == 1:
+                    state = S2
+                else:
+                    state = S0
+            elif state == S2:
+                if data == 0:
+                    state = S3
+                else:
+                    state = S2  # '11' + '1' -> still '11' suffix
+            elif state == S3:
+                if data == 1:
+                    # R3: completing 1101 -> assert start_shifting same cycle
+                    state = S4
+                    start_shifting = 1
+                else:
+                    state = S0
+            elif state == S4:
+                # R2: latched forever until reset
+                state = S4
+                start_shifting = 1
+
+        results.append({'start_shifting': start_shifting})
+
+    return results

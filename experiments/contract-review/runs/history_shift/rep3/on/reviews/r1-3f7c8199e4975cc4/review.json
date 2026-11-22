@@ -1,0 +1,94 @@
+{
+  "coverage": {
+    "S01": [
+      "R2_train_mispredicted_load"
+    ],
+    "S02": [
+      "R2_train_mispredicted_load",
+      "R3_predict_update"
+    ],
+    "S03": [
+      "R2_train_mispredicted_load"
+    ],
+    "S04": [
+      "R1_async_reset",
+      "R2_train_mispredicted_load",
+      "R3_predict_update",
+      "R4_hold"
+    ]
+  },
+  "issues": [
+    {
+      "issue_id": "I1_R2_truncation",
+      "rule_id": "R2_train_mispredicted_load",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec does not state which bit is dropped when concatenating 32-bit train_history with train_taken; contract chooses LSB-shift truncation and its example asserts 11 despite uncertain=true.",
+      "spec_evidence": "This is the history before the mispredicted branch (train_history) concatenated with the actual result of the branch (train_taken).",
+      "alternative": "Load via MSB-side insertion: new = ((train_history >> 1) | (train_taken << 31)) & 0xFFFFFFFF. For the sequence below, contract gives 0x0000000B while this alternative gives 0x80000002.",
+      "sequence": [
+        {
+          "areset": 1,
+          "predict_valid": 0,
+          "predict_taken": 0,
+          "train_mispredicted": 0,
+          "train_taken": 0,
+          "train_history": 0
+        },
+        {
+          "areset": 0,
+          "predict_valid": 0,
+          "predict_taken": 0,
+          "train_mispredicted": 1,
+          "train_taken": 1,
+          "train_history": 5
+        }
+      ]
+    },
+    {
+      "issue_id": "I2_R4_hold_grounding",
+      "rule_id": "R4_hold",
+      "type": "grounding",
+      "severity": "low",
+      "detail": "R4 is marked uncertain=false but the spec only gives update events and the register-value definition; it does not explicitly specify no-update hold behavior.",
+      "spec_evidence": "predict_history is the value of the branch history register.",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I3_R1_reset_edge",
+      "rule_id": "R1_async_reset",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec wording says positive-edge-triggered asynchronous reset, but contract models level-high asynchronous reset. Edge-only reset semantics are not addressed or marked uncertain.",
+      "spec_evidence": "areset is a positive edge triggered asynchronous reset that resets the history counter to zero.",
+      "alternative": "Reset only on a 0-to-1 areset edge; while areset remains high, a later clock edge with predict_valid=1 shifts in predict_taken, so row 3 below sets predict_history to 1 instead of holding reset at 0.",
+      "sequence": [
+        {
+          "areset": 0,
+          "predict_valid": 0,
+          "predict_taken": 0,
+          "train_mispredicted": 0,
+          "train_taken": 0,
+          "train_history": 0
+        },
+        {
+          "areset": 1,
+          "predict_valid": 0,
+          "predict_taken": 0,
+          "train_mispredicted": 0,
+          "train_taken": 0,
+          "train_history": 0
+        },
+        {
+          "areset": 1,
+          "predict_valid": 1,
+          "predict_taken": 1,
+          "train_mispredicted": 0,
+          "train_taken": 0,
+          "train_history": 0
+        }
+      ]
+    }
+  ]
+}

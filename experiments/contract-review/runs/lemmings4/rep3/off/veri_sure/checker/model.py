@@ -1,0 +1,162 @@
+def reference(vectors):
+    # Moore FSM for Lemmings.
+    # States: WL (walk left), WR (walk right), FALL, DIG, SPLAT
+    # Outputs are combinational functions of state.
+    # Fall counter counts cycles spent in FALL; splatter if >20 when landing.
+    #
+    # Timing: each row's inputs are driven before the sampled posedge.
+    # Outputs are sampled after the posedge has settled (Moore outputs of new state).
+    # areset is positive-edge triggered asynchronous: if areset goes 0->1 at any
+    # point (including mid), state resets to WL immediately.
+    # Mid changes occur AFTER sampling, before the other edge, carried to next row.
+
+    def outputs(state):
+        return {
+            'walk_left': 1 if state == 'WL' else 0,
+            'walk_right': 1 if state == 'WR' else 0,
+            'aaah': 1 if state == 'FALL' else 0,
+            'digging': 1 if state == 'DIG' else 0,
+        }
+
+    state = 'WL'          # power-up: walk left
+    fall_count = 0
+    prev_areset = 0
+    results = []
+
+    for row in vectors:
+        # --- apply mid changes from previous row (already applied at end of prev iter) ---
+        # --- handle asynchronous reset: positive edge on areset ---
+        areset = row.get('areset', 0)
+        if areset == 1 and prev_areset == 0:
+            state = 'WL'
+            fall_count = 0
+        prev_areset = areset
+
+        # --- compute next state based on current inputs (sampled at posedge) ---
+        bump_left = row.get('bump_left', 0)
+        bump_right = row.get('bump_right', 0)
+        ground = row.get('ground', 0)
+        dig = row.get('dig', 0)
+
+        if state == 'SPLAT':
+            next_state = 'SPLAT'
+            next_fall = 0
+        elif state == 'WL':
+            if ground == 0:
+                next_state = 'FALL'
+                next_fall = 1
+            elif dig == 1:
+                next_state = 'DIG'
+                next_fall = 0
+            elif bump_left == 1 or bump_right == 1:
+                next_state = 'WR'
+                next_fall = 0
+            else:
+                next_state = 'WL'
+                next_fall = 0
+        elif state == 'WR':
+            if ground == 0:
+                next_state = 'FALL'
+                next_fall = 1
+            elif dig == 1:
+                next_state = 'DIG'
+                next_fall = 0
+            elif bump_left == 1 or bump_right == 1:
+                next_state = 'WL'
+                next_fall = 0
+            else:
+                next_state = 'WR'
+                next_fall = 0
+        elif state == 'FALL':
+            if ground == 1:
+                if fall_count > 20:
+                    next_state = 'SPLAT'
+                    next_fall = 0
+                else:
+                    # resume walking in stored direction
+                    # stored direction: we need to track it. Use a separate var.
+                    next_state = stored_dir
+                    next_fall = 0
+            else:
+                next_state = 'FALL'
+                next_fall = fall_count + 1
+        elif state == 'DIG':
+            if ground == 0:
+                next_state = 'FALL'
+                next_fall = 1
+            else:
+                next_state = 'DIG'
+                next_fall = 0
+        else:
+            next_state = state
+            next_fall = 0
+
+        # track stored direction for falling
+        # stored_dir is the direction to resume walking after fall.
+        # It's set when entering FALL from WL/WR/DIG.
+        if state in ('WL', 'WR'):
+            cur_dir = state
+        # For DIG, direction is preserved from before digging; we need to track it.
+        # We'll maintain stored_dir as the walking direction to resume.
+        # Initialize stored_dir = 'WL'.
+        # When in WL/WR, stored_dir = state.
+        # When entering DIG from WL/WR, stored_dir stays as that direction.
+        # When entering FALL from WL/WR/DIG, stored_dir stays.
+        # When in FALL, stored_dir unchanged.
+        # When in DIG, stored_dir unchanged (it was set when entering DIG).
+        # When in SPLAT, irrelevant.
+
+        # Update stored_dir based on current state before transition:
+        if state == 'WL':
+            stored_dir = 'WL'
+        elif state == 'WR':
+            stored_dir = 'WR'
+        # else keep stored_dir
+
+        # Now apply transition
+        state = next_state
+        fall_count = next_fall
+
+        # If we just entered FALL from WL/WR/DIG, stored_dir is already correct.
+        # If we resumed walking, stored_dir will be updated next cycle.
+
+        # Outputs are Moore: function of new state
+        out = outputs(state)
+        results.append(out)
+
+        # --- apply mid changes (after sampling, before next edge) ---
+        # Mid changes are given as optional keys like 'mid_areset', etc.
+        # They are carried to the start of the next row.
+        # We handle them by modifying the next row's inputs? The spec says
+        # "Optional mid input changes occur AFTER sampling, before the other edge,
+        # and are carried to the start of the next row."
+        # So mid changes affect the inputs seen at the next posedge.
+        # We'll store them and apply at start of next iteration.
+        # Actually simpler: mid changes are just the values that persist.
+        # We'll apply them to a pending dict.
+        # But the vectors likely already include mid changes as separate keys.
+        # We'll handle by checking for 'mid_*' keys and applying to next row.
+        # Since we don't know the exact format, we'll assume mid changes are
+        # given as keys like 'mid_areset' etc. and we apply them to the next row's
+        # inputs. But the problem says "Each row's values are driven before the
+        # sampled edge. Optional mid input changes occur AFTER sampling, before
+        # the other edge, and are carried to the start of the next row."
+        # This means the mid changes are part of the row's data but occur after
+        # the posedge. So for the next row, the inputs are the mid values from
+        # the previous row (if present) overridden by the next row's driven values?
+        # Actually "carried to the start of the next row" means they become the
+        # inputs for the next row's posedge. So we should apply mid changes to
+        # the next row's inputs. We'll store pending mid changes.
+        # Since we don't have explicit mid keys in the spec, we'll assume they
+        # are given as 'mid_<name>'. We'll apply them to the next row.
+        # But to be safe, we'll just check for any key starting with 'mid_'.
+        # However, the problem statement says "Optional mid input changes occur
+        # AFTER sampling, before the other edge, and are carried to the start
+        # of the next row." This is a description of the testbench behavior.
+        # The vectors likely already encode this: the next row's inputs are
+        # the mid values from the previous row. So we don't need to do anything
+        # special; the vectors already have the correct values for each row's
+        # posedge sampling.
+        # We'll just proceed.
+
+    return results

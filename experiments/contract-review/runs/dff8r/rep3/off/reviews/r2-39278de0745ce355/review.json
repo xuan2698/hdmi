@@ -1,0 +1,68 @@
+{
+  "coverage": {
+    "S01": [
+      "R1",
+      "R2"
+    ],
+    "S02": [
+      "R1",
+      "R2"
+    ]
+  },
+  "issues": [
+    {
+      "issue_id": "I1",
+      "rule_id": "R2",
+      "type": "consistency",
+      "severity": "medium",
+      "detail": "R2 example expected q lags d by one cycle (q=0,5,9 for d=5,9,255), but rule says visible same_cycle and state says q updates to d sampled at that edge; same_cycle should yield q=5,9,255.",
+      "spec_evidence": "Create 8 D flip-flops",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I2",
+      "rule_id": "R1",
+      "type": "consistency",
+      "severity": "low",
+      "detail": "R1 example expected q=0 for all rows is consistent with reset but does not distinguish same_cycle vs next_cycle visibility; not contradictory but weak.",
+      "spec_evidence": "active high synchronous reset setting the output to zero",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I3",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec does not state initial q before first posedge; contract marks unspecified, so first output is unconstrained.",
+      "spec_evidence": "",
+      "alternative": "Initial q could be treated as 0 before first posedge (power-up zero) rather than unspecified.",
+      "sequence": [
+        {
+          "d": 7,
+          "reset": 0
+        }
+      ]
+    },
+    {
+      "issue_id": "I4",
+      "rule_id": "R2",
+      "type": "ambiguity",
+      "severity": "low",
+      "detail": "'same_cycle' visibility vs DFF semantics: whether q reflects new d at the same posedge or previous value is ambiguous; R2 example implies previous value.",
+      "spec_evidence": "All DFFs should be triggered by the positive edge of clk.",
+      "alternative": "q updates to d sampled at the same posedge (same_cycle), giving q=5 after first row with d=5,reset=0.",
+      "sequence": [
+        {
+          "d": 5,
+          "reset": 0
+        },
+        {
+          "d": 9,
+          "reset": 0
+        }
+      ]
+    }
+  ]
+}

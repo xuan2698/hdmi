@@ -1,0 +1,89 @@
+def reference(vectors):
+    # State: ss_lo, ss_hi, mm_lo, mm_hi, hh_lo, hh_hi, pm_reg
+    # Initialize to 12:00 AM (hh=0x12, mm=0x00, ss=0x00, pm=0)
+    ss_lo = 0
+    ss_hi = 0
+    mm_lo = 0
+    mm_hi = 0
+    hh_lo = 2
+    hh_hi = 1
+    pm_reg = 0
+
+    results = []
+    for row in vectors:
+        reset = row.get('reset', 0)
+        ena = row.get('ena', 0)
+
+        # Sample current outputs before edge
+        ss = (ss_hi << 4) | ss_lo
+        mm = (mm_hi << 4) | mm_lo
+        hh = (hh_hi << 4) | hh_lo
+        results.append({'pm': pm_reg, 'hh': hh, 'mm': mm, 'ss': ss})
+
+        # Compute next state at posedge
+        if reset:
+            # R1_reset: reset to 12:00 AM
+            ss_lo = 0
+            ss_hi = 0
+            mm_lo = 0
+            mm_hi = 0
+            hh_lo = 2
+            hh_hi = 1
+            pm_reg = 0
+        elif ena:
+            # R2_seconds / R3 / R4 / R5 / R6
+            if ss != 0x59:
+                # R2_seconds: increment seconds
+                if ss_lo == 9:
+                    ss_lo = 0
+                    ss_hi += 1
+                else:
+                    ss_lo += 1
+            else:
+                # ss == 0x59
+                if mm != 0x59:
+                    # R3_seconds_rollover: ss->00, mm++
+                    ss_lo = 0
+                    ss_hi = 0
+                    if mm_lo == 9:
+                        mm_lo = 0
+                        mm_hi += 1
+                    else:
+                        mm_lo += 1
+                else:
+                    # mm == 0x59
+                    if not (hh == 0x11 and pm_reg == 1):
+                        # R4_minutes_rollover: ss->00, mm->00, hh++
+                        ss_lo = 0
+                        ss_hi = 0
+                        mm_lo = 0
+                        mm_hi = 0
+                        # increment hour
+                        if hh == 0x09:
+                            hh_lo = 0
+                            hh_hi = 1
+                        elif hh == 0x11:
+                            hh_lo = 2
+                            hh_hi = 1
+                        elif hh == 0x12:
+                            hh_lo = 1
+                            hh_hi = 0
+                        else:
+                            hh_lo += 1
+                    else:
+                        # R5_hour_rollover_am_pm: 11:59:59 PM -> 12:00:00 AM
+                        ss_lo = 0
+                        ss_hi = 0
+                        mm_lo = 0
+                        mm_hi = 0
+                        hh_lo = 2
+                        hh_hi = 1
+                        pm_reg = 0
+            # R6_hour_rollover_1159pm: 12:59:59 PM -> 01:00:00 PM
+            # This is handled by R4 path when hh==0x12 and pm==1 (not 0x11)
+            # Actually R6 is when hh==0x12 and pm==1 and ss==mm==0x59
+            # In R4 branch, hh==0x12 -> hh becomes 0x01, pm stays 1
+            # That matches R6 expected: 12:59:59 PM -> 01:00:00 PM
+        # R7_hold: ena==0, no change
+
+    return results

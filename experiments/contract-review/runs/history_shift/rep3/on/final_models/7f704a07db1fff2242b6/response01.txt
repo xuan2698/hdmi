@@ -1,0 +1,82 @@
+def reference(vectors):
+    MASK = 0xFFFFFFFF
+    history_reg = 0
+
+    cur = {
+        'areset': 0,
+        'predict_valid': 0,
+        'predict_taken': 0,
+        'train_mispredicted': 0,
+        'train_taken': 0,
+        'train_history': 0
+    }
+
+    out = []
+
+    for row in vectors:
+        direct = {}
+        mid = None
+
+        if isinstance(row, dict):
+            for mk in ('mid', 'mid_changes', 'mid_inputs', 'mid_values'):
+                if mk in row and isinstance(row[mk], dict):
+                    mid = row[mk]
+                    break
+
+            for k in cur:
+                if k in row:
+                    direct[k] = row[k]
+
+            suffix_mid = {}
+            for k in row:
+                if isinstance(k, str) and k.endswith('_mid'):
+                    base = k[:-4]
+                    if base in cur:
+                        suffix_mid[base] = row[k]
+            if suffix_mid:
+                if mid is None:
+                    mid = {}
+                mid.update(suffix_mid)
+
+        for k, v in direct.items():
+            if k == 'train_history':
+                cur[k] = int(v) & MASK
+            else:
+                cur[k] = int(v) & 1
+
+        # R1_async_reset: active-high async reset forces history to zero.
+        if cur.get('areset', 0) & 1:
+            history_reg = 0
+
+        if cur.get('areset', 0) & 1:
+            # R1_async_reset: reset overrides all clocked updates.
+            history_reg = 0
+        else:
+            if cur.get('train_mispredicted', 0) & 1:
+                # R2_train_mispredicted_load: misprediction takes precedence.
+                th = cur.get('train_history', 0) & MASK
+                tt = cur.get('train_taken', 0) & 1
+                history_reg = ((th << 1) | tt) & MASK
+            elif cur.get('predict_valid', 0) & 1:
+                # R3_predict_update: shift in predicted direction at LSB.
+                pt = cur.get('predict_taken', 0) & 1
+                history_reg = ((history_reg << 1) | pt) & MASK
+            else:
+                # R4_hold: no update, hold previous history.
+                history_reg = history_reg & MASK
+
+        out.append({'predict_history': history_reg & MASK})
+
+        if isinstance(mid, dict):
+            for k, v in mid.items():
+                if k in cur:
+                    if k == 'train_history':
+                        cur[k] = int(v) & MASK
+                    else:
+                        cur[k] = int(v) & 1
+
+            # R1_async_reset: mid-cycle reset assertion takes effect immediately.
+            if cur.get('areset', 0) & 1:
+                history_reg = 0
+
+    return out

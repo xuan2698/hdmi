@@ -1,0 +1,32 @@
+```python
+def reference(vectors):
+    # Contract implementation.
+    # State: out_reg (32-bit sticky flag), in_prev (32-bit previous input sample).
+    # Timing: sample at posedge clk after settling. Each row's values are driven
+    # before the sampled edge. Mid changes occur AFTER sampling and are carried
+    # to the start of the next row.
+
+    out_reg = 0      # power-up unspecified -> concrete 0
+    in_prev = 0      # previous sampled input, concrete 0
+
+    results = []
+    for row in vectors:
+        reset = row.get('reset', 0) & 1
+        in_val = row.get('in', 0) & 0xFFFFFFFF
+
+        # R1_reset_clear: reset == 1 -> out cleared (sync, posedge, same cycle visible)
+        if reset == 1:
+            out_reg = 0
+        else:
+            # R2_capture_falling: capture bits that were 1 prev cycle and 0 now
+            falling = in_val & (~in_prev & 0xFFFFFFFF)
+            out_reg = (out_reg | falling) & 0xFFFFFFFF
+            # R3_hold: bits without new 1->0 transition retain their value (implicit)
+
+        # Update previous input for next cycle's transition detection
+        in_prev = in_val
+
+        results.append({'out': out_reg & 0xFFFFFFFF})
+
+    return results
+```

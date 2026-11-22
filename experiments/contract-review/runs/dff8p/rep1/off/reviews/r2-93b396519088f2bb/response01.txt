@@ -1,0 +1,52 @@
+{
+  "coverage": {
+    "S01": ["R1", "R2"],
+    "S02": ["R1"],
+    "S03": ["R1", "R2"]
+  },
+  "issues": [
+    {
+      "issue_id": "I1",
+      "rule_id": "R1",
+      "type": "grounding",
+      "severity": "medium",
+      "detail": "R1 marked uncertain despite spec_quote fully grounding reset value and active-high sync reset; uncertainty note is spurious.",
+      "spec_evidence": "active high synchronous reset; The flip-flops must be reset to 0x34 rather than zero.",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I2",
+      "rule_id": "R1",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "R1 example expected q=0 after reset deasserts with d=0, but spec requires DFF behavior: q should capture d=0 only if that is the D input; here it is consistent, but the example's third vector has reset=0 and d=0, so q=0 is correct. No contradiction.",
+      "spec_evidence": "",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I3",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec says synchronous reset but does not specify whether reset is sampled on negedge (as contract assumes) or posedge; contract uses negedge for both reset and data.",
+      "spec_evidence": "active high synchronous reset",
+      "alternative": "Reset is synchronous to posedge clk while DFFs trigger on negedge clk.",
+      "sequence": [
+        {"d": 0, "reset": 1},
+        {"d": 18, "reset": 0}
+      ]
+    },
+    {
+      "issue_id": "I4",
+      "rule_id": "R2",
+      "type": "spec_example",
+      "severity": "low",
+      "detail": "R2 example vectors show q following d on same negedge; matches spec. No issue.",
+      "spec_evidence": "",
+      "alternative": "",
+      "sequence": []
+    }
+  ]
+}

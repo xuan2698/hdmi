@@ -1,0 +1,70 @@
+def reference(vectors):
+    # State encoding:
+    # 0=S0, 1=S1, 2=S2, 3=S3, 4=S4
+    state = 0
+    start_shifting = 0
+    current_reset = 0
+    current_data = 0
+    outputs = []
+
+    for row in vectors:
+        # Drive pre-edge values. Row values override values carried from a prior mid.
+        if "reset" in row:
+            current_reset = row["reset"]
+        if "data" in row:
+            current_data = row["data"]
+
+        # Sample at the posedge.
+        if current_reset == 1:
+            # R1_reset_clear: synchronous active-high reset has priority.
+            # Reset forces S0 and start_shifting=0 after the edge.
+            state = 0
+            start_shifting = 0
+        else:
+            if state == 4:
+                # R2_detect_set_and_hold: S4 holds start_shifting=1 for all data while reset==0.
+                start_shifting = 1
+                # state remains S4
+            elif state == 3 and current_data == 1:
+                # R2_detect_set_and_hold: 1101 detected, latch into S4 with start_shifting=1.
+                state = 4
+                start_shifting = 1
+            else:
+                # R3_default_zero_while_searching: default start_shifting=0 and follow prefix transitions.
+                start_shifting = 0
+
+                if state == 0:
+                    # S0: data==1 -> S1, data==0 -> S0
+                    if current_data == 1:
+                        state = 1
+                    else:
+                        state = 0
+                elif state == 1:
+                    # S1: data==1 -> S2, data==0 -> S0
+                    if current_data == 1:
+                        state = 2
+                    else:
+                        state = 0
+                elif state == 2:
+                    # S2: data==0 -> S3, data==1 -> S2
+                    if current_data == 0:
+                        state = 3
+                    else:
+                        state = 2
+                elif state == 3:
+                    # S3: data==0 -> S0; S3+data==1 is handled above as detection.
+                    if current_data == 0:
+                        state = 0
+
+        outputs.append({"start_shifting": start_shifting})
+
+        # Apply mid-cycle changes after sampling, carried to the start of the next row.
+        if "mid" in row:
+            mid = row["mid"]
+            if mid is not None:
+                if "reset" in mid:
+                    current_reset = mid["reset"]
+                if "data" in mid:
+                    current_data = mid["data"]
+
+    return outputs

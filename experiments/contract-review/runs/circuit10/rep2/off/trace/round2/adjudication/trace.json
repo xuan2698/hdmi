@@ -1,0 +1,82 @@
+[
+  {
+    "issue": {
+      "issue_id": "I3",
+      "rule_id": "R1",
+      "type": "ambiguity",
+      "severity": "high",
+      "detail": "Spec waveform is consistent with state being a registered XOR of a and b (state <= a XOR b), not a&b. Distinguishing sequence: posedge with a=1,b=1 should set state=0 under XOR but 1 under AND.",
+      "spec_evidence": "// 65ns            1               1               1               0               0",
+      "alternative": "state <= a XOR b on posedge clk",
+      "sequence": [
+        {
+          "a": 1,
+          "b": 1
+        }
+      ]
+    },
+    "status": "no_effect",
+    "issue_id": "I3",
+    "outputs": {
+      "original": [
+        {
+          "q": 1,
+          "state": 0
+        }
+      ],
+      "alternative": [
+        {
+          "q": 1,
+          "state": 0
+        }
+      ]
+    },
+    "differences": []
+  },
+  {
+    "issue": {
+      "issue_id": "I4",
+      "rule_id": "R2",
+      "type": "ambiguity",
+      "severity": "high",
+      "detail": "Spec waveform is consistent with q being combinational XOR of a and b, not AND. Distinguishing input: a=0,b=1 gives q=1 under XOR but 0 under AND.",
+      "spec_evidence": "// 45ns            1               0               1               0               1",
+      "alternative": "q = a XOR b combinationally",
+      "sequence": [
+        {
+          "a": 0,
+          "b": 1
+        }
+      ]
+    },
+    "status": "effect",
+    "issue_id": "I4",
+    "outputs": {
+      "original": [
+        {
+          "q": 0,
+          "state": 0
+        }
+      ],
+      "alternative": [
+        {
+          "q": 1,
+          "state": 0
+        }
+      ]
+    },
+    "differences": [
+      {
+        "cycle": 1,
+        "original": {
+          "q": 0,
+          "state": 0
+        },
+        "alternative": {
+          "q": 1,
+          "state": 0
+        }
+      }
+    ]
+  }
+]

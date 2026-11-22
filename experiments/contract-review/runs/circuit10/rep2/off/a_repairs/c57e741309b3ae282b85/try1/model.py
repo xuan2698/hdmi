@@ -1,0 +1,17 @@
+def reference(vectors):
+    # Contract implementation.
+    # R1: state updates to a XOR b on posedge clk (visible next cycle).
+    # R2: q = a XOR b combinationally (same cycle).
+    # Reset: none. Power-up state unspecified -> use 0 as concrete default.
+    state = 0
+    out = []
+    for row in vectors:
+        a = row.get('a', 0)
+        b = row.get('b', 0)
+        # R2: combinational output q = a XOR b
+        q = (a ^ b) & 1
+        # R1: state is the flip-flop value (from previous posedge)
+        out.append({'q': q, 'state': state & 1})
+        # R1: on posedge clk, next state = a XOR b
+        state = (a ^ b) & 1
+    return out

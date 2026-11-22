@@ -1,0 +1,47 @@
+def reference(vectors):
+    state = "A"
+    current = {"in": 0, "reset": 0}
+    results = []
+
+    for vec in vectors:
+        # Drive row values before the sampled posedge.
+        if "in" in vec:
+            current["in"] = vec["in"] & 1
+        if "reset" in vec:
+            current["reset"] = vec["reset"] & 1
+
+        # R_RESET: synchronous active high reset at posedge sets state A.
+        if current["reset"] == 1:
+            state = "A"
+        else:
+            # Explicit named-state transitions from the transition table.
+            if state == "A":
+                state = "A" if current["in"] == 0 else "B"
+            elif state == "B":
+                state = "C" if current["in"] == 0 else "B"
+            elif state == "C":
+                state = "A" if current["in"] == 0 else "D"
+            elif state == "D":
+                state = "C" if current["in"] == 0 else "B"
+
+        # R_OUT_A, R_OUT_B, R_OUT_C, R_OUT_D: Moore output after posedge settles.
+        out_val = 1 if state == "D" else 0
+        results.append({"out": out_val})
+
+        # Process optional mid input changes AFTER sampling, carried to next row.
+        if "mid" in vec and isinstance(vec["mid"], dict):
+            for k, v in vec["mid"].items():
+                if k in current:
+                    current[k] = v & 1
+
+        for k, v in vec.items():
+            if k.endswith("_mid"):
+                name = k[:-4]
+                if name in current:
+                    current[name] = v & 1
+            elif k.startswith("mid_"):
+                name = k[4:]
+                if name in current:
+                    current[name] = v & 1
+
+    return results

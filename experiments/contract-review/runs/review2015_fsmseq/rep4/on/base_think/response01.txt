@@ -1,0 +1,26 @@
+def reference(vectors):
+    state = 0
+    held = {'reset': 0, 'data': 0}
+    out = []
+    for row in vectors:
+        for k in ('reset', 'data'):
+            if k in row:
+                held[k] = row[k]
+        if held['reset']:
+            state = 0
+        elif state != 4:
+            d = held['data']
+            if state == 0:
+                state = 1 if d else 0
+            elif state == 1:
+                state = 2 if d else 0
+            elif state == 2:
+                state = 3 if d == 0 else 2
+            elif state == 3:
+                state = 4 if d else 0
+        out.append({'start_shifting': 1 if state == 4 else 0})
+        if 'mid' in row:
+            for k, v in row['mid'].items():
+                if k in ('reset', 'data'):
+                    held[k] = v
+    return out

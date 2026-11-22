@@ -1,0 +1,75 @@
+def reference(vectors):
+    Q = 0  # concrete initial state; first sampled edge overwrites before output
+    cur = {"L": 0, "q_in": 0, "r_in": 0}
+    out = []
+    keys = ("L", "q_in", "r_in")
+
+    for row in vectors:
+        # Drive row inputs before the posedge sample. These override carried mid values.
+        if isinstance(row, dict):
+            src = row.get("inputs", row) if isinstance(row.get("inputs", row), dict) else row
+            for k in keys:
+                if k in src:
+                    cur[k] = int(src[k]) & 1
+                elif k in row:
+                    cur[k] = int(row[k]) & 1
+        else:
+            vals = list(row)
+            for i, k in enumerate(keys):
+                if i < len(vals):
+                    cur[k] = int(vals[i]) & 1
+
+        # posedge sample
+        if cur["L"] == 1:
+            Q = cur["r_in"] & 1  # load_r
+        else:
+            Q = cur["q_in"] & 1  # hold_q_in
+
+        out.append({"Q": int(Q) & 1})
+
+        # Optional mid input changes occur after sampling, before the next edge.
+        mid = None
+        if isinstance(row, dict):
+            for key in ("mid", "_mid", "mid_changes", "after_sample", "post"):
+                if key in row:
+                    mid = row[key]
+                    break
+            if mid is None:
+                mids = {}
+                found = False
+                for k in keys:
+                    mk = k + "_mid"
+                    if mk in row:
+                        mids[k] = row[mk]
+                        found = True
+                if found:
+                    mid = mids
+
+        if mid is not None:
+            if isinstance(mid, dict):
+                src = mid.get("inputs", mid) if isinstance(mid.get("inputs", mid), dict) else mid
+                for k in keys:
+                    if k in src:
+                        cur[k] = int(src[k]) & 1
+                    elif k in mid:
+                        cur[k] = int(mid[k]) & 1
+            elif isinstance(mid, (list, tuple)):
+                for item in mid:
+                    if isinstance(item, dict):
+                        src = item.get("inputs", item) if isinstance(item.get("inputs", item), dict) else item
+                        for k in keys:
+                            if k in src:
+                                cur[k] = int(src[k]) & 1
+                            elif k in item:
+                                cur[k] = int(item[k]) & 1
+                    elif isinstance(item, (list, tuple)) and len(item) >= 2:
+                        k = item[0]
+                        if k in keys:
+                            cur[k] = int(item[1]) & 1
+            else:
+                vals = list(mid)
+                for i, k in enumerate(keys):
+                    if i < len(vals):
+                        cur[k] = int(vals[i]) & 1
+
+    return out

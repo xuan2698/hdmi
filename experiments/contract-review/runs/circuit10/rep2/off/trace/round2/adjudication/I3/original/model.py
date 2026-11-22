@@ -1,0 +1,17 @@
+def reference(vectors):
+    # Contract rules:
+    # R1: state updates to a & b on posedge clk (visible next cycle)
+    # R2: q = a & b combinationally (visible same cycle)
+    # Power-up state is unspecified; we start with 0 as a concrete value.
+    state = 0
+    out = []
+    for v in vectors:
+        a = v.get('a', 0)
+        b = v.get('b', 0)
+        # R2: combinational output q = a AND b
+        q = a & b
+        # R1: state holds previous next-state value (updated on posedge)
+        out.append({'q': q & 1, 'state': state & 1})
+        # R1: next state = a AND b, latched at posedge
+        state = a & b
+    return out

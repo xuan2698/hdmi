@@ -1,0 +1,123 @@
+{
+  "responses": [
+    {
+      "issue_id": "I1",
+      "decision": "rebut",
+      "reason": "The example is consistent with visible=next_cycle: the 1->0 transition occurs on row2 (in goes 0xFFFFFFFF->0), and out becomes 0xFFFFFFFF on row2, which is the cycle after the transition was sampled at the row1->row2 edge. The first row's out=0 reflects the initial register value, not a transition.",
+      "spec_quote": "capture when the input signal changes from 1 in one clock cycle to 0 the next",
+      "edits": []
+    },
+    {
+      "issue_id": "I2",
+      "decision": "accept",
+      "reason": "Initial value of in_prev is unspecified; clarify that no capture occurs on the first sampled cycle since there is no prior cycle.",
+      "spec_quote": "capture when the input signal changes from 1 in one clock cycle to 0 the next",
+      "edits": [
+        {
+          "path": [
+            "states",
+            "out_reg",
+            "meaning"
+          ],
+          "value": "Per-bit sticky flag: set to 1 when in bit transitions 1->0; held until synchronous reset. in_prev is treated as 0 before the first sampled cycle, so no capture occurs on the first cycle."
+        }
+      ]
+    },
+    {
+      "issue_id": "I3",
+      "decision": "rebut",
+      "reason": "The 1->0 transition occurs at the row2->row3 edge (in goes 1->0 between row2 and row3), so out=1 appearing on row3 is next_cycle relative to the transition, consistent with visible=next_cycle.",
+      "spec_quote": "the output will remain 1 until the register is reset",
+      "edits": []
+    },
+    {
+      "issue_id": "I4",
+      "decision": "accept",
+      "reason": "Example should demonstrate reset clearing a previously-set sticky bit.",
+      "spec_quote": "until the register is reset (active high synchronous reset)",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R1_reset_clear",
+            "example"
+          ],
+          "value": {
+            "vectors": [
+              {
+                "reset": 0,
+                "in": 1
+              },
+              {
+                "reset": 0,
+                "in": 0
+              },
+              {
+                "reset": 1,
+                "in": 0
+              },
+              {
+                "reset": 0,
+                "in": 0
+              }
+            ],
+            "expected": [
+              {
+                "out": 0
+              },
+              {
+                "out": 1
+              },
+              {
+                "out": 0
+              },
+              {
+                "out": 0
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "issue_id": "I5",
+      "decision": "accept",
+      "reason": "Clarify idempotence and same-cycle reset visibility.",
+      "spec_quote": "the output will remain 1 until the register is reset (active high synchronous reset)",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R3_hold",
+            "condition"
+          ],
+          "value": "reset == 0 && no new 1->0 transition on a bit (already-1 bits remain 1; setting is idempotent)"
+        },
+        {
+          "path": [
+            "rules",
+            "R1_reset_clear",
+            "visible"
+          ],
+          "value": "same_cycle"
+        }
+      ]
+    },
+    {
+      "issue_id": "I6",
+      "decision": "accept",
+      "reason": "Ground in_prev as an internal register in state meaning.",
+      "spec_quote": "capture when the input signal changes from 1 in one clock cycle to 0 the next",
+      "edits": [
+        {
+          "path": [
+            "states",
+            "out_reg",
+            "meaning"
+          ],
+          "value": "Per-bit sticky flag: set to 1 when in bit transitions 1->0; held until synchronous reset. in_prev is an internal register holding the previous cycle's in value (initialized to 0)."
+        }
+      ]
+    }
+  ]
+}

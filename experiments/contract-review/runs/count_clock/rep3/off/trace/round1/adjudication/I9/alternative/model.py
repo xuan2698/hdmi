@@ -1,0 +1,81 @@
+def reference(vectors):
+    # State: ss_lo, ss_hi, mm_lo, mm_hi, hh_lo, hh_hi, pm_reg
+    # Reset values: 12:00 AM -> hh=0x12, mm=0x00, ss=0x00, pm=0
+    ss_lo = 0
+    ss_hi = 0
+    mm_lo = 0
+    mm_hi = 0
+    hh_lo = 2
+    hh_hi = 1
+    pm_reg = 0
+
+    out = []
+    for row in vectors:
+        reset = row.get('reset', 0)
+        ena = row.get('ena', 0)
+
+        # R1_reset: synchronous reset, priority 1
+        if reset == 1:
+            ss_lo = 0; ss_hi = 0
+            mm_lo = 0; mm_hi = 0
+            hh_lo = 2; hh_hi = 1
+            pm_reg = 0
+        elif ena == 1:
+            # R7_hold handled by else branch (ena==0)
+            ss = ss_hi * 10 + ss_lo
+            mm = mm_hi * 10 + mm_lo
+            hh = hh_hi * 10 + hh_lo
+
+            if ss != 59:
+                # R2_seconds: increment seconds
+                ss_lo += 1
+                if ss_lo == 10:
+                    ss_lo = 0
+                    ss_hi += 1
+            else:
+                # ss == 59
+                ss_lo = 0
+                ss_hi = 0
+                if mm != 59:
+                    # R3_seconds_rollover: increment minutes
+                    mm_lo += 1
+                    if mm_lo == 10:
+                        mm_lo = 0
+                        mm_hi += 1
+                else:
+                    # mm == 59
+                    mm_lo = 0
+                    mm_hi = 0
+                    # R4_minutes_rollover / R5 / R6: hour rollover
+                    if hh == 11 and pm_reg == 0:
+                        # 11:59 AM -> 12:00 PM
+                        hh_lo = 2; hh_hi = 1
+                        pm_reg = 1
+                    elif hh == 11 and pm_reg == 1:
+                        # 11:59 PM -> 12:00 AM
+                        hh_lo = 2; hh_hi = 1
+                        pm_reg = 0
+                    elif hh == 12 and pm_reg == 1:
+                        # 12:59 PM -> 01:00 PM
+                        hh_lo = 1; hh_hi = 0
+                        pm_reg = 1
+                    else:
+                        # 12:59 AM -> 01:00 AM, or 01..10 -> next hour
+                        hh_lo += 1
+                        if hh_lo == 10:
+                            hh_lo = 0
+                            hh_hi += 1
+        # else ena == 0: R7_hold, no change
+
+        hh_val = hh_hi * 10 + hh_lo
+        mm_val = mm_hi * 10 + mm_lo
+        ss_val = ss_hi * 10 + ss_lo
+
+        out.append({
+            'pm': pm_reg,
+            'hh': ((hh_hi << 4) | hh_lo),
+            'mm': ((mm_hi << 4) | mm_lo),
+            'ss': ((ss_hi << 4) | ss_lo),
+        })
+
+    return out

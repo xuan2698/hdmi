@@ -1,0 +1,82 @@
+```python
+def reference(vectors):
+    # R1_async_reset: active high asynchronous reset overrides all clocked updates.
+    # R2_train_mispredicted_load: at posedge, load ((train_history << 1) | train_taken) & 0xFFFFFFFF.
+    # R3_predict_update: at posedge, shift in predict_taken at LSB side.
+    # R4_hold: at posedge, no update when neither training nor prediction occurs.
+    input_names = [
+        "areset",
+        "predict_valid",
+        "predict_taken",
+        "train_mispredicted",
+        "train_taken",
+        "train_history",
+    ]
+    history_reg = 0  # 32-bit speculative global branch history register
+    cur = {k: 0 for k in input_names}
+    result = []
+
+    for row in vectors:
+        # Normalize row to dict if needed
+        if not isinstance(row, dict):
+            row = {input_names[i]: row[i] for i in range(min(len(row), len(input_names)))}
+
+        # Collect optional mid-cycle input changes
+        mid_changes = []
+        if "mid" in row:
+            m = row["mid"]
+            if isinstance(m, dict):
+                mid_changes.append(m)
+            elif isinstance(m, list):
+                for item in m:
+                    if isinstance(item, dict):
+                        mid_changes.append(item)
+
+        for k in list(row.keys()):
+            if k == "mid":
+                continue
+            if k.startswith("mid_"):
+                sig = k[4:]
+                if sig in input_names:
+                    mid_changes.append({sig: row[k]})
+            elif k.endswith("_mid"):
+                sig = k[:-4]
+                if sig in input_names:
+                    mid_changes.append({sig: row[k]})
+
+        # Apply driven values before the sampled edge
+        for k in input_names:
+            if k in row:
+                cur[k] = int(row[k])
+
+        # R1_async_reset: asynchronous reset before posedge
+        if cur["areset"] == 1:
+            history_reg = 0
+
+        # Sampled posedge
+        if cur["areset"] == 1:
+            # Reset overrides all clocked prediction/training updates
+            history_reg = 0
+        else:
+            # R2_train_mispredicted_load: takes precedence over predict_valid
+            if cur["train_mispredicted"] == 1:
+                history_reg = ((cur["train_history"] << 1) | cur["train_taken"]) & 0xFFFFFFFF
+            # R3_predict_update: shift in predict_taken at LSB
+            elif cur["predict_valid"] == 1:
+                history_reg = ((history_reg << 1) | cur["predict_taken"]) & 0xFFFFFFFF
+            # R4_hold: no update
+
+        # Output after posedge has settled
+        result.append({"predict_history": history_reg & 0xFFFFFFFF})
+
+        # Process mid-cycle changes after sampling
+        for mc in mid_changes:
+            for sig, val in mc.items():
+                if sig in input_names:
+                    cur[sig] = int(val)
+            # R1_async_reset: if areset becomes high mid-cycle, reset immediately
+            if cur["areset"] == 1:
+                history_reg = 0
+
+    return result
+```

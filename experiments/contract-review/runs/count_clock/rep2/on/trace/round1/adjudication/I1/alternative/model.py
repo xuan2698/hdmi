@@ -1,0 +1,68 @@
+def reference(vectors):
+    # Initial state: use reset values for unspecified power-up
+    pm = 0
+    hh = 0x12
+    mm = 0x00
+    ss = 0x00
+    cur_reset = 0
+    cur_ena = 0
+    out = []
+    for row in vectors:
+        # Apply row inputs (driven before the sampled posedge)
+        if 'reset' in row:
+            cur_reset = row['reset']
+        if 'ena' in row:
+            cur_ena = row['ena']
+        # R_RESET: active-high synchronous reset, priority over enable
+        if cur_reset == 1:
+            pm = 0
+            hh = 0x12
+            mm = 0x00
+            ss = 0x00
+        else:
+            # R_NORMAL: enabled BCD increment with candidate hour roll interpretation
+            if cur_ena == 1:
+                # Candidate: hour rolls 12->01 on first enabled increment from 12:00:00
+                if hh == 0x12 and mm == 0x00 and ss == 0x00:
+                    hh = 0x01
+                    mm = 0x00
+                    ss = 0x01
+                    # pm unchanged
+                else:
+                    if ss == 0x59:
+                        ss = 0x00
+                        if mm == 0x59:
+                            mm = 0x00
+                            if hh == 0x11:
+                                hh = 0x12
+                                pm = 1 - pm  # toggle at 11:59:59 -> 12:00:00
+                            elif hh == 0x12:
+                                hh = 0x01
+                                # pm unchanged
+                            else:
+                                lower = hh & 0x0F
+                                if lower == 0x09:
+                                    hh = (hh & 0xF0) + 0x10
+                                else:
+                                    hh += 1
+                        else:
+                            lower = mm & 0x0F
+                            if lower == 0x09:
+                                mm = (mm & 0xF0) + 0x10
+                            else:
+                                mm += 1
+                    else:
+                        lower = ss & 0x0F
+                        if lower == 0x09:
+                            ss = (ss & 0xF0) + 0x10
+                        else:
+                            ss += 1
+        out.append({'pm': pm, 'hh': hh, 'mm': mm, 'ss': ss})
+        # Process optional mid changes after sampling, for next row
+        if 'mid' in row:
+            mid = row['mid']
+            if 'reset' in mid:
+                cur_reset = mid['reset']
+            if 'ena' in mid:
+                cur_ena = mid['ena']
+    return out

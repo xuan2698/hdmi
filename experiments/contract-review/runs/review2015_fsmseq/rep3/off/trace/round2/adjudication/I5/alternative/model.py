@@ -1,0 +1,57 @@
+def reference(vectors):
+    # State encoding
+    S0, S1, S2, S3, S4 = 0, 1, 2, 3, 4
+
+    # Power-up state (unspecified; use S0) and output
+    state = S0
+    start_shifting = 0
+
+    results = []
+    for vec in vectors:
+        reset = vec['reset'] & 1
+        data = vec['data'] & 1
+
+        # Compute next state and next output based on current state and inputs
+        # R1: reset == 1 -> start_shifting = 0 (sync reset, same_cycle visible)
+        if reset == 1:
+            next_state = S0
+            next_out = 0
+        else:
+            # R2: state == S4 -> start_shifting stays 1 forever
+            if state == S4:
+                next_state = S4
+                next_out = 1
+            else:
+                # Compute next state from current state and data
+                if state == S0:
+                    next_state = S1 if data == 1 else S0
+                elif state == S1:
+                    next_state = S2 if data == 1 else S0
+                elif state == S2:
+                    next_state = S3 if data == 0 else S2
+                elif state == S3:
+                    next_state = S4 if data == 1 else S0
+                else:
+                    next_state = S4
+
+                # R3 (candidate interpretation): start_shifting is registered and
+                # asserts one posedge AFTER the completing 1 is sampled.
+                # So output this cycle reflects whether we were already in S4
+                # (handled above) or whether the PREVIOUS cycle transitioned into S4.
+                # Since we track state as the post-edge state, "state == S4" means
+                # the completing bit was already sampled last cycle.
+                # Therefore on the cycle where next_state becomes S4, output stays 0.
+                # R4: otherwise output 0.
+                if next_state == S4:
+                    next_out = 0  # R3 candidate: registered, asserts next posedge
+                else:
+                    next_out = 0  # R4
+
+        # Sample: outputs visible same_cycle as the posedge
+        results.append({'start_shifting': next_out & 1})
+
+        # Update state for next cycle
+        state = next_state
+        start_shifting = next_out
+
+    return results

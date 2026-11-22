@@ -1,0 +1,74 @@
+```python
+def reference(vectors):
+    # R1_async_reset: active-high asynchronous reset forces history to zero.
+    history = 0
+    cur = {
+        "areset": 0,
+        "predict_valid": 0,
+        "predict_taken": 0,
+        "train_mispredicted": 0,
+        "train_taken": 0,
+        "train_history": 0,
+    }
+    inputs = (
+        "areset",
+        "predict_valid",
+        "predict_taken",
+        "train_mispredicted",
+        "train_taken",
+        "train_history",
+    )
+    outputs = []
+
+    for row in vectors:
+        # Drive row values before the sampled posedge. Carried mid values are already in cur.
+        for key in inputs:
+            if key in row:
+                cur[key] = row[key]
+
+        # R1_async_reset: reset overrides all clocked prediction/training updates.
+        if cur["areset"] == 1:
+            history = 0
+        else:
+            # R2_train_mispredicted_load: MSB-side insertion interpretation; takes precedence.
+            if cur["train_mispredicted"] == 1:
+                history = (
+                    (cur["train_history"] >> 1) | (cur["train_taken"] << 31)
+                ) & 0xFFFFFFFF
+            # R3_predict_update: shift predict_taken into LSB.
+            elif cur["predict_valid"] == 1:
+                history = ((history << 1) | cur["predict_taken"]) & 0xFFFFFFFF
+            # R4_hold: no update.
+            else:
+                pass
+
+        outputs.append({"predict_history": history & 0xFFFFFFFF})
+
+        # Mid-cycle changes occur after sampling and are carried to the next row.
+        if "mid" in row:
+            mid = row["mid"]
+
+            for key in inputs:
+                try:
+                    val = mid[key]
+                except:
+                    continue
+                cur[key] = val
+                if key == "areset" and val == 1:
+                    history = 0
+
+            try:
+                for change in mid:
+                    for key in inputs:
+                        try:
+                            val = change[key]
+                        except:
+                            continue
+                        cur[key] = val
+                        if key == "areset" and val == 1:
+                            history = 0
+            except:
+                pass
+
+    return outputs
+```

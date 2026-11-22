@@ -1,0 +1,44 @@
+[
+  {
+    "issue": {
+      "issue_id": "I3",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec says synchronous reset active high; contract reset kind sync active high matches, but 'first_released_cycle' wording ambiguous whether reset deassert sampled at same negedge loads d or holds.",
+      "spec_evidence": "active high synchronous reset",
+      "alternative": "Reset deassertion at a negedge loads d on that same negedge (synchronous release).",
+      "sequence": [
+        {
+          "d": 0,
+          "reset": 1
+        },
+        {
+          "d": 77,
+          "reset": 0
+        }
+      ]
+    },
+    "status": "no_effect",
+    "issue_id": "I3",
+    "outputs": {
+      "original": [
+        {
+          "q": 52
+        },
+        {
+          "q": 77
+        }
+      ],
+      "alternative": [
+        {
+          "q": 52
+        },
+        {
+          "q": 77
+        }
+      ]
+    },
+    "differences": []
+  }
+]

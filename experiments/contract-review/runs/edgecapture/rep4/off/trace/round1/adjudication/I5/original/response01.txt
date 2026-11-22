@@ -1,0 +1,33 @@
+```python
+def reference(vectors):
+    # Contract implementation.
+    # State: out_reg (32-bit sticky flag), in_prev (32-bit previous input).
+    # Power-up: out_reg = 0, in_prev = 0 (concrete, unsigned).
+    out_reg = 0
+    in_prev = 0
+    results = []
+
+    for row in vectors:
+        reset = int(row.get("reset", 0)) & 1
+        cur_in = int(row.get("in", 0)) & 0xFFFFFFFF
+
+        # R1_reset_clear: synchronous active-high reset clears out_reg at posedge.
+        # R2_capture_falling: capture 1->0 transitions (in_prev & ~cur_in).
+        # R3_hold: otherwise hold out_reg.
+        if reset == 1:
+            # R1_reset_clear
+            out_reg = 0
+        else:
+            # R2_capture_falling
+            falling = in_prev & (~cur_in & 0xFFFFFFFF)
+            out_reg = (out_reg | falling) & 0xFFFFFFFF
+            # R3_hold is implicit: bits not newly falling retain their value.
+
+        # Output visible after posedge settles (same cycle for reset, next for capture).
+        results.append({"out": out_reg & 0xFFFFFFFF})
+
+        # Update previous input for next cycle's edge detection.
+        in_prev = cur_in
+
+    return results
+```

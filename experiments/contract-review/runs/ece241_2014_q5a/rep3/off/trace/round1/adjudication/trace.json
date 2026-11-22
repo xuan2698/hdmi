@@ -1,0 +1,152 @@
+[
+  {
+    "issue": {
+      "issue_id": "I6",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "high",
+      "detail": "Spec says output is 2's complement of input, but contract implements LSB-first copy-then-invert Moore machine. Alternative semantics: output z equals x until first 1, then ~x thereafter (standard). Distinguishing sequence: areset=0, x=0 then x=1 then x=0; contract gives z=0,1,0 (S0 copy then S1 invert after seeing 1), but a pure 2's complement of the accumulated number would differ.",
+      "spec_evidence": "the output (Z) is the 2's complement of the input",
+      "alternative": "Output z is the 2's complement of the full accumulated input number, not a per-bit copy/invert stream.",
+      "sequence": [
+        {
+          "areset": 0,
+          "x": 0
+        },
+        {
+          "areset": 0,
+          "x": 1
+        },
+        {
+          "areset": 0,
+          "x": 0
+        }
+      ]
+    },
+    "status": "no_effect",
+    "issue_id": "I6",
+    "outputs": {
+      "original": [
+        {
+          "z": 0
+        },
+        {
+          "z": 1
+        },
+        {
+          "z": 1
+        }
+      ],
+      "alternative": [
+        {
+          "z": 0
+        },
+        {
+          "z": 1
+        },
+        {
+          "z": 1
+        }
+      ]
+    },
+    "differences": []
+  },
+  {
+    "issue": {
+      "issue_id": "I7",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec does not state whether z is registered (Moore) or combinational; contract uses combinational same-cycle z. Alternative: z is registered and visible next cycle. Distinguishing sequence: areset=0, x=1 at first posedge; combinational gives z=1 same cycle, registered gives z=0 then 1.",
+      "spec_evidence": "Moore state machine",
+      "alternative": "z is registered and updates on posedge clk, visible next cycle.",
+      "sequence": [
+        {
+          "areset": 0,
+          "x": 1
+        },
+        {
+          "areset": 0,
+          "x": 0
+        }
+      ]
+    },
+    "status": "effect",
+    "issue_id": "I7",
+    "outputs": {
+      "original": [
+        {
+          "z": 1
+        },
+        {
+          "z": 1
+        }
+      ],
+      "alternative": [
+        {
+          "z": 0
+        },
+        {
+          "z": 1
+        }
+      ]
+    },
+    "differences": [
+      {
+        "cycle": 1,
+        "original": {
+          "z": 1
+        },
+        "alternative": {
+          "z": 0
+        }
+      }
+    ]
+  },
+  {
+    "issue": {
+      "issue_id": "I8",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec says conversion begins when Reset is released; contract's first_released_cycle is first posedge after deassert, but does not specify behavior if areset deasserts mid-cycle. Alternative: conversion begins immediately on async deassert. Distinguishing sequence: areset=1 then mid areset=0 with x=1 before next posedge; immediate semantics gives z=1 before posedge, contract gives z=0 until posedge.",
+      "spec_evidence": "The conversion begins when Reset is released",
+      "alternative": "Conversion (and z) begins immediately when areset deasserts, not waiting for posedge.",
+      "sequence": [
+        {
+          "areset": 1,
+          "x": 0,
+          "mid": {
+            "areset": 0,
+            "x": 1
+          }
+        },
+        {
+          "areset": 0,
+          "x": 1
+        }
+      ]
+    },
+    "status": "no_effect",
+    "issue_id": "I8",
+    "outputs": {
+      "original": [
+        {
+          "z": 0
+        },
+        {
+          "z": 1
+        }
+      ],
+      "alternative": [
+        {
+          "z": 0
+        },
+        {
+          "z": 1
+        }
+      ]
+    },
+    "differences": []
+  }
+]

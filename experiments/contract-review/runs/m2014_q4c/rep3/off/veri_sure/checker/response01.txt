@@ -1,0 +1,21 @@
+```python
+def reference(vectors):
+    # D flip-flop with active-high synchronous reset.
+    # On posedge clk: if r==1, q<=0; else q<=d. q holds between edges.
+    # Power-up unspecified -> start q at 0.
+    q = 0
+    out = []
+    for row in vectors:
+        # Sample inputs at posedge (values driven before edge)
+        d = row.get('d', 0) & 1
+        r = row.get('r', 0) & 1
+        # Synchronous update
+        if r == 1:
+            q = 0
+        else:
+            q = d
+        out.append({'q': q & 1})
+        # Mid changes occur AFTER sampling; they don't affect this row's output.
+        # They are carried to the start of the next row (handled by next iteration).
+    return out
+```

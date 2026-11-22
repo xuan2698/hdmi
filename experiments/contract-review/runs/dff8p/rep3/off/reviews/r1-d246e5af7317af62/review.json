@@ -1,0 +1,52 @@
+{
+  "coverage": {
+    "S01": [
+      "R1",
+      "R2"
+    ],
+    "S02": [
+      "R1"
+    ],
+    "S03": [
+      "R1",
+      "R2"
+    ]
+  },
+  "issues": [
+    {
+      "issue_id": "I1",
+      "rule_id": "R1",
+      "type": "consistency",
+      "severity": "medium",
+      "detail": "R1 example first vector reset=1 expects q=52, but reset value 0x34=52 is only established at reset; a synchronous reset on negedge with reset=1 should load 52, which matches, but the example's first row has no prior state so it is consistent only if reset applies at that negedge. No contradiction found.",
+      "spec_evidence": "The flip-flops must be reset to 0x34 rather than zero.",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I2",
+      "rule_id": "R2",
+      "type": "ambiguity",
+      "severity": "low",
+      "detail": "R2 example first vector d=52 reset=0 expects q=52, but with no prior state the output is undefined; example assumes initial q equals d.",
+      "spec_evidence": "All DFFs should be triggered by the negative edge of clk.",
+      "alternative": "If initial Q is unknown, first negedge with reset=0 should leave q undefined rather than equal d.",
+      "sequence": [
+        {
+          "d": 52,
+          "reset": 0
+        }
+      ]
+    },
+    {
+      "issue_id": "I3",
+      "rule_id": "global",
+      "type": "grounding",
+      "severity": "low",
+      "detail": "Spec S02 requires reset to 0x34; contract reset.values q=52 matches, but R1 example only shows reset=1 twice then deassert; no explicit vector demonstrates reset overriding a nonzero prior q.",
+      "spec_evidence": "The flip-flops must be reset to 0x34 rather than zero.",
+      "alternative": "",
+      "sequence": []
+    }
+  ]
+}

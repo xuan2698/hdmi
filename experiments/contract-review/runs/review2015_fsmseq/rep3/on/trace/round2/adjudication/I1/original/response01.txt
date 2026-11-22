@@ -1,0 +1,65 @@
+def reference(vectors):
+    # Initial/reset state is S0.
+    state = "S0"
+    cur_reset = 0
+    cur_data = 0
+    outputs = []
+
+    for row in vectors:
+        # Drive row values before the sampled posedge; previous mid values persist if not overridden.
+        if "reset" in row:
+            cur_reset = row["reset"] & 1
+        if "data" in row:
+            cur_data = row["data"] & 1
+
+        # Posedge sampling: synchronous active-high reset has priority.
+        if cur_reset == 1:
+            # R1_reset_clear: reset forces S0 and start_shifting=0 after the edge.
+            state = "S0"
+        else:
+            # R3_default_zero_while_searching: 1101-prefix transitions while searching.
+            # R2_detect_set_and_hold: S3+1->S4 and S4 holds until reset.
+            if state == "S0":
+                if cur_data == 1:
+                    state = "S1"
+                else:
+                    state = "S0"
+            elif state == "S1":
+                if cur_data == 1:
+                    state = "S2"
+                else:
+                    state = "S0"
+            elif state == "S2":
+                if cur_data == 0:
+                    state = "S3"
+                else:
+                    state = "S2"
+            elif state == "S3":
+                if cur_data == 1:
+                    state = "S4"
+                else:
+                    state = "S0"
+            elif state == "S4":
+                state = "S4"
+            else:
+                state = "S0"
+
+        # Output is visible after the sampled posedge.
+        start_shifting = 1 if state == "S4" else 0
+        outputs.append({"start_shifting": start_shifting})
+
+        # Mid changes occur after sampling and before the next sampled posedge.
+        if "mid" in row and row["mid"] is not None:
+            mid = row["mid"]
+            changes = []
+            if isinstance(mid, dict):
+                changes = [mid]
+            elif isinstance(mid, list):
+                changes = [m for m in mid if isinstance(m, dict)]
+            for change in changes:
+                if "reset" in change:
+                    cur_reset = change["reset"] & 1
+                if "data" in change:
+                    cur_data = change["data"] & 1
+
+    return outputs

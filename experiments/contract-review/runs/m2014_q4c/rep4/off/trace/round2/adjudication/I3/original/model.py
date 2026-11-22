@@ -1,0 +1,16 @@
+def reference(vectors):
+    # State: Q = stored flip-flop value (R1_sync_reset, R2_capture_d)
+    Q = 0  # power-up unspecified; concrete value chosen
+    out = []
+    for row in vectors:
+        d = row['d'] & 1
+        r = row['r'] & 1
+        # posedge clk sampling
+        if r == 1:
+            # R1_sync_reset: active high synchronous reset -> q <= 0
+            Q = 0
+        else:
+            # R2_capture_d: q <= d
+            Q = d
+        out.append({'q': Q & 1})
+    return out

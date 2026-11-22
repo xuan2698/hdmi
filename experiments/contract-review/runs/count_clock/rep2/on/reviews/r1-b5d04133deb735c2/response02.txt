@@ -1,0 +1,23 @@
+{
+  "coverage": {
+    "S01": ["R_NORMAL"],
+    "S02": ["R_NORMAL"],
+    "S03": ["R_RESET", "R_NORMAL"],
+    "S04": ["R_RESET"]
+  },
+  "issues": [
+    {
+      "issue_id": "I1",
+      "rule_id": "R_NORMAL",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "Spec does not explicitly state 12-hour rollover/PM-toggle boundary; contract infers standard, but alternative hour rollover is plausible.",
+      "spec_evidence": "Create a set of counters suitable for use as a 12-hour clock (with am/pm indicator).",
+      "alternative": "Hour rolls 12->01 on the first enabled increment from 12:00:00 (hh=0x01, ss=0x01) instead of after 12:59:59.",
+      "sequence": [
+        {"reset": 1, "ena": 0},
+        {"reset": 0, "ena": 1}
+      ]
+    }
+  ]
+}

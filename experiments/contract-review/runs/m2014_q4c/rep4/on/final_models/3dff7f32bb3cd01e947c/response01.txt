@@ -1,0 +1,37 @@
+```python
+def reference(vectors):
+    # Initialize input state and q state.
+    # q power-up is unspecified, but synchronous edge fully determines q each row.
+    d = 0
+    r = 0
+    q = 0
+    outputs = []
+
+    for row in vectors:
+        # Drive row inputs before the sampled posedge.
+        if 'd' in row:
+            d = row['d']
+        if 'r' in row:
+            r = row['r']
+
+        # Sampled posedge: update q with priority sync_reset over d_load.
+        if r == 1:
+            # rule sync_reset: active high synchronous reset forces q to 0
+            q = 0
+        else:
+            # rule d_load: q captures d when reset is low
+            q = d & 1  # keep within 1-bit output width
+
+        outputs.append({'q': q})
+
+        # Apply optional mid changes AFTER sampling; carried to next row start.
+        if 'mid' in row:
+            mid = row['mid']
+            if isinstance(mid, dict):
+                if 'd' in mid:
+                    d = mid['d']
+                if 'r' in mid:
+                    r = mid['r']
+
+    return outputs
+```

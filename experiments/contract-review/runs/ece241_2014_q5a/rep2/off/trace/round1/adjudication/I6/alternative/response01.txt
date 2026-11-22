@@ -1,0 +1,53 @@
+```python
+def reference(vectors):
+    # Contract implementation for a serial 2's complementer Moore machine.
+    # States: S0 (no 1 seen yet), S1 (at least one 1 seen).
+    # R4: async reset (areset=1) forces state S0 and z=0, same cycle.
+    # R1: In S0, z = x (pass through) -- but see candidate interpretation below.
+    # R2: In S1, z = NOT x.
+    # R3: posedge transitions: S0->S1 when x=1, S0->S0 when x=0, S1->S1 always.
+    # Candidate interpretation for R1: state transitions to S1 combinationally
+    #   when x=1, so the first 1 bit is complemented in the same cycle (z=0).
+    # We apply that interpretation: in S0 with x=1, output z=0 (complemented),
+    #   and state becomes S1 for subsequent cycles.
+
+    state = "S0"  # power-up state (unspecified but we choose S0)
+    results = []
+
+    for row in vectors:
+        areset = row.get("areset", 0)
+        x = row.get("x", 0)
+
+        # R4: asynchronous reset asserted -> state S0, z=0 (same cycle)
+        if areset == 1:
+            state = "S0"
+            z = 0
+            results.append({"z": z})
+            continue
+
+        # Determine output combinationally based on current state and x.
+        # R2: In S1, z = NOT x.
+        # R1 (with candidate interpretation): In S0, if x=1, transition to S1
+        #   combinationally and output complemented bit (z=0). If x=0, z=0.
+        if state == "S1":
+            z = 1 - x  # R2
+        else:  # state == "S0"
+            if x == 1:
+                # Candidate interpretation: complement first 1 in same cycle
+                z = 0  # NOT 1
+            else:
+                z = 0  # x=0, pass through -> 0
+
+        results.append({"z": z})
+
+        # R3: posedge state transition (using sampled x)
+        if state == "S0":
+            if x == 1:
+                state = "S1"
+            else:
+                state = "S0"
+        else:  # S1
+            state = "S1"
+
+    return results
+```

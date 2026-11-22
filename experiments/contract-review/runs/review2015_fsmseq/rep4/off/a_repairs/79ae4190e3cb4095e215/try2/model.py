@@ -1,0 +1,48 @@
+def reference(vectors):
+    # State encoding
+    S0, S1, S2, S3, S4 = 0, 1, 2, 3, 4
+
+    # Power-up state (unspecified; choose S0)
+    state = S0
+    start_shifting = 0
+
+    results = []
+    for vec in vectors:
+        reset = vec.get('reset', 0) & 1
+        data = vec.get('data', 0) & 1
+
+        # Compute next state and next output based on current state and inputs
+        # R1: reset == 1 -> start_shifting = 0, state -> S0
+        if reset == 1:
+            next_state = S0
+            next_out = 0
+        else:
+            # R2: state == S4 -> stay S4, output 1
+            if state == S4:
+                next_state = S4
+                next_out = 1
+            else:
+                # Compute next state from transitions
+                if state == S0:
+                    next_state = S1 if data == 1 else S0
+                elif state == S1:
+                    next_state = S2 if data == 1 else S0
+                elif state == S2:
+                    next_state = S3 if data == 0 else S2
+                elif state == S3:
+                    next_state = S4 if data == 1 else S1
+                else:
+                    next_state = S4
+
+                # R3: next_state == S4 -> output 1
+                # R4: next_state != S4 -> output 0
+                next_out = 1 if next_state == S4 else 0
+
+        # Output visible same cycle (posedge)
+        results.append({'start_shifting': next_out})
+
+        # Update state and latched output
+        state = next_state
+        start_shifting = next_out
+
+    return results

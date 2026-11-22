@@ -1,0 +1,108 @@
+{
+  "responses": [
+    {
+      "issue_id": "I1",
+      "decision": "accept",
+      "reason": "Waveform shows state updating on posedge (e.g., 75ns state 0->1), so R1 edge must be posedge, not negedge.",
+      "spec_quote": "// 75ns            1               0               0               1               1",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R1",
+            "edge"
+          ],
+          "value": "posedge"
+        }
+      ]
+    },
+    {
+      "issue_id": "I2",
+      "decision": "accept",
+      "reason": "Condition text says posedge but edge field said negedge; align edge field to posedge.",
+      "spec_quote": "// 75ns            1               0               0               1               1",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R1",
+            "edge"
+          ],
+          "value": "posedge"
+        }
+      ],
+      "already_applied_by_earlier_issue": true
+    },
+    {
+      "issue_id": "I3",
+      "decision": "rebut",
+      "reason": "The issue itself concludes the XOR formula matches all spec rows; no change needed.",
+      "spec_quote": "// 75ns            1               0               0               1               1"
+    },
+    {
+      "issue_id": "I4",
+      "decision": "accept",
+      "reason": "Example expected states must reflect state<=q with q=state XOR a XOR b; recompute to [0,0,1].",
+      "spec_quote": "// 75ns            1               0               0               1               1",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R1",
+            "example",
+            "expected"
+          ],
+          "value": [
+            {
+              "state": 0
+            },
+            {
+              "state": 0
+            },
+            {
+              "state": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "issue_id": "I5",
+      "decision": "rebut",
+      "reason": "Issue confirms R2 example is correct; no change needed.",
+      "spec_quote": "// 75ns            1               0               0               1               1"
+    },
+    {
+      "issue_id": "I7",
+      "decision": "accept",
+      "reason": "Replace quote with a row that shows state capturing q on posedge (95ns: prior q=0 at 85ns, state becomes 1 at 95ns).",
+      "spec_quote": "// 95ns            1               1               1               1               1",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R1",
+            "spec_quote"
+          ],
+          "value": "// 95ns            1               1               1               1               1"
+        }
+      ]
+    },
+    {
+      "issue_id": "I8",
+      "decision": "accept",
+      "reason": "Replace quote with a row that better grounds the XOR formula (e.g., 115ns state=1,a=1,b=0,q=0).",
+      "spec_quote": "// 115ns           1               1               0               1               0",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R2",
+            "spec_quote"
+          ],
+          "value": "// 115ns           1               1               0               1               0"
+        }
+      ]
+    }
+  ]
+}

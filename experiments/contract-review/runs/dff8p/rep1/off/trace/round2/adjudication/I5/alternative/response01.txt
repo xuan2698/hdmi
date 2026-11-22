@@ -1,0 +1,32 @@
+```python
+def reference(vectors):
+    # State: q_state holds the 8-bit value stored in the D flip-flops.
+    # Per contract: q holds unknown/X until first negedge; reset only takes
+    # effect at negedge. We model "unknown" as None until first negedge.
+    q_state = None  # R1/global: unknown until first negedge
+
+    results = []
+    for row in vectors:
+        d = row.get('d', 0)
+        reset = row.get('reset', 0)
+
+        # R1: active high synchronous reset, reset value 0x34, priority 1,
+        #     visible same cycle at negedge.
+        # R2: reset == 0, DFF triggered on negedge, q <= d, priority 2.
+        # Both rules update on negedge; we sample at the negedge.
+        if reset == 1:
+            q_state = 0x34  # R1
+        else:
+            q_state = d & 0xFF  # R2
+
+        # Output q reflects q_state after the negedge (same_cycle visibility).
+        # If still unknown (shouldn't happen after first negedge), emit 0.
+        q_out = q_state if q_state is not None else 0
+        results.append({'q': q_out & 0xFF})
+
+        # Mid input changes occur AFTER sampling, before the other edge,
+        # and are carried to the start of the next row. Since we read
+        # inputs fresh each row, mid changes are naturally carried forward.
+
+    return results
+```

@@ -1,0 +1,25 @@
+def reference(vectors):
+    # State: 3-bit counter q
+    # Rule global: q initializes to 0; first posedge with a=1 sets q=4 (load),
+    # then holds when a=1, increments when a=0.
+    q = 0
+    loaded = False  # whether the initial load (q=4) has occurred
+    out = []
+    for v in vectors:
+        a = v.get('a', 0)
+        # posedge sampling: apply transition based on current a
+        if not loaded:
+            # global: first posedge with a=1 sets q=4
+            if a == 1:
+                q = 4
+                loaded = True
+            # if a==0 before load, q stays 0 (no rule triggers load)
+        else:
+            if a == 1:
+                # hold_when_a_high: q unchanged
+                pass
+            else:
+                # increment_when_a_low: q = (q+1) mod 8
+                q = (q + 1) & 0x7
+        out.append({'q': q & 0x7})
+    return out

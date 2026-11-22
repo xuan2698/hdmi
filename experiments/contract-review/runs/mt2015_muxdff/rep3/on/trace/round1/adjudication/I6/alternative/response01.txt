@@ -1,0 +1,42 @@
+def reference(vectors):
+    # State Q is 1-bit registered output, initial power-up unspecified -> choose 0.
+    Q = 0
+    cur = {"L": 0, "q_in": 0, "r_in": 0}
+    out = []
+
+    for row in vectors:
+        # Drive row inputs before the sampled posedge.
+        for k, v in row.items():
+            if k in ("L", "q_in", "r_in"):
+                cur[k] = int(v) & 1
+
+        L = cur["L"]
+        r_in = cur["r_in"]
+
+        # posedge clk sample after settled:
+        # rule load_r: L == 1 -> Q <= r_in
+        if L == 1:
+            Q = r_in & 1
+        else:
+            # rule hold_q_in: L == 0 holds previous Q and ignores q_in
+            # (candidate interpretation applied)
+            Q = Q & 1
+
+        out.append({"Q": Q & 1})
+
+        # Optional mid input changes occur after sampling, before the next edge,
+        # and are carried to the start of the next row.
+        mid = row.get("mid", row.get("mid_changes"))
+        if mid is not None:
+            if isinstance(mid, dict):
+                for k, v in mid.items():
+                    if k in ("L", "q_in", "r_in"):
+                        cur[k] = int(v) & 1
+            elif isinstance(mid, (list, tuple)):
+                for change in mid:
+                    if isinstance(change, dict):
+                        for k, v in change.items():
+                            if k in ("L", "q_in", "r_in"):
+                                cur[k] = int(v) & 1
+
+    return out

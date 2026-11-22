@@ -1,0 +1,19 @@
+def reference(vectors):
+    # Contract rules:
+    # hold_when_a_high: on posedge, if a==1, q holds (priority 1)
+    # increment_when_a_low: on posedge, if a==0, q increments by 1 (mod 8)
+    # No reset; power-up unspecified -> use 0 as concrete initial value.
+    # State: count (3-bit), updated at posedge.
+    q = 0  # concrete initial value for unspecified power-up
+    out = []
+    for row in vectors:
+        a = row.get('a', 0)
+        # posedge sampling: apply transition based on a
+        if a == 1:
+            # hold_when_a_high
+            pass
+        else:
+            # increment_when_a_low
+            q = (q + 1) & 0x7
+        out.append({'q': q})
+    return out
