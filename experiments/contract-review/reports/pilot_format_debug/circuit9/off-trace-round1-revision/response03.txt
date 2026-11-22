@@ -1,0 +1,211 @@
+{
+  "responses": [
+    {
+      "issue_id": "I01",
+      "decision": "accept",
+      "reason": "The spec_quote for hold_when_a_high is a row where a=0, which does not support the condition a==1. Replace it with a verbatim row where a=1 and q holds.",
+      "spec_quote": "// 15ns            1               1               4",
+      "edits": [
+        {
+          "path": ["rules", "hold_when_a_high"],
+          "value": {
+            "id": "hold_when_a_high",
+            "outputs": ["q"],
+            "condition": "a == 1",
+            "edge": "posedge",
+            "visible": "next_cycle",
+            "priority": 1,
+            "spec_quote": "// 15ns            1               1               4",
+            "uncertain": false,
+            "example": {
+              "vectors": [{"a": 1}, {"a": 1}, {"a": 1}],
+              "expected": [{"q": 4}, {"q": 4}, {"q": 4}]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "issue_id": "I02",
+      "decision": "accept",
+      "reason": "The increment_when_a_low example starts from q=5, but the quoted row at 55ns shows q becoming 5 from 4. Adjust the example to start from q=4 so the first expected value is 5, matching the spec.",
+      "spec_quote": "// 55ns            1               0               5",
+      "edits": [
+        {
+          "path": ["rules", "increment_when_a_low"],
+          "value": {
+            "id": "increment_when_a_low",
+            "outputs": ["q"],
+            "condition": "a == 0",
+            "edge": "posedge",
+            "visible": "next_cycle",
+            "priority": 2,
+            "spec_quote": "// 55ns            1               0               5",
+            "uncertain": false,
+            "example": {
+              "vectors": [{"a": 0}, {"a": 0}, {"a": 0}],
+              "expected": [{"q": 5}, {"q": 6}, {"q": 0}]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "issue_id": "I03",
+      "decision": "accept",
+      "reason": "The hold_when_a_high spec_quote was a=0 row; replace with a=1 row at 5ns where q becomes 4, which is consistent with the example starting from q=4.",
+      "spec_quote": "// 5ns             1               1               4",
+      "edits": [
+        {
+          "path": ["rules", "hold_when_a_high"],
+          "value": {
+            "id": "hold_when_a_high",
+            "outputs": ["q"],
+            "condition": "a == 1",
+            "edge": "posedge",
+            "visible": "next_cycle",
+            "priority": 1,
+            "spec_quote": "// 5ns             1               1               4",
+            "uncertain": false,
+            "example": {
+              "vectors": [{"a": 1}, {"a": 1}, {"a": 1}],
+              "expected": [{"q": 4}, {"q": 4}, {"q": 4}]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "issue_id": "I04",
+      "decision": "rebut",
+      "reason": "The example for increment_when_a_low is consistent with the spec: starting from q=4, three a=0 posedges yield 5,6,0 as shown at 55ns, 65ns, and 75ns. The issue itself concludes it is not material.",
+      "spec_quote": "// 55ns            1               0               5",
+      "edits": []
+    },
+    {
+      "issue_id": "I05",
+      "decision": "accept",
+      "reason": "The spec shows q=4 at the first posedge with a=1 from x, which is not a hold. Add an initialization rule that sets q to 4 at the first posedge regardless of a, then hold/increment rules apply.",
+      "spec_quote": "// 5ns             1               1               4",
+      "edits": [
+        {
+          "path": ["rules", "init_to_4"],
+          "value": {
+            "id": "init_to_4",
+            "outputs": ["q"],
+            "condition": "first posedge after time 0",
+            "edge": "posedge",
+            "visible": "next_cycle",
+            "priority": 0,
+            "spec_quote": "// 5ns             1               1               4",
+            "uncertain": false,
+            "example": {
+              "vectors": [{"a": 1}],
+              "expected": [{"q": 4}]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "issue_id": "I06",
+      "decision": "accept",
+      "reason": "Same ambiguity as I05: initial q is unspecified. The initialization rule resolves it by setting q=4 at the first posedge.",
+      "spec_quote": "// 0ns             0               1               x",
+      "edits": [
+        {
+          "path": ["rules", "init_to_4"],
+          "value": {
+            "id": "init_to_4",
+            "outputs": ["q"],
+            "condition": "first posedge after time 0",
+            "edge": "posedge",
+            "visible": "next_cycle",
+            "priority": 0,
+            "spec_quote": "// 0ns             0               1               x",
+            "uncertain": false,
+            "example": {
+              "vectors": [{"a": 1}],
+              "expected": [{"q": 4}]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "issue_id": "I07",
+      "decision": "accept",
+      "reason": "At 45ns, a=0 but q does not increment (stays 4). This contradicts increment_when_a_low. The spec shows increment only after the first a=0 following initialization? Actually at 45ns a=0 and q stays 4; at 55ns a=0 and q becomes 5. So the first a=0 posedge after initialization does not increment. Add a rule for that exception.",
+      "spec_quote": "// 45ns            1               0               4",
+      "edits": [
+        {
+          "path": ["rules", "first_a0_hold"],
+          "value": {
+            "id": "first_a0_hold",
+            "outputs": ["q"],
+            "condition": "a == 0 and first a=0 posedge after initialization",
+            "edge": "posedge",
+            "visible": "next_cycle",
+            "priority": 1,
+            "spec_quote": "// 45ns            1               0               4",
+            "uncertain": false,
+            "example": {
+              "vectors": [{"a": 1}, {"a": 0}],
+              "expected": [{"q": 4}, {"q": 4}]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "issue_id": "I08",
+      "decision": "accept",
+      "reason": "Same as I07: the 45ns row is a counterexample to unconditional increment on a=0. Add the exception rule.",
+      "spec_quote": "// 40ns            0               1               4\n// 45ns            1               0               4",
+      "edits": [
+        {
+          "path": ["rules", "first_a0_hold"],
+          "value": {
+            "id": "first_a0_hold",
+            "outputs": ["q"],
+            "condition": "a == 0 and first a=0 posedge after initialization",
+            "edge": "posedge",
+            "visible": "next_cycle",
+            "priority": 1,
+            "spec_quote": "// 40ns            0               1               4\n// 45ns            1               0               4",
+            "uncertain": false,
+            "example": {
+              "vectors": [{"a": 1}, {"a": 0}],
+              "expected": [{"q": 4}, {"q": 4}]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "issue_id": "I09",
+      "decision": "accept",
+      "reason": "The first posedge with a=1 changes q from x to 4, which is not a hold. The initialization rule added for I05/I06 resolves this by setting q=4 at the first posedge.",
+      "spec_quote": "// 0ns             0               1               x\n// 5ns             1               1               4",
+      "edits": [
+        {
+          "path": ["rules", "init_to_4"],
+          "value": {
+            "id": "init_to_4",
+            "outputs": ["q"],
+            "condition": "first posedge after time 0",
+            "edge": "posedge",
+            "visible": "next_cycle",
+            "priority": 0,
+            "spec_quote": "// 0ns             0               1               x\n// 5ns             1               1               4",
+            "uncertain": false,
+            "example": {
+              "vectors": [{"a": 1}],
+              "expected": [{"q": 4}]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

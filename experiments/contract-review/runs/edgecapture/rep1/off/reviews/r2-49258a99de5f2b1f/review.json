@@ -1,0 +1,75 @@
+{
+  "coverage": {
+    "S01": [
+      "R1_reset_clear",
+      "R2_capture_falling_edge",
+      "R3_hold_until_reset",
+      "R4_prev_in_tracks_all_cycles"
+    ]
+  },
+  "issues": [
+    {
+      "issue_id": "I1",
+      "rule_id": "R1_reset_clear",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "R1's example is inconsistent with its own condition and with the synchronous reset semantics. The first vector has reset=1 and in=0xFFFFFFFF, expected out=0. The second vector has reset=0 and in=0, expected out=0xFFFFFFFF. Under R1, reset=1 should clear out to 0 on that posedge. Under R2, the transition from prev_in=0xFFFFFFFF (captured while reset was 1) to in=0 while reset=0 would set all bits, producing 0xFFFFFFFF. However, the contract's reset field says first_released_cycle is 'cycle after reset deasserts at a posedge clk', implying the first non-reset cycle should not capture based on the reset-cycle input. The example contradicts that: it captures the falling edge from the reset cycle's input. Also, R1's example expected[0] is out=0 for reset=1, which is fine, but expected[1]=0xFFFFFFFF depends on prev_in being 0xFFFFFFFF from the reset cycle, which conflicts with the stated first_released_cycle semantics. This is a material contradiction between rule fields and example.",
+      "spec_evidence": "For each bit in a 32-bit vector, capture when the input signal changes from 1 in one clock cycle to 0 the next. \"Capture\" means that the output will remain 1 until the register is reset (active high synchronous reset).",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I2",
+      "rule_id": "R4_prev_in_tracks_all_cycles",
+      "type": "ambiguity",
+      "severity": "high",
+      "detail": "The contract does not specify whether prev_in is updated during reset cycles. R4 says 'always' and edge posedge, but the reset field says first_released_cycle is 'cycle after reset deasserts at a posedge clk', which suggests prev_in might not track the reset cycle. This ambiguity changes whether a falling edge spanning the reset deassertion is captured. Two plausible semantics: (A) prev_in updates every posedge including reset cycles, so a 1-to-0 transition from the last reset cycle to the first non-reset cycle is captured. (B) prev_in is held or cleared during reset, so no capture occurs on the first non-reset cycle based on reset-cycle input. The R1 example uses semantics A, but the reset field text suggests B.",
+      "spec_evidence": "capture when the input signal changes from 1 in one clock cycle to 0 the next",
+      "alternative": "Semantics B: prev_in does not update during reset cycles; the first non-reset cycle compares against the input from before reset or against 0, so no capture from the reset-cycle input.",
+      "sequence": [
+        {
+          "reset": 1,
+          "in": 4294967295
+        },
+        {
+          "reset": 0,
+          "in": 0
+        },
+        {
+          "reset": 0,
+          "in": 0
+        }
+      ]
+    },
+    {
+      "issue_id": "I3",
+      "rule_id": "R2_capture_falling_edge",
+      "type": "grounding",
+      "severity": "medium",
+      "detail": "R2's condition uses 'prev_in' but the contract does not define prev_in as a state or register. R4 mentions prev_in in its ID and condition 'always', but there is no state entry for prev_in, no reset value for prev_in, and no explicit update rule for prev_in. The spec_quote for R4 is the same as R2's, which does not mention prev_in. This is a grounding gap: the rule relies on an undefined signal.",
+      "spec_evidence": "capture when the input signal changes from 1 in one clock cycle to 0 the next",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I4",
+      "rule_id": "R3_hold_until_reset",
+      "type": "consistency",
+      "severity": "medium",
+      "detail": "R3's example is inconsistent with R2 and R3 conditions. Vectors: (0, 0xFFFFFFFF), (0, 0), (0, 0xFFFFFFFF), (0, 0xFFFFFFFF). Expected: 0, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF. Under R2, the first vector has no prev_in defined (initial state), so out=0 is plausible. The second vector has prev_in=0xFFFFFFFF and in=0, so R2 sets out=0xFFFFFFFF. The third vector has prev_in=0 and in=0xFFFFFFFF, so no falling edge; R3 holds out=0xFFFFFFFF. The fourth vector has prev_in=0xFFFFFFFF and in=0xFFFFFFFF, so no falling edge; R3 holds. This example is consistent with R2/R3 if prev_in is updated every cycle. However, R3's condition is 'reset == 0 && (prev_in & ~in) == 0', which is the complement of R2's condition only when reset==0. But R3's spec_quote is 'the output will remain 1 until the register is reset', which is about holding, not about the condition for holding. The condition is correct for holding when no falling edge, but the rule does not explicitly state that out retains its previous value; it only gives a condition. The example shows retention, but the rule field 'condition' does not include an assignment. This is a minor consistency/grounding issue: the rule's condition alone does not specify the output value.",
+      "spec_evidence": "the output will remain 1 until the register is reset",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I5",
+      "rule_id": "global",
+      "type": "spec_example",
+      "severity": "low",
+      "detail": "The spec provides no explicit waveform, table, or examples beyond the prose. The contract's examples are the only concrete vectors. The audit derived outputs for R1's example and found a contradiction with the reset field (see I1). For R2's example: vectors (0, 0xFFFFFFFF), (0, 0), (0, 0). Expected: 0, 0xFFFFFFFF, 0xFFFFFFFF. Under R2 with prev_in tracking every cycle: cycle1 out=0 (no prev), prev_in=0xFFFFFFFF; cycle2 falling edge, out=0xFFFFFFFF, prev_in=0; cycle3 no falling edge, hold out=0xFFFFFFFF. Consistent. For R3's example: as above, consistent. For R4's example: same as R1, same contradiction. No other spec examples to compare.",
+      "spec_evidence": "",
+      "alternative": "",
+      "sequence": []
+    }
+  ]
+}

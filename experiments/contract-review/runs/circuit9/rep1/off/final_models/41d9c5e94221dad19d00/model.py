@@ -1,0 +1,24 @@
+def reference(vectors):
+    # State: 3-bit counter q, initializes to 4 at first posedge (from x).
+    # Rules:
+    #  hold_when_a_high (priority 1): on posedge, if a==1, q holds.
+    #  increment_when_a_low (priority 2): on posedge, if a==0, q increments mod 7 (6->0).
+    #    Exception per spec: not (q==4 and previous_a==1) -- i.e., first low after a high
+    #    at q==4 does NOT increment (matches 45ns->55ns: a goes 1->0, q stays 4).
+    # Mid: none. Reset: none. Power-up unspecified -> we output concrete value 4.
+    q = 4
+    prev_a = None
+    out = []
+    for row in vectors:
+        a = row['a']
+        # posedge sampling: apply transition based on current a and prev_a
+        if a == 1:
+            # hold_when_a_high
+            pass
+        else:
+            # increment_when_a_low, with the q==4 & prev_a==1 exception
+            if not (q == 4 and prev_a == 1):
+                q = (q + 1) % 7
+        out.append({'q': q & 0x7})
+        prev_a = a
+    return out

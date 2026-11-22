@@ -1,0 +1,70 @@
+{
+  "ports": {
+    "inputs": {"a": 1},
+    "outputs": {"q": 3},
+    "clock": "clk"
+  },
+  "states": [
+    {
+      "name": "q_reg",
+      "meaning": "3-bit register holding the current output value q",
+      "update_time": "posedge clk",
+      "update_during_reset": false
+    }
+  ],
+  "rules": [
+    {
+      "id": "R1",
+      "outputs": ["q"],
+      "condition": "a == 1",
+      "edge": "posedge",
+      "visible": "next_cycle",
+      "priority": 1,
+      "spec_quote": "sample after the posedge edge has settled",
+      "uncertain": false,
+      "example": {
+        "vectors": [
+          {"a": 1},
+          {"a": 1},
+          {"a": 1}
+        ],
+        "expected": [
+          {"q": 4},
+          {"q": 4},
+          {"q": 4}
+        ]
+      }
+    },
+    {
+      "id": "R2",
+      "outputs": ["q"],
+      "condition": "a == 0",
+      "edge": "posedge",
+      "visible": "next_cycle",
+      "priority": 1,
+      "spec_quote": "Each row's values are driven before the sampled edge",
+      "uncertain": false,
+      "example": {
+        "vectors": [
+          {"a": 0},
+          {"a": 0},
+          {"a": 0}
+        ],
+        "expected": [
+          {"q": 5},
+          {"q": 6},
+          {"q": 0}
+        ]
+      }
+    }
+  ],
+  "reset": {
+    "kind": "none",
+    "name": null,
+    "active": "none",
+    "values": {"q": null},
+    "first_released_cycle": "0ns"
+  },
+  "mid": "Optional mid input changes occur AFTER sampling, before the other edge, and are carried to the start of the next row.",
+  "uncertain": []
+}

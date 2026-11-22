@@ -1,0 +1,102 @@
+{
+  "coverage": {
+    "S01": ["hold_when_a_high", "increment_when_a_low"],
+    "S02": ["hold_when_a_high", "increment_when_a_low"],
+    "S03": ["hold_when_a_high", "increment_when_a_low"],
+    "S04": ["hold_when_a_high", "increment_when_a_low"],
+    "S05": ["hold_when_a_high", "increment_when_a_low"],
+    "S06": ["hold_when_a_high", "increment_when_a_low"],
+    "S07": ["hold_when_a_high", "increment_when_a_low"],
+    "S08": ["hold_when_a_high", "increment_when_a_low"],
+    "S09": ["hold_when_a_high", "increment_when_a_low"],
+    "S10": ["hold_when_a_high", "increment_when_a_low"],
+    "S11": ["hold_when_a_high", "increment_when_a_low"],
+    "S12": ["hold_when_a_high", "increment_when_a_low"],
+    "S13": ["hold_when_a_high", "increment_when_a_low"],
+    "S14": ["hold_when_a_high", "increment_when_a_low"],
+    "S15": ["hold_when_a_high", "increment_when_a_low"],
+    "S16": ["hold_when_a_high", "increment_when_a_low"],
+    "S17": ["hold_when_a_high", "increment_when_a_low"],
+    "S18": ["hold_when_a_high", "increment_when_a_low"],
+    "S19": ["hold_when_a_high", "increment_when_a_low"],
+    "S20": ["hold_when_a_high", "increment_when_a_low"],
+    "S21": ["hold_when_a_high", "increment_when_a_low"],
+    "S22": ["hold_when_a_high", "increment_when_a_low"]
+  },
+  "issues": [
+    {
+      "issue_id": "I1",
+      "rule_id": "increment_when_a_low",
+      "type": "grounding",
+      "severity": "high",
+      "detail": "The rule's spec_quote is not verbatim from the indexed specification. The spec line S15 is '// 55ns            1               0               5' (with '// ' prefix and spacing), but the rule quotes '55ns            1               0               5' without the '// ' prefix. This violates the requirement that evidence be verbatim.",
+      "spec_evidence": "// 55ns            1               0               5",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I2",
+      "rule_id": "hold_when_a_high",
+      "type": "grounding",
+      "severity": "high",
+      "detail": "The rule's spec_quote is not verbatim from the indexed specification. The spec line S09 is '// 25ns            1               1               4' (with '// ' prefix and spacing), but the rule quotes '// 25ns            1               1               4' — actually this one does include '// ', but the spacing may differ. The spec has multiple spaces; the quote appears to match S09 exactly. However, the rule's condition 'a == 1' and example show q holding at 4, which is consistent with S09. No grounding issue here. Wait, re-check: S09 is '// 25ns            1               1               4'. The rule quote is '// 25ns            1               1               4'. That is verbatim. So no issue for hold_when_a_high. But the increment rule quote lacks '// '. So I2 is not needed. I'll remove I2 and keep only I1.",
+      "spec_evidence": "",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I3",
+      "rule_id": "increment_when_a_low",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "The rule's condition includes 'not (q == 4 and previous_a == 1)', which is not supported by the spec. The spec shows at 45ns (S13) a=0, q=4; at 55ns (S15) a=0, q=5. That is an increment from 4 to 5 when a=0, with previous_a=1 (since at 45ns a=0? Wait, at 45ns a=0, so previous_a before 55ns is 0? Let's trace: S13: 45ns clk=1 a=0 q=4. S14: 50ns clk=0 a=0 q=4. S15: 55ns clk=1 a=0 q=5. So at the posedge at 55ns, previous a (at 50ns) was 0. So the condition 'not (q==4 and previous_a==1)' would allow increment because previous_a=0. But the rule's example shows vectors [{a:0},{a:0},{a:0}] expected q=5,6,0. That implies starting from q=4, first a=0 gives q=5, second a=0 gives q=6, third a=0 gives q=0. That is consistent with increment when a=0 except when q=4 and previous_a=1. However, the spec at 45ns (S13) has a=0, q=4; at 55ns (S15) a=0, q=5. That is an increment from 4 to 5 with previous_a=0. So the exception 'q==4 and previous_a==1' is not exercised in the spec. But is it contradicted? The spec at 35ns (S11) a=1 q=4; at 45ns (S13) a=0 q=4. So at 45ns posedge, previous_a=1 (from 35ns? Actually at 35ns a=1, at 40ns a=1? S12: 40ns clk=0 a=1 q=4. So at 45ns posedge, previous a (at 40ns) was 1. The rule condition says increment when a=0 and not (q==4 and previous_a==1). At 45ns, a=0, q=4, previous_a=1, so the condition would be false, so q should hold at 4. Indeed spec shows q=4 at 45ns. So that matches. Then at 55ns, a=0, q=4, previous_a=0 (since at 50ns a=0), so condition true, increment to 5. Spec shows q=5 at 55ns. So the rule condition is consistent with the spec. However, the rule's example vectors [{a:0},{a:0},{a:0}] expected [5,6,0] assumes starting q=4 and previous_a=0? The example does not specify initial q or previous_a. If starting q=4 and previous_a=0, first a=0 gives q=5 (since not (4==4 and 0==1) true). Second a=0 gives q=6 (since not (5==4 and ...) true). Third a=0 gives q=0 (since 6+1=7 mod 8 =7? Wait 3-bit counter: 6+1=7, not 0. The example expects 0 after 6. That is wrong: 6+1=7, not 0. So the example is inconsistent with a 3-bit counter incrementing by 1. The spec shows at 75ns (S19) a=0 q=0 after 65ns (S17) a=0 q=6? Let's check: S17: 65ns clk=1 a=0 q=6. S18: 70ns clk=0 a=0 q=6. S19: 75ns clk=1 a=0 q=0. So from 6 to 0 is an increment? 6+1=7, not 0. So the spec itself shows 6 -> 0, which is not a simple increment by 1 modulo 8? 6+1=7, 7+1=0 mod 8? Actually 3-bit counter wraps at 8: 7+1=0. But 6+1=7, not 0. So the spec shows 6 -> 0, which is a jump of +2? Or maybe the counter is not a simple increment? Let's re-examine spec: S15: 55ns q=5; S17: 65ns q=6; S19: 75ns q=0. So from 5 to 6 is +1, from 6 to 0 is +2? That is inconsistent with increment by 1. The contract states 'increments by 1 on each posedge when a=0'. But spec shows 6 -> 0, which is not +1. So there is a contradiction between the rule's stated behavior and the spec waveform. The rule's example expects 6 -> 0, which matches the spec but contradicts 'increments by 1'. So the rule's meaning is inconsistent with its own example and spec. This is a material consistency issue.",
+      "spec_evidence": "// 65ns            1               0               6\n// 75ns            1               0               0",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I4",
+      "rule_id": "increment_when_a_low",
+      "type": "ambiguity",
+      "severity": "high",
+      "detail": "The rule's condition 'not (q == 4 and previous_a == 1)' is ambiguous because 'previous_a' is not defined in the contract. It could mean the value of a at the previous clock edge, or the value of a just before the current edge, or the value of a at the previous posedge. Different interpretations lead to different behavior. For example, consider the sequence: start with q=4, a=1 at a posedge (so q holds at 4), then a=0 at next posedge. If previous_a means the a value at the previous posedge (which was 1), then condition false, so q holds at 4. If previous_a means the a value just before the current posedge (which is 0), then condition true, so q increments to 5. The spec at 45ns shows a=0, q=4 after a=1 at 35ns, so it holds, suggesting previous_a is the a value at the previous posedge (or at the previous cycle). But the contract does not define it. This ambiguity affects the output.",
+      "spec_evidence": "// 35ns            1               1               4\n// 45ns            1               0               4",
+      "alternative": "Interpret 'previous_a' as the value of a at the immediately preceding clock edge (posedge or negedge) rather than at the previous posedge. Under this alternative, at 45ns the previous clock edge is at 40ns (negedge) where a=1, so previous_a=1, condition false, q holds at 4 (same as spec). But consider a different sequence: a=1 at posedge, then a=0 at negedge, then a=0 at next posedge. Under the original (previous posedge) interpretation, previous_a=1, so q holds at 4. Under the alternative (previous edge), previous_a=0 (from negedge), so q increments to 5. This distinguishes the two semantics.",
+      "sequence": [
+        {"a": 1},
+        {"a": 0},
+        {"a": 0}
+      ]
+    },
+    {
+      "issue_id": "I5",
+      "rule_id": "global",
+      "type": "spec_example",
+      "severity": "high",
+      "detail": "The contract's state meaning says 'increments by 1 on each posedge when a=0', but the spec waveform shows q going from 6 at 65ns to 0 at 75ns, which is not an increment by 1 (6+1=7, not 0). This is a direct contradiction between the stated behavior and the spec example. The rule's example also expects 6 -> 0, which matches the spec but contradicts 'increments by 1'. Therefore, the contract's semantics are inconsistent with the spec waveform.",
+      "spec_evidence": "// 65ns            1               0               6\n// 75ns            1               0               0",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I6",
+      "rule_id": "global",
+      "type": "coverage",
+      "severity": "medium",
+      "detail": "The spec segment S04 shows q=x at time 0ns with clk=0. The contract's reset is 'none' and first_released_cycle is '0ns', but the state initializes to 4 at the first posedge (from x). The spec does not explicitly show a posedge before 5ns? Actually S05 at 5ns clk=1 q=4. So the first posedge is at 5ns, and q becomes 4. The contract says 'initializes to 4 at the first posedge (from x)'. That matches. However, the spec segment S04 is not directly mapped to a rule; it is covered by the state initialization. But the coverage mapping lists S04 under both rules, which is not precise. This is a minor coverage issue.",
+      "spec_evidence": "// 0ns             0               1               x",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I7",
+      "rule_id": "hold_when_a_high",
+      "type": "consistency",
+      "severity": "medium",
+      "detail": "The rule's example vectors [{a:1},{a:1},{a:1}] expected [{q:4},{q:4},{q:4}] assumes starting q=4. However, the rule does not specify the initial state. If the initial q is x, then the first posedge with a=1 would not hold at 4; it would initialize to 4? The state meaning says initializes to 4 at the first posedge (from x). So if the first posedge has a=1, does it initialize to 4 or hold? The rule 'hold_when_a_high' says condition a==1, edge posedge, visible next_cycle, priority 1. It does not mention initialization. The state meaning says initializes to 4 at the first posedge (from x). So at the first posedge, regardless of a, q becomes 4. Then subsequent posedges with a=1 hold. The example starts with a=1 and expects q=4, which is consistent if the first posedge initializes to 4. But the example does not show the initial x. This is a minor inconsistency in example specification.",
+      "spec_evidence": "",
+      "alternative": "",
+      "sequence": []
+    }
+  ]
+}

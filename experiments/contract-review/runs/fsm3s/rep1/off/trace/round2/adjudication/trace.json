@@ -1,0 +1,89 @@
+[
+  {
+    "issue": {
+      "issue_id": "I7",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "high",
+      "detail": "The contract does not specify the initial state before the first posedge with reset==0. The reset rule says synchronous active high reset resets to state A, but if reset is never asserted, the initial state is undefined. The spec says 'resets the FSM to state A' but does not state the power-on state. The contract's reset field says first_released_cycle is first posedge with reset==0, implying reset may be low initially. Without an initial state, the first cycle's output is ambiguous. A plausible alternative is that the FSM starts in state A even without reset (common in some implementations), or it could be undefined. This affects any sequence where reset is low from the start.",
+      "spec_evidence": "Include a synchronous active high reset that resets the FSM to state A.",
+      "alternative": "The FSM initializes to state A at power-on even if reset is never asserted, so the first cycle with reset=0 and in=0 outputs 0 and stays in A; alternatively, the initial state is undefined and output may be X until reset.",
+      "sequence": [
+        {
+          "reset": 0,
+          "in": 0
+        },
+        {
+          "reset": 0,
+          "in": 1
+        }
+      ]
+    },
+    "status": "no_effect",
+    "issue_id": "I7",
+    "outputs": {
+      "original": [
+        {
+          "out": 0
+        },
+        {
+          "out": 0
+        }
+      ],
+      "alternative": [
+        {
+          "out": 0
+        },
+        {
+          "out": 0
+        }
+      ]
+    },
+    "differences": []
+  },
+  {
+    "issue": {
+      "issue_id": "I8",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "The contract's 'mid' field describes optional mid input changes that occur AFTER sampling, before the other edge, and are carried to the start of the next row. However, the spec does not mention any mid-cycle input changes. The contract introduces a non-spec feature. This could lead to different behavior if mid changes are used. The spec only defines state transitions on posedge. The alternative semantics is that inputs are sampled only at posedge, and any changes between edges are ignored until the next posedge. The contract's mid feature could cause a different next state if a mid change occurs before the next posedge. This is an ambiguity because the spec does not define mid-cycle behavior.",
+      "spec_evidence": "",
+      "alternative": "Inputs are sampled only at the posedge clock edge; any changes between edges are ignored until the next posedge. The mid feature is not part of the spec and should not affect state transitions.",
+      "sequence": [
+        {
+          "reset": 0,
+          "in": 0,
+          "mid": {
+            "in": 1
+          }
+        },
+        {
+          "reset": 0,
+          "in": 0
+        }
+      ]
+    },
+    "status": "no_effect",
+    "issue_id": "I8",
+    "outputs": {
+      "original": [
+        {
+          "out": 0
+        },
+        {
+          "out": 0
+        }
+      ],
+      "alternative": [
+        {
+          "out": 0
+        },
+        {
+          "out": 0
+        }
+      ]
+    },
+    "differences": []
+  }
+]

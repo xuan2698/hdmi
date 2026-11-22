@@ -1,0 +1,100 @@
+{
+  "coverage": {
+    "S01": ["hold_when_a_high", "increment_when_a_low"],
+    "S02": ["hold_when_a_high", "increment_when_a_low"],
+    "S03": ["hold_when_a_high", "increment_when_a_low"],
+    "S04": ["hold_when_a_high", "increment_when_a_low"],
+    "S05": ["hold_when_a_high", "increment_when_a_low"],
+    "S06": ["hold_when_a_high", "increment_when_a_low"],
+    "S07": ["hold_when_a_high", "increment_when_a_low"],
+    "S08": ["hold_when_a_high", "increment_when_a_low"],
+    "S09": ["hold_when_a_high", "increment_when_a_low"],
+    "S10": ["hold_when_a_high", "increment_when_a_low"],
+    "S11": ["hold_when_a_high", "increment_when_a_low"],
+    "S12": ["hold_when_a_high", "increment_when_a_low"],
+    "S13": ["hold_when_a_high", "increment_when_a_low"],
+    "S14": ["hold_when_a_high", "increment_when_a_low"],
+    "S15": ["increment_when_a_low"],
+    "S16": ["increment_when_a_low"],
+    "S17": ["increment_when_a_low"],
+    "S18": ["increment_when_a_low"],
+    "S19": ["increment_when_a_low"],
+    "S20": ["increment_when_a_low"],
+    "S21": ["increment_when_a_low"],
+    "S22": ["increment_when_a_low"]
+  },
+  "issues": [
+    {
+      "issue_id": "I1",
+      "rule_id": "increment_when_a_low",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "The rule condition includes 'not (q == 4 and previous_a == 1)', which suppresses the first increment after a=1. However, the spec waveform shows q=4 at 10ns-40ns while a=1, then at 45ns a=0 and q remains 4 at 50ns, then at 55ns a=0 and q becomes 5. The contract's condition would suppress increment at the first posedge with a=0 after a=1 (45ns), matching q=4 at 50ns, but then at 55ns previous_a=0 so increment occurs, giving q=5. This matches the waveform. However, the rule's example vectors [{a:0},{a:0},{a:0}] with expected [{q:5},{q:6},{q:0}] assumes initial q=4 and previous_a=0, so first a=0 increments to 5, second to 6, third to 0 (3-bit wrap). This is consistent with the condition. No contradiction found here.",
+      "spec_evidence": "",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I2",
+      "rule_id": "increment_when_a_low",
+      "type": "grounding",
+      "severity": "medium",
+      "detail": "The spec_quote for increment_when_a_low is '55ns            1               0               5', which is not verbatim from the indexed spec. The indexed spec S15 is '// 55ns            1               0               5'. The quote omits the leading '// ' and has different spacing. This is a minor grounding issue.",
+      "spec_evidence": "// 55ns            1               0               5",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I3",
+      "rule_id": "hold_when_a_high",
+      "type": "grounding",
+      "severity": "medium",
+      "detail": "The spec_quote for hold_when_a_high is '// 25ns            1               1               4', which matches S09 exactly. However, the rule condition 'a == 1' and example vectors [{a:1},{a:1},{a:1}] with expected [{q:4},{q:4},{q:4}] assume q starts at 4. The spec waveform shows q=4 at 25ns-40ns while a=1, consistent. But the rule does not specify initial q value; the state 'count' says initializes to 4 at first posedge. This is consistent.",
+      "spec_evidence": "",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I4",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "high",
+      "detail": "The contract states q initializes to 4 at the first posedge (from x). However, the spec waveform shows at 0ns clk=0, a=1, q=x; at 5ns clk=1, a=1, q=4. This suggests q becomes 4 at the first posedge (5ns) when a=1. But the rule hold_when_a_high says when a=1, q holds. If q is x initially, holding would keep x, not set to 4. The contract's state meaning says 'initializes to 4 at the first posedge (from x)', which is a special initialization not captured by the rules. This is an ambiguity: does the first posedge always set q=4 regardless of a, or does it depend on a? The spec shows a=1 at first posedge and q becomes 4. If a=0 at first posedge, would q become 4 or something else? The contract does not specify. A plausible alternative: the first posedge sets q=4 unconditionally. Distinguishing sequence: apply a=0 at first posedge. If q becomes 4, then initialization is unconditional; if q becomes 5 (increment from x? impossible) or something else, different. But since x+1 is undefined, the contract likely means unconditional set to 4. However, the rule increment_when_a_low has condition 'not (q == 4 and previous_a == 1)', which uses previous_a. At first posedge, previous_a is undefined (x). The contract does not specify previous_a initial value. This is an ambiguity.",
+      "spec_evidence": "// 0ns             0               1               x\n// 5ns             1               1               4",
+      "alternative": "The first posedge unconditionally sets q=4, and previous_a is initialized to 0 (or don't care) for the first cycle. Alternatively, the first posedge sets q=4 only if a=1, and if a=0, q increments from x (undefined).",
+      "sequence": [
+        {"a": 0},
+        {"a": 0}
+      ]
+    },
+    {
+      "issue_id": "I5",
+      "rule_id": "increment_when_a_low",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "The condition 'not (q == 4 and previous_a == 1)' uses previous_a, but the contract does not define how previous_a is updated or initialized. The spec waveform shows a=1 from 0ns to 40ns, then a=0 at 45ns. At 45ns posedge, q remains 4 (at 50ns). At 55ns posedge, a=0, q becomes 5. This suggests that the increment is suppressed only on the first posedge after a transition from 1 to 0 when q=4. But what if q=4 and previous_a=1, and a=0, then q holds; next cycle a=0, previous_a=0, so increment. This matches. However, the contract does not specify previous_a update timing (e.g., is previous_a the value of a at the previous posedge or the value before the current posedge?). A plausible alternative: previous_a is the value of a at the previous posedge. Distinguishing sequence: a=1, then a=0, then a=0. If previous_a is updated at posedge, then at first a=0 posedge, previous_a=1 (from last posedge), so suppress increment; at second a=0 posedge, previous_a=0, so increment. This matches spec. If previous_a is the value of a just before the current posedge (i.e., combinational), then at first a=0 posedge, previous_a=0 (since a changed before posedge), so increment would occur, contradicting spec. The contract likely means previous_a is the value at the previous posedge. But it's not explicit.",
+      "spec_evidence": "// 45ns            1               0               4\n// 50ns            0               0               4\n// 55ns            1               0               5",
+      "alternative": "previous_a is the value of a at the previous posedge (registered). Alternatively, previous_a is the value of a just before the current posedge (combinational).",
+      "sequence": [
+        {"a": 1},
+        {"a": 0},
+        {"a": 0}
+      ]
+    },
+    {
+      "issue_id": "I6",
+      "rule_id": "global",
+      "type": "spec_example",
+      "severity": "high",
+      "detail": "Deriving outputs from the spec waveform using the contract's rules: The contract says q initializes to 4 at first posedge (5ns). At 5ns, a=1, so hold_when_a_high applies, q should hold at 4 (but from x, initialization sets to 4). At 15ns, a=1, q holds 4. At 25ns, a=1, q holds 4. At 35ns, a=1, q holds 4. At 45ns, a=0, previous_a=1, q=4, so increment_when_a_low condition is false (because q==4 and previous_a==1), so q holds 4. At 55ns, a=0, previous_a=0 (since last posedge a=0), q=4, condition true, so q increments to 5. At 65ns, a=0, previous_a=0, q=5, condition true, q increments to 6. At 75ns, a=0, previous_a=0, q=6, condition true, q increments to 7? But spec shows q=0 at 75ns. Wait, spec S19: '// 75ns            1               0               0' shows q=0 at 75ns. The contract's increment_when_a_low example expects q=0 after three increments from 5: 5->6->7->0? Actually 3-bit wrap: 5+1=6, 6+1=7, 7+1=0. So after three increments from 5, q=0. But in the spec, at 55ns q=5, at 65ns q=6, at 75ns q=0. That's two increments: 5->6 (at 65ns), 6->0 (at 75ns)? Wait, 6+1=7, not 0. 3-bit wrap: 6+1=7, 7+1=0. So from 5, two increments give 7, not 0. The spec shows 5 at 55ns, 6 at 65ns, 0 at 75ns. That implies 6+1=0? That's not standard 3-bit wrap (6+1=7). There is a discrepancy: the spec waveform shows q=6 at 65ns, then q=0 at 75ns. That is an increment from 6 to 0, which is not modulo 8 (would be 7). It is modulo 7? Or maybe q is 3-bit but wraps at 7? 6+1=7, not 0. So the spec waveform is inconsistent with a simple 3-bit counter incrementing by 1. Let's re-examine: S15: 55ns q=5; S17: 65ns q=6; S19: 75ns q=0. So from 6 to 0 is +2? Or maybe the counter is modulo 7? 6+1=0 mod 7? 6+1=7, mod 7 =0. Yes, modulo 7 would give 0. But the contract says '3-bit counter value stored in q', which implies modulo 8. The example in increment_when_a_low expects [{q:5},{q:6},{q:0}] for three a=0 vectors. That is: start at 4? Actually example vectors [{a:0},{a:0},{a:0}] expected [{q:5},{q:6},{q:0}]. That implies initial q=4, first a=0 -> q=5, second -> q=6, third -> q=0. So from 6 to 0 is +1 modulo 7? Or maybe the counter is modulo 7? But 3-bit can represent 0-7. If it's modulo 7, then 6+1=0, 5+1=6, 4+1=5, etc. But then 7 is never used. The spec waveform never shows 7. The contract says '3-bit counter value', which typically means modulo 8. The example and spec both show 6->0, which is modulo 7. This is a contradiction between the rule field '3-bit counter' and the examples/spec. The contract's state meaning says '3-bit counter value stored in q; initializes to 4 at the first posedge (from x), then increments by 1 on each posedge when a=0, holds when a=1'. If it increments by 1 modulo 8, then 6+1=7, not 0. The spec shows 0. So either the counter is modulo 7, or the spec has an error. The contract's example also shows 6->0. So the contract is consistent with modulo 7, but the state meaning says '3-bit counter', which is ambiguous. This is a material issue: the counter modulus is not clearly specified. The spec waveform and the rule example both imply modulo 7 (or at least that 6+1=0), but the state meaning says '3-bit counter', which could be interpreted as modulo 8. This is a contradiction between rule fields and examples.",
+      "spec_evidence": "// 65ns            1               0               6\n// 75ns            1               0               0",
+      "alternative": "The counter is modulo 7 (wraps from 6 to 0). Alternatively, the counter is modulo 8 (wraps from 7 to 0), and the spec waveform has an error at 75ns (should be 7).",
+      "sequence": [
+        {"a": 0},
+        {"a": 0},
+        {"a": 0},
+        {"a": 0}
+      ]
+    }
+  ]
+}

@@ -1,0 +1,30 @@
+{
+  "coverage": {
+    "S01": [
+      "R_RESET",
+      "R_FALL",
+      "R_HOLD"
+    ]
+  },
+  "issues": [
+    {
+      "issue_id": "AMB_RESET_HISTORY",
+      "rule_id": "R_FALL",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "The contract assumes prev_in updates on every posedge including reset, so a 1 sampled on a reset-active cycle can become the previous value for the first reset-released cycle. Under R_FALL, that can set out=1 on the first cycle after reset. S01 only specifies sticky capture of 1-to-0 changes and active-high synchronous reset; it does not specify whether reset clears or suppresses prior input history for transition detection. For the listed sequence, the contract resets out on cycle 1 while setting prev_in=1, then captures 1-to-0 on cycle 2 and sets out=1. An alternative reset-clears/suppresses-history semantics would leave out=0.",
+      "spec_evidence": "For each bit in a 32-bit vector, capture when the input signal changes from 1 in one clock cycle to 0 the next. \"Capture\" means that the output will remain 1 until the register is reset (active high synchronous reset).",
+      "alternative": "Reset clears or disables previous input history for transition detection, so a 1 observed while reset=1 followed by 0 on the first reset=0 cycle is not captured; out remains 0.",
+      "sequence": [
+        {
+          "reset": 1,
+          "in": 1
+        },
+        {
+          "reset": 0,
+          "in": 0
+        }
+      ]
+    }
+  ]
+}

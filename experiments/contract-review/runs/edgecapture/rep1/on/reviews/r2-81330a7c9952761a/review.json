@@ -1,0 +1,30 @@
+{
+  "coverage": {
+    "S01": [
+      "R_FALL",
+      "R_HOLD",
+      "R_RESET"
+    ]
+  },
+  "issues": [
+    {
+      "issue_id": "I1",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "high",
+      "detail": "The spec only states that the output register is cleared by active-high synchronous reset; it does not specify whether the internal previous-input register (prev_in) is updated, held, or cleared while reset is asserted. The contract asserts that prev_in updates on every posedge including reset and is not marked uncertain. This changes whether a 1-to-0 transition spanning reset deassertion is captured. Under the contract, rows (reset=1,in=1) then (reset=0,in=0) clear out on row 1, set prev_in bit0=1, then detect bit0 1-to-0 on row 2 and set out bit0=1. Under the alternative, prev_in is held/cleared during reset, so row 2 sees no 1-to-0 and out remains 0.",
+      "spec_evidence": "active high synchronous reset",
+      "alternative": "prev_in is held or cleared while reset is asserted (or reset clears the whole edge detector), so a 1-to-0 transition from the last reset cycle to the first non-reset cycle is not captured.",
+      "sequence": [
+        {
+          "reset": 1,
+          "in": 1
+        },
+        {
+          "reset": 0,
+          "in": 0
+        }
+      ]
+    }
+  ]
+}

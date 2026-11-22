@@ -1,0 +1,34 @@
+def reference(vectors):
+    # State encoding
+    A, B, C, D = 0, 1, 2, 3
+    state = A  # power-up state (unspecified; use reset state A)
+    out = 0
+    results = []
+    for vec in vectors:
+        # R_RESET: synchronous active high reset -> state A, out 0 (visible next_cycle)
+        # R_TRANS: next state determined by table on posedge when reset == 0
+        # Inputs sampled only at posedge; mid changes ignored (global interpretation)
+        reset = vec.get('reset', 0)
+        inp = vec.get('in', 0)
+        if reset == 1:
+            state = A
+        else:
+            if state == A:
+                state = A if inp == 0 else B
+            elif state == B:
+                state = C if inp == 0 else B
+            elif state == C:
+                state = A if inp == 0 else D
+            elif state == D:
+                state = C if inp == 0 else B
+        # R_A / R_B / R_C / R_D: combinational output based on current state (same_cycle)
+        if state == A:
+            out = 0  # R_A
+        elif state == B:
+            out = 0  # R_B
+        elif state == C:
+            out = 0  # R_C
+        elif state == D:
+            out = 1  # R_D
+        results.append({'out': out})
+    return results

@@ -1,0 +1,73 @@
+[
+  {
+    "issue": {
+      "issue_id": "I2",
+      "rule_id": "R4_prev_in_tracks_all_cycles",
+      "type": "ambiguity",
+      "severity": "high",
+      "detail": "The contract does not specify whether prev_in is updated during reset cycles. R4 says 'always' and edge posedge, but the reset field says first_released_cycle is 'cycle after reset deasserts at a posedge clk', which suggests prev_in might not track the reset cycle. This ambiguity changes whether a falling edge spanning the reset deassertion is captured. Two plausible semantics: (A) prev_in updates every posedge including reset cycles, so a 1-to-0 transition from the last reset cycle to the first non-reset cycle is captured. (B) prev_in is held or cleared during reset, so no capture occurs on the first non-reset cycle based on reset-cycle input. The R1 example uses semantics A, but the reset field text suggests B.",
+      "spec_evidence": "capture when the input signal changes from 1 in one clock cycle to 0 the next",
+      "alternative": "Semantics B: prev_in does not update during reset cycles; the first non-reset cycle compares against the input from before reset or against 0, so no capture from the reset-cycle input.",
+      "sequence": [
+        {
+          "reset": 1,
+          "in": 4294967295
+        },
+        {
+          "reset": 0,
+          "in": 0
+        },
+        {
+          "reset": 0,
+          "in": 0
+        }
+      ]
+    },
+    "status": "effect",
+    "issue_id": "I2",
+    "outputs": {
+      "original": [
+        {
+          "out": 0
+        },
+        {
+          "out": 4294967295
+        },
+        {
+          "out": 4294967295
+        }
+      ],
+      "alternative": [
+        {
+          "out": 0
+        },
+        {
+          "out": 0
+        },
+        {
+          "out": 0
+        }
+      ]
+    },
+    "differences": [
+      {
+        "cycle": 2,
+        "original": {
+          "out": 4294967295
+        },
+        "alternative": {
+          "out": 0
+        }
+      },
+      {
+        "cycle": 3,
+        "original": {
+          "out": 4294967295
+        },
+        "alternative": {
+          "out": 0
+        }
+      }
+    ]
+  }
+]

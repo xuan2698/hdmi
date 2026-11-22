@@ -8,7 +8,8 @@ def write(task,rep,think):
     folder=case_path(task,rep)/("on" if think else "off")/"author"
     spec,interface=public(task)
     value=new_artifact(folder,case_inputs(task,rep)+CONTRACT_INSTRUCTIONS,think,decode_json,
-                       lambda data:contract_validate(data,spec["spec"],interface),repair_draft=True)
+                       lambda data:contract_validate(data,spec["spec"],interface),repair_draft=True,
+                       compact_after_truncation=True)
     if value is not None:
         contract_validate(value,spec["spec"],interface)
         save(folder/"contract.json",value)

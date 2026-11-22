@@ -1,0 +1,62 @@
+def reference(vectors):
+    out = 0
+    prev_in = 0
+    cur_reset = 0
+    cur_in = 0
+    mask = (1 << 32) - 1
+    ret = []
+
+    for row in vectors:
+        if isinstance(row, dict):
+            if "reset" in row:
+                cur_reset = int(row["reset"]) & 1
+            if "in" in row:
+                cur_in = int(row["in"]) & mask
+            if "inputs" in row and isinstance(row["inputs"], dict):
+                nested = row["inputs"]
+                if "reset" in nested:
+                    cur_reset = int(nested["reset"]) & 1
+                if "in" in nested:
+                    cur_in = int(nested["in"]) & mask
+
+        # R_RESET: synchronous reset has priority and clears out on posedge
+        if cur_reset:
+            out = 0
+        else:
+            # R_FALL: set bits that had prev_in=1 and now in=0
+            falls = prev_in & (~cur_in & mask)
+            # R_HOLD: all other out bits keep their previous value
+            out = (out | falls) & mask
+
+        # prev_in updates on every posedge, including reset edges
+        prev_in = cur_in & mask
+        ret.append({"out": out & mask})
+
+        # Mid changes occur AFTER sampling and are carried into the next row.
+        if isinstance(row, dict):
+            mids = []
+            if "mid" in row:
+                mids.append(row["mid"])
+            for k, v in row.items():
+                if k in ("mid", "reset", "in", "inputs"):
+                    continue
+                if k.startswith("mid_"):
+                    mids.append({k[4:]: v})
+                elif k.endswith("_mid"):
+                    mids.append({k[:-4]: v})
+
+            for mid in mids:
+                if isinstance(mid, dict):
+                    if "reset" in mid:
+                        cur_reset = int(mid["reset"]) & 1
+                    if "in" in mid:
+                        cur_in = int(mid["in"]) & mask
+                elif isinstance(mid, (list, tuple)):
+                    for sub in mid:
+                        if isinstance(sub, dict):
+                            if "reset" in sub:
+                                cur_reset = int(sub["reset"]) & 1
+                            if "in" in sub:
+                                cur_in = int(sub["in"]) & mask
+
+    return ret

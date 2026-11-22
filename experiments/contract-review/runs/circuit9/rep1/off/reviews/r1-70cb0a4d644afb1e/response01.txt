@@ -1,0 +1,107 @@
+{
+  "coverage": {
+    "S01": ["hold_when_a_high", "increment_when_a_low"],
+    "S02": ["hold_when_a_high", "increment_when_a_low"],
+    "S03": ["hold_when_a_high", "increment_when_a_low"],
+    "S04": ["hold_when_a_high", "increment_when_a_low"],
+    "S05": ["hold_when_a_high", "increment_when_a_low"],
+    "S06": ["hold_when_a_high", "increment_when_a_low"],
+    "S07": ["hold_when_a_high", "increment_when_a_low"],
+    "S08": ["hold_when_a_high", "increment_when_a_low"],
+    "S09": ["hold_when_a_high", "increment_when_a_low"],
+    "S10": ["hold_when_a_high", "increment_when_a_low"],
+    "S11": ["hold_when_a_high", "increment_when_a_low"],
+    "S12": ["hold_when_a_high", "increment_when_a_low"],
+    "S13": ["hold_when_a_high", "increment_when_a_low"],
+    "S14": ["hold_when_a_high", "increment_when_a_low"],
+    "S15": ["increment_when_a_low"],
+    "S16": ["increment_when_a_low"],
+    "S17": ["increment_when_a_low"],
+    "S18": ["increment_when_a_low"],
+    "S19": ["increment_when_a_low"],
+    "S20": ["increment_when_a_low"],
+    "S21": ["increment_when_a_low"],
+    "S22": ["increment_when_a_low"]
+  },
+  "issues": [
+    {
+      "issue_id": "I1",
+      "rule_id": "hold_when_a_high",
+      "type": "grounding",
+      "severity": "high",
+      "detail": "The rule's spec_quote '45ns 1 0 4' shows a=0 at that edge, which is the increment case, not the hold-when-a-high case. The quote does not contain verbatim evidence for condition a==1.",
+      "spec_evidence": "// 45ns            1               0               4",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I2",
+      "rule_id": "increment_when_a_low",
+      "type": "grounding",
+      "severity": "high",
+      "detail": "The rule's spec_quote '55ns 1 0 5' shows a=0 at that edge, which is consistent with increment, but the quote alone does not show the transition from 4 to 5; the prior value 4 is at 50ns. The quote is not verbatim evidence of the increment behavior by itself.",
+      "spec_evidence": "// 55ns            1               0               5",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I3",
+      "rule_id": "hold_when_a_high",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "The rule example expects q to remain 4 for three posedges with a=1, but the spec waveform shows that at 45ns (a=0) q becomes 4, and at 55ns (a=0) q becomes 5. There is no spec segment showing q holding at 4 across multiple a=1 edges. The example is not supported by the spec and contradicts the only observed hold interval (q=4 from 5ns to 40ns with a=1), which starts from an initial x/4 transition, not from a known 4.",
+      "spec_evidence": "// 5ns             1               1               4\n// 10ns            0               1               4\n// 15ns            1               1               4\n// 20ns            0               1               4\n// 25ns            1               1               4\n// 30ns            0               1               4\n// 35ns            1               1               4\n// 40ns            0               1               4\n// 45ns            1               0               4",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I4",
+      "rule_id": "increment_when_a_low",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "The rule example expects q to go 5,6,0 for three posedges with a=0, but the spec waveform shows increments only at 55ns (4->5), 65ns (5->6), and 75ns (6->0), with a=0 at those edges. However, the example starts from q=5 and applies a=0 at the first edge, which would produce 6, not 5, under the rule's own condition. The example's first expected value is inconsistent with the rule semantics.",
+      "spec_evidence": "// 55ns            1               0               5\n// 65ns            1               0               6\n// 75ns            1               0               0",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I5",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "The spec waveform shows q changing at posedges when a=0, but the initial value of q is x at 0ns and becomes 4 at 5ns with a=1. This suggests either an asynchronous reset/load to 4, or that the first posedge with a=1 loads 4, or that q is initialized to 4. The contract declares reset kind 'none' and no initial value, so the source of the initial 4 is unspecified. An alternative semantics is that q is initialized to 4 at time 0 or on first posedge regardless of a.",
+      "spec_evidence": "// 0ns             0               1               x\n// 5ns             1               1               4",
+      "alternative": "q is initialized to 4 at time 0 (or on first posedge) independent of a, then holds when a=1 and increments when a=0.",
+      "sequence": [
+        {"a": 1},
+        {"a": 1},
+        {"a": 0}
+      ]
+    },
+    {
+      "issue_id": "I6",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "The spec waveform shows q=4 at 5ns with a=1, but the contract's hold_when_a_high rule would hold q at its previous value. If the previous value is x, holding would keep x, not become 4. An alternative semantics is that the first posedge with a=1 loads 4 (e.g., a synchronous load of 4 when a=1 on first edge), and subsequent a=1 edges hold.",
+      "spec_evidence": "// 0ns             0               1               x\n// 5ns             1               1               4",
+      "alternative": "On the first posedge, if a=1, q is loaded with 4; thereafter a=1 holds and a=0 increments.",
+      "sequence": [
+        {"a": 1},
+        {"a": 1},
+        {"a": 0},
+        {"a": 0}
+      ]
+    },
+    {
+      "issue_id": "I7",
+      "rule_id": "global",
+      "type": "spec_example",
+      "severity": "high",
+      "detail": "Deriving outputs from the spec waveform under the contract's stated semantics (hold when a=1, increment when a=0, no reset, initial q unknown) does not match the waveform at 5ns: with initial q=x and a=1 at first posedge, hold would leave q=x, but spec shows q=4. Also at 45ns a=0, increment from 4 would give 5, but spec shows q=4 at 45ns (the change to 4 occurs at 45ns from previous 4? Actually spec shows q=4 at 40ns and 45ns, then 5 at 55ns). The spec's first transition to 4 is unexplained by the contract.",
+      "spec_evidence": "// 0ns             0               1               x\n// 5ns             1               1               4\n// 40ns            0               1               4\n// 45ns            1               0               4\n// 55ns            1               0               5",
+      "alternative": "",
+      "sequence": []
+    }
+  ]
+}

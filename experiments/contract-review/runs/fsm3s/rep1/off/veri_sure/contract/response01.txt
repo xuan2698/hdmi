@@ -1,0 +1,58 @@
+```json
+{
+  "module_name": "top_module",
+  "io": [
+    {
+      "name": "clk",
+      "dir": "input",
+      "width": 1,
+      "description": "Clock signal; state is sampled on the posedge."
+    },
+    {
+      "name": "reset",
+      "dir": "input",
+      "width": 1,
+      "description": "Synchronous active-high reset; resets FSM to state A."
+    },
+    {
+      "name": "in",
+      "dir": "input",
+      "width": 1,
+      "description": "Single-bit input controlling state transitions."
+    },
+    {
+      "name": "out",
+      "dir": "output",
+      "width": 1,
+      "description": "Moore output; 1 only in state D, else 0."
+    }
+  ],
+  "clocking": {
+    "clock": {
+      "name": "clk",
+      "edge": "posedge"
+    },
+    "reset": {
+      "name": "reset",
+      "active": "high",
+      "kind": "synchronous"
+    }
+  },
+  "timing": {
+    "outputs": {
+      "out": {
+        "latency_cycles": 0
+      }
+    }
+  },
+  "functional_summary": {
+    "overview": "Moore FSM with four states A, B, C, D, one input in, one output out, and synchronous active-high reset to state A. Output is 0 in states A, B, C and 1 in state D.",
+    "rules": [
+      "On posedge clk, if reset is high, state <= A.",
+      "Else, state transitions per table: A->A if in=0, A->B if in=1; B->C if in=0, B->B if in=1; C->A if in=0, C->D if in=1; D->C if in=0, D->B if in=1.",
+      "Output out is a combinational function of current state: out=1 iff state=D, otherwise out=0.",
+      "Reset has priority over normal state transitions."
+    ]
+  }
+}
+```

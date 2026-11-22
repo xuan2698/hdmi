@@ -1,0 +1,231 @@
+{
+  "ports": {
+    "inputs": {
+      "reset": 1,
+      "in": 32
+    },
+    "outputs": {
+      "out": 32
+    },
+    "clock": "clk"
+  },
+  "states": [
+    {
+      "name": "out_reg",
+      "meaning": "Per-bit sticky flag: set to 1 when the corresponding input bit transitions from 1 to 0; held at 1 until synchronous reset.",
+      "update_time": "posedge clk",
+      "update_during_reset": true
+    }
+  ],
+  "rules": [
+    {
+      "id": "R1_reset_clear",
+      "outputs": [
+        "out"
+      ],
+      "condition": "reset == 1",
+      "edge": "posedge",
+      "visible": "same_cycle",
+      "priority": 1,
+      "spec_quote": "reset (active high synchronous reset)",
+      "uncertain": false,
+      "example": {
+        "vectors": [
+          {
+            "reset": 0,
+            "in": 4294967295
+          },
+          {
+            "reset": 0,
+            "in": 0
+          },
+          {
+            "reset": 1,
+            "in": 0
+          },
+          {
+            "reset": 0,
+            "in": 0
+          }
+        ],
+        "expected": [
+          {
+            "out": 0
+          },
+          {
+            "out": 4294967295
+          },
+          {
+            "out": 0
+          },
+          {
+            "out": 0
+          }
+        ]
+      }
+    },
+    {
+      "id": "R2_capture_falling_edge",
+      "outputs": [
+        "out"
+      ],
+      "condition": "reset == 0 && (prev_in & ~in) != 0, where prev_in is the in value sampled on the immediately preceding posedge clk including reset cycles (see R4)",
+      "edge": "posedge",
+      "visible": "same_cycle",
+      "priority": 2,
+      "spec_quote": "capture when the input signal changes from 1 in one clock cycle to 0 the next",
+      "uncertain": false,
+      "example": {
+        "vectors": [
+          {
+            "reset": 0,
+            "in": 4294967295
+          },
+          {
+            "reset": 0,
+            "in": 0
+          },
+          {
+            "reset": 0,
+            "in": 0
+          }
+        ],
+        "expected": [
+          {
+            "out": 0
+          },
+          {
+            "out": 4294967295
+          },
+          {
+            "out": 4294967295
+          }
+        ]
+      }
+    },
+    {
+      "id": "R3_hold_until_reset",
+      "outputs": [
+        "out"
+      ],
+      "condition": "reset == 0 && (prev_in & ~in) == 0",
+      "edge": "posedge",
+      "visible": "same_cycle",
+      "priority": 3,
+      "spec_quote": "the output will remain 1 until the register is reset",
+      "uncertain": false,
+      "example": {
+        "vectors": [
+          {
+            "reset": 0,
+            "in": 4294967295
+          },
+          {
+            "reset": 0,
+            "in": 0
+          },
+          {
+            "reset": 0,
+            "in": 4294967295
+          },
+          {
+            "reset": 0,
+            "in": 4294967295
+          }
+        ],
+        "expected": [
+          {
+            "out": 0
+          },
+          {
+            "out": 4294967295
+          },
+          {
+            "out": 4294967295
+          },
+          {
+            "out": 4294967295
+          }
+        ]
+      }
+    },
+    {
+      "id": "R4_prev_in_tracks_all_cycles",
+      "outputs": [
+        "out"
+      ],
+      "condition": "prev_in is updated from the sampled in value on every posedge clk, including cycles where reset == 1; falling-edge detection in R2 uses this prev_in regardless of reset history",
+      "edge": "posedge",
+      "visible": "same_cycle",
+      "priority": 4,
+      "spec_quote": "capture when the input signal changes from 1 in one clock cycle to 0 the next",
+      "uncertain": false,
+      "example": {
+        "vectors": [
+          {
+            "reset": 1,
+            "in": 4294967295
+          },
+          {
+            "reset": 0,
+            "in": 4294967295
+          },
+          {
+            "reset": 0,
+            "in": 0
+          }
+        ],
+        "expected": [
+          {
+            "out": 0
+          },
+          {
+            "out": 0
+          },
+          {
+            "out": 4294967295
+          }
+        ]
+      }
+    }
+  ],
+  "reset": {
+    "kind": "sync",
+    "name": "reset",
+    "active": "high",
+    "values": {
+      "out": 0
+    },
+    "first_released_cycle": "cycle after reset deasserts at a posedge clk"
+  },
+  "mid": "Optional mid input changes occur AFTER sampling, before the other edge, and are carried to the start of the next row.",
+  "uncertain": [
+    {
+      "rule_id": "R4_prev_in_tracks_all_cycles",
+      "note": "Spec does not state whether prev_in is updated during reset cycles; R4 asserts it is, but an equally plausible reading clears or reinitializes prev_in on reset release so edges spanning reset are not captured.",
+      "candidates": [
+        "prev_in updates on every posedge clk including reset cycles, so a 1-to-0 transition spanning a reset cycle is captured after reset deasserts",
+        "prev_in is not updated during reset cycles (or is reinitialized to the current in value on reset release), so a 1-to-0 transition spanning a reset cycle is not captured after reset deasserts"
+      ]
+    },
+    {
+      "rule_id": "R2_capture_falling_edge",
+      "note": "Spec does not state whether capture is visible same cycle as the falling edge or one cycle later; R2 declares same_cycle, but a registered sticky flag could be next_cycle.",
+      "candidates": [
+        "out is set combinationally in the same cycle the 1-to-0 transition is sampled (same_cycle visibility)",
+        "out is registered and reflects the falling-edge capture one clock cycle after the 1-to-0 transition is sampled (next_cycle visibility)"
+      ]
+    }
+  ],
+  "remaining_uncertain_fields": {
+    "R4_prev_in_tracks_all_cycles": [
+      "prev_in updates on every posedge clk including reset cycles, so a 1-to-0 transition spanning a reset cycle is captured after reset deasserts",
+      "prev_in is not updated during reset cycles (or is reinitialized to the current in value on reset release), so a 1-to-0 transition spanning a reset cycle is not captured after reset deasserts"
+    ],
+    "R2_capture_falling_edge": [
+      "out is set combinationally in the same cycle the 1-to-0 transition is sampled (same_cycle visibility)",
+      "out is registered and reflects the falling-edge capture one clock cycle after the 1-to-0 transition is sampled (next_cycle visibility)"
+    ]
+  },
+  "selected_interpretations": []
+}

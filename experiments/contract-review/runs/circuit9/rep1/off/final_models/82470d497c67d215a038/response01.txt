@@ -1,0 +1,35 @@
+```python
+def reference(vectors):
+    # Contract implementation.
+    # State: 3-bit counter q. No reset. Initial q unspecified -> model as None (x).
+    # Rules:
+    #   hold_when_a_high (priority 1): on posedge, if a==1, q holds.
+    #   increment_when_a_low (priority 2): on posedge, if a==0, q = (q+1) mod 8.
+    # Uncertain global: q is x before first posedge. At first posedge with a=1, q becomes 4
+    # (initialization). We model: if q is None and a==1 on posedge -> q=4.
+    # If q is None and a==0 on posedge -> q stays None (x) per "x until first posedge with a=1".
+    # Mid changes: none.
+
+    q = None  # unspecified initial state (x)
+    out = []
+
+    for row in vectors:
+        a = row.get('a', 0)
+        # posedge sampling: apply rules
+        if q is None:
+            # global uncertain: first posedge with a=1 initializes to 4
+            if a == 1:
+                q = 4
+            # else stays None (x)
+        else:
+            if a == 1:
+                # hold_when_a_high
+                pass
+            else:
+                # increment_when_a_low
+                q = (q + 1) & 0x7
+        # output concrete unsigned int within 3 bits; if still x, use 0 as concrete placeholder
+        out.append({'q': q if q is not None else 0})
+
+    return out
+```

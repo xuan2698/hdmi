@@ -176,7 +176,7 @@ def token_use(folders):
             "charged_usd":sum(r.get("charged_usd") or 0 for r in rows.values())}
 
 
-def new_artifact(folder,prompt,think,decode,validator,attempts=3,repair_draft=False):
+def new_artifact(folder,prompt,think,decode,validator,attempts=3,repair_draft=False,compact_after_truncation=False):
     """Checkpoint complete raw responses and only reuse artifacts after validation."""
     state=folder/"status.json"
     if state.is_file():
@@ -193,6 +193,9 @@ def new_artifact(folder,prompt,think,decode,validator,attempts=3,repair_draft=Fa
         previous=prompt
         if errors:
             previous+="\nFix the following format or execution issue and return the requested complete artifact:\n"+errors[-1]
+            if compact_after_truncation and "Incomplete API output: length" in errors[-1]:
+                previous+=("\nKeep any deliberation brief. Produce a compact complete final artifact with all "
+                           "required fields before the response limit.")
             if repair_draft and draft:
                 previous+="\nYour previous attempt (for format repair only):\n"+draft[:14000]
         try:
@@ -211,7 +214,7 @@ def new_artifact(folder,prompt,think,decode,validator,attempts=3,repair_draft=Fa
             last=receipts[-1] if receipts else {}
             status=last.get("http_status")
             if (last.get("status")=="received" or not receipts or
-                (status is not None and status not in (408,429) and status<500)):
+                (status is not None and 400<=status<500 and status not in (408,429))):
                 raise
             errors.append(str(exc)[:500])
         except (ValueError,TypeError,KeyError,AttributeError,IndexError,RunError,subprocess.TimeoutExpired) as exc:

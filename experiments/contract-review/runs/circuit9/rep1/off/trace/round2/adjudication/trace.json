@@ -1,0 +1,91 @@
+[
+  {
+    "issue": {
+      "issue_id": "I4",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "high",
+      "detail": "The contract states q initializes to 4 at the first posedge (from x). However, the spec waveform shows at 0ns clk=0, a=1, q=x; at 5ns clk=1, a=1, q=4. This suggests q becomes 4 at the first posedge (5ns) when a=1. But the rule hold_when_a_high says when a=1, q holds. If q is x initially, holding would keep x, not set to 4. The contract's state meaning says 'initializes to 4 at the first posedge (from x)', which is a special initialization not captured by the rules. This is an ambiguity: does the first posedge always set q=4 regardless of a, or does it depend on a? The spec shows a=1 at first posedge and q becomes 4. If a=0 at first posedge, would q become 4 or something else? The contract does not specify. A plausible alternative: the first posedge sets q=4 unconditionally. Distinguishing sequence: apply a=0 at first posedge. If q becomes 4, then initialization is unconditional; if q becomes 5 (increment from x? impossible) or something else, different. But since x+1 is undefined, the contract likely means unconditional set to 4. However, the rule increment_when_a_low has condition 'not (q == 4 and previous_a == 1)', which uses previous_a. At first posedge, previous_a is undefined (x). The contract does not specify previous_a initial value. This is an ambiguity.",
+      "spec_evidence": "// 0ns             0               1               x\n// 5ns             1               1               4",
+      "alternative": "The first posedge unconditionally sets q=4, and previous_a is initialized to 0 (or don't care) for the first cycle. Alternatively, the first posedge sets q=4 only if a=1, and if a=0, q increments from x (undefined).",
+      "sequence": [
+        {
+          "a": 0
+        },
+        {
+          "a": 0
+        }
+      ]
+    },
+    "status": "no_effect",
+    "issue_id": "I4",
+    "outputs": {
+      "original": [
+        {
+          "q": 4
+        },
+        {
+          "q": 5
+        }
+      ],
+      "alternative": [
+        {
+          "q": 4
+        },
+        {
+          "q": 5
+        }
+      ]
+    },
+    "differences": []
+  },
+  {
+    "issue": {
+      "issue_id": "I5",
+      "rule_id": "increment_when_a_low",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "The condition 'not (q == 4 and previous_a == 1)' uses previous_a, but the contract does not define how previous_a is updated or initialized. The spec waveform shows a=1 from 0ns to 40ns, then a=0 at 45ns. At 45ns posedge, q remains 4 (at 50ns). At 55ns posedge, a=0, q becomes 5. This suggests that the increment is suppressed only on the first posedge after a transition from 1 to 0 when q=4. But what if q=4 and previous_a=1, and a=0, then q holds; next cycle a=0, previous_a=0, so increment. This matches. However, the contract does not specify previous_a update timing (e.g., is previous_a the value of a at the previous posedge or the value before the current posedge?). A plausible alternative: previous_a is the value of a at the previous posedge. Distinguishing sequence: a=1, then a=0, then a=0. If previous_a is updated at posedge, then at first a=0 posedge, previous_a=1 (from last posedge), so suppress increment; at second a=0 posedge, previous_a=0, so increment. This matches spec. If previous_a is the value of a just before the current posedge (i.e., combinational), then at first a=0 posedge, previous_a=0 (since a changed before posedge), so increment would occur, contradicting spec. The contract likely means previous_a is the value at the previous posedge. But it's not explicit.",
+      "spec_evidence": "// 45ns            1               0               4\n// 50ns            0               0               4\n// 55ns            1               0               5",
+      "alternative": "previous_a is the value of a at the previous posedge (registered). Alternatively, previous_a is the value of a just before the current posedge (combinational).",
+      "sequence": [
+        {
+          "a": 1
+        },
+        {
+          "a": 0
+        },
+        {
+          "a": 0
+        }
+      ]
+    },
+    "status": "no_effect",
+    "issue_id": "I5",
+    "outputs": {
+      "original": [
+        {
+          "q": 4
+        },
+        {
+          "q": 4
+        },
+        {
+          "q": 5
+        }
+      ],
+      "alternative": [
+        {
+          "q": 4
+        },
+        {
+          "q": 4
+        },
+        {
+          "q": 5
+        }
+      ]
+    },
+    "differences": []
+  }
+]

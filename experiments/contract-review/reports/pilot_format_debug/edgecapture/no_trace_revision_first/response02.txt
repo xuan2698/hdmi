@@ -1,0 +1,206 @@
+{
+  "responses": [
+    {
+      "issue_id": "I1",
+      "decision": "accept",
+      "reason": "R2's example shows the captured falling edge visible on the same row as the transition, contradicting its 'visible: next_cycle' field. The spec says to capture when the input changes from 1 to 0, and the example demonstrates same-cycle visibility. I will change R2's visible field to 'same_cycle' and update the example to be consistent with next_cycle visibility if that were intended, but since the example is the ground truth, I will keep the example and fix the visible field.",
+      "spec_quote": "capture when the input signal changes from 1 in one clock cycle to 0 the next",
+      "edits": [
+        {
+          "path": ["rules", "R2_capture_falling_edge"],
+          "value": {
+            "id": "R2_capture_falling_edge",
+            "outputs": ["out"],
+            "condition": "reset == 0 && (prev_in & ~in) != 0",
+            "edge": "posedge",
+            "visible": "same_cycle",
+            "priority": 2,
+            "spec_quote": "capture when the input signal changes from 1 in one clock cycle to 0 the next",
+            "uncertain": false,
+            "example": {
+              "vectors": [
+                {"reset": 0, "in": 4294967295},
+                {"reset": 0, "in": 0},
+                {"reset": 0, "in": 0}
+              ],
+              "expected": [
+                {"out": 0},
+                {"out": 4294967295},
+                {"out": 4294967295}
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "issue_id": "I2",
+      "decision": "accept",
+      "reason": "R3's example shows the held value visible on the same row as the hold condition is evaluated, contradicting its 'visible: next_cycle' field. The spec says the output will remain 1 until reset, and the example demonstrates same-cycle visibility. I will change R3's visible field to 'same_cycle' and update the example to be consistent.",
+      "spec_quote": "the output will remain 1 until the register is reset",
+      "edits": [
+        {
+          "path": ["rules", "R3_hold_until_reset"],
+          "value": {
+            "id": "R3_hold_until_reset",
+            "outputs": ["out"],
+            "condition": "reset == 0 && (prev_in & ~in) == 0",
+            "edge": "posedge",
+            "visible": "same_cycle",
+            "priority": 3,
+            "spec_quote": "the output will remain 1 until the register is reset",
+            "uncertain": false,
+            "example": {
+              "vectors": [
+                {"reset": 0, "in": 4294967295},
+                {"reset": 0, "in": 0},
+                {"reset": 0, "in": 4294967295},
+                {"reset": 0, "in": 4294967295}
+              ],
+              "expected": [
+                {"out": 0},
+                {"out": 4294967295},
+                {"out": 4294967295},
+                {"out": 4294967295}
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "issue_id": "I3",
+      "decision": "accept",
+      "reason": "R1's example is inconsistent with synchronous reset clearing on the same posedge. The first row has reset=1 and expected out=0, which is consistent with reset clearing. However, the second row has reset=0 and in=4294967295, expected out=0, and the third row has reset=0 and in=0, expected out=4294967295. This implies the falling edge from the second row's in=4294967295 to the third row's in=0 is captured and visible on the third row, which is same-cycle visibility. The example also shows that the reset row's input is used as prev_in for the next row. I will update R1's example to be consistent with same-cycle visibility and the reset clearing behavior.",
+      "spec_quote": "reset (active high synchronous reset)",
+      "edits": [
+        {
+          "path": ["rules", "R1_reset_clear"],
+          "value": {
+            "id": "R1_reset_clear",
+            "outputs": ["out"],
+            "condition": "reset == 1",
+            "edge": "posedge",
+            "visible": "same_cycle",
+            "priority": 1,
+            "spec_quote": "reset (active high synchronous reset)",
+            "uncertain": false,
+            "example": {
+              "vectors": [
+                {"reset": 1, "in": 4294967295},
+                {"reset": 0, "in": 4294967295},
+                {"reset": 0, "in": 0}
+              ],
+              "expected": [
+                {"out": 0},
+                {"out": 0},
+                {"out": 4294967295}
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "issue_id": "I4",
+      "decision": "accept",
+      "reason": "The contract does not specify whether the input value sampled during a reset cycle is used as the previous input for detecting a falling edge in the first non-reset cycle. R1's example implies that the reset row's in=4294967295 is used as prev_in. I will add a rule to clarify that prev_in is updated every cycle, including during reset, so falling edges across reset boundaries are detected.",
+      "spec_quote": "For each bit in a 32-bit vector, capture when the input signal changes from 1 in one clock cycle to 0 the next.",
+      "edits": [
+        {
+          "path": ["rules", "R4_prev_in_tracking"],
+          "value": {
+            "id": "R4_prev_in_tracking",
+            "outputs": ["out"],
+            "condition": "always",
+            "edge": "posedge",
+            "visible": "same_cycle",
+            "priority": 4,
+            "spec_quote": "For each bit in a 32-bit vector, capture when the input signal changes from 1 in one clock cycle to 0 the next.",
+            "uncertain": false,
+            "example": {
+              "vectors": [
+                {"reset": 1, "in": 4294967295},
+                {"reset": 0, "in": 4294967295},
+                {"reset": 0, "in": 0}
+              ],
+              "expected": [
+                {"out": 0},
+                {"out": 0},
+                {"out": 4294967295}
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "issue_id": "I5",
+      "decision": "accept",
+      "reason": "The contract does not specify the behavior of out during a reset cycle when reset is asserted. R1 says reset clears out with visible same_cycle, and the reset field says values.out=0. However, it is not explicit whether out is forced to 0 combinationally during reset or only updated to 0 on the posedge clk. The spec says active high synchronous reset, which implies the clear happens on the clock edge. I will add a rule to clarify that out is updated to 0 on the posedge clk when reset=1, and holds its previous value during the reset cycle until the next posedge.",
+      "spec_quote": "active high synchronous reset",
+      "edits": [
+        {
+          "path": ["rules", "R5_reset_sync_behavior"],
+          "value": {
+            "id": "R5_reset_sync_behavior",
+            "outputs": ["out"],
+            "condition": "reset == 1",
+            "edge": "posedge",
+            "visible": "same_cycle",
+            "priority": 5,
+            "spec_quote": "active high synchronous reset",
+            "uncertain": false,
+            "example": {
+              "vectors": [
+                {"reset": 0, "in": 4294967295},
+                {"reset": 0, "in": 0},
+                {"reset": 1, "in": 0},
+                {"reset": 0, "in": 0}
+              ],
+              "expected": [
+                {"out": 0},
+                {"out": 4294967295},
+                {"out": 0},
+                {"out": 0}
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "issue_id": "I6",
+      "decision": "accept",
+      "reason": "The contract does not specify whether the falling-edge detection uses the input value from the immediately preceding clock cycle, including cycles where reset was asserted, or only from non-reset cycles. R2's condition uses prev_in without defining how prev_in is updated during reset. I will add a rule to clarify that prev_in is updated every cycle, including during reset, so falling edges across reset boundaries are detected.",
+      "spec_quote": "capture when the input signal changes from 1 in one clock cycle to 0 the next",
+      "edits": [
+        {
+          "path": ["rules", "R6_prev_in_update"],
+          "value": {
+            "id": "R6_prev_in_update",
+            "outputs": ["out"],
+            "condition": "always",
+            "edge": "posedge",
+            "visible": "same_cycle",
+            "priority": 6,
+            "spec_quote": "capture when the input signal changes from 1 in one clock cycle to 0 the next",
+            "uncertain": false,
+            "example": {
+              "vectors": [
+                {"reset": 1, "in": 4294967295},
+                {"reset": 0, "in": 0},
+                {"reset": 0, "in": 0}
+              ],
+              "expected": [
+                {"out": 0},
+                {"out": 4294967295},
+                {"out": 4294967295}
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

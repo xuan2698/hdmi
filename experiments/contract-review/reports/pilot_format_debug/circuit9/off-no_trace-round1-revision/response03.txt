@@ -1,0 +1,211 @@
+{
+  "responses": [
+    {
+      "issue_id": "I01",
+      "decision": "accept",
+      "reason": "The spec_quote for hold_when_a_high is a row where a=0, so it does not ground the a==1 condition. Replace it with a verbatim row where a=1 and q holds.",
+      "spec_quote": "// 15ns            1               1               4",
+      "edits": [
+        {
+          "path": ["rules", "hold_when_a_high"],
+          "value": {
+            "id": "hold_when_a_high",
+            "outputs": ["q"],
+            "condition": "a == 1",
+            "edge": "posedge",
+            "visible": "next_cycle",
+            "priority": 1,
+            "spec_quote": "// 15ns            1               1               4",
+            "uncertain": false,
+            "example": {
+              "vectors": [{"a": 1}, {"a": 1}, {"a": 1}],
+              "expected": [{"q": 4}, {"q": 4}, {"q": 4}]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "issue_id": "I02",
+      "decision": "accept",
+      "reason": "The increment example starts from q=5, but the quoted 55ns row shows q becoming 5 from 4. Adjust the example to start from q=4 and expect 5,6,0, matching the waveform.",
+      "spec_quote": "// 55ns            1               0               5",
+      "edits": [
+        {
+          "path": ["rules", "increment_when_a_low"],
+          "value": {
+            "id": "increment_when_a_low",
+            "outputs": ["q"],
+            "condition": "a == 0",
+            "edge": "posedge",
+            "visible": "next_cycle",
+            "priority": 2,
+            "spec_quote": "// 55ns            1               0               5",
+            "uncertain": false,
+            "example": {
+              "vectors": [{"a": 0}, {"a": 0}, {"a": 0}],
+              "expected": [{"q": 5}, {"q": 6}, {"q": 0}]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "issue_id": "I03",
+      "decision": "accept",
+      "reason": "The hold rule's quote was inconsistent with its a==1 example. The quote is corrected to a verbatim a=1 hold row, so the rule, quote, and example now agree.",
+      "spec_quote": "// 15ns            1               1               4",
+      "edits": [
+        {
+          "path": ["rules", "hold_when_a_high"],
+          "value": {
+            "id": "hold_when_a_high",
+            "outputs": ["q"],
+            "condition": "a == 1",
+            "edge": "posedge",
+            "visible": "next_cycle",
+            "priority": 1,
+            "spec_quote": "// 15ns            1               1               4",
+            "uncertain": false,
+            "example": {
+              "vectors": [{"a": 1}, {"a": 1}, {"a": 1}],
+              "expected": [{"q": 4}, {"q": 4}, {"q": 4}]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "issue_id": "I04",
+      "decision": "rebut",
+      "reason": "The increment example is consistent with the waveform: starting from q=4, three a=0 posedges give 5,6,0, exactly as shown at 55ns, 65ns, and 75ns. No change is needed.",
+      "spec_quote": "// 55ns            1               0               5",
+      "edits": []
+    },
+    {
+      "issue_id": "I05",
+      "decision": "accept",
+      "reason": "The waveform shows q=4 at the first posedge with a=1, not an indefinite hold from x. Add an initialization rule so the contract covers the observed first posedge.",
+      "spec_quote": "// 5ns             1               1               4",
+      "edits": [
+        {
+          "path": ["rules", "init_to_4"],
+          "value": {
+            "id": "init_to_4",
+            "outputs": ["q"],
+            "condition": "first posedge after time 0",
+            "edge": "posedge",
+            "visible": "next_cycle",
+            "priority": 0,
+            "spec_quote": "// 5ns             1               1               4",
+            "uncertain": false,
+            "example": {
+              "vectors": [{"a": 1}],
+              "expected": [{"q": 4}]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "issue_id": "I06",
+      "decision": "accept",
+      "reason": "The initial q is unspecified in the original contract, but the waveform fixes the first posedge result to 4. The initialization rule resolves this ambiguity.",
+      "spec_quote": "// 0ns             0               1               x",
+      "edits": [
+        {
+          "path": ["rules", "init_to_4"],
+          "value": {
+            "id": "init_to_4",
+            "outputs": ["q"],
+            "condition": "first posedge after time 0",
+            "edge": "posedge",
+            "visible": "next_cycle",
+            "priority": 0,
+            "spec_quote": "// 5ns             1               1               4",
+            "uncertain": false,
+            "example": {
+              "vectors": [{"a": 1}],
+              "expected": [{"q": 4}]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "issue_id": "I07",
+      "decision": "accept",
+      "reason": "The waveform at 45ns shows a=0 but q remains 4, contradicting unconditional increment when a=0. The increment rule must be qualified so it does not apply to that first a=0 posedge after the initial hold.",
+      "spec_quote": "// 45ns            1               0               4",
+      "edits": [
+        {
+          "path": ["rules", "increment_when_a_low"],
+          "value": {
+            "id": "increment_when_a_low",
+            "outputs": ["q"],
+            "condition": "a == 0 and not (previous cycle was the first a=0 posedge after initialization)",
+            "edge": "posedge",
+            "visible": "next_cycle",
+            "priority": 2,
+            "spec_quote": "// 55ns            1               0               5",
+            "uncertain": false,
+            "example": {
+              "vectors": [{"a": 0}, {"a": 0}, {"a": 0}],
+              "expected": [{"q": 5}, {"q": 6}, {"q": 0}]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "issue_id": "I08",
+      "decision": "accept",
+      "reason": "The 45ns row is a direct counterexample to unconditional increment when a=0. Qualify the increment rule to exclude that first a=0 posedge after initialization.",
+      "spec_quote": "// 40ns            0               1               4\n// 45ns            1               0               4",
+      "edits": [
+        {
+          "path": ["rules", "increment_when_a_low"],
+          "value": {
+            "id": "increment_when_a_low",
+            "outputs": ["q"],
+            "condition": "a == 0 and not (previous cycle was the first a=0 posedge after initialization)",
+            "edge": "posedge",
+            "visible": "next_cycle",
+            "priority": 2,
+            "spec_quote": "// 55ns            1               0               5",
+            "uncertain": false,
+            "example": {
+              "vectors": [{"a": 0}, {"a": 0}, {"a": 0}],
+              "expected": [{"q": 5}, {"q": 6}, {"q": 0}]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "issue_id": "I09",
+      "decision": "accept",
+      "reason": "The first posedge with a=1 changes q from x to 4, so a pure hold rule does not cover it. The initialization rule added for I05/I06 covers this case while the hold rule applies thereafter.",
+      "spec_quote": "// 0ns             0               1               x\n// 5ns             1               1               4",
+      "edits": [
+        {
+          "path": ["rules", "init_to_4"],
+          "value": {
+            "id": "init_to_4",
+            "outputs": ["q"],
+            "condition": "first posedge after time 0",
+            "edge": "posedge",
+            "visible": "next_cycle",
+            "priority": 0,
+            "spec_quote": "// 5ns             1               1               4",
+            "uncertain": false,
+            "example": {
+              "vectors": [{"a": 1}],
+              "expected": [{"q": 4}]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

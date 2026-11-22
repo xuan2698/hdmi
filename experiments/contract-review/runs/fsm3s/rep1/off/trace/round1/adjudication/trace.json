@@ -1,0 +1,74 @@
+[
+  {
+    "issue": {
+      "issue_id": "I1",
+      "rule_id": "R_TRANS",
+      "type": "ambiguity",
+      "severity": "high",
+      "detail": "The contract's R_TRANS example is inconsistent with the state table if the example vectors are applied from reset state A without an explicit reset assertion. The example starts with reset=0, in=1, which from state A should transition to B (output 0), then in=1 stays in B (output 0), then in=0 goes to C (output 0), then in=1 goes to D (output 1). The expected outputs [0,0,0,1] match this only if the initial state is A. However, the example does not include a reset vector to establish state A, and the contract's reset rule says reset is synchronous active high. A plausible alternative interpretation is that the example assumes the FSM is already in state A at the start of the vector list (e.g., after a prior reset), but this is not stated. A distinguishing sequence: if the FSM were in state B initially, the same inputs would yield outputs [0,0,0,1] as well? Let's check: from B, in=1 -> B (0), in=1 -> B (0), in=0 -> C (0), in=1 -> D (1). Same outputs. From C: in=1 -> D (1) immediately, so first output would be 1, differing. From D: in=1 -> B (0), then in=1 -> B (0), in=0 -> C (0), in=1 -> D (1) -> outputs [0,0,0,1] also same. So the example does not distinguish initial state A from B or D. This is an ambiguity in the example's initial state assumption.",
+      "spec_evidence": "// A | A, B | 0\n// B | C, B | 0\n// C | A, D | 0\n// D | C, B | 1",
+      "alternative": "The R_TRANS example may be interpreted as starting from an unspecified initial state (not necessarily A), or as requiring an implicit reset before the vectors. A concrete alternative semantics: the example vectors are applied starting from state A without an explicit reset vector, assuming the FSM powers up in A. Under this interpretation, the sequence [reset=0,in=1], [reset=0,in=1], [reset=0,in=0], [reset=0,in=1] yields outputs [0,0,0,1] as given. Under a different interpretation where the FSM starts in state C, the same sequence would yield [1,0,0,1] (first output 1 from C with in=1 -> D).",
+      "sequence": [
+        {
+          "reset": 0,
+          "in": 1
+        },
+        {
+          "reset": 0,
+          "in": 1
+        },
+        {
+          "reset": 0,
+          "in": 0
+        },
+        {
+          "reset": 0,
+          "in": 1
+        }
+      ]
+    },
+    "status": "effect",
+    "issue_id": "I1",
+    "outputs": {
+      "original": [
+        {
+          "out": 0
+        },
+        {
+          "out": 0
+        },
+        {
+          "out": 0
+        },
+        {
+          "out": 1
+        }
+      ],
+      "alternative": [
+        {
+          "out": 0
+        },
+        {
+          "out": 0
+        },
+        {
+          "out": 0
+        },
+        {
+          "out": 0
+        }
+      ]
+    },
+    "differences": [
+      {
+        "cycle": 4,
+        "original": {
+          "out": 1
+        },
+        "alternative": {
+          "out": 0
+        }
+      }
+    ]
+  }
+]

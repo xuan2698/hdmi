@@ -70,7 +70,8 @@ class Cell:
     def generate_json(self,folder,prompt,validate,repair_draft=False):
         if STOP.is_set():
             raise ArtifactMissing("cancelled after model access error")
-        return new_artifact(folder,prompt,self.think,decode_json,validate,repair_draft=repair_draft)
+        return new_artifact(folder,prompt,self.think,decode_json,validate,repair_draft=repair_draft,
+                            compact_after_truncation=True)
 
     def model(self,folder,prompt,required=None,attempts=3):
         if STOP.is_set():
@@ -81,7 +82,7 @@ class Cell:
                 for key in required:
                     if not re.search(rf"(?m)#.*\b{re.escape(key)}\b",code):
                         raise ValueError(f"Missing rule-ID comment {key}")
-        code=new_artifact(folder,prompt,self.think,decode_python,verify,attempts=attempts)
+        code=new_artifact(folder,prompt,self.think,decode_python,verify,attempts=attempts,compact_after_truncation=True)
         if code is not None:
             atomic(folder/"model.py",code)
         return code
@@ -394,7 +395,7 @@ def cot(cell,goal,pilot):
     prior=""
     budgets=[]
     total=0
-    for step in range(1,15):
+    for step in range(1,33):
         remaining=goal-total
         if remaining<max(1000,len(cell.context)//3+750):
             break

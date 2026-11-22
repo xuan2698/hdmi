@@ -1,0 +1,46 @@
+{
+  "module_name": "top_module",
+  "io": [
+    {
+      "name": "clk",
+      "dir": "input",
+      "width": 1,
+      "description": "Clock, rising-edge triggered"
+    },
+    {
+      "name": "a",
+      "dir": "input",
+      "width": 1,
+      "description": "Serial input bit"
+    },
+    {
+      "name": "q",
+      "dir": "output",
+      "width": 3,
+      "description": "3-bit counter output"
+    }
+  ],
+  "clocking": {
+    "clock": {
+      "name": "clk",
+      "edge": "posedge"
+    },
+    "reset": null
+  },
+  "timing": {
+    "outputs": {
+      "q": {
+        "latency_cycles": 1
+      }
+    }
+  },
+  "functional_summary": {
+    "overview": "3-bit up-counter with synchronous enable. When a=1 the counter holds its value; when a=0 the counter increments by 1 (mod 8) on each rising clock edge. Output q updates one cycle after the sampled edge.",
+    "rules": [
+      "On each rising edge of clk: if a==1, q holds its current value; if a==0, q <= (q + 1) mod 8.",
+      "q is a 3-bit register initialized to an unknown value at time 0.",
+      "No reset; q retains its value indefinitely while a==1.",
+      "Output q reflects the register value after the clock edge (1-cycle latency from input sampling)."
+    ]
+  }
+}

@@ -1,0 +1,74 @@
+{
+  "coverage": {
+    "S01": ["R_A", "R_B", "R_C", "R_D", "R_TRANS"],
+    "S02": ["R_A", "R_B", "R_C", "R_D", "R_TRANS", "R_RESET"],
+    "S03": ["R_RESET"],
+    "S04": ["R_TRANS"],
+    "S05": ["R_A"],
+    "S06": ["R_B"],
+    "S07": ["R_C"],
+    "S08": ["R_D"]
+  },
+  "issues": [
+    {
+      "issue_id": "I1",
+      "rule_id": "R_TRANS",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "R_TRANS example expected outputs contradict the Moore output table. Starting from reset state A, the sequence in=1,1,0,1 should visit states A->B->B->C->D, giving outputs 0,0,0,1. The example expects 0,0,0,1, which matches only if the first row's output is sampled after the transition (i.e., next-state output), but R_A/R_B/R_C/R_D are combinational same-cycle rules. The example is inconsistent with the stated combinational output semantics and with the reset state output.",
+      "spec_evidence": "// A | A, B | 0\n// B | C, B | 0\n// C | A, D | 0\n// D | C, B | 1",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I2",
+      "rule_id": "R_RESET",
+      "type": "consistency",
+      "severity": "medium",
+      "detail": "R_RESET example vectors include reset=1 for two cycles then reset=0 with in=0, expecting out=0 for all three. This is consistent with reset to A and output 0, but the example does not exercise the synchronous nature (e.g., reset asserted mid-cycle) nor distinguish sync vs async reset. Not a contradiction, but weak grounding for 'synchronous'.",
+      "spec_evidence": "Include a synchronous active high reset that resets the FSM to state A.",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I3",
+      "rule_id": "R_A",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "R_A, R_B, R_C, R_D are marked combinational same-cycle output rules, but the state machine is Moore with output determined by state. The contract does not specify whether output is visible in the same cycle as the state update (i.e., after posedge) or before. The examples for R_A..R_D all start from reset=0 without establishing the initial state, so they do not disambiguate. A concrete distinguishing sequence: start from reset, then apply in=1 for one cycle. If output is same-cycle combinational from current state, out=0 in that cycle (state A). If output reflects next state after posedge, out=0 still (state B output 0). Need a transition into D to distinguish: reset, then in=1 (A->B), in=1 (B->B), in=0 (B->C), in=1 (C->D). At the cycle where state becomes D, is out=1 in that same cycle or next? The contract's R_D says combinational same_cycle, implying out=1 as soon as state==D, which is after the posedge that enters D. But R_TRANS example expects out=1 on the fourth row, which is the cycle after entering D? Let's trace: rows: 1) reset=0,in=1: state A->B, out should be 0 (A or B). 2) in=1: B->B, out 0. 3) in=0: B->C, out 0. 4) in=1: C->D, out should be 1 if same-cycle after transition, or 0 if before. Example expects 1 on row 4, consistent with same-cycle after transition. But then row 1 should output 0 either way. So no contradiction there. The ambiguity is whether output is registered or combinational relative to state. The contract says combinational same_cycle for state-based outputs, which is clear enough. However, the reset rule R_RESET has visible next_cycle, meaning out=0 appears after reset posedge. That is consistent. The real ambiguity is the timing of state update vs output visibility for non-reset transitions: R_TRANS has visible next_cycle, but outputs are from state rules. This is a modeling inconsistency: R_TRANS is a transition rule with outputs field, but it does not directly drive out; it only affects state. The contract lists outputs:['out'] for R_TRANS, which is misleading. This could cause implementers to think R_TRANS drives out. That is a grounding/consistency issue.",
+      "spec_evidence": "// State | Next state in=0, Next state in=1 | Output",
+      "alternative": "Output could be registered (Moore output updated on posedge) rather than combinational from current state. Distinguishing sequence: reset=1 for one cycle, then reset=0,in=1 for one cycle, then reset=0,in=1 for one cycle, then reset=0,in=0 for one cycle, then reset=0,in=1 for one cycle. Under combinational same-cycle state output, out sequence after reset release: 0 (A), 0 (B), 0 (B), 0 (C), 1 (D). Under registered output (out reflects state before posedge), out sequence: 0 (A), 0 (A), 0 (B), 0 (B), 0 (C) ... actually need careful. The contract's R_TRANS example already expects 0,0,0,1 for rows in=1,1,0,1 starting from reset state A. That matches combinational after transition. So the alternative is registered output would give 0,0,0,0 for those rows (since out would lag). Thus the example distinguishes and supports combinational. So ambiguity is resolved by example. Not a material ambiguity.",
+      "sequence": []
+    },
+    {
+      "issue_id": "I4",
+      "rule_id": "R_TRANS",
+      "type": "grounding",
+      "severity": "medium",
+      "detail": "R_TRANS spec_quote 'Next state in=0, Next state in=1' is only the column header, not the full transition table. The actual transitions are in S05-S08. R_TRANS condition says 'next_state determined by table on posedge when reset == 0' but does not encode the table entries. This is a grounding gap: the rule does not contain the verbatim transition data, relying on other rules for output only. The transition table is not fully captured in any single rule's spec_quote or condition. However, S05-S08 are mapped to R_A-R_D, which are output rules, not transition rules. So the transition semantics are only partially grounded.",
+      "spec_evidence": "// State | Next state in=0, Next state in=1 | Output",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I5",
+      "rule_id": "global",
+      "type": "coverage",
+      "severity": "low",
+      "detail": "S01 describes a Moore state machine with one input, one output, four states. The contract has ports in, reset, out, clk. Reset is an additional input not mentioned in S01 but required by S03. S01 is mapped to state/output rules, but the 'Moore' nature (output depends only on state) is not explicitly captured as a rule field. The contract's R_A-R_D are combinational from state, which is Moore, but no rule states 'output depends only on state'. This is a minor coverage gap.",
+      "spec_evidence": "The following is the state transition table for a Moore state machine with one input, one output, and four states.",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I6",
+      "rule_id": "R_TRANS",
+      "type": "spec_example",
+      "severity": "high",
+      "detail": "Deriving outputs for the explicit spec table: Starting from reset state A, apply inputs in=1,1,0,1 on consecutive cycles with reset=0. State sequence: A -> B (in=1) -> B (in=1) -> C (in=0) -> D (in=1). Moore outputs by state: A=0, B=0, C=0, D=1. If output is combinational from current state (same cycle as state), then after each posedge the output for that cycle is: cycle1: state B, out=0; cycle2: state B, out=0; cycle3: state C, out=0; cycle4: state D, out=1. So expected out sequence = 0,0,0,1. R_TRANS example expects exactly 0,0,0,1. So the example matches the spec table under combinational same-cycle output. However, the contract also has R_RESET with visible next_cycle, meaning during reset out=0 appears after posedge. That is consistent. The potential contradiction is that R_TRANS has outputs:['out'] and visible next_cycle, but the output is actually determined by state rules. If R_TRANS were interpreted as directly driving out with next_cycle visibility, then for the first row (in=1) the next state is B, output 0, so out=0 next cycle; that matches. But for the fourth row (in=1) next state D, output 1 next cycle, so out=1 next cycle, which would be cycle5, not cycle4. The example expects out=1 on cycle4. This is a contradiction between R_TRANS's visible:next_cycle and the example's same-cycle output. The example is consistent with state-based combinational output, but inconsistent with R_TRANS's own visible field. This is a material consistency issue.",
+      "spec_evidence": "// D | C, B | 1",
+      "alternative": "",
+      "sequence": []
+    }
+  ]
+}

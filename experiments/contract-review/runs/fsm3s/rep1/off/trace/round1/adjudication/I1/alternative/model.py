@@ -1,0 +1,54 @@
+def reference(vectors):
+    # State encoding: A=0, B=1, C=2, D=3
+    # Outputs: A=0, B=0, C=0, D=1
+    # R_RESET: synchronous active high reset -> state A (priority 0)
+    # R_A/R_B/R_C/R_D: combinational output based on current state
+    # R_TRANS: next state from table on posedge when reset==0
+    # Mid changes occur AFTER sampling, before other edge, carried to next row.
+    # Power-up state: A (per candidate interpretation for R_TRANS).
+
+    state = 0  # A
+    out = 0
+    results = []
+
+    for row in vectors:
+        # Sample inputs at posedge (values driven before sampled edge)
+        r = row.get('reset', 0) & 1
+        i = row.get('in', 0) & 1
+
+        # R_A / R_B / R_C / R_D: combinational output for current state
+        # (visible same cycle)
+        if state == 0:      # R_A
+            out = 0
+        elif state == 1:    # R_B
+            out = 0
+        elif state == 2:    # R_C
+            out = 0
+        else:               # R_D
+            out = 1
+
+        results.append({'out': out & 1})
+
+        # R_RESET (priority 0) and R_TRANS (priority 2): compute next state
+        if r == 1:
+            # R_RESET: synchronous reset to A
+            next_state = 0
+        else:
+            # R_TRANS: transition table
+            if state == 0:      # A: in=0->A, in=1->B
+                next_state = 0 if i == 0 else 1
+            elif state == 1:    # B: in=0->C, in=1->B
+                next_state = 2 if i == 0 else 1
+            elif state == 2:    # C: in=0->A, in=1->D
+                next_state = 0 if i == 0 else 3
+            else:               # D: in=0->C, in=1->B
+                next_state = 2 if i == 0 else 1
+
+        # Mid changes: applied after sampling, before other edge,
+        # carried to start of next row. They affect the next posedge
+        # sampling, so we apply them to the stored inputs for next iteration.
+        # Since we already sampled, mid changes only matter for next row's
+        # input values if the harness provides them; here we just commit state.
+        state = next_state
+
+    return results

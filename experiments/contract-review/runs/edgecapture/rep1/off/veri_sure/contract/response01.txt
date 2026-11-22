@@ -1,0 +1,60 @@
+```json
+{
+  "module_name": "top_module",
+  "io": [
+    {
+      "name": "clk",
+      "dir": "input",
+      "width": 1,
+      "description": "Clock. All state updates occur on the rising edge."
+    },
+    {
+      "name": "reset",
+      "dir": "input",
+      "width": 1,
+      "description": "Active-high synchronous reset. When sampled high at a rising edge, all out bits are cleared to 0."
+    },
+    {
+      "name": "in",
+      "dir": "input",
+      "width": 32,
+      "description": "32-bit input vector sampled on each rising edge."
+    },
+    {
+      "name": "out",
+      "dir": "output",
+      "width": 32,
+      "description": "32-bit output vector. Bit i becomes 1 when in[i] transitions from 1 to 0 between consecutive sampled edges, and stays 1 until reset."
+    }
+  ],
+  "clocking": {
+    "clock": {
+      "name": "clk",
+      "edge": "posedge"
+    },
+    "reset": {
+      "name": "reset",
+      "active": "high",
+      "kind": "synchronous"
+    }
+  },
+  "timing": {
+    "outputs": {
+      "out": {
+        "latency_cycles": 1
+      }
+    }
+  },
+  "functional_summary": {
+    "overview": "Detects 1-to-0 transitions on each bit of a 32-bit input. For each bit i, if in[i] was 1 at the previous sampled rising edge and is 0 at the current sampled rising edge, out[i] is set to 1 and remains 1 until a synchronous active-high reset clears it. Reset has priority over transition detection.",
+    "rules": [
+      "On each rising edge of clk, if reset is high, out is set to 0 (all 32 bits).",
+      "Otherwise, for each bit i in 0..31: if in[i] at the current edge is 0 and in[i] at the previous edge was 1, then out[i] becomes 1.",
+      "Once out[i] is 1, it remains 1 on subsequent edges unless reset is asserted (sticky capture).",
+      "Bits of out that are not newly captured retain their previous value.",
+      "The previous input value used for comparison is the value of in sampled at the immediately preceding rising edge.",
+      "Output out reflects the state after the rising edge has settled (one-cycle latency from the transition-detecting edge)."
+    ]
+  }
+}
+```

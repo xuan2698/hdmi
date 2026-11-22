@@ -1,0 +1,29 @@
+def reference(vectors):
+    # State: q is the 3-bit counter value stored in q.
+    # Initializes to 4 at the first posedge (from x).
+    # Rule hold_when_a_high: a == 1 -> hold q (priority 1).
+    # Rule increment_when_a_low: a == 0 -> increment q by 1 (mod 8),
+    #   except when q == 4 and previous_a == 1 (then hold).
+    # Contract example A: starting from q=4 with a=0, expected 5,6,0.
+    # The exception (q==4 and previous_a==1) must not block the first
+    # increment when previous_a is not 1 (e.g., initial state).
+    q = None
+    prev_a = None
+    out = []
+    for row in vectors:
+        a = row['a']
+        # posedge update
+        if q is None:
+            # first posedge: initialize to 4
+            q = 4
+        else:
+            if a == 1:
+                # hold_when_a_high
+                pass
+            else:
+                # increment_when_a_low
+                if not (q == 4 and prev_a == 1):
+                    q = (q + 1) % 8
+        prev_a = a
+        out.append({'q': q & 0x7})
+    return out

@@ -1,0 +1,117 @@
+{
+  "responses": [
+    {
+      "issue_id": "I1",
+      "decision": "accept",
+      "reason": "R2's example shows the captured falling edge visible on the same row as the transition, contradicting visible:next_cycle. The spec says capture when input changes from 1 to 0 the next cycle, which is a same-cycle-visible sticky register update at the posedge. Fixing visibility to same_cycle aligns the field with the example and the synchronous register semantics.",
+      "spec_quote": "capture when the input signal changes from 1 in one clock cycle to 0 the next",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R2_capture_falling_edge",
+            "visible"
+          ],
+          "value": "same_cycle"
+        }
+      ]
+    },
+    {
+      "issue_id": "I2",
+      "decision": "accept",
+      "reason": "R3's example shows the held value visible on the row where the hold condition is evaluated, contradicting visible:next_cycle. The sticky register holds its value at each posedge, so the held output is visible same_cycle.",
+      "spec_quote": "the output will remain 1 until the register is reset",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R3_hold_until_reset",
+            "visible"
+          ],
+          "value": "same_cycle"
+        }
+      ]
+    },
+    {
+      "issue_id": "I3",
+      "decision": "rebut",
+      "reason": "R1's example is consistent with a synchronous reset clearing out on the posedge and with same-cycle visibility of the sticky register. The first row reset=1 yields out=0; the second row reset=0 with in unchanged yields out=0; the third row in falls to 0 and the sticky capture is visible same-cycle as out=4294967295. This matches the spec's synchronous reset and falling-edge capture semantics; no change is needed.",
+      "spec_quote": "reset (active high synchronous reset)"
+    },
+    {
+      "issue_id": "I4",
+      "decision": "accept",
+      "reason": "The contract does not state whether the input sampled during a reset cycle is used as prev_in for the first non-reset cycle. The spec's falling-edge detection is based on consecutive clock cycles, so prev_in should track the input every cycle including reset cycles. Adding an explicit rule documents this.",
+      "spec_quote": "capture when the input signal changes from 1 in one clock cycle to 0 the next",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R4_prev_in_tracks_all_cycles"
+          ],
+          "value": {
+            "id": "R4_prev_in_tracks_all_cycles",
+            "outputs": [
+              "out"
+            ],
+            "condition": "prev_in is updated from the sampled in value on every posedge clk, including cycles where reset == 1; falling-edge detection in R2 uses this prev_in regardless of reset history",
+            "edge": "posedge",
+            "visible": "same_cycle",
+            "priority": 4,
+            "spec_quote": "capture when the input signal changes from 1 in one clock cycle to 0 the next",
+            "uncertain": false,
+            "example": {
+              "vectors": [
+                {
+                  "reset": 1,
+                  "in": 4294967295
+                },
+                {
+                  "reset": 0,
+                  "in": 4294967295
+                },
+                {
+                  "reset": 0,
+                  "in": 0
+                }
+              ],
+              "expected": [
+                {
+                  "out": 0
+                },
+                {
+                  "out": 0
+                },
+                {
+                  "out": 4294967295
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "issue_id": "I5",
+      "decision": "rebut",
+      "reason": "The contract already specifies synchronous reset with same_cycle visibility and reset.values.out=0, and R1's condition reset==1 with visible same_cycle forces out to 0 on the reset posedge. The spec explicitly says active high synchronous reset, so the clear occurs at the posedge and is reflected in the sampled output for that cycle; no additional change is required.",
+      "spec_quote": "reset (active high synchronous reset)"
+    },
+    {
+      "issue_id": "I6",
+      "decision": "accept",
+      "reason": "R2's condition uses prev_in without defining its update across reset cycles. Adding R4 (accepted for I4) explicitly states prev_in is updated every posedge including reset cycles, resolving this ambiguity consistently with the spec's consecutive-cycle falling-edge definition.",
+      "spec_quote": "capture when the input signal changes from 1 in one clock cycle to 0 the next",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R2_capture_falling_edge",
+            "condition"
+          ],
+          "value": "reset == 0 && (prev_in & ~in) != 0, where prev_in is the in value sampled on the immediately preceding posedge clk including reset cycles (see R4)"
+        }
+      ]
+    }
+  ]
+}

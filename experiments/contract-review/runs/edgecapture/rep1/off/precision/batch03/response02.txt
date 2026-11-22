@@ -1,0 +1,3 @@
+```json
+{"models":{"064b4fef6fec174520":"def reference(vectors):\n    out_reg = 0\n    prev_in = 0\n    results = []\n    for row in vectors:\n        reset = row['reset'] & 1\n        inp = row['in'] & 0xFFFFFFFF\n        if reset:\n            out_reg = 0\n        else:\n            out_reg = out_reg | (prev_in & (~inp & 0xFFFFFFFF))\n            prev_in = inp\n        results.append({'out': out_reg & 0xFFFFFFFF})\n    return results\n"}}
+```

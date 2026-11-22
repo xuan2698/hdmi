@@ -1,0 +1,19 @@
+```python
+def reference(vectors):
+    # Synchronous active-high reset; sticky per-bit falling-edge (1->0) detector.
+    # prev_in tracks the input seen at the previous posedge (all cycles).
+    # out is cleared when reset==1, else ORs in (prev_in & ~in).
+    out = 0
+    prev_in = 0
+    results = []
+    for row in vectors:
+        reset = row.get('reset', 0) & 1
+        cur_in = row.get('in', 0) & 0xFFFFFFFF
+        if reset:
+            out = 0
+        else:
+            out = (out | (prev_in & (~cur_in & 0xFFFFFFFF))) & 0xFFFFFFFF
+        prev_in = cur_in
+        results.append({'out': out & 0xFFFFFFFF})
+    return results
+```

@@ -1,0 +1,337 @@
+{
+  "responses": [
+    {
+      "issue_id": "I1",
+      "decision": "accept",
+      "reason": "The R_TRANS example lacks an explicit reset to establish state A, making the initial state ambiguous. Adding a reset vector at the start of the example grounds it in the specified synchronous reset behavior.",
+      "spec_quote": "Include a synchronous active high reset that resets the FSM to state A.",
+      "edits": [
+        {
+          "path": ["rules", "R_TRANS"],
+          "value": {
+            "id": "R_TRANS",
+            "outputs": ["out"],
+            "condition": "next_state determined by table on posedge when reset == 0",
+            "edge": "posedge",
+            "visible": "next_cycle",
+            "priority": 2,
+            "spec_quote": "Next state in=0, Next state in=1",
+            "uncertain": false,
+            "example": {
+              "vectors": [
+                {"reset": 1, "in": 0},
+                {"reset": 0, "in": 1},
+                {"reset": 0, "in": 1},
+                {"reset": 0, "in": 0},
+                {"reset": 0, "in": 1}
+              ],
+              "expected": [
+                {"out": 0},
+                {"out": 0},
+                {"out": 0},
+                {"out": 0},
+                {"out": 1}
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "issue_id": "I2",
+      "decision": "accept",
+      "reason": "The R_RESET example only checks output 0, which is shared by states A, B, and C, so it does not verify that reset actually places the FSM in state A. Extending the example with a distinguishing input sequence after reset release confirms the state is A.",
+      "spec_quote": "Include a synchronous active high reset that resets the FSM to state A.",
+      "edits": [
+        {
+          "path": ["rules", "R_RESET"],
+          "value": {
+            "id": "R_RESET",
+            "outputs": ["out"],
+            "condition": "reset == 1",
+            "edge": "posedge",
+            "visible": "next_cycle",
+            "priority": 0,
+            "spec_quote": "synchronous active high reset that resets the FSM to state A",
+            "uncertain": false,
+            "example": {
+              "vectors": [
+                {"reset": 1, "in": 0},
+                {"reset": 1, "in": 1},
+                {"reset": 0, "in": 1},
+                {"reset": 0, "in": 1},
+                {"reset": 0, "in": 0},
+                {"reset": 0, "in": 1}
+              ],
+              "expected": [
+                {"out": 0},
+                {"out": 0},
+                {"out": 0},
+                {"out": 0},
+                {"out": 0},
+                {"out": 1}
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "issue_id": "I3",
+      "decision": "accept",
+      "reason": "The R_A example does not force state A; it is also consistent with state B. Prepending a reset vector establishes state A and makes the example a valid grounding for the A-state output rule.",
+      "spec_quote": "// A | A, B | 0",
+      "edits": [
+        {
+          "path": ["rules", "R_A"],
+          "value": {
+            "id": "R_A",
+            "outputs": ["out"],
+            "condition": "state == A",
+            "edge": "combinational",
+            "visible": "same_cycle",
+            "priority": 1,
+            "spec_quote": "A | A, B | 0",
+            "uncertain": false,
+            "example": {
+              "vectors": [
+                {"reset": 1, "in": 0},
+                {"reset": 0, "in": 0},
+                {"reset": 0, "in": 1},
+                {"reset": 0, "in": 0}
+              ],
+              "expected": [
+                {"out": 0},
+                {"out": 0},
+                {"out": 0},
+                {"out": 0}
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "issue_id": "I4",
+      "decision": "accept",
+      "reason": "The R_B example does not distinguish state B from state A. Prepending a reset and an input that moves A to B (in=1) grounds the example in state B before checking the B-state output.",
+      "spec_quote": "// B | C, B | 0",
+      "edits": [
+        {
+          "path": ["rules", "R_B"],
+          "value": {
+            "id": "R_B",
+            "outputs": ["out"],
+            "condition": "state == B",
+            "edge": "combinational",
+            "visible": "same_cycle",
+            "priority": 1,
+            "spec_quote": "B | C, B | 0",
+            "uncertain": false,
+            "example": {
+              "vectors": [
+                {"reset": 1, "in": 0},
+                {"reset": 0, "in": 1},
+                {"reset": 0, "in": 0},
+                {"reset": 0, "in": 1},
+                {"reset": 0, "in": 0}
+              ],
+              "expected": [
+                {"out": 0},
+                {"out": 0},
+                {"out": 0},
+                {"out": 0},
+                {"out": 0}
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "issue_id": "I5",
+      "decision": "accept",
+      "reason": "The R_C example is contradictory: from state C with in=1 the FSM transitions to D, whose output is 1, so the second expected output cannot be 0. Replacing the example with a reset-grounded sequence that reaches C and then exercises C's transitions fixes the contradiction.",
+      "spec_quote": "// C | A, D | 0\n// D | C, B | 1",
+      "edits": [
+        {
+          "path": ["rules", "R_C"],
+          "value": {
+            "id": "R_C",
+            "outputs": ["out"],
+            "condition": "state == C",
+            "edge": "combinational",
+            "visible": "same_cycle",
+            "priority": 1,
+            "spec_quote": "C | A, D | 0",
+            "uncertain": false,
+            "example": {
+              "vectors": [
+                {"reset": 1, "in": 0},
+                {"reset": 0, "in": 1},
+                {"reset": 0, "in": 0},
+                {"reset": 0, "in": 0},
+                {"reset": 0, "in": 1}
+              ],
+              "expected": [
+                {"out": 0},
+                {"out": 0},
+                {"out": 0},
+                {"out": 0},
+                {"out": 1}
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "issue_id": "I6",
+      "decision": "accept",
+      "reason": "The R_D example is contradictory: from D, in=0 goes to C and in=1 goes to B, so D cannot remain D for three cycles with output 1. Replacing the example with a reset-grounded sequence that reaches D and then exercises D's transitions fixes the contradiction.",
+      "spec_quote": "// D | C, B | 1",
+      "edits": [
+        {
+          "path": ["rules", "R_D"],
+          "value": {
+            "id": "R_D",
+            "outputs": ["out"],
+            "condition": "state == D",
+            "edge": "combinational",
+            "visible": "same_cycle",
+            "priority": 1,
+            "spec_quote": "D | C, B | 1",
+            "uncertain": false,
+            "example": {
+              "vectors": [
+                {"reset": 1, "in": 0},
+                {"reset": 0, "in": 1},
+                {"reset": 0, "in": 1},
+                {"reset": 0, "in": 0},
+                {"reset": 0, "in": 1},
+                {"reset": 0, "in": 0},
+                {"reset": 0, "in": 1}
+              ],
+              "expected": [
+                {"out": 0},
+                {"out": 0},
+                {"out": 0},
+                {"out": 0},
+                {"out": 1},
+                {"out": 0},
+                {"out": 1}
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "issue_id": "I7",
+      "decision": "accept",
+      "reason": "The R_TRANS example assumes an initial state without showing how it is reached. Adding a reset vector at the start grounds the example in the specified synchronous reset behavior, resolving the grounding issue.",
+      "spec_quote": "Include a synchronous active high reset that resets the FSM to state A.",
+      "edits": [
+        {
+          "path": ["rules", "R_TRANS"],
+          "value": {
+            "id": "R_TRANS",
+            "outputs": ["out"],
+            "condition": "next_state determined by table on posedge when reset == 0",
+            "edge": "posedge",
+            "visible": "next_cycle",
+            "priority": 2,
+            "spec_quote": "Next state in=0, Next state in=1",
+            "uncertain": false,
+            "example": {
+              "vectors": [
+                {"reset": 1, "in": 0},
+                {"reset": 0, "in": 1},
+                {"reset": 0, "in": 1},
+                {"reset": 0, "in": 0},
+                {"reset": 0, "in": 1}
+              ],
+              "expected": [
+                {"out": 0},
+                {"out": 0},
+                {"out": 0},
+                {"out": 0},
+                {"out": 1}
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "issue_id": "I8",
+      "decision": "accept",
+      "reason": "The R_C and R_D examples are inconsistent with the state table, as noted. Replacing both examples with reset-grounded sequences that correctly reflect the Moore outputs fixes the material spec_example issues.",
+      "spec_quote": "// A | A, B | 0\n// B | C, B | 0\n// C | A, D | 0\n// D | C, B | 1",
+      "edits": [
+        {
+          "path": ["rules", "R_C"],
+          "value": {
+            "id": "R_C",
+            "outputs": ["out"],
+            "condition": "state == C",
+            "edge": "combinational",
+            "visible": "same_cycle",
+            "priority": 1,
+            "spec_quote": "C | A, D | 0",
+            "uncertain": false,
+            "example": {
+              "vectors": [
+                {"reset": 1, "in": 0},
+                {"reset": 0, "in": 1},
+                {"reset": 0, "in": 0},
+                {"reset": 0, "in": 0},
+                {"reset": 0, "in": 1}
+              ],
+              "expected": [
+                {"out": 0},
+                {"out": 0},
+                {"out": 0},
+                {"out": 0},
+                {"out": 1}
+              ]
+            }
+          }
+        },
+        {
+          "path": ["rules", "R_D"],
+          "value": {
+            "id": "R_D",
+            "outputs": ["out"],
+            "condition": "state == D",
+            "edge": "combinational",
+            "visible": "same_cycle",
+            "priority": 1,
+            "spec_quote": "D | C, B | 1",
+            "uncertain": false,
+            "example": {
+              "vectors": [
+                {"reset": 1, "in": 0},
+                {"reset": 0, "in": 1},
+                {"reset": 0, "in": 1},
+                {"reset": 0, "in": 0},
+                {"reset": 0, "in": 1},
+                {"reset": 0, "in": 0},
+                {"reset": 0, "in": 1}
+              ],
+              "expected": [
+                {"out": 0},
+                {"out": 0},
+                {"out": 0},
+                {"out": 0},
+                {"out": 1},
+                {"out": 0},
+                {"out": 1}
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

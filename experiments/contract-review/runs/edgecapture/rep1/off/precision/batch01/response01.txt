@@ -1,0 +1,19 @@
+```python
+def reference(vectors):
+    # Synchronous active-high reset; sticky per-bit falling-edge (1->0) detector.
+    # Output is registered: it reflects the state AFTER the sampled posedge.
+    # prev_in tracks the input value seen at the previous sampled edge.
+    out_reg = 0
+    prev_in = 0
+    results = []
+    for v in vectors:
+        reset = v.get('reset', 0) & 1
+        cur_in = v.get('in', 0) & 0xFFFFFFFF
+        if reset:
+            out_reg = 0
+        else:
+            out_reg = out_reg | (prev_in & (~cur_in & 0xFFFFFFFF))
+        prev_in = cur_in
+        results.append({'out': out_reg & 0xFFFFFFFF})
+    return results
+```

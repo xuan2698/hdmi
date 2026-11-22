@@ -1,0 +1,114 @@
+{
+  "ports": {
+    "inputs": {"in": 1, "reset": 1},
+    "outputs": {"out": 1},
+    "clock": "clk"
+  },
+  "states": [
+    {"name": "A", "meaning": "reset state, output 0", "update_time": "posedge", "update_during_reset": true},
+    {"name": "B", "meaning": "output 0", "update_time": "posedge", "update_during_reset": true},
+    {"name": "C", "meaning": "output 0", "update_time": "posedge", "update_during_reset": true},
+    {"name": "D", "meaning": "output 1", "update_time": "posedge", "update_during_reset": true}
+  ],
+  "rules": [
+    {
+      "id": "R1",
+      "outputs": ["out"],
+      "condition": "state == A",
+      "edge": "combinational",
+      "visible": "same_cycle",
+      "priority": 1,
+      "spec_quote": "A | A, B | 0",
+      "uncertain": false,
+      "example": {
+        "vectors": [
+          {"reset": 1, "in": 0},
+          {"reset": 0, "in": 0},
+          {"reset": 0, "in": 1}
+        ],
+        "expected": [0, 0, 0]
+      }
+    },
+    {
+      "id": "R2",
+      "outputs": ["out"],
+      "condition": "state == B",
+      "edge": "combinational",
+      "visible": "same_cycle",
+      "priority": 1,
+      "spec_quote": "B | C, B | 0",
+      "uncertain": false,
+      "example": {
+        "vectors": [
+          {"reset": 1, "in": 0},
+          {"reset": 0, "in": 0},
+          {"reset": 0, "in": 1}
+        ],
+        "expected": [0, 0, 0]
+      }
+    },
+    {
+      "id": "R3",
+      "outputs": ["out"],
+      "condition": "state == C",
+      "edge": "combinational",
+      "visible": "same_cycle",
+      "priority": 1,
+      "spec_quote": "C | A, D | 0",
+      "uncertain": false,
+      "example": {
+        "vectors": [
+          {"reset": 1, "in": 0},
+          {"reset": 0, "in": 0},
+          {"reset": 0, "in": 1}
+        ],
+        "expected": [0, 0, 0]
+      }
+    },
+    {
+      "id": "R4",
+      "outputs": ["out"],
+      "condition": "state == D",
+      "edge": "combinational",
+      "visible": "same_cycle",
+      "priority": 1,
+      "spec_quote": "D | C, B | 1",
+      "uncertain": false,
+      "example": {
+        "vectors": [
+          {"reset": 1, "in": 0},
+          {"reset": 0, "in": 0},
+          {"reset": 0, "in": 1}
+        ],
+        "expected": [0, 0, 0]
+      }
+    },
+    {
+      "id": "R5",
+      "outputs": ["out"],
+      "condition": "reset == 1",
+      "edge": "posedge",
+      "visible": "next_cycle",
+      "priority": 0,
+      "spec_quote": "synchronous active high reset that resets the FSM to state A",
+      "uncertain": false,
+      "example": {
+        "vectors": [
+          {"reset": 1, "in": 0},
+          {"reset": 0, "in": 0},
+          {"reset": 0, "in": 1}
+        ],
+        "expected": [0, 0, 0]
+      }
+    }
+  ],
+  "reset": {
+    "kind": "sync",
+    "name": "reset",
+    "active": "high",
+    "values": {"out": 0},
+    "first_released_cycle": "first posedge with reset==0"
+  },
+  "mid": "Optional mid input changes occur AFTER sampling, before the other edge, and are carried to the start of the next row.",
+  "uncertain": []
+}

@@ -1,0 +1,100 @@
+{
+  "responses": [
+    {
+      "issue_id": "I01",
+      "decision": "accept",
+      "reason": "The spec_quote for hold_when_a_high is a row with a=0, which does not support the condition a==1. Replace it with a verbatim row where a=1 and q holds, e.g. 15ns.",
+      "spec_quote": "// 15ns            1               1               4",
+      "edits": [
+        {
+          "path": ["rules", "hold_when_a_high", "spec_quote"],
+          "value": "// 15ns            1               1               4"
+        }
+      ]
+    },
+    {
+      "issue_id": "I02",
+      "decision": "accept",
+      "reason": "The increment_when_a_low example starts from q=5, but the quoted 55ns row shows q becoming 5 from 4. Adjust the example to start from q=4 and expect 5,6,0, matching the waveform sequence at 55/65/75ns.",
+      "spec_quote": "// 55ns            1               0               5",
+      "edits": [
+        {
+          "path": ["rules", "increment_when_a_low", "example"],
+          "value": {
+            "vectors": [{"a": 0}, {"a": 0}, {"a": 0}],
+            "expected": [{"q": 5}, {"q": 6}, {"q": 0}]
+          }
+        }
+      ]
+    },
+    {
+      "issue_id": "I03",
+      "decision": "accept",
+      "reason": "The hold_when_a_high rule's quote was inconsistent with its condition; after fixing I01 the rule and example are aligned. No further edit needed beyond I01.",
+      "spec_quote": "// 15ns            1               1               4",
+      "edits": []
+    },
+    {
+      "issue_id": "I04",
+      "decision": "rebut",
+      "reason": "The example is consistent with the spec when interpreted as next-cycle outputs starting from q=4 before the first a=0 posedge; the quoted 55ns row shows q becoming 5 from 4, and the subsequent 65ns and 75ns rows show 6 and 0. No material contradiction.",
+      "spec_quote": "// 55ns            1               0               5",
+      "edits": []
+    },
+    {
+      "issue_id": "I05",
+      "decision": "accept",
+      "reason": "The waveform shows q=4 at the first posedge with a=1 (5ns) from x, so the contract needs an explicit initial value of 4 rather than leaving q undefined. Add a reset/initialization entry that sets q=4 at time 0.",
+      "spec_quote": "// 5ns             1               1               4",
+      "edits": [
+        {
+          "path": ["reset"],
+          "value": {
+            "kind": "initial",
+            "name": "init",
+            "active": "none",
+            "values": {"q": 4},
+            "first_released_cycle": "0ns"
+          }
+        }
+      ]
+    },
+    {
+      "issue_id": "I06",
+      "decision": "accept",
+      "reason": "Same ambiguity as I05: the initial q must be specified as 4 to make the first a=1 posedge produce q=4 rather than holding x. The reset edit from I05 resolves this.",
+      "spec_quote": "// 0ns             0               1               x",
+      "edits": []
+    },
+    {
+      "issue_id": "I07",
+      "decision": "accept",
+      "reason": "The waveform at 45ns shows a=0 but q remains 4, contradicting the unconditional increment_when_a_low rule. The 45ns row is the first a=0 posedge after a long a=1 hold; the contract must reflect that increment occurs only when a=0 and the previous sampled a was also 0 (or equivalently, the first a=0 after a=1 does not increment). Add a guard rule and adjust increment_when_a_low to require previous a=0.",
+      "spec_quote": "// 45ns            1               0               4",
+      "edits": [
+        {
+          "path": ["rules", "increment_when_a_low", "condition"],
+          "value": "a == 0 && prev_a == 0"
+        },
+        {
+          "path": ["rules", "hold_when_a_high", "condition"],
+          "value": "a == 1 || (a == 0 && prev_a == 1)"
+        }
+      ]
+    },
+    {
+      "issue_id": "I08",
+      "decision": "accept",
+      "reason": "Direct counterexample at 45ns: a=0 but q does not increment. The increment rule must be conditioned on the previous a being 0, as edited in I07.",
+      "spec_quote": "// 40ns            0               1               4\n// 45ns            1               0               4",
+      "edits": []
+    },
+    {
+      "issue_id": "I09",
+      "decision": "accept",
+      "reason": "The first posedge with a=1 changes q from x to 4, which is not a hold. This is resolved by the explicit initial value q=4 from I05; with q initialized to 4, the hold_when_a_high rule correctly holds 4.",
+      "spec_quote": "// 0ns             0               1               x\n// 5ns             1               1               4",
+      "edits": []
+    }
+  ]
+}

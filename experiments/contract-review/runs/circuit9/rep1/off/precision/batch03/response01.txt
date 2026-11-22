@@ -1,0 +1,54 @@
+Looking at the waveform:
+
+- At 5ns (first posedge), a=1, q becomes 4 (from x)
+- While a=1, q stays 4
+- At 45ns, a goes to 0 (before posedge at 55ns)
+- At 55ns posedge with a=0, q becomes 5
+- At 65ns posedge with a=0, q becomes 6
+- At 75ns posedge with a=0, q becomes 0 (wraps 3-bit)
+- At 85ns posedge with a=0, q becomes 1
+
+So: on posedge, if a=1 hold; if a=0 increment (mod 8). Initial value: q is x until first posedge. At first posedge with a=1, q becomes 4. This suggests initialization to 4 happens at first posedge regardless of a (or specifically when a=1). Given the ambiguity, the simplest consistent model: q initializes to 4 at the first posedge (regardless of a), then holds when a=1, increments when a=0.
+
+Wait — but if first posedge had a=0, would it become 4 or 5? The uncertain note suggests "init to 4 at first posedge regardless of a" as a candidate. Let's go with: at first posedge, q=4 (init). Subsequent posedges: a=1 hold, a=0 increment.
+
+Actually, re-reading: "q is x until first posedge; first posedge with a=1 sets q=4 (initialization), subsequent a=1 holds". This is also consistent. But the simplest that matches all data: initialize q=4 at first posedge, then normal behavior.
+
+Let me implement: track whether we've seen first posedge. On first posedge, set q=4. After that, a=1 → hold, a=0 → (q+1)%8.
+
+```python
+def reference(vectors):
+    q = None
+    started = False
+    out = []
+    for v in vectors:
+        a = v['a']
+        if not started:
+            q = 4
+            started = True
+        else:
+            if a == 0:
+                q = (q + 1) % 8
+            # a == 1: hold
+        out.append({'q': q})
+    return out
+```
+
+Wait, but the sample is "after the posedge edge has settled" and each row's values are driven before the sampled edge. So each vector corresponds to one posedge. The first vector's posedge produces q=4. Good.
+
+Let me verify against waveform:
+- Row 1 (5ns): a=1 → first posedge → q=4 ✓
+- Row 2 (15ns): a=1 → hold → q=4 ✓
+- Row 3 (25ns): a=1 → hold → q=4 ✓
+- Row 4 (35ns): a=1 → hold → q=4 ✓
+- Row 5 (45ns): a=1 → hold → q=4 ✓ (at 45ns posedge, a=1 still, q=4)
+- Row 6 (55ns): a=0 → increment → q=5 ✓
+- Row 7 (65ns): a=0 → increment → q=6 ✓
+- Row 8 (75ns): a=0 → increment → q=0 ✓
+- Row 9 (85ns): a=0 → increment → q=1 ✓
+
+All match.
+
+```json
+{"models":{"2909a4bfc92dbe852e":"def reference(vectors):\n    q = None\n    started = False\n    out = []\n    for v in vectors:\n        a = v['a']\n        if not started:\n            q = 4\n            started = True\n        else:\n            if a == 0:\n                q = (q + 1) % 8\n        out.append({'q': q})\n    return out"}}
+```

@@ -1,0 +1,79 @@
+{
+  "coverage": {
+    "S01": ["R1_reset_clear", "R2_capture_falling_edge", "R3_hold_until_reset", "R4_prev_in_tracks_all_cycles"]
+  },
+  "issues": [
+    {
+      "issue_id": "I1",
+      "rule_id": "R2_capture_falling_edge",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "R2's example is internally inconsistent with its own condition and with R3. The example vectors are reset=0,in=0xFFFFFFFF; reset=0,in=0; reset=0,in=0. Under R2, the falling edge from 0xFFFFFFFF to 0 occurs on the second row, so out should become 0xFFFFFFFF on that row (same_cycle). The expected output instead shows 0 on the second row and 0xFFFFFFFF only on the third row, which is a one-cycle-late (registered) behavior. R3's example shows the same one-cycle-late behavior: falling edge on row 2 but out=0xFFFFFFFF only on row 3. This contradicts R2/R3's stated 'visible: same_cycle' and the condition that capture occurs on the posedge where the falling edge is detected.",
+      "spec_evidence": "capture when the input signal changes from 1 in one clock cycle to 0 the next",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I2",
+      "rule_id": "R1_reset_clear",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "R1's example is inconsistent with R1's own condition and with R2/R4. Vectors: reset=1,in=0xFFFFFFFF; reset=0,in=0xFFFFFFFF; reset=0,in=0. Expected: out=0, out=0, out=0xFFFFFFFF. Under R1 (reset==1 clears out same_cycle) row 1 out=0 is fine. Row 2 has no falling edge (prev_in=0xFFFFFFFF, in=0xFFFFFFFF) so out should remain 0; expected 0 is fine. Row 3 has a falling edge 0xFFFFFFFF->0, so under R2 same_cycle out should be 0xFFFFFFFF on row 3; expected 0xFFFFFFFF is consistent with same_cycle here. However, this example is inconsistent with R2's and R3's examples, which delay the capture by one cycle. The same falling-edge scenario yields different timing across rules, so the contract's examples contradict each other.",
+      "spec_evidence": "Capture means that the output will remain 1 until the register is reset (active high synchronous reset).",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I3",
+      "rule_id": "R4_prev_in_tracks_all_cycles",
+      "type": "ambiguity",
+      "severity": "high",
+      "detail": "R4 asserts that prev_in is updated on every posedge including reset cycles, and that falling-edge detection uses this prev_in regardless of reset history. The spec only says to capture 1->0 transitions and to hold until reset; it does not specify whether the previous-value register is reset or whether a transition spanning a reset cycle should be captured. A plausible alternative semantics is that reset also clears prev_in (or that prev_in is only meaningful for non-reset cycles), so a 1 before reset followed by 0 after reset does not count as a falling edge. This changes behavior for sequences where reset is asserted between a 1 and a 0.",
+      "spec_evidence": "For each bit in a 32-bit vector, capture when the input signal changes from 1 in one clock cycle to 0 the next.",
+      "alternative": "Reset also clears the previous-input register, so a 1->0 transition that spans a reset cycle is not captured; only transitions between two consecutive non-reset cycles are detected.",
+      "sequence": [
+        {"reset": 0, "in": 4294967295},
+        {"reset": 1, "in": 4294967295},
+        {"reset": 0, "in": 0}
+      ]
+    },
+    {
+      "issue_id": "I4",
+      "rule_id": "R2_capture_falling_edge",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "The contract does not specify whether 'prev_in' for the first cycle after reset deassertion is the in value sampled during the last reset cycle (R4 says yes) or the reset value / undefined. The spec does not define the initial previous value. A plausible alternative is that the first non-reset cycle cannot produce a falling edge because there is no prior non-reset sample. This affects the very first cycle after reset.",
+      "spec_evidence": "capture when the input signal changes from 1 in one clock cycle to 0 the next",
+      "alternative": "The first cycle after reset deassertion has no valid previous non-reset input, so no falling edge is detected on that cycle; prev_in is initialized to the current in value on the first non-reset posedge.",
+      "sequence": [
+        {"reset": 1, "in": 4294967295},
+        {"reset": 0, "in": 0}
+      ]
+    },
+    {
+      "issue_id": "I5",
+      "rule_id": "global",
+      "type": "grounding",
+      "severity": "medium",
+      "detail": "R4's claim that prev_in is updated on every posedge including reset cycles is not stated in the spec. The spec only says to capture 1->0 transitions and hold until reset; it does not mention a previous-input register or its behavior during reset. R4 is therefore an implementation choice presented as spec-grounded without verbatim evidence.",
+      "spec_evidence": "",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I6",
+      "rule_id": "R1_reset_clear",
+      "type": "ambiguity",
+      "severity": "low",
+      "detail": "The spec says reset is active high synchronous, but does not explicitly state whether the output is cleared on the same posedge where reset is sampled high (same_cycle) or on the following cycle. The contract chooses same_cycle. A plausible alternative is that reset takes effect on the next cycle (registered reset), which would change the output on the reset cycle.",
+      "spec_evidence": "active high synchronous reset",
+      "alternative": "Synchronous reset clears the output on the cycle after reset is sampled high, not on the same posedge.",
+      "sequence": [
+        {"reset": 0, "in": 4294967295},
+        {"reset": 0, "in": 0},
+        {"reset": 1, "in": 0},
+        {"reset": 0, "in": 0}
+      ]
+    }
+  ]
+}

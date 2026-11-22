@@ -1,0 +1,11 @@
+Looking at the waveform:
+
+- At 5ns (first posedge), a=1, q goes from x to 4. So the first posedge initializes q to 4 regardless of a.
+- While a=1, q holds at 4.
+- When a=0, q increments: 4→5→6→0→1 (3-bit wrap).
+
+So the semantics: on each posedge, if this is the first posedge, q=4; otherwise if a=1 hold, if a=0 increment (mod 8).
+
+```json
+{"models":{"cf70f84bfd8b4d8585":"def reference(vectors):\n    q = None\n    out = []\n    for v in vectors:\n        a = v['a']\n        if q is None:\n            q = 4\n        else:\n            if a == 1:\n                pass\n            else:\n                q = (q + 1) % 8\n        out.append({'q': q})\n    return out","8f4073c8fb7c4eb37e":"def reference(vectors):\n    q = None\n    out = []\n    for v in vectors:\n        a = v['a']\n        if q is None:\n            q = 4\n        else:\n            if a == 1:\n                pass\n            else:\n                q = (q + 1) % 8\n        out.append({'q': q})\n    return out","2909a4bfc92dbe852e":"def reference(vectors):\n    q = None\n    out = []\n    for v in vectors:\n        a = v['a']\n        if q is None:\n            q = 4\n        else:\n            if a == 1:\n                pass\n            else:\n                q = (q + 1) % 8\n        out.append({'q': q})\n    return out"}}
+```

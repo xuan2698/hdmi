@@ -1,0 +1,32 @@
+def reference(vectors):
+    # State: out_reg (32-bit sticky flag), prev_in (32-bit previous input)
+    # R1_reset_clear: reset==1 at posedge -> out_reg = 0
+    # R2_capture_falling_edge: reset==0 and (prev_in & ~in) -> set bits in out_reg
+    #   Interpretation: prev_in only updated on non-reset cycles; input during reset ignored for edge detection.
+    # R3_hold_until_reset: reset==0 and no falling edge -> out_reg holds
+    # mid: input changes after sampling, carried to next row's start (affects prev_in for next cycle)
+
+    out_reg = 0
+    prev_in = 0
+    results = []
+
+    for row in vectors:
+        reset = row.get('reset', 0) & 1
+        cur_in = row.get('in', 0) & 0xFFFFFFFF
+
+        # Sample at posedge clk
+        if reset == 1:
+            # R1_reset_clear
+            out_reg = 0
+            # Interpretation for R2: prev_in not updated during reset
+        else:
+            # R2_capture_falling_edge
+            falling = prev_in & (~cur_in & 0xFFFFFFFF)
+            out_reg = (out_reg | falling) & 0xFFFFFFFF
+            # R3_hold_until_reset: out_reg retains previous bits (already OR'd)
+            # Update prev_in only on non-reset cycles
+            prev_in = cur_in
+
+        results.append({'out': out_reg & 0xFFFFFFFF})
+
+    return results

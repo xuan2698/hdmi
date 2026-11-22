@@ -1,0 +1,846 @@
+[
+  {
+    "issue_id": "I01",
+    "before": {
+      "ports": {
+        "inputs": {
+          "a": 1
+        },
+        "outputs": {
+          "q": 3
+        },
+        "clock": "clk"
+      },
+      "states": [
+        {
+          "name": "count",
+          "meaning": "3-bit counter value stored in q; increments by 1 on each posedge when a=0, holds when a=1",
+          "update_time": "posedge",
+          "update_during_reset": false
+        }
+      ],
+      "rules": [
+        {
+          "id": "hold_when_a_high",
+          "outputs": [
+            "q"
+          ],
+          "condition": "a == 1",
+          "edge": "posedge",
+          "visible": "next_cycle",
+          "priority": 1,
+          "spec_quote": "45ns            1               0               4",
+          "uncertain": false,
+          "example": {
+            "vectors": [
+              {
+                "a": 1
+              },
+              {
+                "a": 1
+              },
+              {
+                "a": 1
+              }
+            ],
+            "expected": [
+              {
+                "q": 4
+              },
+              {
+                "q": 4
+              },
+              {
+                "q": 4
+              }
+            ]
+          }
+        },
+        {
+          "id": "increment_when_a_low",
+          "outputs": [
+            "q"
+          ],
+          "condition": "a == 0",
+          "edge": "posedge",
+          "visible": "next_cycle",
+          "priority": 2,
+          "spec_quote": "55ns            1               0               5",
+          "uncertain": false,
+          "example": {
+            "vectors": [
+              {
+                "a": 0
+              },
+              {
+                "a": 0
+              },
+              {
+                "a": 0
+              }
+            ],
+            "expected": [
+              {
+                "q": 5
+              },
+              {
+                "q": 6
+              },
+              {
+                "q": 0
+              }
+            ]
+          }
+        }
+      ],
+      "reset": {
+        "kind": "none",
+        "name": null,
+        "active": "none",
+        "values": {
+          "q": null
+        },
+        "first_released_cycle": "0ns"
+      },
+      "mid": "none",
+      "uncertain": []
+    },
+    "after": {
+      "ports": {
+        "inputs": {
+          "a": 1
+        },
+        "outputs": {
+          "q": 3
+        },
+        "clock": "clk"
+      },
+      "states": [
+        {
+          "name": "count",
+          "meaning": "3-bit counter value stored in q; increments by 1 on each posedge when a=0, holds when a=1",
+          "update_time": "posedge",
+          "update_during_reset": false
+        }
+      ],
+      "rules": [
+        {
+          "id": "hold_when_a_high",
+          "outputs": [
+            "q"
+          ],
+          "condition": "a == 1",
+          "edge": "posedge",
+          "visible": "next_cycle",
+          "priority": 1,
+          "spec_quote": "// 15ns            1               1               4",
+          "uncertain": false,
+          "example": {
+            "vectors": [
+              {
+                "a": 1
+              },
+              {
+                "a": 1
+              },
+              {
+                "a": 1
+              }
+            ],
+            "expected": [
+              {
+                "q": 4
+              },
+              {
+                "q": 4
+              },
+              {
+                "q": 4
+              }
+            ]
+          }
+        },
+        {
+          "id": "increment_when_a_low",
+          "outputs": [
+            "q"
+          ],
+          "condition": "a == 0",
+          "edge": "posedge",
+          "visible": "next_cycle",
+          "priority": 2,
+          "spec_quote": "55ns            1               0               5",
+          "uncertain": false,
+          "example": {
+            "vectors": [
+              {
+                "a": 0
+              },
+              {
+                "a": 0
+              },
+              {
+                "a": 0
+              }
+            ],
+            "expected": [
+              {
+                "q": 5
+              },
+              {
+                "q": 6
+              },
+              {
+                "q": 0
+              }
+            ]
+          }
+        }
+      ],
+      "reset": {
+        "kind": "none",
+        "name": null,
+        "active": "none",
+        "values": {
+          "q": null
+        },
+        "first_released_cycle": "0ns"
+      },
+      "mid": "none",
+      "uncertain": []
+    }
+  },
+  {
+    "issue_id": "I03",
+    "before": {
+      "ports": {
+        "inputs": {
+          "a": 1
+        },
+        "outputs": {
+          "q": 3
+        },
+        "clock": "clk"
+      },
+      "states": [
+        {
+          "name": "count",
+          "meaning": "3-bit counter value stored in q; increments by 1 on each posedge when a=0, holds when a=1",
+          "update_time": "posedge",
+          "update_during_reset": false
+        }
+      ],
+      "rules": [
+        {
+          "id": "hold_when_a_high",
+          "outputs": [
+            "q"
+          ],
+          "condition": "a == 1",
+          "edge": "posedge",
+          "visible": "next_cycle",
+          "priority": 1,
+          "spec_quote": "// 15ns            1               1               4",
+          "uncertain": false,
+          "example": {
+            "vectors": [
+              {
+                "a": 1
+              },
+              {
+                "a": 1
+              },
+              {
+                "a": 1
+              }
+            ],
+            "expected": [
+              {
+                "q": 4
+              },
+              {
+                "q": 4
+              },
+              {
+                "q": 4
+              }
+            ]
+          }
+        },
+        {
+          "id": "increment_when_a_low",
+          "outputs": [
+            "q"
+          ],
+          "condition": "a == 0",
+          "edge": "posedge",
+          "visible": "next_cycle",
+          "priority": 2,
+          "spec_quote": "55ns            1               0               5",
+          "uncertain": false,
+          "example": {
+            "vectors": [
+              {
+                "a": 0
+              },
+              {
+                "a": 0
+              },
+              {
+                "a": 0
+              }
+            ],
+            "expected": [
+              {
+                "q": 5
+              },
+              {
+                "q": 6
+              },
+              {
+                "q": 0
+              }
+            ]
+          }
+        }
+      ],
+      "reset": {
+        "kind": "none",
+        "name": null,
+        "active": "none",
+        "values": {
+          "q": null
+        },
+        "first_released_cycle": "0ns"
+      },
+      "mid": "none",
+      "uncertain": []
+    },
+    "after": {
+      "ports": {
+        "inputs": {
+          "a": 1
+        },
+        "outputs": {
+          "q": 3
+        },
+        "clock": "clk"
+      },
+      "states": [
+        {
+          "name": "count",
+          "meaning": "3-bit counter value stored in q; increments by 1 on each posedge when a=0, holds when a=1",
+          "update_time": "posedge",
+          "update_during_reset": false
+        }
+      ],
+      "rules": [
+        {
+          "id": "hold_when_a_high",
+          "outputs": [
+            "q"
+          ],
+          "condition": "a == 1",
+          "edge": "posedge",
+          "visible": "next_cycle",
+          "priority": 1,
+          "spec_quote": "// 25ns            1               1               4",
+          "uncertain": false,
+          "example": {
+            "vectors": [
+              {
+                "a": 1
+              },
+              {
+                "a": 1
+              },
+              {
+                "a": 1
+              }
+            ],
+            "expected": [
+              {
+                "q": 4
+              },
+              {
+                "q": 4
+              },
+              {
+                "q": 4
+              }
+            ]
+          }
+        },
+        {
+          "id": "increment_when_a_low",
+          "outputs": [
+            "q"
+          ],
+          "condition": "a == 0",
+          "edge": "posedge",
+          "visible": "next_cycle",
+          "priority": 2,
+          "spec_quote": "55ns            1               0               5",
+          "uncertain": false,
+          "example": {
+            "vectors": [
+              {
+                "a": 0
+              },
+              {
+                "a": 0
+              },
+              {
+                "a": 0
+              }
+            ],
+            "expected": [
+              {
+                "q": 5
+              },
+              {
+                "q": 6
+              },
+              {
+                "q": 0
+              }
+            ]
+          }
+        }
+      ],
+      "reset": {
+        "kind": "none",
+        "name": null,
+        "active": "none",
+        "values": {
+          "q": null
+        },
+        "first_released_cycle": "0ns"
+      },
+      "mid": "none",
+      "uncertain": []
+    }
+  },
+  {
+    "issue_id": "I05",
+    "before": {
+      "ports": {
+        "inputs": {
+          "a": 1
+        },
+        "outputs": {
+          "q": 3
+        },
+        "clock": "clk"
+      },
+      "states": [
+        {
+          "name": "count",
+          "meaning": "3-bit counter value stored in q; increments by 1 on each posedge when a=0, holds when a=1",
+          "update_time": "posedge",
+          "update_during_reset": false
+        }
+      ],
+      "rules": [
+        {
+          "id": "hold_when_a_high",
+          "outputs": [
+            "q"
+          ],
+          "condition": "a == 1",
+          "edge": "posedge",
+          "visible": "next_cycle",
+          "priority": 1,
+          "spec_quote": "// 25ns            1               1               4",
+          "uncertain": false,
+          "example": {
+            "vectors": [
+              {
+                "a": 1
+              },
+              {
+                "a": 1
+              },
+              {
+                "a": 1
+              }
+            ],
+            "expected": [
+              {
+                "q": 4
+              },
+              {
+                "q": 4
+              },
+              {
+                "q": 4
+              }
+            ]
+          }
+        },
+        {
+          "id": "increment_when_a_low",
+          "outputs": [
+            "q"
+          ],
+          "condition": "a == 0",
+          "edge": "posedge",
+          "visible": "next_cycle",
+          "priority": 2,
+          "spec_quote": "55ns            1               0               5",
+          "uncertain": false,
+          "example": {
+            "vectors": [
+              {
+                "a": 0
+              },
+              {
+                "a": 0
+              },
+              {
+                "a": 0
+              }
+            ],
+            "expected": [
+              {
+                "q": 5
+              },
+              {
+                "q": 6
+              },
+              {
+                "q": 0
+              }
+            ]
+          }
+        }
+      ],
+      "reset": {
+        "kind": "none",
+        "name": null,
+        "active": "none",
+        "values": {
+          "q": null
+        },
+        "first_released_cycle": "0ns"
+      },
+      "mid": "none",
+      "uncertain": []
+    },
+    "after": {
+      "ports": {
+        "inputs": {
+          "a": 1
+        },
+        "outputs": {
+          "q": 3
+        },
+        "clock": "clk"
+      },
+      "states": [
+        {
+          "name": "count",
+          "meaning": "3-bit counter value stored in q; initializes to 4 at the first posedge (from x), then increments by 1 on each posedge when a=0, holds when a=1",
+          "update_time": "posedge",
+          "update_during_reset": false
+        }
+      ],
+      "rules": [
+        {
+          "id": "hold_when_a_high",
+          "outputs": [
+            "q"
+          ],
+          "condition": "a == 1",
+          "edge": "posedge",
+          "visible": "next_cycle",
+          "priority": 1,
+          "spec_quote": "// 25ns            1               1               4",
+          "uncertain": false,
+          "example": {
+            "vectors": [
+              {
+                "a": 1
+              },
+              {
+                "a": 1
+              },
+              {
+                "a": 1
+              }
+            ],
+            "expected": [
+              {
+                "q": 4
+              },
+              {
+                "q": 4
+              },
+              {
+                "q": 4
+              }
+            ]
+          }
+        },
+        {
+          "id": "increment_when_a_low",
+          "outputs": [
+            "q"
+          ],
+          "condition": "a == 0",
+          "edge": "posedge",
+          "visible": "next_cycle",
+          "priority": 2,
+          "spec_quote": "55ns            1               0               5",
+          "uncertain": false,
+          "example": {
+            "vectors": [
+              {
+                "a": 0
+              },
+              {
+                "a": 0
+              },
+              {
+                "a": 0
+              }
+            ],
+            "expected": [
+              {
+                "q": 5
+              },
+              {
+                "q": 6
+              },
+              {
+                "q": 0
+              }
+            ]
+          }
+        }
+      ],
+      "reset": {
+        "kind": "none",
+        "name": null,
+        "active": "none",
+        "values": {
+          "q": null
+        },
+        "first_released_cycle": "0ns"
+      },
+      "mid": "none",
+      "uncertain": []
+    }
+  },
+  {
+    "issue_id": "I07",
+    "before": {
+      "ports": {
+        "inputs": {
+          "a": 1
+        },
+        "outputs": {
+          "q": 3
+        },
+        "clock": "clk"
+      },
+      "states": [
+        {
+          "name": "count",
+          "meaning": "3-bit counter value stored in q; initializes to 4 at the first posedge (from x), then increments by 1 on each posedge when a=0, holds when a=1",
+          "update_time": "posedge",
+          "update_during_reset": false
+        }
+      ],
+      "rules": [
+        {
+          "id": "hold_when_a_high",
+          "outputs": [
+            "q"
+          ],
+          "condition": "a == 1",
+          "edge": "posedge",
+          "visible": "next_cycle",
+          "priority": 1,
+          "spec_quote": "// 25ns            1               1               4",
+          "uncertain": false,
+          "example": {
+            "vectors": [
+              {
+                "a": 1
+              },
+              {
+                "a": 1
+              },
+              {
+                "a": 1
+              }
+            ],
+            "expected": [
+              {
+                "q": 4
+              },
+              {
+                "q": 4
+              },
+              {
+                "q": 4
+              }
+            ]
+          }
+        },
+        {
+          "id": "increment_when_a_low",
+          "outputs": [
+            "q"
+          ],
+          "condition": "a == 0",
+          "edge": "posedge",
+          "visible": "next_cycle",
+          "priority": 2,
+          "spec_quote": "55ns            1               0               5",
+          "uncertain": false,
+          "example": {
+            "vectors": [
+              {
+                "a": 0
+              },
+              {
+                "a": 0
+              },
+              {
+                "a": 0
+              }
+            ],
+            "expected": [
+              {
+                "q": 5
+              },
+              {
+                "q": 6
+              },
+              {
+                "q": 0
+              }
+            ]
+          }
+        }
+      ],
+      "reset": {
+        "kind": "none",
+        "name": null,
+        "active": "none",
+        "values": {
+          "q": null
+        },
+        "first_released_cycle": "0ns"
+      },
+      "mid": "none",
+      "uncertain": []
+    },
+    "after": {
+      "ports": {
+        "inputs": {
+          "a": 1
+        },
+        "outputs": {
+          "q": 3
+        },
+        "clock": "clk"
+      },
+      "states": [
+        {
+          "name": "count",
+          "meaning": "3-bit counter value stored in q; initializes to 4 at the first posedge (from x), then increments by 1 on each posedge when a=0, holds when a=1",
+          "update_time": "posedge",
+          "update_during_reset": false
+        }
+      ],
+      "rules": [
+        {
+          "id": "hold_when_a_high",
+          "outputs": [
+            "q"
+          ],
+          "condition": "a == 1",
+          "edge": "posedge",
+          "visible": "next_cycle",
+          "priority": 1,
+          "spec_quote": "// 25ns            1               1               4",
+          "uncertain": false,
+          "example": {
+            "vectors": [
+              {
+                "a": 1
+              },
+              {
+                "a": 1
+              },
+              {
+                "a": 1
+              }
+            ],
+            "expected": [
+              {
+                "q": 4
+              },
+              {
+                "q": 4
+              },
+              {
+                "q": 4
+              }
+            ]
+          }
+        },
+        {
+          "id": "increment_when_a_low",
+          "outputs": [
+            "q"
+          ],
+          "condition": "a == 0 and not (q == 4 and previous_a == 1)",
+          "edge": "posedge",
+          "visible": "next_cycle",
+          "priority": 2,
+          "spec_quote": "55ns            1               0               5",
+          "uncertain": false,
+          "example": {
+            "vectors": [
+              {
+                "a": 0
+              },
+              {
+                "a": 0
+              },
+              {
+                "a": 0
+              }
+            ],
+            "expected": [
+              {
+                "q": 5
+              },
+              {
+                "q": 6
+              },
+              {
+                "q": 0
+              }
+            ]
+          }
+        }
+      ],
+      "reset": {
+        "kind": "none",
+        "name": null,
+        "active": "none",
+        "values": {
+          "q": null
+        },
+        "first_released_cycle": "0ns"
+      },
+      "mid": "none",
+      "uncertain": []
+    }
+  }
+]

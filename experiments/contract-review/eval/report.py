@@ -12,7 +12,7 @@ import numpy as np
 
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT))
-from core import RUNS, V3, load, protocol, save, setup, tasks, token_use
+from core import RUNS, V3, ledger, load, protocol, save, setup, token_use
 from pilot3_report import exact_signed_rank
 
 REPORTS=ROOT/"reports"
@@ -192,6 +192,34 @@ def examples_report():
     save(REPORTS/"spec_examples_review.json",picks[:5])
 
 
+def audit_calls(checkpoints,phase):
+    plan=setup()
+    rows={}
+    for folder in set(checkpoints):
+        for row in ledger(folder):
+            equal=(row["model_requested"]==plan["model"] and
+                   row["temperature"]==plan["temperature"] and row["max_tokens"]==plan["max_tokens"] and
+                   row["stream"]==plan["stream"] and row["timeout_seconds"]==plan["transport"]["timeout_seconds"])
+            if not equal or (row.get("model_actual") and row["model_actual"]!=plan["model"]):
+                raise ValueError("Call ledger differs from frozen inference settings")
+            if folder.is_relative_to(RUNS):
+                mode=folder.relative_to(RUNS).parts[2]
+                expected="enabled" if mode=="on" else plan["thinking"]
+                if row["thinking"]!=expected:
+                    raise ValueError("Call ledger uses the wrong thinking mode")
+            if any(value in row["prompt"] for value in ("/eval/","official_mutants/","golden_rtl.v","golden_tb.v")):
+                raise ValueError("Call ledger contains an evaluation artifact reference")
+            rows[row["session"],row["attempt"]]=row
+    summary=[]
+    for mode in ("disabled","enabled"):
+        selected=[r for r in rows.values() if r["thinking"]==mode]
+        summary.append({"thinking":mode,"requests":len({r["session"] for r in selected}),
+                        "transport_attempts":len(selected),
+                        "truncated":sum(r.get("truncated",False) for r in selected),
+                        "transport_errors":sum(r["status"]!="received" for r in selected)})
+    write_csv(REPORTS/f"{phase}_calls_audit.csv",summary)
+
+
 def case_artifacts(cases,phase):
     qualifying=[]
     for case in cases:
@@ -263,6 +291,7 @@ def main():
     examples_n,judge=case_artifacts(records,phase)
     debug=REPORTS/"pilot_format_debug"
     checkpoints=[p.parent for parent in (RUNS,debug) for p in parent.rglob("calls.jsonl")]
+    audit_calls(checkpoints,phase)
     data={"macro":macro,"paired":tests,"usage":token_use(checkpoints),
           "pilot_debug_usage":token_use(p.parent for p in debug.rglob("calls.jsonl")),
           "precision":dict(Counter(x["effect"] for x in diagnose["precision"])),

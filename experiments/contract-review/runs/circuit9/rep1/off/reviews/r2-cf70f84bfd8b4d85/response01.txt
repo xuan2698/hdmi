@@ -1,0 +1,101 @@
+{
+  "coverage": {
+    "S01": ["hold_when_a_high", "increment_when_a_low"],
+    "S02": ["hold_when_a_high", "increment_when_a_low"],
+    "S03": ["hold_when_a_high", "increment_when_a_low"],
+    "S04": ["hold_when_a_high", "increment_when_a_low"],
+    "S05": ["hold_when_a_high", "increment_when_a_low"],
+    "S06": ["hold_when_a_high", "increment_when_a_low"],
+    "S07": ["hold_when_a_high", "increment_when_a_low"],
+    "S08": ["hold_when_a_high", "increment_when_a_low"],
+    "S09": ["hold_when_a_high", "increment_when_a_low"],
+    "S10": ["hold_when_a_high", "increment_when_a_low"],
+    "S11": ["hold_when_a_high", "increment_when_a_low"],
+    "S12": ["hold_when_a_high", "increment_when_a_low"],
+    "S13": ["hold_when_a_high", "increment_when_a_low"],
+    "S14": ["hold_when_a_high", "increment_when_a_low"],
+    "S15": ["increment_when_a_low"],
+    "S16": ["increment_when_a_low"],
+    "S17": ["increment_when_a_low"],
+    "S18": ["increment_when_a_low"],
+    "S19": ["increment_when_a_low"],
+    "S20": ["increment_when_a_low"],
+    "S21": ["increment_when_a_low"],
+    "S22": ["increment_when_a_low"]
+  },
+  "issues": [
+    {
+      "issue_id": "I1",
+      "rule_id": "global",
+      "type": "grounding",
+      "severity": "high",
+      "detail": "The contract's state meaning says q increments on every posedge when a=0, but the spec waveform shows q holding at 4 across posedges at 15,25,35,45 ns while a=1, then at 55 ns (a=0) q becomes 5, at 65 ns q becomes 6, at 75 ns q becomes 0, at 85 ns q becomes 1. The increment_when_a_low rule adds an undocumented exception 'not (previous cycle a == 1 and q == 4)', which is not stated in any spec segment and is not derivable from the waveform (the waveform only shows a=1 holds, not a special exception). The rule's spec_quote '55ns 1 0 5' is not verbatim from the spec (spec has '// 55ns            1               0               5').",
+      "spec_evidence": "// 55ns            1               0               5",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I2",
+      "rule_id": "increment_when_a_low",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "The rule condition includes 'not (previous cycle a == 1 and q == 4)', but the example vectors [{a:0},{a:0},{a:0}] with expected [{q:5},{q:6},{q:0}] do not exercise the exception. More importantly, the spec waveform at 45ns (a=1, q=4) then 55ns (a=0) shows q=5, which is consistent with a simple increment, not with an exception. The exception is unsupported and contradicts the stated state meaning 'increments by 1 on each posedge when a=0'.",
+      "spec_evidence": "// 45ns            1               0               4",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I3",
+      "rule_id": "hold_when_a_high",
+      "type": "grounding",
+      "severity": "medium",
+      "detail": "The spec_quote '// 15ns            1               1               4' is verbatim from S07, but the rule's example vectors [{a:1},{a:1},{a:1}] with expected [{q:4},{q:4},{q:4}] assume q is already 4. The spec does not show a=1 holding at any value other than 4, so the rule's generality (hold for any q) is not directly evidenced; however, the waveform is consistent with hold. The quote is verbatim, so grounding is acceptable but the example is not fully supported by the spec.",
+      "spec_evidence": "// 15ns            1               1               4",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I4",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "high",
+      "detail": "The spec shows q=x at 0ns, then at 5ns (first posedge, a=1) q=4. The contract has no reset and marks initial q unspecified. Two plausible semantics: (A) q initializes to 4 at the first posedge regardless of a, then holds when a=1 and increments when a=0; (B) q is x until first posedge, first posedge with a=1 sets q=4 (initialization), subsequent a=1 holds. These differ for an input sequence starting with a=0 at the first posedge: under (A) q becomes 4 then increments to 5; under (B) q becomes 4 then increments to 5 as well? Actually under (A) first posedge a=0 sets q=4 (init) then next posedge a=0 increments to 5; under (B) first posedge a=0 sets q=4 (init) then next posedge a=0 increments to 5. They are the same for a=0 first. The real difference is whether the first posedge with a=1 sets q=4 or holds x. The spec only shows first posedge with a=1. A distinguishing sequence: first posedge a=0. Under (A) q becomes 4; under (B) q becomes 4 (if init regardless) or x (if only a=1 inits). The contract's uncertain note lists candidates but does not resolve. A concrete distinguishing sequence: apply a=0 at first posedge, then a=0 at second posedge. Under candidate 'q initializes to 4 at first posedge regardless of a', q after first posedge=4, after second=5. Under candidate 'q is x until first posedge; first posedge with a=1 sets q=4', first posedge a=0 leaves q=x, second posedge a=0 leaves q=x (since no a=1 yet). So sequence: [{a:0},{a:0}] distinguishes.",
+      "spec_evidence": "// 0ns             0               1               x",
+      "alternative": "q initializes to 4 at the first posedge regardless of a, then holds when a=1 and increments when a=0",
+      "sequence": [
+        {"a": 0},
+        {"a": 0}
+      ]
+    },
+    {
+      "issue_id": "I5",
+      "rule_id": "global",
+      "type": "spec_example",
+      "severity": "high",
+      "detail": "Deriving outputs from the spec waveform: at 0ns q=x; 5ns posedge a=1 -> q=4; 10ns clk=0 q=4; 15ns posedge a=1 -> q=4; 20ns q=4; 25ns posedge a=1 -> q=4; 30ns q=4; 35ns posedge a=1 -> q=4; 40ns q=4; 45ns posedge a=1 -> q=4; 50ns q=4; 55ns posedge a=0 -> q=5; 60ns q=5; 65ns posedge a=0 -> q=6; 70ns q=6; 75ns posedge a=0 -> q=0; 80ns q=0; 85ns posedge a=0 -> q=1; 90ns q=1. The contract's rules: hold_when_a_high (a=1 holds) matches; increment_when_a_low with exception 'not (previous cycle a==1 and q==4)' would at 55ns see previous cycle a=1 and q=4, so it would NOT increment, predicting q=4 at 55ns, contradicting spec q=5. Thus the contract's exception is inconsistent with the spec waveform. Also the contract's state meaning says increments on every posedge when a=0, which would predict at 55ns q=5 (correct), but the rule adds an exception that breaks it. This is a material contradiction.",
+      "spec_evidence": "// 55ns            1               0               5",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I6",
+      "rule_id": "increment_when_a_low",
+      "type": "grounding",
+      "severity": "medium",
+      "detail": "The spec_quote '55ns            1               0               5' is not verbatim; the spec line is '// 55ns            1               0               5'. The rule's quote omits the '// ' prefix and spacing. This is a minor grounding issue but the content is present.",
+      "spec_evidence": "// 55ns            1               0               5",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I7",
+      "rule_id": "global",
+      "type": "coverage",
+      "severity": "medium",
+      "detail": "Spec segment S04 (0ns, clk=0, a=1, q=x) is not explicitly mapped to any rule; the contract's uncertain note mentions q is x before first posedge, but no rule covers the initial x state. S04 is effectively 'unrelated' to the two rules, but the contract does not mark it as such. Similarly S06, S08, S10, S12, S14, S16, S18, S20, S22 are clock-low rows showing q holding; they are not directly covered by any rule (rules are posedge-triggered). They are consistent with the state but not mapped.",
+      "spec_evidence": "// 0ns             0               1               x",
+      "alternative": "",
+      "sequence": []
+    }
+  ]
+}

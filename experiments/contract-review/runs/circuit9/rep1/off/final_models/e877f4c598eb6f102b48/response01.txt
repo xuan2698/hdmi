@@ -1,0 +1,36 @@
+```python
+def reference(vectors):
+    # Rule global: q is x until first posedge; first posedge with a=1 sets q=4 (initialization),
+    # subsequent a=1 holds. (implemented below)
+    # Rule hold_when_a_high: on posedge, if a==1, q holds. (implemented below)
+    # Rule increment_when_a_low: on posedge, if a==0, q increments by 1 (mod 8). (implemented below)
+
+    q = None  # unspecified before first posedge
+    initialized = False
+    out = []
+
+    for vec in vectors:
+        a = vec["a"]
+        # posedge sampling
+        if not initialized:
+            if a == 1:
+                # global: first posedge with a=1 sets q=4
+                q = 4
+                initialized = True
+            # else q stays x (None)
+        else:
+            if a == 1:
+                # hold_when_a_high
+                pass
+            else:
+                # increment_when_a_low
+                q = (q + 1) & 0x7
+
+        # output concrete unsigned integer within 3-bit width
+        if q is None:
+            out.append({"q": 0})
+        else:
+            out.append({"q": q & 0x7})
+
+    return out
+```

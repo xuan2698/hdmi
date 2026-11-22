@@ -147,10 +147,15 @@ def false_cases():
                     f"{want:0{len(patterns[name])}b}")) and any(bit in "01" for bit in patterns[name])
                     for name,want in cycle["expected"].items()):
                     matched.append(k)
+            contract_path=ROOT/"runs"/entry["task"]/f"rep{entry['rep']}"/"configs/Ours/final_contract.json"
+            contract=json.loads(contract_path.read_text())
+            reset=contract["reset"]
+            level={"low":0,"high":1}.get(reset["active"])
+            reset_asserted=level is not None and cycle["inputs"].get(reset["name"])==level
+            rules=[rule["id"] for rule in contract["rules"] if set(rule["outputs"]) & cycle["expected"].keys()]
             out.append({"task":entry["task"],"rep":entry["rep"],"cycle":cycle,
-                        "neighbor_match":matched,
-                        "final_contract":str((ROOT/"runs"/entry["task"]/f"rep{entry['rep']}"/
-                                              "configs/Ours/final_contract.json").relative_to(ROOT))})
+                        "neighbor_match":matched,"contract_reset_asserted":reset_asserted,"rule_ids":rules,
+                        "final_contract":str(contract_path.relative_to(ROOT))})
     (REPORTS/"false_positive_cases.json").write_text(json.dumps(out,indent=2,ensure_ascii=False)+"\n")
     return out
 
@@ -165,7 +170,7 @@ def render(phase):
               "Base 的 RTL 评分与 v3 A0 对照逐项一致。H 源码只由 eval 脚本读取。",
               "[预注册](../PREREG.md) · [逐次结果]("+phase+"_by_run.csv) · [逐题结果]("+phase+"_by_task.csv)",
               "## 两项主指标",show_metrics(summary),"## Base/Ours × 思考模式",native(summary),
-              "可比用量为该配置所归属的合同、审查、裁决及检查器生成用量。Base 使用历史 A0 检查器调用的计量，"
+              "可比用量为该配置所归属的契约、审查、裁决及检查器生成用量。Base 使用历史 A0 检查器调用的计量，"
               "本实验零新增调用。共享阶段在配置列可重复出现，整批账单按请求编号去重。",
               "## 题级配对",paired(summary)]
     if pilot:
@@ -200,13 +205,25 @@ def render(phase):
                  f"归档中去重后共 {u['calls']:,} 次逻辑调用、{u['attempts']:,} 次传输尝试、{u['tokens']:,} token，"
                  f"Go 用量 USD {u['go_usd']:.6f}、额外扣费 USD {u['charged_usd']:.6f}。",
                  "[每题例子长度](spec_examples.csv) · [五个抽查样例](spec_examples_review.json) · "
-                 f"[原始统计]({phase}_summary.json)"]
+                 f"[用量审计]({phase}_calls_audit.csv) · [原始统计]({phase}_summary.json)"]
     if not pilot:
         errors=false_cases()
+        examples=defaultdict(list)
+        for case in errors:
+            evidence=("复位期间" if case["contract_reset_asserted"] else
+                      "与相邻拍一致" if case["neighbor_match"] else "其余参考值不符")
+            if len(examples[evidence])<2:
+                first=case["cycle"]
+                examples[evidence].append((case["task"],case["rep"],first["cycle"],evidence,
+                    ", ".join(f"{signal}={value}" for signal,value in first["golden"].items()),
+                    ", ".join(f"{signal}={value}" for signal,value in first["expected"].items()),
+                    ", ".join(case["rule_ids"])))
         sections += ["## 完整案例与残余误报",
                      f"归档了 {summary['examples']} 个包含初始契约、两轮反馈、修订、最终模型及 golden 结果的案例。"
                      f"全量 Ours 的首个误报采样共 {len(errors)} 个，其中 {sum(bool(e['neighbor_match']) for e in errors)} 个"
                      "与相邻采样的已知位相符。这是时序错拍的线索。其余需要结合对应的状态、优先级或复位条款定位。",
+                     table(("题目","种子序号","首错周期","可核对的线索","golden（二进制）","期望（整数）","契约规则"),
+                           [item for group in examples.values() for item in group]) if examples else "",
                      "[完整案例](ten_cases.json) · [误报采样](false_positive_cases.json)"]
     (REPORTS/("PILOT.md" if pilot else "REPORT.md")).write_text("\n\n".join(s for s in sections if s)+"\n")
 

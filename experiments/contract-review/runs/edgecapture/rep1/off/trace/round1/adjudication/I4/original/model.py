@@ -1,0 +1,38 @@
+def reference(vectors):
+    # Contract implementation.
+    # State: out_reg (32-bit sticky falling-edge flags), prev_in (32-bit previous input).
+    # Timing: sample at posedge clk; mid changes occur after sampling and carry to next row.
+    # Power-up: unspecified -> use 0 for out_reg and prev_in (concrete values required).
+
+    out_reg = 0      # R1_reset_clear / R3_hold_until_reset state
+    prev_in = 0      # R2_capture_falling_edge state (previous sampled input)
+
+    results = []
+
+    for row in vectors:
+        reset = row.get('reset', 0) & 1
+        cur_in = row.get('in', 0) & 0xFFFFFFFF
+
+        # --- posedge sampling ---
+        if reset == 1:
+            # R1_reset_clear: synchronous active-high reset clears out_reg.
+            out_reg = 0
+        else:
+            # R2_capture_falling_edge: set bits where prev_in=1 and cur_in=0.
+            falling = prev_in & (~cur_in & 0xFFFFFFFF)
+            out_reg = (out_reg | falling) & 0xFFFFFFFF
+            # R3_hold_until_reset: bits not newly falling retain prior value (already OR'd).
+
+        # Update prev_in to current sampled input for next cycle.
+        prev_in = cur_in
+
+        # Output visible this cycle (same_cycle for reset, next_cycle for capture).
+        results.append({'out': out_reg & 0xFFFFFFFF})
+
+        # Mid changes: occur AFTER sampling, before other edge, carried to next row.
+        # They affect prev_in for the next row's falling-edge detection.
+        mid = row.get('mid')
+        if mid is not None and 'in' in mid:
+            prev_in = mid['in'] & 0xFFFFFFFF
+
+    return results

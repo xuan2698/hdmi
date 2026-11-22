@@ -1,0 +1,249 @@
+{
+  "coverage": {
+    "S01": [
+      "R_TRANS"
+    ],
+    "S02": [
+      "R_RESET",
+      "R_A",
+      "R_B",
+      "R_C",
+      "R_D",
+      "R_TRANS"
+    ],
+    "S03": [
+      "R_RESET"
+    ],
+    "S04": [
+      "R_TRANS"
+    ],
+    "S05": [
+      "R_A"
+    ],
+    "S06": [
+      "R_B"
+    ],
+    "S07": [
+      "R_C"
+    ],
+    "S08": [
+      "R_D"
+    ]
+  },
+  "issues": [
+    {
+      "issue_id": "I1",
+      "rule_id": "R_C",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "R_C example expected outputs contradict the Moore output for state C. The example vectors are reset=1,in=0; reset=0,in=0; reset=0,in=1; reset=0,in=0. After reset, state A. Row 2 (reset=0,in=0) transitions A->A, so state A, out=0. Row 3 (reset=0,in=1) transitions A->B, so state B, out=0. Row 4 (reset=0,in=0) transitions B->C, so state C, out=0. The expected fourth output is 1, but state C output is 0 per S07 and R_C condition. This is a direct contradiction between the rule condition/output and its example.",
+      "spec_evidence": "// C | A, D | 0",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I2",
+      "rule_id": "R_D",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "R_D example expected outputs contradict the Moore output for state D. The example vectors are reset=1,in=0; reset=0,in=1; reset=0,in=0; reset=0,in=1. After reset, state A. Row 2 (reset=0,in=1) transitions A->B, state B, out=0. Row 3 (reset=0,in=0) transitions B->C, state C, out=0. Row 4 (reset=0,in=1) transitions C->D, state D, out=1. The expected fourth output is 0, but state D output is 1 per S08 and R_D condition. This is a direct contradiction between the rule condition/output and its example.",
+      "spec_evidence": "// D | C, B | 1",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I3",
+      "rule_id": "R_TRANS",
+      "type": "consistency",
+      "severity": "medium",
+      "detail": "R_TRANS example expected outputs are all 0, but the vector sequence reset=1,in=0; reset=0,in=1; reset=0,in=1; reset=0,in=0 produces state D on the fourth row. After reset, state A. Row 2 (reset=0,in=1): A->B, out=0. Row 3 (reset=0,in=1): B->B, out=0. Row 4 (reset=0,in=0): B->C, out=0. Actually the fourth row is reset=0,in=0, so B->C, out=0. The example is consistent for this sequence. However, R_TRANS condition says 'next_state determined by table on posedge when reset == 0' and outputs ['out'], but the example does not exercise state D. This is not a contradiction. Re-evaluating: the sequence is reset=1,in=0; reset=0,in=1; reset=0,in=1; reset=0,in=0. Row 2: A->B. Row 3: B->B. Row 4: B->C. Outputs: 0,0,0,0. Consistent. No issue.",
+      "spec_evidence": "",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I4",
+      "rule_id": "R_A",
+      "type": "consistency",
+      "severity": "medium",
+      "detail": "R_A example vectors are reset=1,in=0; reset=0,in=0; reset=0,in=1; reset=0,in=0. Expected outputs all 0. After reset, state A. Row 2 (reset=0,in=0): A->A, out=0. Row 3 (reset=0,in=1): A->B, out=0. Row 4 (reset=0,in=0): B->C, out=0. Consistent. No issue.",
+      "spec_evidence": "",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I5",
+      "rule_id": "R_B",
+      "type": "consistency",
+      "severity": "medium",
+      "detail": "R_B example vectors are reset=1,in=0; reset=0,in=1; reset=0,in=0; reset=0,in=1. Expected outputs all 0. After reset, state A. Row 2 (reset=0,in=1): A->B, out=0. Row 3 (reset=0,in=0): B->C, out=0. Row 4 (reset=0,in=1): C->D, out=1. The expected fourth output is 0, but state D output is 1. This is a contradiction. Wait, the expected array is [{out:0},{out:0},{out:0},{out:0}]. The fourth output should be 1. So R_B example is also inconsistent.",
+      "spec_evidence": "// D | C, B | 1",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I6",
+      "rule_id": "R_RESET",
+      "type": "consistency",
+      "severity": "low",
+      "detail": "R_RESET example vectors are reset=1,in=0; reset=1,in=1; reset=0,in=0; reset=0,in=1. Expected outputs all 0. After reset, state A. Row 2 (reset=1): stays A, out=0. Row 3 (reset=0,in=0): A->A, out=0. Row 4 (reset=0,in=1): A->B, out=0. Consistent. No issue.",
+      "spec_evidence": "",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I7",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "The contract does not specify the initial state before the first posedge with reset==0. The reset rule says synchronous active high reset resets to state A, but if reset is 0 at time 0 before any clock edge, the state is undefined. The spec says 'synchronous active high reset that resets the FSM to state A', implying reset must be asserted at a clock edge to set state A. The contract's reset field says first_released_cycle is 'first posedge with reset==0', but does not define state before that. A plausible alternative is that the FSM starts in an unknown state until reset is applied, or that it starts in state A by default. This affects outputs before any reset.",
+      "spec_evidence": "Include a synchronous active high reset that resets the FSM to state A.",
+      "alternative": "The FSM initial state before any reset is undefined (unknown), so outputs are unknown until a reset is applied.",
+      "sequence": [
+        {
+          "reset": 0,
+          "in": 0
+        },
+        {
+          "reset": 0,
+          "in": 1
+        }
+      ]
+    },
+    {
+      "issue_id": "I8",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "The contract does not specify whether the output is registered or combinational with respect to state. The rules R_A through R_D say edge='combinational', visible='same_cycle', which implies Moore output is combinational from state. However, the state update is on posedge. The spec is a Moore machine, so output depends only on state. The ambiguity is whether the output changes immediately when state changes (combinational) or is registered (same cycle as state update). The contract says combinational, but the spec does not explicitly state. A plausible alternative is that output is registered and visible one cycle after state change.",
+      "spec_evidence": "The following is the state transition table for a Moore state machine with one input, one output, and four states.",
+      "alternative": "Output is registered and updates on the same posedge as the state transition, so it is visible in the cycle after the state change.",
+      "sequence": [
+        {
+          "reset": 1,
+          "in": 0
+        },
+        {
+          "reset": 0,
+          "in": 1
+        },
+        {
+          "reset": 0,
+          "in": 0
+        }
+      ]
+    },
+    {
+      "issue_id": "I9",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "low",
+      "detail": "The contract's mid field says 'Optional mid input changes occur AFTER sampling, before the other edge, and are carried to the start of the next row.' This is unclear for a single-clock design. It is not clear how mid changes affect state transitions or outputs. The spec does not mention mid. This is an ambiguity in the contract's handling of mid inputs.",
+      "spec_evidence": "",
+      "alternative": "Mid input changes are ignored for state transition and output computation; only the input value at the posedge is sampled.",
+      "sequence": [
+        {
+          "reset": 0,
+          "in": 0,
+          "mid": {
+            "in": 1
+          }
+        },
+        {
+          "reset": 0,
+          "in": 0
+        }
+      ]
+    },
+    {
+      "issue_id": "I10",
+      "rule_id": "R_TRANS",
+      "type": "grounding",
+      "severity": "medium",
+      "detail": "R_TRANS spec_quote is 'Next state in=0, Next state in=1', which is a column header, not a complete rule statement. The actual transition table is in S05-S08. The rule condition 'next_state determined by table on posedge when reset == 0' is not verbatim in the spec. The spec does not explicitly say transitions occur on posedge; it only says 'state transition table' and 'synchronous active high reset'. The posedge edge is inferred from 'synchronous' and 'state machine', but not verbatim. This is a grounding issue: the rule's edge and condition are not directly quoted from the spec.",
+      "spec_evidence": "The following is the state transition table for a Moore state machine with one input, one output, and four states.",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I11",
+      "rule_id": "R_RESET",
+      "type": "grounding",
+      "severity": "low",
+      "detail": "R_RESET spec_quote is 'synchronous active high reset that resets the FSM to state A', which is a paraphrase of S03 'Include a synchronous active high reset that resets the FSM to state A.' The quote omits 'Include a' but is otherwise verbatim. This is acceptable. No issue.",
+      "spec_evidence": "",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I12",
+      "rule_id": "R_A",
+      "type": "grounding",
+      "severity": "low",
+      "detail": "R_A spec_quote is 'A | A, B | 0', which is a partial quote of S05 '// A | A, B | 0'. It omits the '// ' prefix. This is acceptable as verbatim evidence of the table row. No issue.",
+      "spec_evidence": "",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I13",
+      "rule_id": "R_B",
+      "type": "grounding",
+      "severity": "low",
+      "detail": "R_B spec_quote is 'B | C, B | 0', which is a partial quote of S06 '// B | C, B | 0'. Acceptable. No issue.",
+      "spec_evidence": "",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I14",
+      "rule_id": "R_C",
+      "type": "grounding",
+      "severity": "low",
+      "detail": "R_C spec_quote is 'C | A, D | 0', which is a partial quote of S07 '// C | A, D | 0'. Acceptable. No issue.",
+      "spec_evidence": "",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I15",
+      "rule_id": "R_D",
+      "type": "grounding",
+      "severity": "low",
+      "detail": "R_D spec_quote is 'D | C, B | 1', which is a partial quote of S08 '// D | C, B | 1'. Acceptable. No issue.",
+      "spec_evidence": "",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I16",
+      "rule_id": "global",
+      "type": "coverage",
+      "severity": "low",
+      "detail": "S01 is mapped to R_TRANS, but S01 describes the overall machine (Moore, one input, one output, four states). R_TRANS only covers transitions. The Moore nature (output depends only on state) is not explicitly captured by a rule, though R_A-R_D imply it. This is a minor coverage gap: no rule explicitly states 'Moore machine' semantics.",
+      "spec_evidence": "The following is the state transition table for a Moore state machine with one input, one output, and four states.",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I17",
+      "rule_id": "global",
+      "type": "coverage",
+      "severity": "low",
+      "detail": "S02 'Implement this state machine.' is mapped to all rules, which is reasonable. No issue.",
+      "spec_evidence": "",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I18",
+      "rule_id": "global",
+      "type": "coverage",
+      "severity": "low",
+      "detail": "S04 '// State | Next state in=0, Next state in=1 | Output' is mapped to R_TRANS, but it is a header. R_TRANS covers transitions but not the output column header. The output column is covered by R_A-R_D. This is acceptable.",
+      "spec_evidence": "",
+      "alternative": "",
+      "sequence": []
+    }
+  ]
+}

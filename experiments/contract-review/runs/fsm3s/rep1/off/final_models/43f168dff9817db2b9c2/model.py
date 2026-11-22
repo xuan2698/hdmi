@@ -1,0 +1,32 @@
+def reference(vectors):
+    # State encoding
+    A, B, C, D = 0, 1, 2, 3
+    # Output per state (Moore): R_A, R_B, R_C, R_D
+    out_of = {A: 0, B: 0, C: 0, D: 1}
+    # Next-state table: R_TRANS
+    nxt = {
+        A: {0: A, 1: B},
+        B: {0: C, 1: B},
+        C: {0: A, 1: D},
+        D: {0: C, 1: B},
+    }
+
+    state = A  # power-up unspecified; start at reset state
+    results = []
+
+    for row in vectors:
+        # Sample inputs at posedge (values driven before edge)
+        rst = row.get("reset", 0) & 1
+        inp = row.get("in", 0) & 1
+
+        # R_RESET: synchronous active high reset -> state A (priority 0)
+        # R_TRANS: otherwise transition per table (priority 2)
+        if rst == 1:
+            state = A
+        else:
+            state = nxt[state][inp]
+
+        # Moore output is combinational from current state (R_A/R_B/R_C/R_D)
+        results.append({"out": out_of[state] & 1})
+
+    return results

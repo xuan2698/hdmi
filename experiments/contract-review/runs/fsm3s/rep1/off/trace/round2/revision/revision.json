@@ -1,0 +1,214 @@
+{
+  "responses": [
+    {
+      "issue_id": "I1",
+      "decision": "accept",
+      "reason": "The R_C example's final expected output is wrong: after the given vectors the FSM is in state D (output 1), not state C. The example must demonstrate output while in state C, which is 0.",
+      "spec_quote": "// C | A, D | 0",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R_C",
+            "example"
+          ],
+          "value": {
+            "vectors": [
+              {
+                "reset": 1,
+                "in": 0
+              },
+              {
+                "reset": 0,
+                "in": 1
+              },
+              {
+                "reset": 0,
+                "in": 0
+              },
+              {
+                "reset": 0,
+                "in": 0
+              }
+            ],
+            "expected": [
+              {
+                "out": 0
+              },
+              {
+                "out": 0
+              },
+              {
+                "out": 0
+              },
+              {
+                "out": 0
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "issue_id": "I2",
+      "decision": "accept",
+      "reason": "The R_D example never reaches state D, so its expected out=1 is unsupported. Replace with vectors that actually enter D and show its output 1.",
+      "spec_quote": "// D | C, B | 1",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R_D",
+            "example"
+          ],
+          "value": {
+            "vectors": [
+              {
+                "reset": 1,
+                "in": 0
+              },
+              {
+                "reset": 0,
+                "in": 1
+              },
+              {
+                "reset": 0,
+                "in": 0
+              },
+              {
+                "reset": 0,
+                "in": 1
+              }
+            ],
+            "expected": [
+              {
+                "out": 0
+              },
+              {
+                "out": 0
+              },
+              {
+                "out": 0
+              },
+              {
+                "out": 1
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "issue_id": "I3",
+      "decision": "accept",
+      "reason": "R_TRANS claims to verify next-state behavior but its example only shows Moore outputs already covered by R_A..R_D and never exercises a transition to D. Replace the example with vectors that traverse the table and reach D, making the transition behavior observable.",
+      "spec_quote": "// State | Next state in=0, Next state in=1 | Output",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R_TRANS",
+            "example"
+          ],
+          "value": {
+            "vectors": [
+              {
+                "reset": 1,
+                "in": 0
+              },
+              {
+                "reset": 0,
+                "in": 1
+              },
+              {
+                "reset": 0,
+                "in": 0
+              },
+              {
+                "reset": 0,
+                "in": 1
+              }
+            ],
+            "expected": [
+              {
+                "out": 0
+              },
+              {
+                "out": 0
+              },
+              {
+                "out": 0
+              },
+              {
+                "out": 1
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "issue_id": "I4",
+      "decision": "rebut",
+      "reason": "The example is consistent: reset holds state A for two cycles, then release with in=1 moves A->B and B stays B, all output 0. Including post-release cycles does not contradict the reset rule and no behavioral or documentation change is required.",
+      "spec_quote": "synchronous active high reset that resets the FSM to state A",
+      "edits": []
+    },
+    {
+      "issue_id": "I5",
+      "decision": "rebut",
+      "reason": "The R_A example outputs are all consistent with the table; the rule condition state==A is satisfied at the start and the subsequent transitions are correctly reflected. No contradiction requiring a change.",
+      "spec_quote": "// A | A, B | 0",
+      "edits": []
+    },
+    {
+      "issue_id": "I6",
+      "decision": "accept",
+      "reason": "The R_B example's final expected output is wrong: the vectors end in state D (output 1), not 0. Replace with vectors that stay in or return to B so the example demonstrates state B's output 0.",
+      "spec_quote": "// B | C, B | 0",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R_B",
+            "example"
+          ],
+          "value": {
+            "vectors": [
+              {
+                "reset": 1,
+                "in": 0
+              },
+              {
+                "reset": 0,
+                "in": 1
+              },
+              {
+                "reset": 0,
+                "in": 1
+              },
+              {
+                "reset": 0,
+                "in": 1
+              }
+            ],
+            "expected": [
+              {
+                "out": 0
+              },
+              {
+                "out": 0
+              },
+              {
+                "out": 0
+              },
+              {
+                "out": 0
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

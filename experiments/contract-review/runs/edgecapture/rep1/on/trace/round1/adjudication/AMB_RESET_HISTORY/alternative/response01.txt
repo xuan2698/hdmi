@@ -1,0 +1,31 @@
+def reference(vectors):
+    out = 0
+    prev_in = 0
+    current = {'reset': 0, 'in': 0}
+    results = []
+    for row in vectors:
+        # Drive inputs before sampled posedge
+        for k, v in row.items():
+            if k == 'mid':
+                continue
+            if k in ('reset', 'in'):
+                current[k] = v
+        reset_val = current.get('reset', 0) & 1
+        in_val = current.get('in', 0) & 0xFFFFFFFF
+        # R_RESET: synchronous reset clears out; candidate interpretation also clears prev_in
+        if reset_val:
+            out = 0
+            prev_in = 0
+        else:
+            # R_FALL: detect 1-to-0 transitions on each bit
+            fall = prev_in & (~in_val) & 0xFFFFFFFF
+            # R_HOLD: out holds prior value except where fall bits set it
+            out = (out | fall) & 0xFFFFFFFF
+            prev_in = in_val
+        results.append({'out': out})
+        # mid changes occur after sampling and are carried to next row
+        if 'mid' in row and isinstance(row['mid'], dict):
+            for k, v in row['mid'].items():
+                if k in ('reset', 'in'):
+                    current[k] = v
+    return results

@@ -1,0 +1,32 @@
+def reference(vectors):
+    # Contract implementation.
+    # State: out_reg (32-bit sticky flag), prev_in (32-bit previous input).
+    # R1_reset_clear: synchronous active-high reset clears out_reg (visible same cycle).
+    # R2_capture_falling_edge: on posedge with reset==0, set bits where prev_in=1 and in=0 (visible next cycle).
+    # R3_hold_until_reset: out_reg holds until reset.
+    # Mid changes occur AFTER sampling, before next edge, carried to start of next row.
+
+    out_reg = 0
+    prev_in = 0
+    results = []
+
+    for row in vectors:
+        reset = row.get("reset", 0) & 0x1
+        cur_in = row.get("in", 0) & 0xFFFFFFFF
+
+        # R1_reset_clear: reset has priority, clears out_reg synchronously.
+        if reset == 1:
+            out_reg = 0
+        else:
+            # R2_capture_falling_edge: detect 1->0 transitions vs prev_in.
+            falling = prev_in & (~cur_in) & 0xFFFFFFFF
+            # R3_hold_until_reset: OR in new falling edges, hold existing bits.
+            out_reg = (out_reg | falling) & 0xFFFFFFFF
+
+        # Output visible after this posedge.
+        results.append({"out": out_reg & 0xFFFFFFFF})
+
+        # Mid changes: update prev_in to current input for next cycle.
+        prev_in = cur_in
+
+    return results

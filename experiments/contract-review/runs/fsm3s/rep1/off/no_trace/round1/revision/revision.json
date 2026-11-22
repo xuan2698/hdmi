@@ -1,0 +1,439 @@
+{
+  "responses": [
+    {
+      "issue_id": "I1",
+      "decision": "accept",
+      "reason": "The R_TRANS example lacks an explicit reset to establish state A, making the initial state ambiguous. Adding a reset vector grounds the example in the synchronous reset behavior and disambiguates the starting state.",
+      "spec_quote": "Include a synchronous active high reset that resets the FSM to state A.",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R_TRANS",
+            "example"
+          ],
+          "value": {
+            "vectors": [
+              {
+                "reset": 1,
+                "in": 0
+              },
+              {
+                "reset": 0,
+                "in": 1
+              },
+              {
+                "reset": 0,
+                "in": 1
+              },
+              {
+                "reset": 0,
+                "in": 0
+              }
+            ],
+            "expected": [
+              {
+                "out": 0
+              },
+              {
+                "out": 0
+              },
+              {
+                "out": 0
+              },
+              {
+                "out": 0
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "issue_id": "I2",
+      "decision": "accept",
+      "reason": "The R_RESET example only checks output 0, which is shared by states A, B, and C, so it does not confirm the FSM actually reaches state A. Extending the example with a post-release input that distinguishes A from B/C (in=1 from A goes to B, output 0; from C in=1 would go to D output 1) strengthens grounding.",
+      "spec_quote": "Include a synchronous active high reset that resets the FSM to state A.",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R_RESET",
+            "example"
+          ],
+          "value": {
+            "vectors": [
+              {
+                "reset": 1,
+                "in": 0
+              },
+              {
+                "reset": 1,
+                "in": 1
+              },
+              {
+                "reset": 0,
+                "in": 0
+              },
+              {
+                "reset": 0,
+                "in": 1
+              }
+            ],
+            "expected": [
+              {
+                "out": 0
+              },
+              {
+                "out": 0
+              },
+              {
+                "out": 0
+              },
+              {
+                "out": 0
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "issue_id": "I3",
+      "decision": "accept",
+      "reason": "The R_A example does not force state A; adding a reset vector ensures the FSM is in state A before applying the distinguishing inputs.",
+      "spec_quote": "// A | A, B | 0",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R_A",
+            "example"
+          ],
+          "value": {
+            "vectors": [
+              {
+                "reset": 1,
+                "in": 0
+              },
+              {
+                "reset": 0,
+                "in": 0
+              },
+              {
+                "reset": 0,
+                "in": 1
+              },
+              {
+                "reset": 0,
+                "in": 0
+              }
+            ],
+            "expected": [
+              {
+                "out": 0
+              },
+              {
+                "out": 0
+              },
+              {
+                "out": 0
+              },
+              {
+                "out": 0
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "issue_id": "I4",
+      "decision": "accept",
+      "reason": "The R_B example does not distinguish state B from state A. Adding a reset and a distinguishing input sequence (from A, in=0 stays A; from B, in=0 goes to C) grounds the example in state B.",
+      "spec_quote": "// B | C, B | 0",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R_B",
+            "example"
+          ],
+          "value": {
+            "vectors": [
+              {
+                "reset": 1,
+                "in": 0
+              },
+              {
+                "reset": 0,
+                "in": 1
+              },
+              {
+                "reset": 0,
+                "in": 0
+              },
+              {
+                "reset": 0,
+                "in": 1
+              }
+            ],
+            "expected": [
+              {
+                "out": 0
+              },
+              {
+                "out": 0
+              },
+              {
+                "out": 0
+              },
+              {
+                "out": 0
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "issue_id": "I5",
+      "decision": "accept",
+      "reason": "The R_C example is inconsistent: from C with in=1 the next state is D (output 1), but the example expects 0. Correcting the example to reflect the state table.",
+      "spec_quote": "// C | A, D | 0\n// D | C, B | 1",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R_C",
+            "example"
+          ],
+          "value": {
+            "vectors": [
+              {
+                "reset": 1,
+                "in": 0
+              },
+              {
+                "reset": 0,
+                "in": 0
+              },
+              {
+                "reset": 0,
+                "in": 1
+              },
+              {
+                "reset": 0,
+                "in": 0
+              }
+            ],
+            "expected": [
+              {
+                "out": 0
+              },
+              {
+                "out": 0
+              },
+              {
+                "out": 0
+              },
+              {
+                "out": 1
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "issue_id": "I6",
+      "decision": "accept",
+      "reason": "The R_D example is inconsistent: from D, in=0 goes to C (output 0) and in=1 goes to B (output 0), so out=1 cannot persist for three cycles. Correcting the example to reflect the state table.",
+      "spec_quote": "// D | C, B | 1",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R_D",
+            "example"
+          ],
+          "value": {
+            "vectors": [
+              {
+                "reset": 1,
+                "in": 0
+              },
+              {
+                "reset": 0,
+                "in": 1
+              },
+              {
+                "reset": 0,
+                "in": 0
+              },
+              {
+                "reset": 0,
+                "in": 1
+              }
+            ],
+            "expected": [
+              {
+                "out": 0
+              },
+              {
+                "out": 0
+              },
+              {
+                "out": 0
+              },
+              {
+                "out": 0
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "issue_id": "I7",
+      "decision": "accept",
+      "reason": "The R_TRANS example is not grounded because it lacks a reset vector to establish state A. Adding a reset vector grounds the example in the synchronous reset behavior.",
+      "spec_quote": "Include a synchronous active high reset that resets the FSM to state A.",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R_TRANS",
+            "example"
+          ],
+          "value": {
+            "vectors": [
+              {
+                "reset": 1,
+                "in": 0
+              },
+              {
+                "reset": 0,
+                "in": 1
+              },
+              {
+                "reset": 0,
+                "in": 1
+              },
+              {
+                "reset": 0,
+                "in": 0
+              }
+            ],
+            "expected": [
+              {
+                "out": 0
+              },
+              {
+                "out": 0
+              },
+              {
+                "out": 0
+              },
+              {
+                "out": 0
+              }
+            ]
+          }
+        }
+      ],
+      "already_applied_by_earlier_issue": true
+    },
+    {
+      "issue_id": "I8",
+      "decision": "accept",
+      "reason": "The R_C and R_D examples are inconsistent with the state table as noted. Correcting both examples to match the derived Moore outputs from the spec table.",
+      "spec_quote": "// A | A, B | 0\n// B | C, B | 0\n// C | A, D | 0\n// D | C, B | 1",
+      "edits": [
+        {
+          "path": [
+            "rules",
+            "R_C",
+            "example"
+          ],
+          "value": {
+            "vectors": [
+              {
+                "reset": 1,
+                "in": 0
+              },
+              {
+                "reset": 0,
+                "in": 0
+              },
+              {
+                "reset": 0,
+                "in": 1
+              },
+              {
+                "reset": 0,
+                "in": 0
+              }
+            ],
+            "expected": [
+              {
+                "out": 0
+              },
+              {
+                "out": 0
+              },
+              {
+                "out": 0
+              },
+              {
+                "out": 1
+              }
+            ]
+          }
+        },
+        {
+          "path": [
+            "rules",
+            "R_D",
+            "example"
+          ],
+          "value": {
+            "vectors": [
+              {
+                "reset": 1,
+                "in": 0
+              },
+              {
+                "reset": 0,
+                "in": 1
+              },
+              {
+                "reset": 0,
+                "in": 0
+              },
+              {
+                "reset": 0,
+                "in": 1
+              }
+            ],
+            "expected": [
+              {
+                "out": 0
+              },
+              {
+                "out": 0
+              },
+              {
+                "out": 0
+              },
+              {
+                "out": 0
+              }
+            ]
+          }
+        }
+      ],
+      "already_applied_by_earlier_issue": true
+    }
+  ]
+}

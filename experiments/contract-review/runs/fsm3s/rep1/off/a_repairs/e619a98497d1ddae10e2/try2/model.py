@@ -1,0 +1,43 @@
+def reference(vectors):
+    # State encoding
+    A, B, C, D = 0, 1, 2, 3
+    # R_RESET: synchronous active high reset -> state A, output 0
+    # R_A/R_B/R_C/R_D: combinational output based on current state
+    # R_TRANS: posedge transition per table when reset == 0
+
+    state = A
+    out = 0
+    results = []
+
+    for vec in vectors:
+        # Apply mid changes carried from previous row (already in vec)
+        rst = vec.get('reset', 0)
+        inp = vec.get('in', 0)
+
+        # R_A/R_B/R_C/R_D: combinational output from current state (same_cycle)
+        if state == A:
+            out = 0  # R_A
+        elif state == B:
+            out = 0  # R_B
+        elif state == C:
+            out = 0  # R_C
+        else:  # D
+            out = 1  # R_D
+
+        results.append({'out': out})
+
+        # R_RESET: synchronous reset on posedge -> next state A
+        # R_TRANS: posedge transition when reset == 0
+        if rst == 1:
+            state = A  # R_RESET
+        else:
+            if state == A:
+                state = A if inp == 0 else B  # R_TRANS
+            elif state == B:
+                state = C if inp == 0 else B  # R_TRANS
+            elif state == C:
+                state = A if inp == 0 else D  # R_TRANS
+            else:  # D
+                state = C if inp == 0 else B  # R_TRANS
+
+    return results

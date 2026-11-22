@@ -1,0 +1,99 @@
+{
+  "coverage": {
+    "S01": ["R_A", "R_B", "R_C", "R_D", "R_TRANS"],
+    "S02": ["R_RESET", "R_A", "R_B", "R_C", "R_D", "R_TRANS"],
+    "S03": ["R_RESET"],
+    "S04": ["R_TRANS"],
+    "S05": ["R_A"],
+    "S06": ["R_B"],
+    "S07": ["R_C"],
+    "S08": ["R_D"]
+  },
+  "issues": [
+    {
+      "issue_id": "I1",
+      "rule_id": "R_TRANS",
+      "type": "ambiguity",
+      "severity": "high",
+      "detail": "The contract's R_TRANS example is inconsistent with the state table if the example vectors are applied from reset state A without an explicit reset assertion. The example starts with reset=0, in=1, which from state A should transition to B (output 0), then in=1 stays in B (output 0), then in=0 goes to C (output 0), then in=1 goes to D (output 1). The expected outputs [0,0,0,1] match this only if the initial state is A. However, the example does not include a reset vector to establish state A, and the contract's reset rule says reset is synchronous active high. A plausible alternative interpretation is that the example assumes the FSM is already in state A at the start of the vector list (e.g., after a prior reset), but this is not stated. A distinguishing sequence: if the FSM were in state B initially, the same inputs would yield outputs [0,0,0,1] as well? Let's check: from B, in=1 -> B (0), in=1 -> B (0), in=0 -> C (0), in=1 -> D (1). Same outputs. From C: in=1 -> D (1) immediately, so first output would be 1, differing. From D: in=1 -> B (0), then in=1 -> B (0), in=0 -> C (0), in=1 -> D (1) -> outputs [0,0,0,1] also same. So the example does not distinguish initial state A from B or D. This is an ambiguity in the example's initial state assumption.",
+      "spec_evidence": "// A | A, B | 0\n// B | C, B | 0\n// C | A, D | 0\n// D | C, B | 1",
+      "alternative": "The R_TRANS example may be interpreted as starting from an unspecified initial state (not necessarily A), or as requiring an implicit reset before the vectors. A concrete alternative semantics: the example vectors are applied starting from state A without an explicit reset vector, assuming the FSM powers up in A. Under this interpretation, the sequence [reset=0,in=1], [reset=0,in=1], [reset=0,in=0], [reset=0,in=1] yields outputs [0,0,0,1] as given. Under a different interpretation where the FSM starts in state C, the same sequence would yield [1,0,0,1] (first output 1 from C with in=1 -> D).",
+      "sequence": [
+        {"reset": 0, "in": 1},
+        {"reset": 0, "in": 1},
+        {"reset": 0, "in": 0},
+        {"reset": 0, "in": 1}
+      ]
+    },
+    {
+      "issue_id": "I2",
+      "rule_id": "R_RESET",
+      "type": "consistency",
+      "severity": "medium",
+      "detail": "R_RESET example vectors include reset=1 for two cycles then reset=0. The expected outputs are all 0. However, the contract states reset is synchronous active high and resets to state A. The example does not show the state after reset release, but the outputs are consistent with state A (output 0). No contradiction, but the example does not verify that the state is actually A after reset; it only checks output 0, which is also the output for states B and C. Thus the example is insufficient to confirm reset behavior.",
+      "spec_evidence": "Include a synchronous active high reset that resets the FSM to state A.",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I3",
+      "rule_id": "R_A",
+      "type": "consistency",
+      "severity": "low",
+      "detail": "R_A example vectors are all reset=0 and in varying, with expected out=0. This is consistent with state A output 0, but the example does not include a reset to ensure the FSM is in state A. The vectors could be applied from any state that outputs 0 (A, B, or C) and still produce out=0 for the given inputs? Check: from B, in=0 -> C (0), in=1 -> B (0), in=0 -> C (0) -> outputs all 0. From C, in=0 -> A (0), in=1 -> D (1) -> second output would be 1, so not all 0. So the example does distinguish A/B from C? Actually from C with in=1 gives D output 1, so expected second output 0 would fail. Thus the example implicitly assumes state A or B. But R_A is specifically for state A. The example does not force state A. This is a minor grounding issue.",
+      "spec_evidence": "// A | A, B | 0",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I4",
+      "rule_id": "R_B",
+      "type": "consistency",
+      "severity": "low",
+      "detail": "R_B example vectors all reset=0, expected out=0. From state B, in=0 -> C (0), in=1 -> B (0), in=0 -> C (0) -> outputs all 0. From state A, in=0 -> A (0), in=1 -> B (0), in=0 -> A (0) -> also all 0. So the example does not distinguish state B from state A. Minor.",
+      "spec_evidence": "// B | C, B | 0",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I5",
+      "rule_id": "R_C",
+      "type": "consistency",
+      "severity": "low",
+      "detail": "R_C example vectors all reset=0, expected out=0. From state C, in=0 -> A (0), in=1 -> D (1) -> second output would be 1, but expected is 0. This is a contradiction: the example for R_C claims expected outputs [0,0,0] for vectors [in=0, in=1, in=0] starting from state C. But according to the state table, from C with in=1, next state is D, and output for D is 1. Since output is Moore (combinational based on state), the output in the cycle after transitioning to D should be 1. The example's second expected output is 0, which contradicts the state table. This is a material consistency issue.",
+      "spec_evidence": "// C | A, D | 0\n// D | C, B | 1",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I6",
+      "rule_id": "R_D",
+      "type": "consistency",
+      "severity": "low",
+      "detail": "R_D example vectors all reset=0, expected out=1 for all three cycles. From state D, in=0 -> C (0), so the first output should be 1 (state D), but after first cycle with in=0, next state is C, output 0. The example expects out=1 for all three cycles, which would require staying in D. But from D, in=0 goes to C, in=1 goes to B. Neither stays in D. So the example is inconsistent with the state table. This is a material consistency issue.",
+      "spec_evidence": "// D | C, B | 1",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I7",
+      "rule_id": "global",
+      "type": "grounding",
+      "severity": "medium",
+      "detail": "The contract's R_TRANS example expected outputs [0,0,0,1] for vectors [in=1, in=1, in=0, in=1] starting from reset=0. If we assume initial state A (as per reset), the sequence is: start A, in=1 -> B (out 0), in=1 -> B (out 0), in=0 -> C (out 0), in=1 -> D (out 1). This matches. However, the example does not include a reset vector to establish state A, and the contract's reset rule says reset is synchronous. The example is thus not fully grounded in the spec because it assumes an initial state without showing how it is reached. This is a grounding issue.",
+      "spec_evidence": "Include a synchronous active high reset that resets the FSM to state A.",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I8",
+      "rule_id": "global",
+      "type": "spec_example",
+      "severity": "high",
+      "detail": "Deriving outputs for the explicit spec state table: Starting from state A (after reset), apply inputs in=0,1,0,1,0,1,... The Moore outputs are determined by current state. Sequence: reset to A (out 0). Then in=0 -> A (out 0), in=1 -> B (out 0), in=0 -> C (out 0), in=1 -> D (out 1), in=0 -> C (out 0), in=1 -> D (out 1), etc. The contract's R_TRANS example uses inputs 1,1,0,1 from A: A->B (0), B->B (0), B->C (0), C->D (1) -> outputs [0,0,0,1] matches. However, the contract's R_C example is inconsistent as noted in I5. Also, the contract's R_D example is inconsistent as noted in I6. These are material spec_example issues.",
+      "spec_evidence": "// A | A, B | 0\n// B | C, B | 0\n// C | A, D | 0\n// D | C, B | 1",
+      "alternative": "",
+      "sequence": []
+    }
+  ]
+}

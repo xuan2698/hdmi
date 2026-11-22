@@ -1,0 +1,132 @@
+{
+  "responses": [
+    {
+      "issue_id": "I01",
+      "decision": "accept",
+      "reason": "The spec_quote for hold_when_a_high is a row with a=0, which does not support the condition a==1. Replace it with a verbatim row where a=1 and q holds.",
+      "spec_quote": "// 15ns            1               1               4",
+      "edits": [
+        {
+          "path": ["rules", "hold_when_a_high", "spec_quote"],
+          "value": "// 15ns            1               1               4"
+        }
+      ]
+    },
+    {
+      "issue_id": "I02",
+      "decision": "accept",
+      "reason": "The increment_when_a_low example starts from q=5, but the quoted 55ns row shows q becoming 5 from 4. Adjust the example to start from q=4 so the first expected value is 5, matching the quote.",
+      "spec_quote": "// 55ns            1               0               5",
+      "edits": [
+        {
+          "path": ["rules", "increment_when_a_low", "example"],
+          "value": {
+            "vectors": [{"a": 0}, {"a": 0}, {"a": 0}],
+            "expected": [{"q": 5}, {"q": 6}, {"q": 0}]
+          }
+        }
+      ]
+    },
+    {
+      "issue_id": "I03",
+      "decision": "accept",
+      "reason": "The hold_when_a_high rule's quote contradicts its example. After fixing the quote to a=1 row, the example is consistent; no further change needed beyond I01, but this issue is resolved by that edit.",
+      "spec_quote": "// 5ns             1               1               4",
+      "edits": [
+        {
+          "path": ["rules", "hold_when_a_high", "spec_quote"],
+          "value": "// 15ns            1               1               4"
+        }
+      ]
+    },
+    {
+      "issue_id": "I04",
+      "decision": "rebut",
+      "reason": "The example for increment_when_a_low is consistent with the spec: starting from q=4, three a=0 posedges yield 5,6,0 as shown at 55ns, 65ns, and 75ns. The issue itself concludes it is not material.",
+      "spec_quote": "// 55ns            1               0               5\n// 65ns            1               0               6\n// 75ns            1               0               0",
+      "edits": []
+    },
+    {
+      "issue_id": "I05",
+      "decision": "accept",
+      "reason": "The spec shows q=4 at the first posedge with a=1 from x, indicating an initial value of 4 rather than an undefined hold. Add a reset/initialization to 4 at time 0.",
+      "spec_quote": "// 5ns             1               1               4",
+      "edits": [
+        {
+          "path": ["reset"],
+          "value": {
+            "kind": "initial",
+            "name": "init",
+            "active": "none",
+            "values": {"q": 4},
+            "first_released_cycle": "0ns"
+          }
+        }
+      ]
+    },
+    {
+      "issue_id": "I06",
+      "decision": "accept",
+      "reason": "Same ambiguity as I05: the spec implies q initializes to 4. The reset edit from I05 resolves this; no additional change needed.",
+      "spec_quote": "// 0ns             0               1               x\n// 5ns             1               1               4",
+      "edits": [
+        {
+          "path": ["reset"],
+          "value": {
+            "kind": "initial",
+            "name": "init",
+            "active": "none",
+            "values": {"q": 4},
+            "first_released_cycle": "0ns"
+          }
+        }
+      ]
+    },
+    {
+      "issue_id": "I07",
+      "decision": "accept",
+      "reason": "At 45ns, a=0 but q remains 4, contradicting unconditional increment when a=0. The waveform shows increment begins only after the first a=0 posedge following a=1 hold; specifically, at 45ns q holds despite a=0. Add a condition that increment occurs when a=0 and q is not 4 after a hold, or more simply, the first a=0 after a=1 does not increment. Model as: increment when a=0 and previous a was 0, or when q != 4? The spec shows at 45ns a=0, q=4 holds; at 55ns a=0, q=4->5 increments. The distinguishing factor is that 45ns is the first a=0 posedge after a=1, while 55ns is the second consecutive a=0 posedge. So increment when a=0 and previous a was 0 (i.e., second consecutive a=0). Update rule condition.",
+      "spec_quote": "// 45ns            1               0               4\n// 55ns            1               0               5",
+      "edits": [
+        {
+          "path": ["rules", "increment_when_a_low", "condition"],
+          "value": "a == 0 and prev_a == 0"
+        },
+        {
+          "path": ["rules", "hold_when_a_high", "condition"],
+          "value": "a == 1 or (a == 0 and prev_a == 1)"
+        }
+      ]
+    },
+    {
+      "issue_id": "I08",
+      "decision": "accept",
+      "reason": "Same as I07: the 45ns row is a counterexample to unconditional increment when a=0. The condition edit from I07 resolves it.",
+      "spec_quote": "// 40ns            0               1               4\n// 45ns            1               0               4",
+      "edits": [
+        {
+          "path": ["rules", "increment_when_a_low", "condition"],
+          "value": "a == 0 and prev_a == 0"
+        }
+      ]
+    },
+    {
+      "issue_id": "I09",
+      "decision": "accept",
+      "reason": "The x->4 transition at 5ns is explained by initialization to 4, not by hold. The reset edit from I05 resolves this; the hold rule applies only after initialization.",
+      "spec_quote": "// 0ns             0               1               x\n// 5ns             1               1               4",
+      "edits": [
+        {
+          "path": ["reset"],
+          "value": {
+            "kind": "initial",
+            "name": "init",
+            "active": "none",
+            "values": {"q": 4},
+            "first_released_cycle": "0ns"
+          }
+        }
+      ]
+    }
+  ]
+}

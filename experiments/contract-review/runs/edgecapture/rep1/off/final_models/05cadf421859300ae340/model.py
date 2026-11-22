@@ -1,0 +1,20 @@
+def reference(vectors):
+    # State: out_reg (32-bit sticky flag), prev_in (32-bit previous input)
+    out_reg = 0
+    prev_in = 0
+    results = []
+    for row in vectors:
+        reset = row['reset'] & 1
+        inp = row['in'] & 0xFFFFFFFF
+        # R1_reset_clear: synchronous reset clears out_reg (priority 1)
+        if reset == 1:
+            out_reg = 0
+        else:
+            # R2_capture_falling_edge: set bits where prev_in=1 and in=0
+            # R3_hold_until_reset: otherwise hold
+            falling = prev_in & (~inp & 0xFFFFFFFF)
+            out_reg = out_reg | falling
+        # R4_prev_in_tracks_all_cycles: prev_in updates every posedge
+        prev_in = inp
+        results.append({'out': out_reg & 0xFFFFFFFF})
+    return results

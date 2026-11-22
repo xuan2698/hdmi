@@ -1,0 +1,26 @@
+```python
+def reference(vectors):
+    out_reg = 0
+    prev_in = 0
+    results = []
+    for row in vectors:
+        reset = row.get('reset', 0) & 1
+        inp = row.get('in', 0) & 0xFFFFFFFF
+        # posedge sampling
+        if reset:
+            out_reg = 0
+            # prev_in holds during reset
+        else:
+            falling = prev_in & (~inp & 0xFFFFFFFF)
+            out_reg = out_reg | falling
+            prev_in = inp
+        results.append({'out': out_reg & 0xFFFFFFFF})
+        # mid changes after sampling, carried to next row
+        if 'mid' in row and row['mid']:
+            mid = row['mid']
+            if 'in' in mid:
+                inp = mid['in'] & 0xFFFFFFFF
+            if 'reset' in mid:
+                reset = mid['reset'] & 1
+    return results
+```

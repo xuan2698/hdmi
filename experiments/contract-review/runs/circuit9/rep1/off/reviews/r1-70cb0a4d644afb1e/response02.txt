@@ -1,0 +1,92 @@
+{
+  "coverage": {
+    "S01": ["global"],
+    "S02": ["global"],
+    "S03": ["global"],
+    "S04": ["global"],
+    "S05": ["hold_when_a_high"],
+    "S06": ["hold_when_a_high"],
+    "S07": ["hold_when_a_high"],
+    "S08": ["hold_when_a_high"],
+    "S09": ["hold_when_a_high"],
+    "S10": ["hold_when_a_high"],
+    "S11": ["hold_when_a_high"],
+    "S12": ["hold_when_a_high"],
+    "S13": ["hold_when_a_high"],
+    "S14": ["hold_when_a_high"],
+    "S15": ["increment_when_a_low"],
+    "S16": ["increment_when_a_low"],
+    "S17": ["increment_when_a_low"],
+    "S18": ["increment_when_a_low"],
+    "S19": ["increment_when_a_low"],
+    "S20": ["increment_when_a_low"],
+    "S21": ["increment_when_a_low"],
+    "S22": ["increment_when_a_low"]
+  },
+  "issues": [
+    {
+      "issue_id": "I01",
+      "rule_id": "hold_when_a_high",
+      "type": "grounding",
+      "severity": "high",
+      "detail": "The rule's spec_quote is not verbatim from the indexed specification. The exact line at 45ns is '// 45ns            1               0               4' (with comment prefix and spacing), but the rule quotes '45ns            1               0               4' without the '// ' prefix and with different spacing. No verbatim evidence supports the rule as written.",
+      "spec_evidence": "// 45ns            1               0               4",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I02",
+      "rule_id": "increment_when_a_low",
+      "type": "grounding",
+      "severity": "high",
+      "detail": "The rule's spec_quote is not verbatim from the indexed specification. The exact line at 55ns is '// 55ns            1               0               5' (with comment prefix and spacing), but the rule quotes '55ns            1               0               5' without the '// ' prefix and with different spacing. No verbatim evidence supports the rule as written.",
+      "spec_evidence": "// 55ns            1               0               5",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I03",
+      "rule_id": "hold_when_a_high",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "The rule condition 'a == 1' with edge 'posedge' and visible 'next_cycle' contradicts the spec waveform. At 45ns (posedge) a=0, not 1, yet q holds at 4. The hold behavior in the spec occurs when a=0 at 45ns, not when a=1. The rule's example also uses a=1 vectors and expects hold, but the spec shows hold at 45ns with a=0. This is a direct contradiction between the rule's condition and the spec evidence.",
+      "spec_evidence": "// 45ns            1               0               4",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I04",
+      "rule_id": "increment_when_a_low",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "The rule condition 'a == 0' with edge 'posedge' and visible 'next_cycle' contradicts the spec waveform. At 55ns (posedge) a=0 and q increments from 4 to 5, which matches. However, at 45ns (posedge) a=0 and q holds at 4, not increments. The spec shows that when a=0 at 45ns, q holds; when a=0 at 55ns, q increments. The rule claims increment whenever a=0 on posedge, but the spec shows a hold at 45ns with a=0. This is a contradiction.",
+      "spec_evidence": "// 45ns            1               0               4",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I05",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "high",
+      "detail": "The spec waveform shows q holding at 4 from 5ns through 45ns while a=1, then at 45ns a=0 and q holds at 4, then at 55ns a=0 and q increments to 5. This suggests the circuit may be a counter that increments when a=0 only after a previous a=1? Or perhaps it increments on the falling edge of a? The contract's rules (hold when a=1, increment when a=0) do not explain why q holds at 45ns when a=0. An alternative semantics: q increments on posedge when a=0 AND the previous value of a was 1 (i.e., detects a falling edge of a). Under this alternative, at 45ns a goes from 1 to 0 (falling edge), so q would increment, but spec shows hold. Another alternative: q increments on posedge when a=0 AND q is not 4? That is ad hoc. A more plausible alternative: the circuit is a counter that increments on posedge when a=0, but there is an initial hold due to reset or initialization? The spec shows q=x at 0ns, then 4 at 5ns. At 5ns posedge, a=1, q becomes 4. That suggests q is loaded with 4 when a=1? But then holds. At 45ns a=0, q holds at 4. At 55ns a=0, q increments to 5. So the first posedge with a=0 after a long period of a=1 does not increment, but the second does. This could be a counter that increments when a=0 and the previous a was also 0? At 45ns previous a was 1, so hold; at 55ns previous a was 0 (since 45-50 a=0), so increment. That fits: increment when a=0 and previous a=0. But then at 65ns a=0, previous a=0 (55-60 a=0), so increment to 6, matches. At 75ns a=0, previous a=0 (65-70 a=0), so increment to 0 (6+1=7? but spec shows 0, so 6+1=7 mod 8 =7, not 0. Wait spec: 65ns q=6, 75ns q=0. 6+1=7, not 0. So that doesn't fit. Let's re-examine: 55ns q=5, 65ns q=6, 75ns q=0, 85ns q=1. So increments: 5->6 (+1), 6->0 (+2 mod 8? 6+2=8=0), 0->1 (+1). Not consistent. Maybe it's a counter that increments by 1 when a=0, but at 75ns it wraps from 6 to 0? That would be +2. So maybe it's not a simple counter. The spec waveform is inconsistent with a simple counter. The contract's rules are insufficient to explain the waveform. A concrete distinguishing sequence: apply a=0 at a posedge when q=4 and previous a=1 (like at 45ns) and see if q holds or increments. The contract says increment, spec says hold. So the contract is wrong. This is an ambiguity/contradiction.",
+      "spec_evidence": "// 45ns            1               0               4",
+      "alternative": "The circuit holds q when a=0 and the previous value of a was 1 (i.e., on the first posedge after a falling edge of a), and increments when a=0 and the previous value of a was 0.",
+      "sequence": [
+        {"a": 1},
+        {"a": 0},
+        {"a": 0}
+      ]
+    },
+    {
+      "issue_id": "I06",
+      "rule_id": "global",
+      "type": "spec_example",
+      "severity": "high",
+      "detail": "Deriving outputs from the explicit spec waveform using the contract's rules yields contradictions. The contract says: hold when a=1 on posedge, increment when a=0 on posedge. Starting from q=x at 0ns. At 5ns posedge a=1: hold? But q is x, so hold would keep x, but spec shows q=4. So the contract does not specify initial value or load. The contract's reset is none, so q is undefined initially. The spec shows q becomes 4 at 5ns when a=1. The contract's hold rule would not produce 4 from x. So the contract fails to explain the first transition. Also, at 45ns posedge a=0: contract says increment, so q should become 5, but spec shows q=4. At 55ns posedge a=0: contract says increment, q becomes 5 (if it were 4), matches. At 65ns posedge a=0: increment to 6, matches. At 75ns posedge a=0: increment to 7, but spec shows 0. So the contract's increment rule (mod 8?) would give 7, not 0. The contract does not specify modulo behavior. The example in increment_when_a_low shows expected [5,6,0] for three a=0 vectors, implying modulo 8 wrap from 6 to 0? But 6+1=7, not 0. So the example itself is inconsistent: if starting at 5, after three increments: 5->6->7->0, but example says 5->6->0, skipping 7. That is a contradiction between the rule's example and the rule's stated behavior (increment by 1). The example expected [5,6,0] suggests increment by 1 then by 2? Or modulo 7? This is a material inconsistency.",
+      "spec_evidence": "// 75ns            1               0               0",
+      "alternative": "",
+      "sequence": []
+    }
+  ]
+}

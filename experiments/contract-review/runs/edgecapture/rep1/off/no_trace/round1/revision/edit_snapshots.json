@@ -1,0 +1,1387 @@
+[
+  {
+    "issue_id": "I1",
+    "before": {
+      "ports": {
+        "inputs": {
+          "reset": 1,
+          "in": 32
+        },
+        "outputs": {
+          "out": 32
+        },
+        "clock": "clk"
+      },
+      "states": [
+        {
+          "name": "out_reg",
+          "meaning": "Per-bit sticky flag: set to 1 when the corresponding input bit transitions from 1 to 0; held at 1 until synchronous reset.",
+          "update_time": "posedge clk",
+          "update_during_reset": true
+        }
+      ],
+      "rules": [
+        {
+          "id": "R1_reset_clear",
+          "outputs": [
+            "out"
+          ],
+          "condition": "reset == 1",
+          "edge": "posedge",
+          "visible": "same_cycle",
+          "priority": 1,
+          "spec_quote": "reset (active high synchronous reset)",
+          "uncertain": false,
+          "example": {
+            "vectors": [
+              {
+                "reset": 1,
+                "in": 4294967295
+              },
+              {
+                "reset": 0,
+                "in": 4294967295
+              },
+              {
+                "reset": 0,
+                "in": 0
+              }
+            ],
+            "expected": [
+              {
+                "out": 0
+              },
+              {
+                "out": 0
+              },
+              {
+                "out": 4294967295
+              }
+            ]
+          }
+        },
+        {
+          "id": "R2_capture_falling_edge",
+          "outputs": [
+            "out"
+          ],
+          "condition": "reset == 0 && (prev_in & ~in) != 0",
+          "edge": "posedge",
+          "visible": "next_cycle",
+          "priority": 2,
+          "spec_quote": "capture when the input signal changes from 1 in one clock cycle to 0 the next",
+          "uncertain": false,
+          "example": {
+            "vectors": [
+              {
+                "reset": 0,
+                "in": 4294967295
+              },
+              {
+                "reset": 0,
+                "in": 0
+              },
+              {
+                "reset": 0,
+                "in": 0
+              }
+            ],
+            "expected": [
+              {
+                "out": 0
+              },
+              {
+                "out": 0
+              },
+              {
+                "out": 4294967295
+              }
+            ]
+          }
+        },
+        {
+          "id": "R3_hold_until_reset",
+          "outputs": [
+            "out"
+          ],
+          "condition": "reset == 0 && (prev_in & ~in) == 0",
+          "edge": "posedge",
+          "visible": "next_cycle",
+          "priority": 3,
+          "spec_quote": "the output will remain 1 until the register is reset",
+          "uncertain": false,
+          "example": {
+            "vectors": [
+              {
+                "reset": 0,
+                "in": 4294967295
+              },
+              {
+                "reset": 0,
+                "in": 0
+              },
+              {
+                "reset": 0,
+                "in": 4294967295
+              },
+              {
+                "reset": 0,
+                "in": 4294967295
+              }
+            ],
+            "expected": [
+              {
+                "out": 0
+              },
+              {
+                "out": 0
+              },
+              {
+                "out": 4294967295
+              },
+              {
+                "out": 4294967295
+              }
+            ]
+          }
+        }
+      ],
+      "reset": {
+        "kind": "sync",
+        "name": "reset",
+        "active": "high",
+        "values": {
+          "out": 0
+        },
+        "first_released_cycle": "cycle after reset deasserts at a posedge clk"
+      },
+      "mid": "Optional mid input changes occur AFTER sampling, before the other edge, and are carried to the start of the next row.",
+      "uncertain": []
+    },
+    "after": {
+      "ports": {
+        "inputs": {
+          "reset": 1,
+          "in": 32
+        },
+        "outputs": {
+          "out": 32
+        },
+        "clock": "clk"
+      },
+      "states": [
+        {
+          "name": "out_reg",
+          "meaning": "Per-bit sticky flag: set to 1 when the corresponding input bit transitions from 1 to 0; held at 1 until synchronous reset.",
+          "update_time": "posedge clk",
+          "update_during_reset": true
+        }
+      ],
+      "rules": [
+        {
+          "id": "R1_reset_clear",
+          "outputs": [
+            "out"
+          ],
+          "condition": "reset == 1",
+          "edge": "posedge",
+          "visible": "same_cycle",
+          "priority": 1,
+          "spec_quote": "reset (active high synchronous reset)",
+          "uncertain": false,
+          "example": {
+            "vectors": [
+              {
+                "reset": 1,
+                "in": 4294967295
+              },
+              {
+                "reset": 0,
+                "in": 4294967295
+              },
+              {
+                "reset": 0,
+                "in": 0
+              }
+            ],
+            "expected": [
+              {
+                "out": 0
+              },
+              {
+                "out": 0
+              },
+              {
+                "out": 4294967295
+              }
+            ]
+          }
+        },
+        {
+          "id": "R2_capture_falling_edge",
+          "outputs": [
+            "out"
+          ],
+          "condition": "reset == 0 && (prev_in & ~in) != 0",
+          "edge": "posedge",
+          "visible": "same_cycle",
+          "priority": 2,
+          "spec_quote": "capture when the input signal changes from 1 in one clock cycle to 0 the next",
+          "uncertain": false,
+          "example": {
+            "vectors": [
+              {
+                "reset": 0,
+                "in": 4294967295
+              },
+              {
+                "reset": 0,
+                "in": 0
+              },
+              {
+                "reset": 0,
+                "in": 0
+              }
+            ],
+            "expected": [
+              {
+                "out": 0
+              },
+              {
+                "out": 0
+              },
+              {
+                "out": 4294967295
+              }
+            ]
+          }
+        },
+        {
+          "id": "R3_hold_until_reset",
+          "outputs": [
+            "out"
+          ],
+          "condition": "reset == 0 && (prev_in & ~in) == 0",
+          "edge": "posedge",
+          "visible": "next_cycle",
+          "priority": 3,
+          "spec_quote": "the output will remain 1 until the register is reset",
+          "uncertain": false,
+          "example": {
+            "vectors": [
+              {
+                "reset": 0,
+                "in": 4294967295
+              },
+              {
+                "reset": 0,
+                "in": 0
+              },
+              {
+                "reset": 0,
+                "in": 4294967295
+              },
+              {
+                "reset": 0,
+                "in": 4294967295
+              }
+            ],
+            "expected": [
+              {
+                "out": 0
+              },
+              {
+                "out": 0
+              },
+              {
+                "out": 4294967295
+              },
+              {
+                "out": 4294967295
+              }
+            ]
+          }
+        }
+      ],
+      "reset": {
+        "kind": "sync",
+        "name": "reset",
+        "active": "high",
+        "values": {
+          "out": 0
+        },
+        "first_released_cycle": "cycle after reset deasserts at a posedge clk"
+      },
+      "mid": "Optional mid input changes occur AFTER sampling, before the other edge, and are carried to the start of the next row.",
+      "uncertain": []
+    }
+  },
+  {
+    "issue_id": "I2",
+    "before": {
+      "ports": {
+        "inputs": {
+          "reset": 1,
+          "in": 32
+        },
+        "outputs": {
+          "out": 32
+        },
+        "clock": "clk"
+      },
+      "states": [
+        {
+          "name": "out_reg",
+          "meaning": "Per-bit sticky flag: set to 1 when the corresponding input bit transitions from 1 to 0; held at 1 until synchronous reset.",
+          "update_time": "posedge clk",
+          "update_during_reset": true
+        }
+      ],
+      "rules": [
+        {
+          "id": "R1_reset_clear",
+          "outputs": [
+            "out"
+          ],
+          "condition": "reset == 1",
+          "edge": "posedge",
+          "visible": "same_cycle",
+          "priority": 1,
+          "spec_quote": "reset (active high synchronous reset)",
+          "uncertain": false,
+          "example": {
+            "vectors": [
+              {
+                "reset": 1,
+                "in": 4294967295
+              },
+              {
+                "reset": 0,
+                "in": 4294967295
+              },
+              {
+                "reset": 0,
+                "in": 0
+              }
+            ],
+            "expected": [
+              {
+                "out": 0
+              },
+              {
+                "out": 0
+              },
+              {
+                "out": 4294967295
+              }
+            ]
+          }
+        },
+        {
+          "id": "R2_capture_falling_edge",
+          "outputs": [
+            "out"
+          ],
+          "condition": "reset == 0 && (prev_in & ~in) != 0",
+          "edge": "posedge",
+          "visible": "same_cycle",
+          "priority": 2,
+          "spec_quote": "capture when the input signal changes from 1 in one clock cycle to 0 the next",
+          "uncertain": false,
+          "example": {
+            "vectors": [
+              {
+                "reset": 0,
+                "in": 4294967295
+              },
+              {
+                "reset": 0,
+                "in": 0
+              },
+              {
+                "reset": 0,
+                "in": 0
+              }
+            ],
+            "expected": [
+              {
+                "out": 0
+              },
+              {
+                "out": 0
+              },
+              {
+                "out": 4294967295
+              }
+            ]
+          }
+        },
+        {
+          "id": "R3_hold_until_reset",
+          "outputs": [
+            "out"
+          ],
+          "condition": "reset == 0 && (prev_in & ~in) == 0",
+          "edge": "posedge",
+          "visible": "next_cycle",
+          "priority": 3,
+          "spec_quote": "the output will remain 1 until the register is reset",
+          "uncertain": false,
+          "example": {
+            "vectors": [
+              {
+                "reset": 0,
+                "in": 4294967295
+              },
+              {
+                "reset": 0,
+                "in": 0
+              },
+              {
+                "reset": 0,
+                "in": 4294967295
+              },
+              {
+                "reset": 0,
+                "in": 4294967295
+              }
+            ],
+            "expected": [
+              {
+                "out": 0
+              },
+              {
+                "out": 0
+              },
+              {
+                "out": 4294967295
+              },
+              {
+                "out": 4294967295
+              }
+            ]
+          }
+        }
+      ],
+      "reset": {
+        "kind": "sync",
+        "name": "reset",
+        "active": "high",
+        "values": {
+          "out": 0
+        },
+        "first_released_cycle": "cycle after reset deasserts at a posedge clk"
+      },
+      "mid": "Optional mid input changes occur AFTER sampling, before the other edge, and are carried to the start of the next row.",
+      "uncertain": []
+    },
+    "after": {
+      "ports": {
+        "inputs": {
+          "reset": 1,
+          "in": 32
+        },
+        "outputs": {
+          "out": 32
+        },
+        "clock": "clk"
+      },
+      "states": [
+        {
+          "name": "out_reg",
+          "meaning": "Per-bit sticky flag: set to 1 when the corresponding input bit transitions from 1 to 0; held at 1 until synchronous reset.",
+          "update_time": "posedge clk",
+          "update_during_reset": true
+        }
+      ],
+      "rules": [
+        {
+          "id": "R1_reset_clear",
+          "outputs": [
+            "out"
+          ],
+          "condition": "reset == 1",
+          "edge": "posedge",
+          "visible": "same_cycle",
+          "priority": 1,
+          "spec_quote": "reset (active high synchronous reset)",
+          "uncertain": false,
+          "example": {
+            "vectors": [
+              {
+                "reset": 1,
+                "in": 4294967295
+              },
+              {
+                "reset": 0,
+                "in": 4294967295
+              },
+              {
+                "reset": 0,
+                "in": 0
+              }
+            ],
+            "expected": [
+              {
+                "out": 0
+              },
+              {
+                "out": 0
+              },
+              {
+                "out": 4294967295
+              }
+            ]
+          }
+        },
+        {
+          "id": "R2_capture_falling_edge",
+          "outputs": [
+            "out"
+          ],
+          "condition": "reset == 0 && (prev_in & ~in) != 0",
+          "edge": "posedge",
+          "visible": "same_cycle",
+          "priority": 2,
+          "spec_quote": "capture when the input signal changes from 1 in one clock cycle to 0 the next",
+          "uncertain": false,
+          "example": {
+            "vectors": [
+              {
+                "reset": 0,
+                "in": 4294967295
+              },
+              {
+                "reset": 0,
+                "in": 0
+              },
+              {
+                "reset": 0,
+                "in": 0
+              }
+            ],
+            "expected": [
+              {
+                "out": 0
+              },
+              {
+                "out": 0
+              },
+              {
+                "out": 4294967295
+              }
+            ]
+          }
+        },
+        {
+          "id": "R3_hold_until_reset",
+          "outputs": [
+            "out"
+          ],
+          "condition": "reset == 0 && (prev_in & ~in) == 0",
+          "edge": "posedge",
+          "visible": "same_cycle",
+          "priority": 3,
+          "spec_quote": "the output will remain 1 until the register is reset",
+          "uncertain": false,
+          "example": {
+            "vectors": [
+              {
+                "reset": 0,
+                "in": 4294967295
+              },
+              {
+                "reset": 0,
+                "in": 0
+              },
+              {
+                "reset": 0,
+                "in": 4294967295
+              },
+              {
+                "reset": 0,
+                "in": 4294967295
+              }
+            ],
+            "expected": [
+              {
+                "out": 0
+              },
+              {
+                "out": 0
+              },
+              {
+                "out": 4294967295
+              },
+              {
+                "out": 4294967295
+              }
+            ]
+          }
+        }
+      ],
+      "reset": {
+        "kind": "sync",
+        "name": "reset",
+        "active": "high",
+        "values": {
+          "out": 0
+        },
+        "first_released_cycle": "cycle after reset deasserts at a posedge clk"
+      },
+      "mid": "Optional mid input changes occur AFTER sampling, before the other edge, and are carried to the start of the next row.",
+      "uncertain": []
+    }
+  },
+  {
+    "issue_id": "I4",
+    "before": {
+      "ports": {
+        "inputs": {
+          "reset": 1,
+          "in": 32
+        },
+        "outputs": {
+          "out": 32
+        },
+        "clock": "clk"
+      },
+      "states": [
+        {
+          "name": "out_reg",
+          "meaning": "Per-bit sticky flag: set to 1 when the corresponding input bit transitions from 1 to 0; held at 1 until synchronous reset.",
+          "update_time": "posedge clk",
+          "update_during_reset": true
+        }
+      ],
+      "rules": [
+        {
+          "id": "R1_reset_clear",
+          "outputs": [
+            "out"
+          ],
+          "condition": "reset == 1",
+          "edge": "posedge",
+          "visible": "same_cycle",
+          "priority": 1,
+          "spec_quote": "reset (active high synchronous reset)",
+          "uncertain": false,
+          "example": {
+            "vectors": [
+              {
+                "reset": 1,
+                "in": 4294967295
+              },
+              {
+                "reset": 0,
+                "in": 4294967295
+              },
+              {
+                "reset": 0,
+                "in": 0
+              }
+            ],
+            "expected": [
+              {
+                "out": 0
+              },
+              {
+                "out": 0
+              },
+              {
+                "out": 4294967295
+              }
+            ]
+          }
+        },
+        {
+          "id": "R2_capture_falling_edge",
+          "outputs": [
+            "out"
+          ],
+          "condition": "reset == 0 && (prev_in & ~in) != 0",
+          "edge": "posedge",
+          "visible": "same_cycle",
+          "priority": 2,
+          "spec_quote": "capture when the input signal changes from 1 in one clock cycle to 0 the next",
+          "uncertain": false,
+          "example": {
+            "vectors": [
+              {
+                "reset": 0,
+                "in": 4294967295
+              },
+              {
+                "reset": 0,
+                "in": 0
+              },
+              {
+                "reset": 0,
+                "in": 0
+              }
+            ],
+            "expected": [
+              {
+                "out": 0
+              },
+              {
+                "out": 0
+              },
+              {
+                "out": 4294967295
+              }
+            ]
+          }
+        },
+        {
+          "id": "R3_hold_until_reset",
+          "outputs": [
+            "out"
+          ],
+          "condition": "reset == 0 && (prev_in & ~in) == 0",
+          "edge": "posedge",
+          "visible": "same_cycle",
+          "priority": 3,
+          "spec_quote": "the output will remain 1 until the register is reset",
+          "uncertain": false,
+          "example": {
+            "vectors": [
+              {
+                "reset": 0,
+                "in": 4294967295
+              },
+              {
+                "reset": 0,
+                "in": 0
+              },
+              {
+                "reset": 0,
+                "in": 4294967295
+              },
+              {
+                "reset": 0,
+                "in": 4294967295
+              }
+            ],
+            "expected": [
+              {
+                "out": 0
+              },
+              {
+                "out": 0
+              },
+              {
+                "out": 4294967295
+              },
+              {
+                "out": 4294967295
+              }
+            ]
+          }
+        }
+      ],
+      "reset": {
+        "kind": "sync",
+        "name": "reset",
+        "active": "high",
+        "values": {
+          "out": 0
+        },
+        "first_released_cycle": "cycle after reset deasserts at a posedge clk"
+      },
+      "mid": "Optional mid input changes occur AFTER sampling, before the other edge, and are carried to the start of the next row.",
+      "uncertain": []
+    },
+    "after": {
+      "ports": {
+        "inputs": {
+          "reset": 1,
+          "in": 32
+        },
+        "outputs": {
+          "out": 32
+        },
+        "clock": "clk"
+      },
+      "states": [
+        {
+          "name": "out_reg",
+          "meaning": "Per-bit sticky flag: set to 1 when the corresponding input bit transitions from 1 to 0; held at 1 until synchronous reset.",
+          "update_time": "posedge clk",
+          "update_during_reset": true
+        }
+      ],
+      "rules": [
+        {
+          "id": "R1_reset_clear",
+          "outputs": [
+            "out"
+          ],
+          "condition": "reset == 1",
+          "edge": "posedge",
+          "visible": "same_cycle",
+          "priority": 1,
+          "spec_quote": "reset (active high synchronous reset)",
+          "uncertain": false,
+          "example": {
+            "vectors": [
+              {
+                "reset": 1,
+                "in": 4294967295
+              },
+              {
+                "reset": 0,
+                "in": 4294967295
+              },
+              {
+                "reset": 0,
+                "in": 0
+              }
+            ],
+            "expected": [
+              {
+                "out": 0
+              },
+              {
+                "out": 0
+              },
+              {
+                "out": 4294967295
+              }
+            ]
+          }
+        },
+        {
+          "id": "R2_capture_falling_edge",
+          "outputs": [
+            "out"
+          ],
+          "condition": "reset == 0 && (prev_in & ~in) != 0",
+          "edge": "posedge",
+          "visible": "same_cycle",
+          "priority": 2,
+          "spec_quote": "capture when the input signal changes from 1 in one clock cycle to 0 the next",
+          "uncertain": false,
+          "example": {
+            "vectors": [
+              {
+                "reset": 0,
+                "in": 4294967295
+              },
+              {
+                "reset": 0,
+                "in": 0
+              },
+              {
+                "reset": 0,
+                "in": 0
+              }
+            ],
+            "expected": [
+              {
+                "out": 0
+              },
+              {
+                "out": 0
+              },
+              {
+                "out": 4294967295
+              }
+            ]
+          }
+        },
+        {
+          "id": "R3_hold_until_reset",
+          "outputs": [
+            "out"
+          ],
+          "condition": "reset == 0 && (prev_in & ~in) == 0",
+          "edge": "posedge",
+          "visible": "same_cycle",
+          "priority": 3,
+          "spec_quote": "the output will remain 1 until the register is reset",
+          "uncertain": false,
+          "example": {
+            "vectors": [
+              {
+                "reset": 0,
+                "in": 4294967295
+              },
+              {
+                "reset": 0,
+                "in": 0
+              },
+              {
+                "reset": 0,
+                "in": 4294967295
+              },
+              {
+                "reset": 0,
+                "in": 4294967295
+              }
+            ],
+            "expected": [
+              {
+                "out": 0
+              },
+              {
+                "out": 0
+              },
+              {
+                "out": 4294967295
+              },
+              {
+                "out": 4294967295
+              }
+            ]
+          }
+        },
+        {
+          "id": "R4_prev_in_tracks_all_cycles",
+          "outputs": [
+            "out"
+          ],
+          "condition": "prev_in is updated from the sampled in value on every posedge clk, including cycles where reset == 1; falling-edge detection in R2 uses this prev_in regardless of reset history",
+          "edge": "posedge",
+          "visible": "same_cycle",
+          "priority": 4,
+          "spec_quote": "capture when the input signal changes from 1 in one clock cycle to 0 the next",
+          "uncertain": false,
+          "example": {
+            "vectors": [
+              {
+                "reset": 1,
+                "in": 4294967295
+              },
+              {
+                "reset": 0,
+                "in": 4294967295
+              },
+              {
+                "reset": 0,
+                "in": 0
+              }
+            ],
+            "expected": [
+              {
+                "out": 0
+              },
+              {
+                "out": 0
+              },
+              {
+                "out": 4294967295
+              }
+            ]
+          }
+        }
+      ],
+      "reset": {
+        "kind": "sync",
+        "name": "reset",
+        "active": "high",
+        "values": {
+          "out": 0
+        },
+        "first_released_cycle": "cycle after reset deasserts at a posedge clk"
+      },
+      "mid": "Optional mid input changes occur AFTER sampling, before the other edge, and are carried to the start of the next row.",
+      "uncertain": []
+    }
+  },
+  {
+    "issue_id": "I6",
+    "before": {
+      "ports": {
+        "inputs": {
+          "reset": 1,
+          "in": 32
+        },
+        "outputs": {
+          "out": 32
+        },
+        "clock": "clk"
+      },
+      "states": [
+        {
+          "name": "out_reg",
+          "meaning": "Per-bit sticky flag: set to 1 when the corresponding input bit transitions from 1 to 0; held at 1 until synchronous reset.",
+          "update_time": "posedge clk",
+          "update_during_reset": true
+        }
+      ],
+      "rules": [
+        {
+          "id": "R1_reset_clear",
+          "outputs": [
+            "out"
+          ],
+          "condition": "reset == 1",
+          "edge": "posedge",
+          "visible": "same_cycle",
+          "priority": 1,
+          "spec_quote": "reset (active high synchronous reset)",
+          "uncertain": false,
+          "example": {
+            "vectors": [
+              {
+                "reset": 1,
+                "in": 4294967295
+              },
+              {
+                "reset": 0,
+                "in": 4294967295
+              },
+              {
+                "reset": 0,
+                "in": 0
+              }
+            ],
+            "expected": [
+              {
+                "out": 0
+              },
+              {
+                "out": 0
+              },
+              {
+                "out": 4294967295
+              }
+            ]
+          }
+        },
+        {
+          "id": "R2_capture_falling_edge",
+          "outputs": [
+            "out"
+          ],
+          "condition": "reset == 0 && (prev_in & ~in) != 0",
+          "edge": "posedge",
+          "visible": "same_cycle",
+          "priority": 2,
+          "spec_quote": "capture when the input signal changes from 1 in one clock cycle to 0 the next",
+          "uncertain": false,
+          "example": {
+            "vectors": [
+              {
+                "reset": 0,
+                "in": 4294967295
+              },
+              {
+                "reset": 0,
+                "in": 0
+              },
+              {
+                "reset": 0,
+                "in": 0
+              }
+            ],
+            "expected": [
+              {
+                "out": 0
+              },
+              {
+                "out": 0
+              },
+              {
+                "out": 4294967295
+              }
+            ]
+          }
+        },
+        {
+          "id": "R3_hold_until_reset",
+          "outputs": [
+            "out"
+          ],
+          "condition": "reset == 0 && (prev_in & ~in) == 0",
+          "edge": "posedge",
+          "visible": "same_cycle",
+          "priority": 3,
+          "spec_quote": "the output will remain 1 until the register is reset",
+          "uncertain": false,
+          "example": {
+            "vectors": [
+              {
+                "reset": 0,
+                "in": 4294967295
+              },
+              {
+                "reset": 0,
+                "in": 0
+              },
+              {
+                "reset": 0,
+                "in": 4294967295
+              },
+              {
+                "reset": 0,
+                "in": 4294967295
+              }
+            ],
+            "expected": [
+              {
+                "out": 0
+              },
+              {
+                "out": 0
+              },
+              {
+                "out": 4294967295
+              },
+              {
+                "out": 4294967295
+              }
+            ]
+          }
+        },
+        {
+          "id": "R4_prev_in_tracks_all_cycles",
+          "outputs": [
+            "out"
+          ],
+          "condition": "prev_in is updated from the sampled in value on every posedge clk, including cycles where reset == 1; falling-edge detection in R2 uses this prev_in regardless of reset history",
+          "edge": "posedge",
+          "visible": "same_cycle",
+          "priority": 4,
+          "spec_quote": "capture when the input signal changes from 1 in one clock cycle to 0 the next",
+          "uncertain": false,
+          "example": {
+            "vectors": [
+              {
+                "reset": 1,
+                "in": 4294967295
+              },
+              {
+                "reset": 0,
+                "in": 4294967295
+              },
+              {
+                "reset": 0,
+                "in": 0
+              }
+            ],
+            "expected": [
+              {
+                "out": 0
+              },
+              {
+                "out": 0
+              },
+              {
+                "out": 4294967295
+              }
+            ]
+          }
+        }
+      ],
+      "reset": {
+        "kind": "sync",
+        "name": "reset",
+        "active": "high",
+        "values": {
+          "out": 0
+        },
+        "first_released_cycle": "cycle after reset deasserts at a posedge clk"
+      },
+      "mid": "Optional mid input changes occur AFTER sampling, before the other edge, and are carried to the start of the next row.",
+      "uncertain": []
+    },
+    "after": {
+      "ports": {
+        "inputs": {
+          "reset": 1,
+          "in": 32
+        },
+        "outputs": {
+          "out": 32
+        },
+        "clock": "clk"
+      },
+      "states": [
+        {
+          "name": "out_reg",
+          "meaning": "Per-bit sticky flag: set to 1 when the corresponding input bit transitions from 1 to 0; held at 1 until synchronous reset.",
+          "update_time": "posedge clk",
+          "update_during_reset": true
+        }
+      ],
+      "rules": [
+        {
+          "id": "R1_reset_clear",
+          "outputs": [
+            "out"
+          ],
+          "condition": "reset == 1",
+          "edge": "posedge",
+          "visible": "same_cycle",
+          "priority": 1,
+          "spec_quote": "reset (active high synchronous reset)",
+          "uncertain": false,
+          "example": {
+            "vectors": [
+              {
+                "reset": 1,
+                "in": 4294967295
+              },
+              {
+                "reset": 0,
+                "in": 4294967295
+              },
+              {
+                "reset": 0,
+                "in": 0
+              }
+            ],
+            "expected": [
+              {
+                "out": 0
+              },
+              {
+                "out": 0
+              },
+              {
+                "out": 4294967295
+              }
+            ]
+          }
+        },
+        {
+          "id": "R2_capture_falling_edge",
+          "outputs": [
+            "out"
+          ],
+          "condition": "reset == 0 && (prev_in & ~in) != 0, where prev_in is the in value sampled on the immediately preceding posedge clk including reset cycles (see R4)",
+          "edge": "posedge",
+          "visible": "same_cycle",
+          "priority": 2,
+          "spec_quote": "capture when the input signal changes from 1 in one clock cycle to 0 the next",
+          "uncertain": false,
+          "example": {
+            "vectors": [
+              {
+                "reset": 0,
+                "in": 4294967295
+              },
+              {
+                "reset": 0,
+                "in": 0
+              },
+              {
+                "reset": 0,
+                "in": 0
+              }
+            ],
+            "expected": [
+              {
+                "out": 0
+              },
+              {
+                "out": 0
+              },
+              {
+                "out": 4294967295
+              }
+            ]
+          }
+        },
+        {
+          "id": "R3_hold_until_reset",
+          "outputs": [
+            "out"
+          ],
+          "condition": "reset == 0 && (prev_in & ~in) == 0",
+          "edge": "posedge",
+          "visible": "same_cycle",
+          "priority": 3,
+          "spec_quote": "the output will remain 1 until the register is reset",
+          "uncertain": false,
+          "example": {
+            "vectors": [
+              {
+                "reset": 0,
+                "in": 4294967295
+              },
+              {
+                "reset": 0,
+                "in": 0
+              },
+              {
+                "reset": 0,
+                "in": 4294967295
+              },
+              {
+                "reset": 0,
+                "in": 4294967295
+              }
+            ],
+            "expected": [
+              {
+                "out": 0
+              },
+              {
+                "out": 0
+              },
+              {
+                "out": 4294967295
+              },
+              {
+                "out": 4294967295
+              }
+            ]
+          }
+        },
+        {
+          "id": "R4_prev_in_tracks_all_cycles",
+          "outputs": [
+            "out"
+          ],
+          "condition": "prev_in is updated from the sampled in value on every posedge clk, including cycles where reset == 1; falling-edge detection in R2 uses this prev_in regardless of reset history",
+          "edge": "posedge",
+          "visible": "same_cycle",
+          "priority": 4,
+          "spec_quote": "capture when the input signal changes from 1 in one clock cycle to 0 the next",
+          "uncertain": false,
+          "example": {
+            "vectors": [
+              {
+                "reset": 1,
+                "in": 4294967295
+              },
+              {
+                "reset": 0,
+                "in": 4294967295
+              },
+              {
+                "reset": 0,
+                "in": 0
+              }
+            ],
+            "expected": [
+              {
+                "out": 0
+              },
+              {
+                "out": 0
+              },
+              {
+                "out": 4294967295
+              }
+            ]
+          }
+        }
+      ],
+      "reset": {
+        "kind": "sync",
+        "name": "reset",
+        "active": "high",
+        "values": {
+          "out": 0
+        },
+        "first_released_cycle": "cycle after reset deasserts at a posedge clk"
+      },
+      "mid": "Optional mid input changes occur AFTER sampling, before the other edge, and are carried to the start of the next row.",
+      "uncertain": []
+    }
+  }
+]

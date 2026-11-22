@@ -1,0 +1,100 @@
+{
+  "coverage": {
+    "S01": ["R_A", "R_B", "R_C", "R_D", "R_TRANS"],
+    "S02": ["R_RESET", "R_A", "R_B", "R_C", "R_D", "R_TRANS"],
+    "S03": ["R_RESET"],
+    "S04": ["R_TRANS"],
+    "S05": ["R_A"],
+    "S06": ["R_B"],
+    "S07": ["R_C"],
+    "S08": ["R_D"]
+  },
+  "issues": [
+    {
+      "issue_id": "I1",
+      "rule_id": "R_C",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "R_C example expected output contradicts the Moore output for state C (output 0). The example vectors: reset=1,in=0 -> reset state A (out 0); reset=0,in=1 -> from A with in=1 goes to B (out 0); reset=0,in=0 -> from B with in=0 goes to C (out 0); reset=0,in=1 -> from C with in=1 goes to D (out 1). The expected list is [0,0,0,1], but the last row's output is for state D, not C. The rule condition is state==C, so its example should show output while in C, which is 0. The example incorrectly includes a transition to D and reports D's output.",
+      "spec_evidence": "// C | A, D | 0",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I2",
+      "rule_id": "R_D",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "R_D example expected output contradicts the Moore output for state D (output 1). The vectors: reset=1,in=0 -> A (out 0); reset=0,in=1 -> B (out 0); reset=0,in=1 -> B (out 0); reset=0,in=0 -> C (out 0). The expected list is [0,0,0,1], but the final state is C, whose output is 0, not 1. The example never reaches state D, yet expects out=1.",
+      "spec_evidence": "// D | C, B | 1",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I3",
+      "rule_id": "R_TRANS",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "R_TRANS example expected outputs are inconsistent with the state transition table. Vectors: reset=1,in=0 -> A (out 0); reset=0,in=1 -> B (out 0); reset=0,in=1 -> B (out 0); reset=0,in=0 -> C (out 0). Expected [0,0,0,0] is correct for these states, but the rule claims to demonstrate transitions; however, the example does not exercise a transition to D or show output 1. More critically, the rule's condition says next_state determined by table on posedge when reset==0, but the example's expected outputs are combinational outputs for the current state, not next-state outputs. The rule outputs 'out' but the example does not verify next-state behavior. This is a grounding/consistency issue: the example does not provide evidence for the transition rule's effect on next state, and the expected outputs are just Moore outputs, which are covered by R_A..R_D. The rule is essentially untested by its own example.",
+      "spec_evidence": "// State | Next state in=0, Next state in=1 | Output",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I4",
+      "rule_id": "R_RESET",
+      "type": "consistency",
+      "severity": "medium",
+      "detail": "R_RESET example expected outputs are all 0, which is correct for reset state A (out 0). However, the example vectors include reset=1 for two cycles then reset=0 for two cycles. The expected outputs are [0,0,0,0]. After reset is released, the state should transition according to inputs. The vectors: cycle1 reset=1,in=0 -> A; cycle2 reset=1,in=1 -> A; cycle3 reset=0,in=1 -> from A with in=1 goes to B (out 0); cycle4 reset=0,in=1 -> from B with in=1 stays B (out 0). So outputs [0,0,0,0] are correct. No contradiction. But the rule's condition is 'reset == 1' and edge posedge, visible next_cycle. The example includes cycles after reset is deasserted, which are not governed by R_RESET. This is a minor grounding issue: the example mixes reset and non-reset cycles, but the expected outputs are still consistent. Not a material issue.",
+      "spec_evidence": "synchronous active high reset that resets the FSM to state A",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I5",
+      "rule_id": "R_A",
+      "type": "consistency",
+      "severity": "medium",
+      "detail": "R_A example vectors: reset=1,in=0 -> A (out 0); reset=0,in=0 -> from A with in=0 stays A (out 0); reset=0,in=1 -> from A with in=1 goes to B (out 0); reset=0,in=0 -> from B with in=0 goes to C (out 0). Expected [0,0,0,0] is correct for these states. However, the rule condition is state==A, but the last two cycles are in states B and C, not A. The example does not isolate state A; it includes transitions away from A. This is a grounding issue: the example does not provide evidence for output when state==A only, but the outputs are still consistent. Not a material contradiction.",
+      "spec_evidence": "// A | A, B | 0",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I6",
+      "rule_id": "R_B",
+      "type": "consistency",
+      "severity": "medium",
+      "detail": "R_B example vectors: reset=1,in=0 -> A (out 0); reset=0,in=1 -> from A with in=1 goes to B (out 0); reset=0,in=0 -> from B with in=0 goes to C (out 0); reset=0,in=1 -> from C with in=1 goes to D (out 1). Expected [0,0,0,0] is incorrect: the last state is D, whose output is 1, but expected is 0. This is a contradiction. The rule condition is state==B, but the example includes states A, B, C, D. The expected output for the last cycle should be 1, not 0.",
+      "spec_evidence": "// B | C, B | 0",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I7",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "high",
+      "detail": "The contract does not specify the initial state before the first posedge with reset==0. The reset rule says synchronous active high reset resets to state A, but if reset is never asserted, the initial state is undefined. The spec says 'resets the FSM to state A' but does not state the power-on state. The contract's reset field says first_released_cycle is first posedge with reset==0, implying reset may be low initially. Without an initial state, the first cycle's output is ambiguous. A plausible alternative is that the FSM starts in state A even without reset (common in some implementations), or it could be undefined. This affects any sequence where reset is low from the start.",
+      "spec_evidence": "Include a synchronous active high reset that resets the FSM to state A.",
+      "alternative": "The FSM initializes to state A at power-on even if reset is never asserted, so the first cycle with reset=0 and in=0 outputs 0 and stays in A; alternatively, the initial state is undefined and output may be X until reset.",
+      "sequence": [
+        {"reset": 0, "in": 0},
+        {"reset": 0, "in": 1}
+      ]
+    },
+    {
+      "issue_id": "I8",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "The contract's 'mid' field describes optional mid input changes that occur AFTER sampling, before the other edge, and are carried to the start of the next row. However, the spec does not mention any mid-cycle input changes. The contract introduces a non-spec feature. This could lead to different behavior if mid changes are used. The spec only defines state transitions on posedge. The alternative semantics is that inputs are sampled only at posedge, and any changes between edges are ignored until the next posedge. The contract's mid feature could cause a different next state if a mid change occurs before the next posedge. This is an ambiguity because the spec does not define mid-cycle behavior.",
+      "spec_evidence": "",
+      "alternative": "Inputs are sampled only at the posedge clock edge; any changes between edges are ignored until the next posedge. The mid feature is not part of the spec and should not affect state transitions.",
+      "sequence": [
+        {"reset": 0, "in": 0, "mid": {"in": 1}},
+        {"reset": 0, "in": 0}
+      ]
+    }
+  ]
+}

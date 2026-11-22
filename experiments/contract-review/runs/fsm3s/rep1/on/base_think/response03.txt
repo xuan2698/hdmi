@@ -1,0 +1,27 @@
+```python
+def reference(vectors):
+    st = 0
+    in_val = 0
+    rst = 0
+    res = []
+    for row in vectors:
+        in_val = row.get('in', in_val)
+        rst = row.get('reset', rst)
+        if rst:
+            nst = 0
+        else:
+            if st == 0:
+                nst = 1 if in_val else 0
+            elif st == 1:
+                nst = 1 if in_val else 2
+            elif st == 2:
+                nst = 3 if in_val else 0
+            else:
+                nst = 1 if in_val else 2
+        st = nst
+        res.append({'out': 1 if st == 3 else 0})
+        mid = row.get('mid', {})
+        in_val = mid.get('in', in_val)
+        rst = mid.get('reset', rst)
+    return res
+```

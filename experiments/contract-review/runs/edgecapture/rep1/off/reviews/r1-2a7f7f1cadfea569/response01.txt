@@ -1,0 +1,80 @@
+{
+  "coverage": {
+    "S01": ["R1_reset_clear", "R2_capture_falling_edge", "R3_hold_until_reset"]
+  },
+  "issues": [
+    {
+      "issue_id": "I1",
+      "rule_id": "R2_capture_falling_edge",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "R2's example expected outputs contradict its 'visible: next_cycle' field. The rule says the capture is visible next cycle, but the example shows out=4294967295 on the same row where in=0 follows in=4294967295, i.e., the falling edge is captured and visible in the same cycle as the transition is sampled. If 'visible: next_cycle' were correct, the first row with in=0 should show out=0 and the following row should show out=4294967295.",
+      "spec_evidence": "capture when the input signal changes from 1 in one clock cycle to 0 the next",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I2",
+      "rule_id": "R3_hold_until_reset",
+      "type": "consistency",
+      "severity": "high",
+      "detail": "R3's example expected outputs contradict its 'visible: next_cycle' field. The example shows out=4294967295 on the row where in=4294967295 follows in=0, i.e., the held value is visible in the same cycle as the hold condition is evaluated. If 'visible: next_cycle' were correct, the first row after the capture should still show the previous out value and the held value would appear one cycle later.",
+      "spec_evidence": "the output will remain 1 until the register is reset",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I3",
+      "rule_id": "R1_reset_clear",
+      "type": "consistency",
+      "severity": "medium",
+      "detail": "R1's example expected outputs are inconsistent with a synchronous reset that clears out on the same posedge. The first row has reset=1 and in=4294967295, expected out=0, which is consistent with reset clearing. However, the second row has reset=0 and in=4294967295, expected out=0, and the third row has reset=0 and in=0, expected out=4294967295. This implies the falling edge from the first row's in=4294967295 to the second row's in=4294967295 is not a falling edge (correct), but the falling edge from the second row's in=4294967295 to the third row's in=0 is captured and visible on the third row. This is consistent with same-cycle visibility, not next_cycle, and also shows that the reset row's input is used as prev_in for the next row, which is plausible but not explicitly stated.",
+      "spec_evidence": "reset (active high synchronous reset)",
+      "alternative": "",
+      "sequence": []
+    },
+    {
+      "issue_id": "I4",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "high",
+      "detail": "The contract does not specify whether the input value sampled during a reset cycle is used as the previous input for detecting a falling edge in the first non-reset cycle. R1's example implies that the reset row's in=4294967295 is used as prev_in, because the transition from reset row in=4294967295 to second row in=4294967295 is not a falling edge, and the transition from second row in=4294967295 to third row in=0 is a falling edge. An alternative semantics is that the previous input is cleared or undefined during reset, so the first non-reset cycle cannot detect a falling edge based on the reset cycle's input. This would change the output for the sequence below: under the contract's implied semantics, out becomes 4294967295 on the third row; under the alternative, out remains 0 on the third row and only becomes 4294967295 if a subsequent falling edge occurs.",
+      "spec_evidence": "For each bit in a 32-bit vector, capture when the input signal changes from 1 in one clock cycle to 0 the next.",
+      "alternative": "Previous input is not tracked across reset; the first non-reset cycle has no valid prev_in, so no falling edge can be detected until a second non-reset cycle establishes prev_in.",
+      "sequence": [
+        {"reset": 1, "in": 4294967295},
+        {"reset": 0, "in": 4294967295},
+        {"reset": 0, "in": 0}
+      ]
+    },
+    {
+      "issue_id": "I5",
+      "rule_id": "global",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "The contract does not specify the behavior of out during a reset cycle when reset is asserted. R1 says reset clears out with visible same_cycle, and the reset field says values.out=0. However, it is not explicit whether out is forced to 0 combinationally during reset or only updated to 0 on the posedge clk. The spec says active high synchronous reset, which implies the clear happens on the clock edge. An alternative semantics is that out retains its previous value until the next posedge clk even when reset=1, and only then clears. This would affect the output during a reset cycle if out was previously 1. The sequence below distinguishes: under the contract's stated same_cycle visibility, out is 0 on the reset row; under the alternative, out remains 4294967295 on the reset row and becomes 0 on the next row.",
+      "spec_evidence": "active high synchronous reset",
+      "alternative": "Reset does not affect out until the next posedge clk; out holds its previous value during the reset cycle.",
+      "sequence": [
+        {"reset": 0, "in": 4294967295},
+        {"reset": 0, "in": 0},
+        {"reset": 1, "in": 0},
+        {"reset": 0, "in": 0}
+      ]
+    },
+    {
+      "issue_id": "I6",
+      "rule_id": "R2_capture_falling_edge",
+      "type": "ambiguity",
+      "severity": "medium",
+      "detail": "The contract does not specify whether the falling-edge detection uses the input value from the immediately preceding clock cycle, including cycles where reset was asserted, or only from non-reset cycles. R2's condition uses prev_in without defining how prev_in is updated during reset. This is related to I4 but focuses on the rule condition rather than the example. An alternative semantics is that prev_in is only updated on non-reset cycles, so a falling edge across a reset boundary is not detected. The sequence below distinguishes: under the contract's implied semantics (prev_in updated every cycle), the transition from reset row in=4294967295 to next row in=0 is a falling edge and out becomes 4294967295 on the next row; under the alternative, no falling edge is detected because the reset cycle's input is ignored for prev_in, so out remains 0.",
+      "spec_evidence": "capture when the input signal changes from 1 in one clock cycle to 0 the next",
+      "alternative": "prev_in is only updated on non-reset cycles; input during reset is ignored for edge detection.",
+      "sequence": [
+        {"reset": 1, "in": 4294967295},
+        {"reset": 0, "in": 0},
+        {"reset": 0, "in": 0}
+      ]
+    }
+  ]
+}

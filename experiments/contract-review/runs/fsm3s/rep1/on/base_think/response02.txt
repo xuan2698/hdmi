@@ -1,0 +1,24 @@
+def reference(vectors):
+    s = 0
+    cur = {'in': 0, 'reset': 0}
+    res = []
+    trans = ((0, 1), (2, 1), (0, 3), (2, 1))
+    for v in vectors:
+        if type(v) == dict:
+            for k in ('in', 'reset'):
+                if k in v:
+                    cur[k] = v[k]
+        i = cur.get('in', 0)
+        r = cur.get('reset', 0)
+        if r:
+            s = 0
+        else:
+            s = trans[s][1 if i else 0]
+        res.append({'out': 1 if s == 3 else 0})
+        if type(v) == dict:
+            m = v.get('mid', {})
+            if type(m) == dict:
+                for k in ('in', 'reset'):
+                    if k in m:
+                        cur[k] = m[k]
+    return res

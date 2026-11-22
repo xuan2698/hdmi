@@ -18,7 +18,21 @@ def text_is(value):
 
 
 def quoted(value,spec):
-    return text_is(value) and " ".join(value.split()) in " ".join(spec.split())
+    if not text_is(value):
+        return False
+    source=" ".join(spec.split())
+    if " ".join(value.split()) in source:
+        return True
+    lines=[" ".join(line.split()) for line in value.splitlines() if line.strip()]
+    if len(lines)<2:
+        return False
+    pos=0
+    for line in lines:
+        found=source.find(line,pos)
+        if found<0:
+            return False
+        pos=found+len(line)
+    return True
 
 
 def exact_int(value,width):
@@ -230,7 +244,9 @@ REVISION_INSTRUCTIONS = """Respond to EVERY supplied issue in order with compact
 {issue_id,decision:"accept"|"rebut",reason,spec_quote,edits:[{path:[strings],value}]}]}.
 For rebut, use an exact spec quotation and no edits. Use rebut when the contract already has the
 proposed value or its existing example already expresses the rule. Compare against Current contract
-before writing an edit. An accept must actually change a field. Prefer a small edit such as
+before writing an edit. A rebuttal quote must come from Public specification. Port widths and
+experiment timing instructions supplied after it are not spec quotes. An accept must change a field. Prefer
+a small edit such as
 ["rules","rule_ID","condition"], ["states","state_name","meaning"], or ["reset","first_released_cycle"].
 Whole fields may also be replaced as ["rules","rule_ID"], ["states"], ["reset"], ["mid"], ["uncertain"].
 A whole rule may add or delete by id (delete with null). Preserve the current schema, including reset

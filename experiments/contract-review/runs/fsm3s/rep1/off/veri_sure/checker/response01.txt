@@ -1,0 +1,31 @@
+```python
+def reference(vectors):
+    # Moore FSM: states A=0, B=1, C=2, D=3
+    # Synchronous active-high reset to A. Output = 1 iff state D.
+    # Each row: values driven before sampled posedge; mid changes occur
+    # AFTER sampling, before the other edge, carried to next row.
+    state = 0  # power-up unspecified; assume A
+    out = 0
+    results = []
+    for row in vectors:
+        # Apply mid changes from previous row (already applied below)
+        # Sample on posedge: reset has priority
+        if row.get('reset', 0):
+            state = 0
+        else:
+            inp = row.get('in', 0)
+            if state == 0:  # A
+                state = 1 if inp else 0
+            elif state == 1:  # B
+                state = 1 if inp else 2
+            elif state == 2:  # C
+                state = 3 if inp else 0
+            else:  # D
+                state = 1 if inp else 2
+        out = 1 if state == 3 else 0
+        results.append({'out': out})
+        # Mid changes occur after sampling; they affect next row's inputs.
+        # Since inputs are read from each row dict at sample time, mid changes
+        # are represented by the next row's values already.
+    return results
+```

@@ -1,0 +1,26 @@
+```python
+def reference(vectors):
+    # State: out_reg (32-bit sticky falling-edge flags), prev_in (32-bit previous input)
+    # R4_prev_in_tracks_all_cycles (Semantics B): prev_in does NOT update during reset cycles.
+    #   The first non-reset cycle compares against the input from before reset (or 0 at power-up).
+    out_reg = 0
+    prev_in = 0
+    results = []
+    for row in vectors:
+        reset = row["reset"] & 1
+        inp = row["in"] & 0xFFFFFFFF
+        # Compute next state at posedge clk
+        if reset:
+            # R1_reset_clear: synchronous reset clears out_reg (priority 1)
+            out_reg = 0
+            # R4_prev_in_tracks_all_cycles (Semantics B): prev_in not updated during reset
+        else:
+            # R2_capture_falling_edge: set sticky bits where prev_in=1 and in=0
+            falling = prev_in & (~inp & 0xFFFFFFFF)
+            out_reg = out_reg | falling
+            # R3_hold_until_reset: bits not newly captured remain held (implicit via OR)
+            # R4_prev_in_tracks_all_cycles: prev_in updates on non-reset cycles
+            prev_in = inp
+        results.append({"out": out_reg & 0xFFFFFFFF})
+    return results
+```

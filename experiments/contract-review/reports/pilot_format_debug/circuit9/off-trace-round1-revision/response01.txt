@@ -1,0 +1,224 @@
+{
+  "responses": [
+    {
+      "issue_id": "I01",
+      "decision": "accept",
+      "reason": "The spec_quote for hold_when_a_high is a row with a=0, which does not ground the a==1 condition. Replace it with a verbatim row where a=1 and q holds.",
+      "spec_quote": "// 15ns            1               1               4",
+      "edits": [
+        {
+          "path": ["rules", "hold_when_a_high"],
+          "value": {
+            "id": "hold_when_a_high",
+            "outputs": ["q"],
+            "condition": "a == 1",
+            "edge": "posedge",
+            "visible": "next_cycle",
+            "priority": 1,
+            "spec_quote": "// 15ns            1               1               4",
+            "uncertain": false,
+            "example": {
+              "vectors": [{"a": 1}, {"a": 1}, {"a": 1}],
+              "expected": [{"q": 4}, {"q": 4}, {"q": 4}]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "issue_id": "I02",
+      "decision": "accept",
+      "reason": "The example for increment_when_a_low should start from the grounded pre-edge value q=4 so that the first expected q=5 matches the 55ns row.",
+      "spec_quote": "// 55ns            1               0               5",
+      "edits": [
+        {
+          "path": ["rules", "increment_when_a_low"],
+          "value": {
+            "id": "increment_when_a_low",
+            "outputs": ["q"],
+            "condition": "a == 0",
+            "edge": "posedge",
+            "visible": "next_cycle",
+            "priority": 2,
+            "spec_quote": "// 55ns            1               0               5",
+            "uncertain": false,
+            "example": {
+              "vectors": [{"a": 0}, {"a": 0}, {"a": 0}],
+              "expected": [{"q": 5}, {"q": 6}, {"q": 0}]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "issue_id": "I03",
+      "decision": "accept",
+      "reason": "The hold_when_a_high rule's quote is corrected to a row where a=1 and q holds, resolving the contradiction between quote and example.",
+      "spec_quote": "// 15ns            1               1               4",
+      "edits": [
+        {
+          "path": ["rules", "hold_when_a_high"],
+          "value": {
+            "id": "hold_when_a_high",
+            "outputs": ["q"],
+            "condition": "a == 1",
+            "edge": "posedge",
+            "visible": "next_cycle",
+            "priority": 1,
+            "spec_quote": "// 15ns            1               1               4",
+            "uncertain": false,
+            "example": {
+              "vectors": [{"a": 1}, {"a": 1}, {"a": 1}],
+              "expected": [{"q": 4}, {"q": 4}, {"q": 4}]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "issue_id": "I04",
+      "decision": "rebut",
+      "reason": "The example is consistent with the spec: starting from q=4, three a=0 posedges yield 5,6,0, matching the 55/65/75ns rows. No material change is needed.",
+      "spec_quote": "// 55ns            1               0               5",
+      "edits": []
+    },
+    {
+      "issue_id": "I05",
+      "decision": "accept",
+      "reason": "The spec shows q=4 at the first posedge with a=1 from x, so the contract needs an explicit initial value of 4 rather than an undefined x.",
+      "spec_quote": "// 5ns             1               1               4",
+      "edits": [
+        {
+          "path": ["reset"],
+          "value": {
+            "kind": "initial",
+            "name": "init",
+            "active": "none",
+            "values": {"q": 4},
+            "first_released_cycle": "0ns"
+          }
+        }
+      ]
+    },
+    {
+      "issue_id": "I06",
+      "decision": "accept",
+      "reason": "Same root cause as I05: the initial q must be 4 so that a=1 at the first posedge holds 4 rather than leaving x.",
+      "spec_quote": "// 0ns             0               1               x",
+      "edits": [
+        {
+          "path": ["reset"],
+          "value": {
+            "kind": "initial",
+            "name": "init",
+            "active": "none",
+            "values": {"q": 4},
+            "first_released_cycle": "0ns"
+          }
+        }
+      ]
+    },
+    {
+      "issue_id": "I07",
+      "decision": "accept",
+      "reason": "At 45ns a=0 but q stays 4, so increment_when_a_low cannot be unconditional. The spec is consistent with incrementing only when a=0 and q is not 4 after a hold; model this as a guarded increment rule.",
+      "spec_quote": "// 45ns            1               0               4",
+      "edits": [
+        {
+          "path": ["rules", "increment_when_a_low"],
+          "value": {
+            "id": "increment_when_a_low",
+            "outputs": ["q"],
+            "condition": "a == 0 and q != 4",
+            "edge": "posedge",
+            "visible": "next_cycle",
+            "priority": 2,
+            "spec_quote": "// 55ns            1               0               5",
+            "uncertain": false,
+            "example": {
+              "vectors": [{"a": 0}, {"a": 0}, {"a": 0}],
+              "expected": [{"q": 5}, {"q": 6}, {"q": 0}]
+            }
+          }
+        },
+        {
+          "path": ["rules", "hold_when_a_low_at_four"],
+          "value": {
+            "id": "hold_when_a_low_at_four",
+            "outputs": ["q"],
+            "condition": "a == 0 and q == 4",
+            "edge": "posedge",
+            "visible": "next_cycle",
+            "priority": 3,
+            "spec_quote": "// 45ns            1               0               4",
+            "uncertain": false,
+            "example": {
+              "vectors": [{"a": 0}, {"a": 0}],
+              "expected": [{"q": 4}, {"q": 4}]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "issue_id": "I08",
+      "decision": "accept",
+      "reason": "The 45ns row is a direct counterexample to unconditional increment on a=0; add the q==4 hold exception and guard the increment rule.",
+      "spec_quote": "// 40ns            0               1               4\n// 45ns            1               0               4",
+      "edits": [
+        {
+          "path": ["rules", "increment_when_a_low"],
+          "value": {
+            "id": "increment_when_a_low",
+            "outputs": ["q"],
+            "condition": "a == 0 and q != 4",
+            "edge": "posedge",
+            "visible": "next_cycle",
+            "priority": 2,
+            "spec_quote": "// 55ns            1               0               5",
+            "uncertain": false,
+            "example": {
+              "vectors": [{"a": 0}, {"a": 0}, {"a": 0}],
+              "expected": [{"q": 5}, {"q": 6}, {"q": 0}]
+            }
+          }
+        },
+        {
+          "path": ["rules", "hold_when_a_low_at_four"],
+          "value": {
+            "id": "hold_when_a_low_at_four",
+            "outputs": ["q"],
+            "condition": "a == 0 and q == 4",
+            "edge": "posedge",
+            "visible": "next_cycle",
+            "priority": 3,
+            "spec_quote": "// 45ns            1               0               4",
+            "uncertain": false,
+            "example": {
+              "vectors": [{"a": 0}, {"a": 0}],
+              "expected": [{"q": 4}, {"q": 4}]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "issue_id": "I09",
+      "decision": "accept",
+      "reason": "The x-to-4 transition at 5ns is explained by an initial q=4, so the hold rule is not contradicted once initialization is explicit.",
+      "spec_quote": "// 0ns             0               1               x\n// 5ns             1               1               4",
+      "edits": [
+        {
+          "path": ["reset"],
+          "value": {
+            "kind": "initial",
+            "name": "init",
+            "active": "none",
+            "values": {"q": 4},
+            "first_released_cycle": "0ns"
+          }
+        }
+      ]
+    }
+  ]
+}

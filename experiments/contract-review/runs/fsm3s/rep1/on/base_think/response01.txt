@@ -1,0 +1,26 @@
+def reference(vectors):
+    state=0
+    inputs={'in':0,'reset':0}
+    out=[]
+    for row in vectors:
+        for k,v in row.items():
+            if k!='mid' and k in ('in','reset'):
+                inputs[k]=v
+        if inputs['reset']:
+            state=0
+        else:
+            i=inputs['in']
+            if state==0:
+                state=0 if i==0 else 1
+            elif state==1:
+                state=2 if i==0 else 1
+            elif state==2:
+                state=0 if i==0 else 3
+            else:
+                state=2 if i==0 else 1
+        out.append({'out':1 if state==3 else 0})
+        if 'mid' in row and isinstance(row['mid'],dict):
+            for k,v in row['mid'].items():
+                if k in ('in','reset'):
+                    inputs[k]=v
+    return out

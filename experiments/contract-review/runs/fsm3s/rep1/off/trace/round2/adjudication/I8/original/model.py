@@ -1,0 +1,35 @@
+def reference(vectors):
+    # State encoding: A=0, B=1, C=2, D=3
+    # R_RESET: synchronous active high reset -> state A (priority 0)
+    # R_TRANS: next state determined by table on posedge when reset==0 (priority 2)
+    # R_A/R_B/R_C/R_D: combinational output based on current state (priority 1)
+    state = 0  # power-up unspecified; start at A
+    out = 0
+    results = []
+    for vec in vectors:
+        reset = vec.get('reset', 0)
+        inp = vec.get('in', 0)
+        # R_A / R_B / R_C / R_D: combinational output from current state
+        if state == 0:      # R_A
+            out = 0
+        elif state == 1:    # R_B
+            out = 0
+        elif state == 2:    # R_C
+            out = 0
+        else:               # R_D
+            out = 1
+        results.append({'out': out & 1})
+        # R_RESET: synchronous reset to A on posedge (priority 0)
+        if reset == 1:
+            state = 0
+        else:
+            # R_TRANS: state transition table on posedge
+            if state == 0:      # A: in=0->A, in=1->B
+                state = 0 if inp == 0 else 1
+            elif state == 1:    # B: in=0->C, in=1->B
+                state = 2 if inp == 0 else 1
+            elif state == 2:    # C: in=0->A, in=1->D
+                state = 0 if inp == 0 else 3
+            else:               # D: in=0->C, in=1->B
+                state = 2 if inp == 0 else 1
+    return results

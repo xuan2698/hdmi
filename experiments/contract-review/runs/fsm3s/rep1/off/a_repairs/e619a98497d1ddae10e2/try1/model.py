@@ -1,0 +1,37 @@
+def reference(vectors):
+    # State encoding
+    A, B, C, D = 0, 1, 2, 3
+    state = A  # power-up state (unspecified; use A)
+    out = 0
+    results = []
+
+    for vec in vectors:
+        # R_RESET: synchronous active high reset -> state A (priority 0)
+        # R_TRANS: next state determined by table on posedge when reset == 0
+        # Sampling happens at posedge; mid changes occur after sampling.
+        # We compute next state from current state and current inputs.
+        if vec.get("reset", 0) == 1:
+            next_state = A  # R_RESET
+        else:
+            if state == A:
+                next_state = A if vec.get("in", 0) == 0 else B  # R_A / R_TRANS
+            elif state == B:
+                next_state = C if vec.get("in", 0) == 0 else B  # R_B / R_TRANS
+            elif state == C:
+                next_state = A if vec.get("in", 0) == 0 else D  # R_C / R_TRANS
+            else:  # state == D
+                next_state = C if vec.get("in", 0) == 0 else B  # R_D / R_TRANS
+
+        # Output is combinational from current state (Moore)
+        # R_A, R_B, R_C: out = 0; R_D: out = 1
+        if state == D:
+            out = 1  # R_D
+        else:
+            out = 0  # R_A, R_B, R_C
+
+        results.append({"out": out})
+
+        # Advance state (posedge update)
+        state = next_state
+
+    return results

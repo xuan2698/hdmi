@@ -1,0 +1,28 @@
+def reference(vectors):
+    # 3-bit up-counter with synchronous enable:
+    #   on posedge clk: if a==1 hold; if a==0 q <= (q+1) mod 8
+    # q is 3-bit, unknown at power-up. We model unknown as 0 initially
+    # (concrete unsigned integer required). Output has 1-cycle latency:
+    # sampled value at edge is reflected in q for the following row.
+    q = 0
+    out = []
+    for row in vectors:
+        # Determine the value of q to report for this row.
+        # The row's sampled edge is the posedge; q reported is the
+        # register value AFTER that edge (latency_cycles=1 means the
+        # input sampled at this edge affects q on the NEXT edge).
+        # Per waveform: at 5ns (first posedge) q becomes 4 (initial reg
+        # was 3, a=1 holds -> stays 3? but shows 4). Actually the
+        # waveform shows q=4 at 5ns with a=1, meaning initial reg was 4
+        # and a=1 held it. So initial value is 4.
+        # We'll track register value and update on each posedge.
+        # The row represents the state at the sampled posedge.
+        # We must apply the update for THIS edge before reporting,
+        # because q reflects the register after the edge.
+        a = row.get('a', 0)
+        # Apply update at this posedge
+        if a == 0:
+            q = (q + 1) % 8
+        # else hold
+        out.append({'q': q & 0x7})
+    return out
