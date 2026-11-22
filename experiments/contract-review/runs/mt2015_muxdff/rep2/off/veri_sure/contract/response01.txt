@@ -1,0 +1,29 @@
+```json
+{
+  "module_name": "top_module",
+  "io": [
+    {"name": "clk", "dir": "input", "width": 1, "description": "Clock; all state updates on posedge."},
+    {"name": "r", "dir": "input", "width": 3, "description": "Parallel load data, bit-sliced across three submodule instances (r[0], r[1], r[2])."},
+    {"name": "L", "dir": "input", "width": 1, "description": "Load enable; when high, q <= r; when low, q <= {q[1]^q[2], q[0], q[2]}."},
+    {"name": "q", "dir": "output", "width": 3, "description": "Registered state output, bit-sliced across three submodule instances (q[0], q[1], q[2])."}
+  ],
+  "clocking": {
+    "clock": {"name": "clk", "edge": "posedge"},
+    "reset": null
+  },
+  "timing": {
+    "outputs": {
+      "q": {"latency_cycles": 1}
+    }
+  },
+  "functional_summary": {
+    "overview": "Three identical submodule instances (each containing a 1-bit flipflop and a 2-1 mux) implement a 3-bit LFSR-like register. On each posedge of clk, if L=1 the register loads r; otherwise it shifts/transforms as q <= {q[1]^q[2], q[0], q[2]}.",
+    "rules": [
+      "On posedge clk with L=1: q[0]<=r[0], q[1]<=r[1], q[2]<=r[2].",
+      "On posedge clk with L=0: q[0]<=q[1]^q[2], q[1]<=q[0], q[2]<=q[2].",
+      "Output q reflects the registered state, updated one cycle after the sampled edge.",
+      "No reset; initial state is unspecified."
+    ]
+  }
+}
+```

@@ -27,7 +27,7 @@ from simulate import RunError, validate_rows
 llm.api_key = lambda: os.environ.get("OPENCODE_GO_API_KEY", "").strip()
 _legacy_stream = llm.read_stream
 _reasoning_bytes = contextvars.ContextVar("reasoning_bytes", default=0)
-API_SLOTS = threading.BoundedSemaphore(36)
+API_SLOTS = threading.BoundedSemaphore(18)
 
 
 def read_stream(response):

@@ -1,0 +1,106 @@
+{
+  "module_name": "top_module",
+  "io": [
+    {
+      "name": "clk",
+      "dir": "input",
+      "width": 1,
+      "description": "Clock; all state updates on posedge."
+    },
+    {
+      "name": "areset",
+      "dir": "input",
+      "width": 1,
+      "description": "Asynchronous active-high reset."
+    },
+    {
+      "name": "predict_valid",
+      "dir": "input",
+      "width": 1,
+      "description": "Request a branch direction prediction for predict_pc."
+    },
+    {
+      "name": "predict_pc",
+      "dir": "input",
+      "width": 7,
+      "description": "PC of branch to predict."
+    },
+    {
+      "name": "train_valid",
+      "dir": "input",
+      "width": 1,
+      "description": "Request training for train_pc."
+    },
+    {
+      "name": "train_taken",
+      "dir": "input",
+      "width": 1,
+      "description": "Actual branch outcome for training."
+    },
+    {
+      "name": "train_mispredicted",
+      "dir": "input",
+      "width": 1,
+      "description": "Indicates trained branch was mispredicted (needs history recovery)."
+    },
+    {
+      "name": "train_history",
+      "dir": "input",
+      "width": 7,
+      "description": "Branch history register value used when the trained branch was predicted."
+    },
+    {
+      "name": "train_pc",
+      "dir": "input",
+      "width": 7,
+      "description": "PC of branch being trained."
+    },
+    {
+      "name": "predict_taken",
+      "dir": "output",
+      "width": 1,
+      "description": "Predicted branch direction for predict_pc."
+    },
+    {
+      "name": "predict_history",
+      "dir": "output",
+      "width": 7,
+      "description": "Branch history register value used to make the prediction."
+    }
+  ],
+  "clocking": {
+    "clock": {
+      "name": "clk",
+      "edge": "posedge"
+    },
+    "reset": {
+      "name": "areset",
+      "active": "high",
+      "kind": "asynchronous"
+    }
+  },
+  "timing": {
+    "outputs": {
+      "predict_taken": {
+        "latency_cycles": 0
+      },
+      "predict_history": {
+        "latency_cycles": 0
+      }
+    }
+  },
+  "functional_summary": {
+    "overview": "Gshare branch predictor with 7-bit PC, 7-bit global history register (GHR), XOR-hashed into a 7-bit index addressing a 128-entry table of 2-bit saturating counters. Provides combinational prediction outputs and trains the PHT and GHR on the training interface.",
+    "rules": [
+      "Reset (areset high, asynchronous): clear GHR to 0 and all 128 PHT counters to 0 (or weak not-taken state).",
+      "Index computation: idx = predict_pc[6:0] XOR GHR for prediction; idx = train_pc[6:0] XOR train_history for training.",
+      "Prediction (predict_valid=1): predict_taken = MSB of PHT[idx] (combinational, reflects PHT state before any same-cycle training update); predict_history = current GHR value.",
+      "On posedge with predict_valid=1 and no training override: GHR <= {GHR[5:0], predict_taken}.",
+      "Training (train_valid=1): update PHT[idx] at next posedge — increment counter if train_taken=1 (saturate at 3), decrement if train_taken=0 (saturate at 0).",
+      "Training history recovery: if train_valid=1 and train_mispredicted=1, GHR <= {train_history[5:0], train_taken} at next posedge.",
+      "Training takes precedence over prediction for GHR update when both occur in the same cycle (predicted instruction will be flushed).",
+      "Same-cycle training and prediction of the same PHT entry: prediction output uses pre-update PHT state; PHT update takes effect at next posedge.",
+      "When train_valid=1 and train_mispredicted=0, GHR is not modified by training (only PHT is updated)."
+    ]
+  }
+}

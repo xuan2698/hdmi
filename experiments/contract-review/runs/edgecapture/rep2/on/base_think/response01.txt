@@ -1,0 +1,17 @@
+def reference(vectors):
+    M=0xffffffff; o=[]; out=0; prev=0; cur_in=0; cur_r=0
+    for row in vectors:
+        for k,v in row.items():
+            if k=='in': cur_in=int(v)&M
+            elif k=='reset': cur_r=1 if int(v) else 0
+        if cur_r:
+            out=0
+        else:
+            out=(out|(prev&(cur_in^M)))&M
+        prev=cur_in
+        o.append({'out':out&M})
+        if 'mid' in row and row['mid'] is not None:
+            for k,v in row['mid'].items():
+                if k=='in': cur_in=int(v)&M
+                elif k=='reset': cur_r=1 if int(v) else 0
+    return o

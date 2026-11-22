@@ -1,0 +1,82 @@
+{
+  "module_name": "top_module",
+  "io": [
+    {
+      "name": "clk",
+      "dir": "input",
+      "width": 1,
+      "description": "Clock signal; state updates on the positive edge."
+    },
+    {
+      "name": "areset",
+      "dir": "input",
+      "width": 1,
+      "description": "Asynchronous active-high reset; clears the branch history register to zero."
+    },
+    {
+      "name": "predict_valid",
+      "dir": "input",
+      "width": 1,
+      "description": "When high, a branch prediction is being made; shift predict_taken into the history register."
+    },
+    {
+      "name": "predict_taken",
+      "dir": "input",
+      "width": 1,
+      "description": "Predicted direction of the branch being predicted; shifted into the LSB of the history register."
+    },
+    {
+      "name": "train_mispredicted",
+      "dir": "input",
+      "width": 1,
+      "description": "When high, a branch misprediction occurred; load the history register with train_history concatenated with train_taken."
+    },
+    {
+      "name": "train_taken",
+      "dir": "input",
+      "width": 1,
+      "description": "Actual direction of the mispredicted branch; becomes the new LSB of the history register."
+    },
+    {
+      "name": "train_history",
+      "dir": "input",
+      "width": 32,
+      "description": "Branch history before the mispredicted branch; forms the upper 32 bits of the restored history."
+    },
+    {
+      "name": "predict_history",
+      "dir": "output",
+      "width": 32,
+      "description": "Current value of the 32-bit global branch history shift register; predict_history[0] is the youngest branch direction."
+    }
+  ],
+  "clocking": {
+    "clock": {
+      "name": "clk",
+      "edge": "posedge"
+    },
+    "reset": {
+      "name": "areset",
+      "active": "high",
+      "kind": "asynchronous"
+    }
+  },
+  "timing": {
+    "outputs": {
+      "predict_history": {
+        "latency_cycles": 0
+      }
+    }
+  },
+  "functional_summary": {
+    "overview": "32-bit global branch history shift register with pipeline-flush rollback support. On a branch prediction, the predicted direction is shifted into the LSB. On a branch misprediction, the register is restored to the pre-branch history concatenated with the actual branch outcome. Misprediction takes precedence over prediction when both occur in the same cycle. Asynchronous active-high reset clears the register to zero.",
+    "rules": [
+      "areset is asynchronous and active-high; when asserted, predict_history is reset to 0 regardless of clk.",
+      "On the positive clock edge, if train_mispredicted is high, predict_history <= {train_history[30:0], train_taken} (misprediction takes precedence over prediction).",
+      "On the positive clock edge, if train_mispredicted is low and predict_valid is high, predict_history <= {predict_history[31:1], predict_taken}.",
+      "On the positive clock edge, if neither train_mispredicted nor predict_valid is high, predict_history retains its value.",
+      "predict_history[0] represents the direction of the youngest branch.",
+      "predict_history is a registered output updated on the positive clock edge (or asynchronously by areset)."
+    ]
+  }
+}

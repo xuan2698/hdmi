@@ -1,0 +1,61 @@
+```json
+{
+  "module_name": "top_module",
+  "io": [
+    {
+      "name": "clk",
+      "dir": "input",
+      "width": 1,
+      "description": "Clock; positive edge triggered."
+    },
+    {
+      "name": "areset",
+      "dir": "input",
+      "width": 1,
+      "description": "Asynchronous reset, active high. Conversion begins when released; stops when asserted."
+    },
+    {
+      "name": "x",
+      "dir": "input",
+      "width": 1,
+      "description": "Serial input bit, least-significant bit first."
+    },
+    {
+      "name": "z",
+      "dir": "output",
+      "width": 1,
+      "description": "Serial output bit of the 2's complement of the input number."
+    }
+  ],
+  "clocking": {
+    "clock": {
+      "name": "clk",
+      "edge": "posedge"
+    },
+    "reset": {
+      "name": "areset",
+      "active": "high",
+      "kind": "asynchronous"
+    }
+  },
+  "timing": {
+    "outputs": {
+      "z": {
+        "latency_cycles": 1
+      }
+    }
+  },
+  "functional_summary": {
+    "overview": "One-input one-output serial 2's complementer Moore state machine. Input x is a bit stream starting with the least-significant bit; output z is the 2's complement of the input number, produced one bit per clock cycle. The machine handles arbitrary-length inputs. Asynchronous active-high reset initializes the machine; conversion proceeds while reset is released.",
+    "rules": [
+      "On asynchronous assertion of areset, the state machine resets to the initial state (no carry yet seen).",
+      "While reset is released, on each positive clock edge the machine samples x and updates state.",
+      "The Moore output z depends only on the current state, not directly on x.",
+      "State semantics: initial state outputs z=0 and remains until the first 1 is observed in x; after the first 1, the machine transitions to a state that outputs z=1 and remains there for all subsequent bits.",
+      "Equivalently, z equals x for all bits up to and including the first 1 (LSB-first), and z equals the complement of x for all bits after the first 1.",
+      "Output z is registered and reflects the state after the sampling edge (latency of 1 clock cycle from the corresponding input bit).",
+      "The machine supports input numbers of arbitrary length; no length limit is imposed."
+    ]
+  }
+}
+```

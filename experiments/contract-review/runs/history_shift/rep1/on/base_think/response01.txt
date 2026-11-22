@@ -1,0 +1,24 @@
+def reference(vectors):
+    MASK=(1<<32)-1
+    state=0
+    inputs={'areset':0,'predict_valid':0,'predict_taken':0,'train_mispredicted':0,'train_taken':0,'train_history':0}
+    out=[]
+    for row in vectors:
+        for k,v in row.items():
+            if k!='mid':
+                inputs[k]=v
+        if inputs.get('areset',0):
+            state=0
+        else:
+            if inputs.get('train_mispredicted',0):
+                state=((inputs.get('train_history',0)<<1)&MASK)|(inputs.get('train_taken',0)&1)
+            elif inputs.get('predict_valid',0):
+                state=((state<<1)&MASK)|(inputs.get('predict_taken',0)&1)
+        out.append({'predict_history':state&MASK})
+        mid=row.get('mid')
+        if mid:
+            for k,v in mid.items():
+                inputs[k]=v
+            if inputs.get('areset',0):
+                state=0
+    return out

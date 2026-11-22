@@ -1,0 +1,85 @@
+{
+  "ports": {
+    "inputs": {
+      "d": 1,
+      "r": 1
+    },
+    "outputs": {
+      "q": 1
+    },
+    "clock": "clk"
+  },
+  "states": [
+    {
+      "name": "q_zero",
+      "meaning": "Registered output q is 0",
+      "update_time": "posedge after clk settles",
+      "update_during_reset": true
+    },
+    {
+      "name": "q_one",
+      "meaning": "Registered output q is 1",
+      "update_time": "posedge after clk settles",
+      "update_during_reset": true
+    }
+  ],
+  "rules": [
+    {
+      "id": "q_posedge_update",
+      "outputs": [
+        "q"
+      ],
+      "condition": "At each sampled posedge: if r==1 then q becomes 0; otherwise q becomes d. Between posedge events q holds its value.",
+      "edge": "posedge",
+      "visible": "same_cycle",
+      "priority": 1,
+      "spec_quote": "Implement a simple D flip flop with active high synchronous reset (reset output to 0).",
+      "uncertain": false,
+      "example": {
+        "vectors": [
+          {
+            "d": 1,
+            "r": 1
+          },
+          {
+            "d": 0,
+            "r": 0
+          },
+          {
+            "d": 1,
+            "r": 0
+          },
+          {
+            "d": 1,
+            "r": 1
+          }
+        ],
+        "expected": [
+          {
+            "q": 0
+          },
+          {
+            "q": 0
+          },
+          {
+            "q": 1
+          },
+          {
+            "q": 0
+          }
+        ]
+      }
+    }
+  ],
+  "reset": {
+    "kind": "sync",
+    "name": "r",
+    "active": "high",
+    "values": {
+      "q": 0
+    },
+    "first_released_cycle": "the first sampled posedge where r=0"
+  },
+  "mid": "mid specifies optional nonclock input changes made after the sampled posedge and before the next clock edge; those changes are carried to the start of the next row and do not affect the current sampled q.",
+  "uncertain": []
+}

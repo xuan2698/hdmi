@@ -1,0 +1,31 @@
+```json
+{
+  "module_name": "top_module",
+  "io": [
+    {"name": "clk", "dir": "input", "width": 1, "description": "Clock signal; sampling occurs on posedge."},
+    {"name": "reset", "dir": "input", "width": 1, "description": "Active-high synchronous reset."},
+    {"name": "data", "dir": "input", "width": 1, "description": "Serial input bit stream."},
+    {"name": "start_shifting", "dir": "output", "width": 1, "description": "Set to 1 forever once sequence 1101 is detected; cleared only by reset."}
+  ],
+  "clocking": {
+    "clock": {"name": "clk", "edge": "posedge"},
+    "reset": {"name": "reset", "active": "high", "kind": "synchronous"}
+  },
+  "timing": {
+    "outputs": {
+      "start_shifting": {"latency_cycles": 1}
+    }
+  },
+  "functional_summary": {
+    "overview": "Finite-state machine that detects the bit sequence 1101 in a serial input stream. Upon detection, start_shifting is asserted and latched to 1 permanently until an active-high synchronous reset clears it.",
+    "rules": [
+      "On posedge clk with reset=1, start_shifting is set to 0 and the FSM returns to the initial state.",
+      "On posedge clk with reset=0, the FSM advances based on data, tracking the longest suffix of the input seen so far that is a prefix of 1101.",
+      "States: S0 (no prefix), S1 (seen '1'), S2 (seen '11'), S3 (seen '110'), S4 (detected '1101').",
+      "Transitions: S0 --1--> S1, S0 --0--> S0; S1 --1--> S2, S1 --0--> S0; S2 --0--> S3, S2 --1--> S2; S3 --1--> S4, S3 --0--> S0; S4 --any--> S4.",
+      "When the FSM enters S4 (sequence 1101 detected), start_shifting is set to 1 and remains 1 for all subsequent cycles until reset.",
+      "start_shifting is a registered output updated on posedge clk, so it reflects detection with one cycle of latency."
+    ]
+  }
+}
+```

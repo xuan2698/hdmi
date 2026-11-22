@@ -1,0 +1,51 @@
+{
+  "module_name": "top_module",
+  "io": [
+    {
+      "name": "clk",
+      "dir": "input",
+      "width": 1,
+      "description": "Clock input; counter advances on posedge."
+    },
+    {
+      "name": "reset",
+      "dir": "input",
+      "width": 1,
+      "description": "Active-high synchronous reset; when asserted at a posedge, q becomes 0."
+    },
+    {
+      "name": "q",
+      "dir": "output",
+      "width": 4,
+      "description": "Decade counter output, values 0 through 9 inclusive."
+    }
+  ],
+  "clocking": {
+    "clock": {
+      "name": "clk",
+      "edge": "posedge"
+    },
+    "reset": {
+      "name": "reset",
+      "active": "high",
+      "kind": "synchronous"
+    }
+  },
+  "timing": {
+    "outputs": {
+      "q": {
+        "latency_cycles": 1
+      }
+    }
+  },
+  "functional_summary": {
+    "overview": "A synchronous decade counter with active-high synchronous reset. On each posedge of clk, if reset is high, q is set to 0; otherwise q increments by 1, wrapping from 9 back to 0, giving a period of 10.",
+    "rules": [
+      "On posedge clk with reset=1: q <= 0.",
+      "On posedge clk with reset=0 and q=9: q <= 0.",
+      "On posedge clk with reset=0 and q<9: q <= q + 1.",
+      "q always holds a value in the range 0 to 9 inclusive.",
+      "The counter sequence has period 10: 0,1,2,3,4,5,6,7,8,9,0,..."
+    ]
+  }
+}

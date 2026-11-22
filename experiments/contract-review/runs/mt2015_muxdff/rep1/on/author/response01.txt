@@ -1,0 +1,80 @@
+{
+  "ports": {
+    "inputs": {"L": 1, "q_in": 1, "r_in": 1},
+    "outputs": {"Q": 1},
+    "clock": "clk"
+  },
+  "states": [
+    {
+      "name": "Q",
+      "meaning": "Registered one-bit output state of the flip-flop plus 2-1 multiplexer submodule; after a sampled posedge it holds the selected input.",
+      "update_time": "posedge clk",
+      "update_during_reset": false
+    }
+  ],
+  "rules": [
+    {
+      "id": "load_true",
+      "outputs": ["Q"],
+      "condition": "L == 1",
+      "edge": "posedge",
+      "visible": "same_cycle",
+      "priority": 1,
+      "spec_quote": "q <= r;",
+      "uncertain": false,
+      "example": {
+        "vectors": [
+          {"L": 1, "q_in": 0, "r_in": 0},
+          {"L": 1, "q_in": 1, "r_in": 1},
+          {"L": 1, "q_in": 0, "r_in": 0}
+        ],
+        "expected": [
+          {"Q": 0},
+          {"Q": 1},
+          {"Q": 0}
+        ]
+      }
+    },
+    {
+      "id": "load_false_select_q_in",
+      "outputs": ["Q"],
+      "condition": "L == 0",
+      "edge": "posedge",
+      "visible": "same_cycle",
+      "priority": 2,
+      "spec_quote": "else begin",
+      "uncertain": true,
+      "example": {
+        "vectors": [
+          {"L": 0, "q_in": 1, "r_in": 0},
+          {"L": 0, "q_in": 0, "r_in": 1},
+          {"L": 0, "q_in": 1, "r_in": 0}
+        ],
+        "expected": [
+          {"Q": 1},
+          {"Q": 0},
+          {"Q": 1}
+        ]
+      }
+    }
+  ],
+  "reset": {
+    "kind": "none",
+    "name": null,
+    "active": "none",
+    "values": {"Q": null},
+    "first_released_cycle": "0"
+  },
+  "mid": "mid input changes occur after the sampled posedge and before the next sampled edge; they are carried to the start of the next row and affect only the next posedge update.",
+  "uncertain": [
+    {
+      "rule_id": "load_false_select_q_in",
+      "note": "The public full_module else branch does not directly show a one-bit q_in multiplexer; the one-bit submodule behavior is inferred from the stated flip-flop and 2-1 multiplexer hierarchy and the q_in port.",
+      "candidates": [
+        "Q <= q_in when L == 0",
+        "Q <= q_in or a feedback expression when L == 0",
+        "Q <= a bit-dependent full_module feedback expression when L == 0"
+      ]
+    }
+  ]
+}

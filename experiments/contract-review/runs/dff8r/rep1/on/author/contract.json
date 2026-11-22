@@ -1,0 +1,79 @@
+{
+  "ports": {
+    "inputs": {
+      "d": 8,
+      "reset": 1
+    },
+    "outputs": {
+      "q": 8
+    },
+    "clock": "clk"
+  },
+  "states": [
+    {
+      "name": "q_reg",
+      "meaning": "8-bit D flip-flop output register; q is this register value after the sampled positive edge of clk has settled.",
+      "update_time": "positive edge of clk, after the edge has settled",
+      "update_during_reset": true
+    }
+  ],
+  "rules": [
+    {
+      "id": "r_posedge_q_sync_reset",
+      "outputs": [
+        "q"
+      ],
+      "condition": "At each positive edge of clk: if reset==1, q <= 0; otherwise q <= d. The synchronous active-high reset dominates the d load.",
+      "edge": "posedge",
+      "visible": "same_cycle",
+      "priority": 1,
+      "spec_quote": "active high synchronous reset setting the output to zero",
+      "uncertain": false,
+      "example": {
+        "vectors": [
+          {
+            "d": 55,
+            "reset": 1
+          },
+          {
+            "d": 12,
+            "reset": 0
+          },
+          {
+            "d": 34,
+            "reset": 0
+          },
+          {
+            "d": 99,
+            "reset": 1
+          }
+        ],
+        "expected": [
+          {
+            "q": 0
+          },
+          {
+            "q": 12
+          },
+          {
+            "q": 34
+          },
+          {
+            "q": 0
+          }
+        ]
+      }
+    }
+  ],
+  "reset": {
+    "kind": "sync",
+    "name": "reset",
+    "active": "high",
+    "values": {
+      "q": 0
+    },
+    "first_released_cycle": "the first positive clk edge observed with reset==0; on that edge q loads d"
+  },
+  "mid": "Input changes marked mid occur after sampling and before the next edge; they are carried to the start of the next vector row. This contract's examples use pre-edge values only.",
+  "uncertain": []
+}

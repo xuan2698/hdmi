@@ -1,0 +1,41 @@
+```json
+{
+  "module_name": "top_module",
+  "io": [
+    {"name": "clk", "dir": "input", "width": 1, "description": "Clock; all state updates on posedge."},
+    {"name": "areset", "dir": "input", "width": 1, "description": "Asynchronous active-high reset."},
+    {"name": "predict_valid", "dir": "input", "width": 1, "description": "Prediction request valid."},
+    {"name": "predict_pc", "dir": "input", "width": 7, "description": "PC of branch to predict."},
+    {"name": "predict_taken", "dir": "output", "width": 1, "description": "Predicted branch direction from PHT."},
+    {"name": "predict_history", "dir": "output", "width": 7, "description": "Global history register value used for prediction."},
+    {"name": "train_valid", "dir": "input", "width": 1, "description": "Training request valid."},
+    {"name": "train_taken", "dir": "input", "width": 1, "description": "Actual branch outcome for training."},
+    {"name": "train_mispredicted", "dir": "input", "width": 1, "description": "Training branch was mispredicted; recover history."},
+    {"name": "train_history", "dir": "input", "width": 7, "description": "History register value for the trained branch."},
+    {"name": "train_pc", "dir": "input", "width": 7, "description": "PC of branch being trained."}
+  ],
+  "clocking": {
+    "clock": {"name": "clk", "edge": "posedge"},
+    "reset": {"name": "areset", "active": "high", "kind": "asynchronous"}
+  },
+  "timing": {
+    "outputs": {
+      "predict_taken": {"latency_cycles": 0},
+      "predict_history": {"latency_cycles": 0}
+    }
+  },
+  "functional_summary": {
+    "overview": "Gshare branch predictor with 7-bit PC and 7-bit global history XOR-hashed into a 7-bit index addressing a 128-entry table of 2-bit saturating counters. Contains a 7-bit global branch history register. Supports a prediction interface (Fetch stage) and a training interface (post-execution).",
+    "rules": [
+      "PHT index = predict_pc[6:0] XOR global_history[6:0] for predictions; train_pc[6:0] XOR train_history[6:0] for training.",
+      "predict_taken is the MSB of the 2-bit saturating counter at the computed PHT index; predict_history is the current global history register value.",
+      "On posedge with predict_valid=1 and no training, the global history register shifts in the predicted direction (predict_taken) for the predicted branch.",
+      "On posedge with train_valid=1, the PHT counter at the training index is updated: increment (saturating at 3) if train_taken=1, decrement (saturating at 0) if train_taken=0.",
+      "On posedge with train_valid=1 and train_mispredicted=1, the global history register is recovered to train_history shifted left by one with train_taken inserted as the new LSB.",
+      "If train_valid=1 and predict_valid=1 in the same cycle, training takes precedence for the global history register update; the prediction is discarded.",
+      "If training and prediction target the same PHT entry in the same cycle, the prediction reads the pre-update PHT state (training updates PHT only at the next posedge).",
+      "Asynchronous active-high areset clears the global history register and all PHT counters to 0."
+    ]
+  }
+}
+```

@@ -1,0 +1,32 @@
+def reference(vectors):
+    pm=0;hh=0x12;mm=0;ss=0;rst=0;ena_in=0;out=[]
+    for row in vectors:
+        if 'reset' in row: rst=row['reset']
+        if 'ena' in row: ena_in=row['ena']
+        if rst:
+            pm=0;hh=0x12;mm=0;ss=0
+        elif ena_in:
+            if ss==0x59:
+                ss=0
+                if mm==0x59:
+                    mm=0
+                    if hh==0x12:
+                        hh=0x01
+                    elif hh==0x11:
+                        hh=0x12;pm^=1
+                    elif (hh&15)==9:
+                        hh=(hh&240)+16
+                    else:
+                        hh+=1
+                else:
+                    if (mm&15)==9: mm=(mm&240)+16
+                    else: mm+=1
+            else:
+                if (ss&15)==9: ss=(ss&240)+16
+                else: ss+=1
+        out.append({'pm':pm&1,'hh':hh&255,'mm':mm&255,'ss':ss&255})
+        mid=row.get('mid')
+        if mid:
+            if 'reset' in mid: rst=mid['reset']
+            if 'ena' in mid: ena_in=mid['ena']
+    return out

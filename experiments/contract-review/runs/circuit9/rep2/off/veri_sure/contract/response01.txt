@@ -1,0 +1,27 @@
+```json
+{
+  "module_name": "top_module",
+  "io": [
+    {"name": "clk", "dir": "input", "width": 1, "description": "Clock, samples on posedge"},
+    {"name": "a", "dir": "input", "width": 1, "description": "Control input; when 1 holds q, when 0 increments q mod 8"},
+    {"name": "q", "dir": "output", "width": 3, "description": "3-bit counter output"}
+  ],
+  "clocking": {
+    "clock": {"name": "clk", "edge": "posedge"},
+    "reset": null
+  },
+  "timing": {
+    "outputs": {
+      "q": {"latency_cycles": 1}
+    }
+  },
+  "functional_summary": {
+    "overview": "3-bit up-counter with hold control. On each posedge, if a=1 q holds its value; if a=0 q increments by 1 modulo 8.",
+    "rules": [
+      "On posedge clk: if a==1 then q <= q (hold); else q <= (q + 1) mod 8.",
+      "q is a 3-bit register initialized to 4 in the observed trace (initial value unspecified by contract; behavior defined from first sampled edge).",
+      "Output q updates one cycle after the sampled posedge (registered output)."
+    ]
+  }
+}
+```

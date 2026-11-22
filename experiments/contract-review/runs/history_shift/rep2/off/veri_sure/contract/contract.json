@@ -1,0 +1,82 @@
+{
+  "module_name": "top_module",
+  "io": [
+    {
+      "name": "clk",
+      "dir": "input",
+      "width": 1,
+      "description": "Clock; state sampled on posedge."
+    },
+    {
+      "name": "areset",
+      "dir": "input",
+      "width": 1,
+      "description": "Asynchronous active-high reset; clears history to zero."
+    },
+    {
+      "name": "predict_valid",
+      "dir": "input",
+      "width": 1,
+      "description": "Indicates a branch prediction is being made; shift predict_taken into history."
+    },
+    {
+      "name": "predict_taken",
+      "dir": "input",
+      "width": 1,
+      "description": "Predicted direction of the youngest branch."
+    },
+    {
+      "name": "train_mispredicted",
+      "dir": "input",
+      "width": 1,
+      "description": "Indicates a branch misprediction; load history from train_history concatenated with train_taken."
+    },
+    {
+      "name": "train_taken",
+      "dir": "input",
+      "width": 1,
+      "description": "Actual direction of the mispredicted branch."
+    },
+    {
+      "name": "train_history",
+      "dir": "input",
+      "width": 32,
+      "description": "History before the mispredicted branch."
+    },
+    {
+      "name": "predict_history",
+      "dir": "output",
+      "width": 32,
+      "description": "Current branch history register value; bit 0 is youngest branch."
+    }
+  ],
+  "clocking": {
+    "clock": {
+      "name": "clk",
+      "edge": "posedge"
+    },
+    "reset": {
+      "name": "areset",
+      "active": "high",
+      "kind": "asynchronous"
+    }
+  },
+  "timing": {
+    "outputs": {
+      "predict_history": {
+        "latency_cycles": 0
+      }
+    }
+  },
+  "functional_summary": {
+    "overview": "32-bit global branch history shift register with prediction shifting and misprediction rollback. Asynchronously reset to zero by areset. On each posedge, if train_mispredicted is asserted, load {train_history, train_taken} (train_taken as LSB); otherwise if predict_valid is asserted, shift left by one and insert predict_taken at LSB. Misprediction takes precedence over prediction.",
+    "rules": [
+      "areset asserted (async, active high) forces predict_history to 0 regardless of clock.",
+      "On posedge with areset deasserted: if train_mispredicted=1, predict_history <= {train_history[31:1], train_history[0]} with train_taken inserted at LSB, i.e. predict_history <= (train_history << 1) | train_taken.",
+      "Else if predict_valid=1, predict_history <= (predict_history << 1) | predict_taken.",
+      "Else predict_history holds its value.",
+      "When both predict_valid and train_mispredicted are asserted, misprediction path takes precedence.",
+      "predict_history[0] represents the direction of the youngest branch."
+    ]
+  }
+}

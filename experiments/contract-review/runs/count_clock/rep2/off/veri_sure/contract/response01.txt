@@ -1,0 +1,81 @@
+```json
+{
+  "module_name": "top_module",
+  "io": [
+    {
+      "name": "clk",
+      "dir": "input",
+      "width": 1,
+      "description": "Fast-running clock. All state updates occur on the posedge of clk."
+    },
+    {
+      "name": "reset",
+      "dir": "input",
+      "width": 1,
+      "description": "Active-high synchronous reset. When asserted at a posedge, the clock resets to 12:00 AM (hh=0x12, mm=0x00, ss=0x00, pm=0). Has priority over ena."
+    },
+    {
+      "name": "ena",
+      "dir": "input",
+      "width": 1,
+      "description": "Enable pulse. When high at a posedge (and reset is low), the clock advances by one second."
+    },
+    {
+      "name": "pm",
+      "dir": "output",
+      "width": 1,
+      "description": "AM/PM indicator. 1 = PM, 0 = AM. Reset value is 0 (AM)."
+    },
+    {
+      "name": "hh",
+      "dir": "output",
+      "width": 8,
+      "description": "Two BCD digits for hours, range 01-12 (0x01..0x12). Reset value 0x12 (12)."
+    },
+    {
+      "name": "mm",
+      "dir": "output",
+      "width": 8,
+      "description": "Two BCD digits for minutes, range 00-59. Reset value 0x00."
+    },
+    {
+      "name": "ss",
+      "dir": "output",
+      "width": 8,
+      "description": "Two BCD digits for seconds, range 00-59. Reset value 0x00."
+    }
+  ],
+  "clocking": {
+    "clock": {
+      "name": "clk",
+      "edge": "posedge"
+    },
+    "reset": {
+      "name": "reset",
+      "active": "high",
+      "kind": "synchronous"
+    }
+  },
+  "timing": {
+    "outputs": {
+      "pm": { "latency_cycles": 1 },
+      "hh": { "latency_cycles": 1 },
+      "mm": { "latency_cycles": 1 },
+      "ss": { "latency_cycles": 1 }
+    }
+  },
+  "functional_summary": {
+    "overview": "12-hour clock with AM/PM indicator. On each posedge of clk: if reset is high, outputs become 12:00 AM (hh=0x12, mm=0x00, ss=0x00, pm=0). Otherwise, if ena is high, the time advances by one second with BCD rollover: ss 00-59, mm 00-59, hh 01-12, and pm toggles when hh rolls from 12 to 01 (i.e., 11:59:59 -> 12:00:00 toggles pm).",
+    "rules": [
+      "Reset is synchronous, active-high, and has priority over ena; it may be asserted regardless of ena.",
+      "When reset is high at a posedge: hh<=0x12, mm<=0x00, ss<=0x00, pm<=0.",
+      "When reset is low and ena is high at a posedge, increment seconds: ss goes 00..59 then rolls to 00 and increments minutes.",
+      "Minutes go 00..59 then roll to 00 and increment hours.",
+      "Hours follow 12-hour BCD sequence: 01,02,...,11,12,01,...; when hours roll from 12 to 01, pm toggles.",
+      "When hours roll from 11 to 12 (i.e., 11:59:59 -> 12:00:00), pm does NOT toggle; pm toggles only on 12->01 transition.",
+      "When reset is low and ena is low at a posedge, all outputs hold their previous values.",
+      "All outputs are registered and update on the posedge of clk (latency 1 cycle)."
+    ]
+  }
+}
+```

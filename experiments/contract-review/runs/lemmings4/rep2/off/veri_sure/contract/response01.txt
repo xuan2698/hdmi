@@ -1,0 +1,43 @@
+```json
+{
+  "module_name": "top_module",
+  "io": [
+    {"name": "clk", "dir": "input", "width": 1, "description": "Clock; state sampled on posedge."},
+    {"name": "areset", "dir": "input", "width": 1, "description": "Asynchronous positive-edge reset; resets FSM to walk_left."},
+    {"name": "bump_left", "dir": "input", "width": 1, "description": "Bump from left; switches direction to walk right when walking."},
+    {"name": "bump_right", "dir": "input", "width": 1, "description": "Bump from right; switches direction to walk left when walking."},
+    {"name": "ground", "dir": "input", "width": 1, "description": "Ground present (1) or absent (0)."},
+    {"name": "dig", "dir": "input", "width": 1, "description": "Command to dig when walking on ground."},
+    {"name": "walk_left", "dir": "output", "width": 1, "description": "1 when Lemming is walking left."},
+    {"name": "walk_right", "dir": "output", "width": 1, "description": "1 when Lemming is walking right."},
+    {"name": "aaah", "dir": "output", "width": 1, "description": "1 when Lemming is falling."},
+    {"name": "digging", "dir": "output", "width": 1, "description": "1 when Lemming is digging."}
+  ],
+  "clocking": {
+    "clock": {"name": "clk", "edge": "posedge"},
+    "reset": {"name": "areset", "active": "high", "kind": "asynchronous"}
+  },
+  "timing": {
+    "outputs": {
+      "walk_left": {"latency_cycles": 0},
+      "walk_right": {"latency_cycles": 0},
+      "aaah": {"latency_cycles": 0},
+      "digging": {"latency_cycles": 0}
+    }
+  },
+  "functional_summary": {
+    "overview": "Moore FSM modeling a Lemming that walks left/right, switches direction on bumps, falls when ground=0, digs when instructed while walking on ground, and splatters after falling more than 20 cycles then landing. Outputs are decoded from state (Moore).",
+    "rules": [
+      "Reset (areset high, async) forces state to WALK_LEFT with fall counter cleared; outputs walk_left=1, others 0.",
+      "Walking states: if ground=0, transition to FALL (aaah=1) and start fall counter; else if dig=1, transition to DIG (digging=1); else if bump_left or bump_right (including both), switch walking direction.",
+      "Fall has precedence over dig, which has precedence over direction switching.",
+      "Falling: increment fall counter each cycle while ground=0. When ground=1, if fall counter > 20, transition to SPLAT (all outputs 0, absorbing); otherwise resume walking in the pre-fall direction.",
+      "Bumps while falling or digging are ignored; bumps in the same cycle ground disappears or reappears do not change walking direction.",
+      "Digging: continue digging while ground=1; when ground=0, transition to FALL (aaah=1) and start fall counter; resume original walking direction after landing (if not splattered).",
+      "Dig command while falling or when ground=0 is ignored.",
+      "Splat state is absorbing: all outputs remain 0 until reset.",
+      "Outputs are Moore-decoded from state: WALK_LEFT -> walk_left=1; WALK_RIGHT -> walk_right=1; FALL -> aaah=1; DIG -> digging=1; SPLAT -> all 0."
+    ]
+  }
+}
+```

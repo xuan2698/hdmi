@@ -1,0 +1,57 @@
+{
+  "module_name": "top_module",
+  "io": [
+    {
+      "name": "clk",
+      "dir": "input",
+      "width": 1,
+      "description": "Clock. All sampling occurs on the positive edge."
+    },
+    {
+      "name": "reset",
+      "dir": "input",
+      "width": 1,
+      "description": "Active-high synchronous reset. When asserted at a positive edge, out is cleared to 0."
+    },
+    {
+      "name": "in",
+      "dir": "input",
+      "width": 32,
+      "description": "32-bit input vector sampled on the positive clock edge."
+    },
+    {
+      "name": "out",
+      "dir": "output",
+      "width": 32,
+      "description": "32-bit capture register. Bit i is set to 1 when in[i] transitions from 1 to 0 between consecutive sampled edges, and remains 1 until reset."
+    }
+  ],
+  "clocking": {
+    "clock": {
+      "name": "clk",
+      "edge": "posedge"
+    },
+    "reset": {
+      "name": "reset",
+      "active": "high",
+      "kind": "synchronous"
+    }
+  },
+  "timing": {
+    "outputs": {
+      "out": {
+        "latency_cycles": 1
+      }
+    }
+  },
+  "functional_summary": {
+    "overview": "For each bit of the 32-bit input, detect a 1-to-0 transition between consecutive positive clock edges and latch that bit high in the corresponding output bit. Each captured bit stays high until cleared by the active-high synchronous reset.",
+    "rules": [
+      "On each posedge of clk, if reset is high, out is set to 0.",
+      "Otherwise, for each bit i in 0..31: if in[i] was 1 at the previous sampled edge and is 0 at the current sampled edge, out[i] becomes 1.",
+      "Once out[i] is 1, it remains 1 on subsequent edges until reset is asserted (sticky capture).",
+      "Bits of out that are not newly captured retain their previous value.",
+      "The first sampled edge after reset establishes the previous-value baseline; no 1-to-0 transition is inferred from an unknown prior state."
+    ]
+  }
+}

@@ -1,0 +1,31 @@
+```json
+{
+  "module_name": "top_module",
+  "io": [
+    {"name": "clk", "dir": "input", "width": 1, "description": "Clock signal"},
+    {"name": "reset", "dir": "input", "width": 1, "description": "Synchronous active-high reset"},
+    {"name": "in", "dir": "input", "width": 1, "description": "Input signal"},
+    {"name": "out", "dir": "output", "width": 1, "description": "Moore output"}
+  ],
+  "clocking": {
+    "clock": {"name": "clk", "edge": "posedge"},
+    "reset": {"name": "reset", "active": "high", "kind": "synchronous"}
+  },
+  "timing": {
+    "outputs": {
+      "out": {"latency_cycles": 0}
+    }
+  },
+  "functional_summary": {
+    "overview": "Moore FSM with four states (A, B, C, D), one input, one output, synchronous active-high reset to state A. Output is 1 only in state D.",
+    "rules": [
+      "On posedge clk with reset=1, state <= A.",
+      "On posedge clk with reset=0: from A, next state is A if in=0 else B.",
+      "From B, next state is C if in=0 else B.",
+      "From C, next state is A if in=0 else D.",
+      "From D, next state is C if in=0 else B.",
+      "Output out = 1 when state = D, else 0 (combinational from current state)."
+    ]
+  }
+}
+```

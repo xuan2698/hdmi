@@ -1,0 +1,33 @@
+```json
+{
+  "module_name": "top_module",
+  "io": [
+    {"name": "clk", "dir": "input", "width": 1, "description": "Clock; counter samples on posedge."},
+    {"name": "reset", "dir": "input", "width": 1, "description": "Synchronous active-high reset."},
+    {"name": "q", "dir": "output", "width": 16, "description": "4-digit BCD counter value: q[3:0]=ones, q[7:4]=tens, q[11:8]=hundreds, q[15:12]=thousands."},
+    {"name": "ena", "dir": "output", "width": 3, "description": "Enable signals for upper digits: ena[0]=tens enable, ena[1]=hundreds enable, ena[2]=thousands enable."}
+  ],
+  "clocking": {
+    "clock": {"name": "clk", "edge": "posedge"},
+    "reset": {"name": "reset", "active": "high", "kind": "synchronous"}
+  },
+  "timing": {
+    "outputs": {
+      "q": {"latency_cycles": 1},
+      "ena": {"latency_cycles": 1}
+    }
+  },
+  "functional_summary": {
+    "overview": "4-digit BCD counter with synchronous active-high reset. Each decimal digit is 4 bits; q[3:0] is ones, q[7:4] tens, q[11:8] hundreds, q[15:12] thousands. ena[0] indicates tens digit increments, ena[1] hundreds, ena[2] thousands.",
+    "rules": [
+      "On posedge clk: if reset is high, q <= 0 and ena <= 0.",
+      "Otherwise, ones digit q[3:0] increments by 1 each cycle, wrapping 9->0.",
+      "ena[0] is asserted when the tens digit should increment, i.e., when ones digit is 9 (about to wrap).",
+      "ena[1] is asserted when the hundreds digit should increment, i.e., when ones=9 and tens=9.",
+      "ena[2] is asserted when the thousands digit should increment, i.e., when ones=9, tens=9, and hundreds=9.",
+      "Each digit increments modulo 10 independently based on its enable condition; the full 4-digit value wraps 9999->0000.",
+      "ena outputs reflect the enable conditions computed from the current (pre-edge) counter state, registered on the same posedge as q."
+    ]
+  }
+}
+```

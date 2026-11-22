@@ -1,0 +1,56 @@
+{
+  "module_name": "top_module",
+  "io": [
+    {
+      "name": "clk",
+      "dir": "input",
+      "width": 1,
+      "description": "Clock input; positive-edge triggered."
+    },
+    {
+      "name": "d",
+      "dir": "input",
+      "width": 1,
+      "description": "Data input sampled on the rising edge of clk."
+    },
+    {
+      "name": "r",
+      "dir": "input",
+      "width": 1,
+      "description": "Active-high synchronous reset; when high at the rising edge, q is reset to 0."
+    },
+    {
+      "name": "q",
+      "dir": "output",
+      "width": 1,
+      "description": "Registered output; captures d on rising edge unless r is high, in which case it becomes 0."
+    }
+  ],
+  "clocking": {
+    "clock": {
+      "name": "clk",
+      "edge": "posedge"
+    },
+    "reset": {
+      "name": "r",
+      "active": "high",
+      "kind": "synchronous"
+    }
+  },
+  "timing": {
+    "outputs": {
+      "q": {
+        "latency_cycles": 1
+      }
+    }
+  },
+  "functional_summary": {
+    "overview": "Simple 1-bit D flip-flop with active-high synchronous reset. On each rising edge of clk, q updates to d unless r is high, in which case q is set to 0.",
+    "rules": [
+      "On posedge clk: if r == 1, q <= 0; else q <= d.",
+      "Reset is synchronous: r only affects q at a rising clock edge.",
+      "q holds its value between rising edges of clk.",
+      "Output q reflects the sampled value one cycle after the corresponding input edge."
+    ]
+  }
+}

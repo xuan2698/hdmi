@@ -1,0 +1,15 @@
+def reference(vectors):
+    q=0
+    s={'d':0,'r':0}
+    out=[]
+    for v in vectors:
+        for k in ('d','r'):
+            if k in v:
+                s[k]=v[k]
+        q=0 if s['r'] else s['d']
+        out.append({'q':q})
+        if 'mid' in v:
+            for k,x in v['mid'].items():
+                if k in ('d','r'):
+                    s[k]=x
+    return out
