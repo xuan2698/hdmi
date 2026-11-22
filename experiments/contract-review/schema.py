@@ -82,6 +82,8 @@ def contract_validate(data,spec,interface):
     require(isinstance(uncertain,list),"uncertain must be a list")
     notes=set()
     for entry in uncertain:
+        require(isinstance(entry,dict) and "rule_id" in entry and "candidates" in entry,
+                'Uncertain entry must have rule_id (use "global" for global uncertainty) and candidates (list of strings)')
         key=entry["rule_id"]
         require(key in keys|{"global"} and isinstance(entry["candidates"],list) and len(entry["candidates"])>=1
                 and all(text_is(word) for word in entry["candidates"]),"Uncertain field needs candidate interpretations")
@@ -157,8 +159,13 @@ def apply_edit(data,edit):
     value=edit["value"]
     require(isinstance(path,list) and bool(path),"Patch path required")
     if path[0]=="rules":
-        require(len(path) in (2,3) and isinstance(path[1],str),"Rules patch must give its rule ID")
+        require(len(path) in (2,3,4) and isinstance(path[1],str),"Rules patch must give its rule ID")
         index=next((i for i,rule in enumerate(data["rules"]) if rule["id"]==path[1]),None)
+        if len(path)==4:
+            require(index is not None and path[2]=="example" and path[3] in {"vectors","expected"},
+                    "Only vectors or expected may be edited within an example")
+            data["rules"][index]["example"][path[3]]=copy.deepcopy(value)
+            return
         if len(path)==3:
             require(index is not None and path[2] in {"condition","edge","visible","priority","spec_quote",
                                                        "uncertain","example","outputs"},"Invalid rule field edit")
@@ -230,6 +237,8 @@ A whole rule may add or delete by id (delete with null). Preserve the current sc
 kind none, sync, async or unspecified, reset name a public input or null, and exact same_cycle /
 next_cycle strings. Put initial-value clarification without a physical reset in state meaning or an
 explicit uncertain field rather than making up a reset kind. EVERY rule example remains 2–4 cycles.
+If changing uncertain, preserve its shape: [{rule_id (existing rule or "global"),note,candidates:
+[one or more distinct strings giving plausible interpretations]}].
 Include all issue responses in order, including those unchanged from any previous attempt. No port changes."""
 
 

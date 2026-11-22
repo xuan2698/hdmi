@@ -433,7 +433,12 @@ def batch_precision(cell):
     directory=cell.case/"precision"
     for i in range(0,len(keys),4):
         batch=keys[i:i+4]
-        path=directory/f"batch{i//4+1:02d}"
+        path=directory/"batches"/digest(batch)[:18]
+        previous=directory/f"batch{i//4+1:02d}"
+        if (previous/"status.json").is_file():
+            selected=load(previous/"status.json")["selected"]
+            if selected and set(decode_json((previous/selected).read_text())["models"])==set(batch):
+                path=previous
         prompt=(cell.context+"For diagnosis, return JSON {models:{id: Python source string}}. "
                 "For every assigned item, implement its exact state semantics independently with the same interface. "
                 "Each string must define reference(vectors) returning every width-valid output each cycle. "
@@ -444,7 +449,7 @@ def batch_precision(cell):
                 raise ValueError("Every snapshot ID needs one model")
         value=cell.generate_json(path,prompt,validate)
         for key in batch:
-            candidate=value["models"][key] if value else None
+            candidate=value["models"].get(key) if value else None
             try:
                 if not candidate:
                     raise ValueError("Batch did not produce this model")
@@ -465,12 +470,15 @@ def job(task,rep,think):
     cell=Cell(task,rep,think)
     try:
         if think:
-            folder,model=make_base_think(task,rep)
-            cell.result("Base-think",relative(folder/"model.py") if model else None,[folder])
+            base_future=INDEPENDENT.submit(make_base_think,task,rep)
         else:
             baseline(cell)
             verisure(cell)
         cell.process()
+        if think:
+            folder,model=base_future.result()
+            cell.result("Base-think",relative(folder/"model.py") if model else None,[folder],
+                        **({"reason":"v3 A0 checker format or transport retries exhausted"} if not model else {}))
         batch_precision(cell)
         print(task,rep,"thinking" if think else "standard","complete",flush=True)
     except llm.LLMError:

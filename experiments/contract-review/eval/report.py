@@ -54,6 +54,7 @@ def old_base_cost(task,rep):
 
 def primary(cases,phase):
     by_run=[]
+    by_mutant=[]
     configs=defaultdict(list)
     for case in cases:
         for row in case["outcomes"]:
@@ -63,6 +64,7 @@ def primary(cases,phase):
             data={**{k:row[k] for k in ("task","rep","config","golden_pass","golden_failed_cycles",
                                       "status","H_total","H_detected","H_sim_errors")},
                   "stimulus_sha256":case["vectors_sha256"],"cycles":case["cycles"],"mid_rows":case["mid_rows"],
+                  "generation_failure_reason":row.get("reason",""),
                   **usage,"comparable_tokens":historical["tokens"],"comparable_go_usd":historical["go_usd"],
                   "comparable_charged_usd":historical["charged_usd"],
                   "A_blocked":sum(bool(x) for x in (row.get("A",{}).get("failed_examples",[]))),
@@ -70,7 +72,10 @@ def primary(cases,phase):
                   "resolution":row.get("B",{}).get("status","")}
             by_run.append(data)
             configs[cfg].append(data)
+            by_mutant.extend({"task":row["task"],"rep":row["rep"],"config":cfg,**mutant}
+                             for mutant in row["H_outcomes"])
     write_csv(REPORTS/f"{phase}_by_run.csv",by_run)
+    write_csv(REPORTS/f"{phase}_by_mutant.csv",by_mutant)
     macro=[]
     task_rates={}
     task_rows=[]
@@ -196,20 +201,23 @@ def case_artifacts(cases,phase):
     ranked=sorted(qualifying,key=lambda ci:(not bool(ci[1]["golden_pass"]),ci[0]["rep"],ci[0]["task"]))
     if phase=="pilot":
         samples=[]
+        exercised=False
         for record,ours in ranked:
             pairs=[]
             for stage in ours["rounds"]:
                 trace=load(ROOT/stage["trace"])
+                usable=[item for item in trace if item["status"]!="not_executable"]
+                exercised|=bool(usable)
                 pairs.append({"review":stage["review"],"revision":stage["revision"],"trace":stage["trace"],
                               "example_review":load(ROOT/stage["review"])["issues"][:1],
-                              "example_trace":trace[:1],
+                              "example_trace":(usable or trace)[:1],
                               "example_response":load(ROOT/stage["revision"])["responses"][:1]})
             initial=RUNS/record["task"]/f"rep{record['rep']}"/"off"/"author"/"contract.json"
             samples.append({"task":record["task"],"initial_contract":str(initial.relative_to(ROOT)),
                             "initial_rule":load(initial)["rules"][:1],"rounds":pairs,"model":ours["model"],
                             "golden_pass":ours["golden_pass"]})
         save(REPORTS/"pilot_examples.json",samples)
-        return len(samples),any(r["example_trace"] for c in samples for r in c["rounds"])
+        return len(samples),exercised
     names=set()
     picks=[]
     for case,outcome in ranked:
@@ -263,10 +271,17 @@ def main():
     if phase=="pilot":
         by_cfg={r["config"]:r for r in macro}
         full=len(records)==3 and all(by_cfg[c]["runs"]==3 for c in SETTINGS)
-        pilot_ok=full and examples_n==3 and judge and by_cfg["Ours-think"]["golden_scored"]==3
+        executable={c:by_cfg[c]["golden_scored"] for c in SETTINGS}
+        native_two_rounds=sum(row["config"]=="Ours-think" and len(row.get("rounds",[]))==2
+                              and row["status"]=="ready" for entry in records for row in entry["outcomes"])
+        # Gate on end-to-end execution and frozen inputs, never on accuracy.
+        # Exhausted model outputs remain planned observations under v3.
+        pilot_ok=(full and all(executable.values()) and executable["Base"]==3
+                  and examples_n>=2 and native_two_rounds>=2 and judge)
         save(REPORTS/"pilot_gate.json",{"status":"passed" if pilot_ok else "investigate",
              "complete_matrix":full,"complete_Ours_examples":examples_n,
-             "trace_case_exercised":judge,"thinking_ours_executed":by_cfg["Ours-think"]["golden_scored"],
+             "trace_case_exercised":judge,"thinking_ours_two_rounds":native_two_rounds,
+             "executable_by_config":executable,
              "base_reproduction_verified":True})
         if not pilot_ok:
             raise SystemExit("Pilot gate needs investigation; full generation has not started")

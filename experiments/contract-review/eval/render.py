@@ -171,6 +171,10 @@ def render(phase):
     if pilot:
         sections += ["三个题级配对的结果只用于检查流程，不用于解释主假设。",
                      "[契约、问题、裁决及回应样例](pilot_examples.json) · [流程门槛](pilot_gate.json)"]
+        failures=[(r["task"],r["rep"],r["config"],r["generation_failure_reason"] or "检查器不可执行")
+                  for r in archive if r["status"]!="ready"]
+        if failures:
+            sections.extend(["## 试运行未完成的产物",table(("题目","种子序号","配置","失败阶段"),failures)])
     else:
         effects={(r["left"],r["right"],r["metric"]):r for r in summary["paired"]}
         for (label,left,right) in (("H1（对 Base）","Ours","Base"),("H1（对 CoT）","Ours","CoT"),

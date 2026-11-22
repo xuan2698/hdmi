@@ -13,6 +13,8 @@ python3 experiments/contract-review/eval/render.py pilot
 
 在 `reports/pilot_gate.json` 验证试运行通过后，按相同顺序运行 `workflow.py full`、`eval/score.py full`、`eval/report.py full` 和 `eval/render.py full`。只有 `eval/score.py` 回放官方参考设计及缺陷版本。检查器在独立沙箱中执行。继续运行时从 `runs/` 中已校验的单步产物恢复。并发运行多个写入相同题、种子和阶段的进程会影响断点归档。
 
+试运行门槛核对完整的 33 个配置槽位、每组至少一份可执行的产物、三份 Base 的 v3 复现、关闭及开启思考各至少两份完成两轮审查的 Ours 产物，以及实际执行的区分序列。执行失败保留在矩阵中；门槛不依赖误报率或检错率。
+
 - [预注册](PREREG.md)
 - [原生思考开关核验](reports/thinking_preflight.json)
 - [公开 spec 例子](examples.json)
