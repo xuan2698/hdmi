@@ -395,17 +395,30 @@ def cot(cell,goal,pilot):
     prior=""
     budgets=[]
     total=0
-    for step in range(1,33):
+    topics=("edge and mid-input timing", "reset and power-up behavior", "state and output transitions",
+            "port widths and boundary values", "a short distinguishing input example",
+            "one possible implementation mistake")
+    for step in range(1,49):
         remaining=goal-total
         if remaining<max(1000,len(cell.context)//3+750):
             break
         path=folder/f"analysis{step:02d}"
-        prompt=(cell.context+f"Think in detailed unstructured prose through this implementation. Aim for "
-                f"{int(max(500,min(7300,(remaining-len(cell.context)/2-1000))))} tokens. "
-                "Derive check-cycle timing, reset/hold/state updates, corner cases, and manually follow "
-                "small counterexamples. Do not write a JSON contract or Python yet. Be specific. "
-                "Continue by independently checking weak points in the last commentary; use only public spec.\n"+prior[-3100:])
-        prose=new_artifact(path,prompt,False,lambda x:x.strip(),lambda x:None,attempts=1)
+        words=int(max(150,min(650,(remaining-len(cell.context)/2-950)/2)))
+        topic=topics[(step-1)%len(topics)]
+        prompt=(cell.context+f"Analyze {topic} in prose. Limit this pass to {words} words and at most "
+                "one short worked example. Focus on a useful point for the final Python checker, then stop. "
+                "Discuss the public spec only. Do not return a contract or Python in this pass.\n"+prior[-2100:])
+        archived=ledger(path)
+        # A prior stream may already have used the requested budget before the
+        # process was interrupted. Include the recorded attempt in this control.
+        if not archived or (path/"status.json").is_file():
+            prose=new_artifact(path,prompt,False,lambda x:x.strip(),lambda x:None,attempts=1)
+            archived=ledger(path)
+        else:
+            prose=None
+        if not prose:
+            prose=next((row["response"] for row in reversed(archived)
+                        if row.get("response")),None)
         if prose:
             prior=prose
         budgets.append(path)

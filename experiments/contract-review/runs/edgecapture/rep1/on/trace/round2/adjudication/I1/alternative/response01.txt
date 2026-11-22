@@ -1,0 +1,57 @@
+def reference(vectors):
+    MASK = 0xFFFFFFFF
+    cur_reset = 0
+    cur_in = 0
+    out = 0
+    prev_in = 0
+    result = []
+
+    for row in vectors:
+        # Apply row input values driven before the sampled posedge.
+        if isinstance(row, dict):
+            for key, val in row.items():
+                if key == 'mid':
+                    continue
+                if key == 'reset':
+                    cur_reset = int(val) & 1
+                elif key == 'in':
+                    cur_in = int(val) & MASK
+                # clk is not an input to the logic; sampled edge is implicit.
+
+        if cur_reset:
+            # R_RESET: active-high synchronous reset clears out.
+            # Candidate interpretation: reset clears the edge detector too,
+            # preventing capture across the reset boundary.
+            out = 0
+            prev_in = 0
+        else:
+            # R_FALL: set sticky bits where prev_in is 1 and current in is 0.
+            fall = prev_in & ((~cur_in) & MASK)
+            out = (out | fall) & MASK
+
+            # R_HOLD: bits without a falling edge retain their prior value.
+            prev_in = cur_in & MASK
+
+        result.append({'out': out & MASK})
+
+        # Process optional mid-cycle input changes AFTER sampling.
+        # These changes are carried to the start of the next row.
+        if isinstance(row, dict) and ('mid' in row):
+            mid = row['mid']
+            changes = []
+            if isinstance(mid, dict):
+                changes = list(mid.items())
+            elif isinstance(mid, (list, tuple)):
+                for item in mid:
+                    if isinstance(item, dict):
+                        changes.extend(item.items())
+                    elif isinstance(item, (list, tuple)) and len(item) == 2:
+                        changes.append((item[0], item[1]))
+
+            for key, val in changes:
+                if key == 'reset':
+                    cur_reset = int(val) & 1
+                elif key == 'in':
+                    cur_in = int(val) & MASK
+
+    return result

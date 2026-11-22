@@ -1,0 +1,67 @@
+```python
+def reference(vectors):
+    MASK32 = 0xFFFFFFFF
+
+    # Concrete power-up choice for unspecified state.
+    out = 0
+    prev_in = 0
+    cur = {'reset': 0, 'in': 0}
+    result = []
+
+    for row in vectors:
+        if isinstance(row, dict):
+            # Drive row's values before the sampled edge (override carried values).
+            if 'reset' in row:
+                cur['reset'] = int(row['reset']) & 1
+            if 'in' in row:
+                cur['in'] = int(row['in']) & MASK32
+
+        reset_val = cur['reset'] & 1
+        in_val = cur['in'] & MASK32
+
+        # R_RESET: active-high synchronous reset clears out; highest priority.
+        if reset_val == 1:
+            out = 0
+        else:
+            # R_FALL: detect 1-to-0 transitions from previous sampled input.
+            # R_HOLD: out otherwise holds its prior value.
+            fall = prev_in & (~in_val & MASK32)
+            out = (out | fall) & MASK32
+
+        # prev_in updates on every posedge, including reset cycles.
+        prev_in = in_val
+
+        # Same-cycle visible output after sampling and reset/fall updates.
+        result.append({'out': out & MASK32})
+
+        # Optional mid input changes occur AFTER sampling, before the other edge,
+        # and are carried to the start of the next row.
+        if isinstance(row, dict):
+            for key in list(row.keys()):
+                if key in ('mid', 'mid_changes', 'mid_inputs', 'mid_values') and isinstance(row[key], dict):
+                    for k, v in row[key].items():
+                        if k in ('reset', 'in'):
+                            cur[k] = int(v) & (1 if k == 'reset' else MASK32)
+                elif key.endswith('_mid'):
+                    sig = key[:-4]
+                    if sig in ('reset', 'in'):
+                        val = row[key]
+                        if isinstance(val, dict):
+                            for k, v in val.items():
+                                if k in ('reset', 'in'):
+                                    cur[k] = int(v) & (1 if k == 'reset' else MASK32)
+                        else:
+                            cur[sig] = int(val) & (1 if sig == 'reset' else MASK32)
+                elif key.startswith('mid_'):
+                    sig = key[4:]
+                    if sig in ('reset', 'in'):
+                        val = row[key]
+                        if isinstance(val, dict):
+                            for k, v in val.items():
+                                if k in ('reset', 'in'):
+                                    cur[k] = int(v) & (1 if k == 'reset' else MASK32)
+                        else:
+                            cur[sig] = int(val) & (1 if sig == 'reset' else MASK32)
+
+    return result
+```

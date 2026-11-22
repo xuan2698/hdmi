@@ -1,0 +1,60 @@
+Looking at this problem, I need to design a 32-bit "falling edge detector with sticky capture" — for each bit, detect when the input goes from 1 to 0 between consecutive clock samples, and latch that detection until reset.
+
+Let me think through the timing carefully. The spec says "sample after the posedge edge has settled" and "each row's values are driven before the sampled edge." So at each posedge, the input `in` has a stable value that represents this cycle's sample. I need to compare this cycle's `in` against last cycle's `in` to detect a 1→0 transition.
+
+The natural formulation: `edge[i] = prev_in[i] & ~in[i]`. This is 1 exactly when the previous sample was 1 and the current sample is 0. Then `out <= out | edge` makes it sticky.
+
+**State**: I need `out` (32 bits, the sticky capture) and `prev_in` (32 bits, last cycle's input). Both are registers updated on posedge.
+
+**Reset semantics**: Active-high synchronous reset. The spec says output "remains 1 until the register is reset." So reset clears `out` to 0. The question is what happens to `prev_in` during reset. The literal reading of the spec is that `prev_in` tracks the input unconditionally — it's just "last cycle's input," not a captured state. So `prev_in <= in` regardless of reset. This is important: if reset is asserted for one cycle with `in=X`, then deasserted with `in=Y`, the next cycle compares `prev_in=X` against `in=Y`. If X=1 and Y=0, that's a genuine 1→0 transition between consecutive sampled cycles, and it should be captured. Resetting `prev_in` to 0 would miss this. So unconditional update is correct.
+
+**Reset priority**: If reset and a capture coincide in the same cycle, reset should win — the output is cleared, honoring "until the register is reset." So `out <= reset ? 0 : (out | edge)`.
+
+**Mid-cycle changes**: The protocol says mid-cycle input changes occur after sampling and are carried to the next row. Since I only use `in` at the posedge (via non-blocking assignment, sampling the pre-edge value), mid-cycle changes don't affect this cycle's computation. They'll be seen at the next posedge. Correct.
+
+**Corner cases**:
+- Multiple 1→0 transitions on the same bit before reset: OR keeps it 1. Fine.
+- A bit that goes 1→0→1→0: first transition sets out=1, second is redundant. Fine.
+- Reset while out=1: cleared. Fine.
+- Reset while a transition is happening: reset wins, out=0. The transition is "lost" but that's consistent with reset clearing everything.
+- Boundary-spanning transition across reset: captured correctly because prev_in is unconditional.
+
+**Manual trace** (2-bit slice, reset=0 throughout, start out=00, prev_in=00):
+- Cycle 1: in=01. edge = 00 & ~01 = 00. out <= 00. prev_in <= 01.
+- Cycle 2: in=00. edge = 01 & ~00 = 01. out <= 01. prev_in <= 00. Bit 0 captured. ✓
+- Cycle 3: in=10. edge = 00 & ~10 = 00. out <= 01. prev_in <= 10. Bit 0 sticky. ✓
+- Cycle 4: in=00. edge = 10 & ~00 = 10. out <= 11. prev_in <= 00. Bit 1 captured. ✓
+- Cycle 5: in=00. edge = 00. out <= 11. Sticky. ✓
+- Cycle 6: reset=1, in=00. out <= 0. prev_in <= 00. Cleared. ✓
+
+**Reset-boundary trace**: out=00, prev_in=00.
+- Cycle 1: reset=1, in=10. out <= 0. prev_in <= 10.
+- Cycle 2: reset=0, in=00. edge = 10 & 11 = 10. out <= 10. Bit 1 captured across boundary. This is a genuine consecutive-cycle 1→0, so correct.
+
+**No-false-positive trace**: out=00, prev_in=00.
+- Cycle 1: reset=1, in=00. out <= 0. prev_in <= 00.
+- Cycle 2: reset=0, in=00. edge = 00. out <= 0. No capture. ✓
+
+**Weak points re-check**:
+1. `prev_in` reset behavior: unconditional update is the literal reading and is self-consistent — captures boundary transitions, no false positives.
+2. Reset vs capture priority: reset wins, matching "until reset."
+3. Missed transitions due to prev_in update timing: no — prev_in is updated after the edge using the pre-edge value for the capture, so consecutive pairs are always compared exactly once.
+4. Mid-cycle changes: immune, since only edge-sampled values matter.
+
+**Implementation**:
+```verilog
+reg [31:0] out;
+reg [31:0] prev_in;
+
+initial begin
+    out     = 32'b0;
+    prev_in = 32'b0;
+end
+
+always @(posedge clk) begin
+    out     <= reset ? 32'b0 : (out | (prev_in & ~in));
+    prev_in <= in;
+end
+```
+
+This captures per-bit 1→0 transitions between consecutive sampled cycles, holds them sticky until synchronous active-high reset, tracks prev_in unconditionally (correctly handling boundary-spanning transitions without false positives), gives reset priority over simultaneous capture, and is immune to mid-cycle input changes because all decisions use edge-sampled values with non-blocking assignments.

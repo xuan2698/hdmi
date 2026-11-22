@@ -1,0 +1,57 @@
+def reference(vectors):
+    # Initial concrete state for unspecified power-up.
+    out = 0
+    prev_in = 0
+    cur_reset = 0
+    cur_in = 0
+    result = []
+
+    for row in vectors:
+        # Each row's values are driven before the sampled posedge.
+        if isinstance(row, dict):
+            if 'reset' in row:
+                cur_reset = int(row['reset']) & 1
+            if 'in' in row:
+                cur_in = int(row['in']) & 0xFFFFFFFF
+
+        reset = cur_reset & 1
+        inp = cur_in & 0xFFFFFFFF
+
+        if reset:
+            # R_RESET: synchronous active-high reset clears out with priority 3.
+            out = 0
+            # I1 chosen assumption: prev_in updates on every posedge including reset.
+            prev_in = inp
+        else:
+            # R_FALL: set sticky bits where prev_in bit is 1 and current in bit is 0.
+            fall = prev_in & ((~inp) & 0xFFFFFFFF)
+            # R_HOLD: bits without a falling edge retain their prior out value.
+            out = (out | fall) & 0xFFFFFFFF
+            prev_in = inp
+
+        result.append({'out': out})
+
+        # Mid input changes occur after sampling and are carried to the next row.
+        if isinstance(row, dict):
+            mid = row.get('mid')
+            if isinstance(mid, dict):
+                if 'reset' in mid:
+                    cur_reset = int(mid['reset']) & 1
+                if 'in' in mid:
+                    cur_in = int(mid['in']) & 0xFFFFFFFF
+            elif isinstance(mid, (list, tuple)):
+                for change in mid:
+                    if isinstance(change, dict):
+                        if 'reset' in change:
+                            cur_reset = int(change['reset']) & 1
+                        if 'in' in change:
+                            cur_in = int(change['in']) & 0xFFFFFFFF
+                    elif isinstance(change, (list, tuple)) and len(change) == 2:
+                        name = change[0]
+                        value = change[1]
+                        if name == 'reset':
+                            cur_reset = int(value) & 1
+                        elif name == 'in':
+                            cur_in = int(value) & 0xFFFFFFFF
+
+    return result

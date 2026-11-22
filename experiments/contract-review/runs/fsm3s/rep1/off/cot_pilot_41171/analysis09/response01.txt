@@ -1,0 +1,84 @@
+Looking at this problem, I need to implement a Moore FSM with 4 states, one input, one output, and synchronous active-high reset. Let me work through the details carefully.
+
+**Understanding the state table**
+
+The table gives:
+- State A: in=0→A, in=1→B, output=0
+- State B: in=0→C, in=1→B, output=0
+- State C: in=0→A, in=1→D, output=0
+- State D: in=0→C, in=1→B, output=1
+
+So output is 1 only in state D. This is a Moore machine — output depends only on current state, not input.
+
+**Check-cycle timing**
+
+The protocol says: (in, reset) are driven before the sampled posedge. The posedge samples them. After settling, out is read. Optional mid-input changes occur after sampling, before the negedge, and carry to the start of the next row.
+
+So per row: drive in/reset → posedge → state updates via non-blocking assignment → next_state recomputes combinationally → out settles → sample out. The non-blocking assignment ensures state updates cleanly at the edge without races.
+
+**Manual trace**
+
+Start in A (out=0).
+- Row: in=1. next_state = B. Posedge: state←B. out=0.
+- Row: in=0. From B, next_state=C. Posedge: state←C. out=0.
+- Row: in=1. From C, next_state=D. Posedge: state←D. out=1.
+- Row: in=1. From D, next_state=B. Posedge: state←B. out=0.
+- Row: in=1. From B, next_state=B (self-loop). Posedge: state←B. out=0.
+- Row: in=0. From B, next_state=C. Posedge: state←C. out=0.
+
+This matches the table row-for-row.
+
+**Corner cases**
+
+- Reset mid-sequence: if reset=1 at a posedge, state←A regardless of in. Next cycle out=0.
+- B self-loop with in=1: stays in B, out stays 0.
+- D with in=1: goes to B, not staying in D. Output drops from 1 to 0.
+- X-propagation: default case sets next_state=A, recovering to A on the next posedge.
+
+**Weak points check**
+
+1. Sensitivity list `always @(*)` includes state and in — correct.
+2. Every case branch assigns next_state, plus default — no latch.
+3. All 4 states covered plus default — complete.
+4. Reset checked first in sequential block — priority correct.
+5. Widths: state/next_state 2 bits, in/reset/out 1 bit — correct.
+6. Output combinational off state — stable after settling.
+7. Non-blocking in sequential, separate combinational block — no races.
+8. B and D share next-state logic but differ in output — handled by separate case entries.
+
+One subtlety: combinational output may glitch during the settling transient at the posedge as state transitions. But the protocol samples after settling, so this is acceptable. Registering the output would change Moore timing and violate the spec.
+
+Another check: "Each row's values are driven before the sampled edge" means in is stable at the posedge. My design samples in combinationally into next_state, latched at the posedge — correct.
+
+**Final RTL**
+
+```verilog
+module fsm (
+    input  clk,
+    input  reset,
+    input  in,
+    output out
+);
+    localparam A = 2'b00, B = 2'b01, C = 2'b10, D = 2'b11;
+    reg [1:0] state, next_state;
+
+    always @(*) begin
+        case (state)
+            A: next_state = in ? B : A;
+            B: next_state = in ? B : C;
+            C: next_state = in ? D : A;
+            D: next_state = in ? B : C;
+            default: next_state = A;
+        endcase
+    end
+
+    always @(posedge clk) begin
+        if (reset) state <= A;
+        else       state <= next_state;
+    end
+
+    assign out = (state == D);
+endmodule
+```
+
+This transcribes the table row-for-row, uses synchronous active-high reset to A, produces a pure Moore output that is 1 only in D, and behaves correctly under the stated check-cycle protocol. The design is minimal, synthesizable, and free of latches or race conditions.

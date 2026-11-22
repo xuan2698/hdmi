@@ -1,0 +1,113 @@
+Looking at this problem, I need to implement a Moore FSM with 4 states, 1 input, 1 output, and synchronous active-high reset. Let me work through the details carefully.
+
+**State encoding and table transcription**
+
+The table gives:
+- A: in=0→A, in=1→B, out=0
+- B: in=0→C, in=1→B, out=0
+- C: in=0→A, in=1→D, out=0
+- D: in=0→C, in=1→B, out=1
+
+The output is 1 only in state D. This is a Moore machine because the output depends solely on the current state, not on the input.
+
+**Check-cycle timing**
+
+The protocol says: sample after the posedge has settled; each row's values are driven before the sampled edge; optional mid input changes occur AFTER sampling, before the other edge, and are carried to the start of the next row. This means:
+- At each posedge, we sample `in` and `reset` as they are at that moment.
+- The state register updates on the posedge based on the sampled values.
+- The output `out` is combinational off the current state, so it reflects the state after the edge within the same cycle.
+- If `in` changes mid-cycle (after sampling, before the next edge), that new value is what gets sampled at the next posedge — it does not affect the current cycle's state or output.
+
+So the timing is: posedge → state updates → output settles combinationally → mid-cycle input changes → next posedge samples the (possibly changed) input.
+
+**Reset behavior**
+
+Reset is synchronous and active-high. On a posedge where reset=1, state goes to A regardless of input. Reset has priority over the normal next-state logic. Since it's synchronous, reset only takes effect at a clock edge — it does not asynchronously force the state.
+
+**Next-state logic**
+
+I'll transcribe the table directly into a case statement rather than deriving minimized equations. This avoids algebra errors. Let me verify the encoding choice: A=00, B=01, C=10, D=11. Any consistent encoding works since the case statement uses symbolic names.
+
+For each state:
+- A: next = in ? B : A
+- B: next = in ? B : C
+- C: next = in ? D : A
+- D: next = in ? B : C
+
+Note that B and D have the same next-state behavior (in=0→C, in=1→B). That's fine — they differ only in output.
+
+**Output logic**
+
+`out = (state == D)`. This is combinational, so it's valid in the same cycle the state becomes D. In a Moore machine, the output is a function of state only, which this satisfies.
+
+**Corner cases**
+
+1. Reset asserted while in D: state goes to A, output goes to 0 in the next cycle. Correct.
+2. Reset deasserted mid-cycle: since reset is synchronous, it only matters at the posedge. If reset is high at the posedge, state→A; if it drops before the posedge, normal transition occurs.
+3. Input changes mid-cycle: carried to next posedge, as the protocol specifies.
+4. Default case: included to avoid latch inference and handle any undefined state (e.g., if state somehow becomes X). Defaults to A.
+5. Output glitches: since `out` is combinational off `state`, and `state` only changes at posedge, `out` is stable within a cycle after the edge settles. No glitch concern beyond normal combinational settling.
+
+**Manual trace example**
+
+Start in A, reset=0.
+- Cycle 1: in=1 at posedge → next=B, state becomes B, out=0.
+- Cycle 2: in=0 at posedge → next=C, state becomes C, out=0.
+- Cycle 3: in=1 at posedge → next=D, state becomes D, out=1.
+- Cycle 4: in=0 at posedge → next=C, state becomes C, out=0.
+- Cycle 5: in=0 at posedge → next=A, state becomes A, out=0.
+
+Matches the table. Now with reset:
+- In D, reset=1 at posedge → state=A, out=0 next cycle. Correct.
+
+**Weak points check**
+
+- Is `in` in the sensitivity list of the combinational block? Yes, `always @(*)` includes all read signals, so `in` and `state` are both covered. No latch.
+- Does the case cover all states plus default? Yes.
+- Is reset priority correct? Yes, checked first.
+- Widths: in=1, reset=1, out=1, state=2 bits. Matches.
+- Is the output registered one cycle late? No — combinational off state, so it reflects the post-edge state in the same cycle. Standard Moore convention.
+- Could there be a race between reset and next_state? No — reset is in the same always block with priority, so it wins deterministically.
+
+One subtle point: the protocol says "sample after the posedge edge has settled." This means we read the state and output after the edge. Since state updates on the edge and output is combinational, both are valid after settling. The mid-cycle input change is sampled at the next edge, which the synchronous design handles naturally.
+
+**Final RTL**
+
+```verilog
+module fsm (
+    input  clk,
+    input  reset,
+    input  in,
+    output out
+);
+
+    localparam A = 2'b00,
+               B = 2'b01,
+               C = 2'b10,
+               D = 2'b11;
+
+    reg [1:0] state, next_state;
+
+    always @(*) begin
+        case (state)
+            A: next_state = in ? B : A;
+            B: next_state = in ? B : C;
+            C: next_state = in ? D : A;
+            D: next_state = in ? B : C;
+            default: next_state = A;
+        endcase
+    end
+
+    always @(posedge clk) begin
+        if (reset)
+            state <= A;
+        else
+            state <= next_state;
+    end
+
+    assign out = (state == D);
+
+endmodule
+```
+
+This transcribes the table row-for-row, uses synchronous active-high reset to A, produces a pure Moore output that is 1 only in D, and behaves correctly under the stated check-cycle protocol.

@@ -59,6 +59,11 @@ def ensure_frozen():
         recorded=subprocess.check_output(["git","show",f"{FROZEN}:experiments/contract-review/{name}"],cwd=REPO)
         if recorded!=(ROOT/name).read_bytes():
             raise ValueError(f"Frozen experiment file changed: {name}")
+    base=protocol()["base_commit"]
+    for path in (AUTO/"pilot3.json",AUTO/"pilot2.json",V3/"tasks.json"):
+        recorded=subprocess.check_output(["git","show",f"{base}:{path.relative_to(REPO)}"],cwd=REPO)
+        if recorded!=path.read_bytes():
+            raise ValueError(f"Archived v3 settings or task list changed: {path.name}")
 
 
 def seed_for(rep):
@@ -213,8 +218,11 @@ def new_artifact(folder,prompt,think,decode,validator,attempts=3,repair_draft=Fa
             receipts=ledger(folder)
             last=receipts[-1] if receipts else {}
             status=last.get("http_status")
+            quota_hint=" ".join(last.get("provider_error",{}).values()).lower()
+            window_exhausted=status==429 and any(term in quota_hint for term in
+                ("insufficient_quota","quota exceeded","weekly limit","monthly limit","5-hour limit","5 hour limit"))
             if (last.get("status")=="received" or not receipts or
-                (status is not None and 400<=status<500 and status not in (408,429))):
+                window_exhausted or (status is not None and 400<=status<500 and status not in (408,429))):
                 raise
             errors.append(str(exc)[:500])
         except (ValueError,TypeError,KeyError,AttributeError,IndexError,RunError,subprocess.TimeoutExpired) as exc:

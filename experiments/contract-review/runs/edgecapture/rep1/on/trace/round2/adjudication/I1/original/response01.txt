@@ -1,0 +1,71 @@
+```python
+def reference(vectors):
+    # State initialization: power-up unspecified, choose concrete 0.
+    out = 0
+    prev_in = 0
+    signals = {'reset': 0, 'in': 0}
+    results = []
+    
+    for row in vectors:
+        # Drive row's values before sampled edge
+        if 'reset' in row:
+            signals['reset'] = row['reset'] & 1
+        if 'in' in row:
+            signals['in'] = row['in'] & 0xFFFFFFFF
+        
+        # Sample at posedge
+        r = signals.get('reset', 0) & 1
+        i = signals.get('in', 0) & 0xFFFFFFFF
+        
+        # R_RESET: synchronous reset clears out to 0, priority 3
+        if r:
+            out = 0
+        else:
+            # R_FALL: detect 1-to-0 transitions, set sticky bits
+            fall = prev_in & ((~i) & 0xFFFFFFFF)
+            out = (out | fall) & 0xFFFFFFFF
+        
+        # R_HOLD: out holds when no fall and no reset (implicit in out not modified)
+        # prev_in updates on every posedge including reset
+        prev_in = i & 0xFFFFFFFF
+        results.append({'out': out})
+        
+        # Process mid changes after sampling, before other edge, carry to next row
+        mid = row.get('mid')
+        if mid is not None:
+            if isinstance(mid, dict):
+                changes = [mid]
+            elif isinstance(mid, (list, tuple)):
+                changes = list(mid)
+            else:
+                changes = []
+            
+            for change in changes:
+                if isinstance(change, dict):
+                    if 'values' in change and isinstance(change['values'], dict):
+                        vals = change['values']
+                        if 'reset' in vals:
+                            signals['reset'] = vals['reset'] & 1
+                        if 'in' in vals:
+                            signals['in'] = vals['in'] & 0xFFFFFFFF
+                    else:
+                        if 'reset' in change:
+                            signals['reset'] = change['reset'] & 1
+                        if 'in' in change:
+                            signals['in'] = change['in'] & 0xFFFFFFFF
+                elif isinstance(change, (list, tuple)):
+                    for sub in change:
+                        if isinstance(sub, dict):
+                            if 'values' in sub and isinstance(sub['values'], dict):
+                                vals = sub['values']
+                                if 'reset' in vals:
+                                    signals['reset'] = vals['reset'] & 1
+                                if 'in' in vals:
+                                    signals['in'] = vals['in'] & 0xFFFFFFFF
+                            else:
+                                if 'reset' in sub:
+                                    signals['reset'] = sub['reset'] & 1
+                                if 'in' in sub:
+                                    signals['in'] = sub['in'] & 0xFFFFFFFF
+    return results
+```

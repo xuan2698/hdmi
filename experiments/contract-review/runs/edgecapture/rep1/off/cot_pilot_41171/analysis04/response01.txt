@@ -1,0 +1,83 @@
+Looking at this problem, I need to implement a per-bit falling-edge detector with sticky output and synchronous reset. Let me work through the design carefully.
+
+**Core logic derivation**
+
+The fundamental operation is: for each bit, detect when the input goes from 1 to 0 between consecutive clock edges. The natural way to express "1 in the previous cycle, 0 in this cycle" is `prev_in & ~in` — this is 1 exactly when the previous sampled value was 1 and the current sampled value is 0. That's the falling-edge indicator.
+
+Once detected, the output must remain 1 until reset. So the output update is `out | edge`, where `edge = prev_in & ~in`. The OR with the current output makes it sticky.
+
+Reset is active-high synchronous, so it takes priority: `out <= reset ? 0 : (out | edge)`.
+
+The `prev_in` register must track the input each cycle: `prev_in <= in`. The question is whether `prev_in` should also be reset. The spec says "the output will remain 1 until the register is reset" — it refers to the output register specifically. It says nothing about resetting the previous-input tracker. So `prev_in` updates unconditionally.
+
+**Check-cycle timing**
+
+The protocol says: sample after the posedge has settled, and mid-cycle input changes occur AFTER sampling, before the other edge, carried to the start of the next row. This means the value of `in` used at a given edge is the value that was present at the start of that row (before any mid-cycle change). So my `always @(posedge clk)` block sees the pre-mid-change value at each edge — exactly what I want. The mid-cycle change is not seen until the next edge, which is correct: it represents the input for the next cycle.
+
+**Reset/hold/state updates**
+
+At each posedge:
+- If `reset` is high: `out` becomes 0. `prev_in` still becomes `in` (unconditional).
+- If `reset` is low: `out` becomes `out | (prev_in & ~in)`. `prev_in` becomes `in`.
+
+Both assignments use non-blocking `<=`, so they read old values. `out` reads old `out`, old `prev_in`, and old `in`. `prev_in` reads old `in`. No intra-edge dependency, so ordering is irrelevant.
+
+**Manual traces**
+
+*Example A: simple 1→0.*
+- Cycle 1: `prev_in=0`, `in=1`. `edge = 0 & ~1 = 0`. `out <= 0`. `prev_in <= 1`.
+- Cycle 2: `prev_in=1`, `in=0`. `edge = 1 & ~0 = 1`. `out <= 0 | 1 = 1`. `prev_in <= 0`. ✓ Captured.
+
+*Example B: reset during pending transition.*
+- Cycle 1: `prev_in=1`, `in=0`, `reset=0`. `out <= 1`. `prev_in <= 0`.
+- Cycle 2: `reset=1`, `in=0`. `out <= 0` (reset wins). `prev_in <= 0`. ✓ Transition discarded, not queued.
+
+*Example C: reset then immediate 1→0.*
+- Cycle 1: `reset=1`, `prev_in=1`, `in=0`. `out <= 0`. `prev_in <= 0`.
+- Cycle 2: `reset=0`, `prev_in=0`, `in=0`. `edge = 0`. `out <= 0`. ✓ No spurious capture — because `prev_in` was updated to 0 during reset, the 1→0 that "would have" been detected is not seen. This is the literal-spec behavior: reset clears the output, and `prev_in` tracks input regardless.
+
+*Example D: mid-cycle change.*
+- Row starts with `in=0`, `prev_in=1`. Edge: `edge = 1 & ~0 = 1`, `out <= 1`. Then mid-cycle `in` changes to 1 (carried to next row). Next edge sees `in=1`, `prev_in=0` (carried). `edge = 0 & ~1 = 0`. ✓ The mid-cycle change is attributed to the next edge.
+
+*Example E: 1→1 and 0→0.*
+- `prev_in=1`, `in=1`: `edge = 1 & ~1 = 0`. No capture. ✓
+- `prev_in=0`, `in=0`: `edge = 0`. No capture. ✓
+
+*Example F: 0→1 then 1→0.*
+- `prev_in=0`, `in=1`: `edge = 0`. `prev_in <= 1`.
+- Next: `in=0`: `edge = 1`. Captured. ✓ The 0→1 sets up `prev_in` so the following 1→0 is caught.
+
+**Corner cases**
+
+1. **Reset deassertion mid-cycle** — honored only at next edge (synchronous). Correct.
+
+2. **`prev_in` not reset** — the single interpretive risk. The spec's wording targets the output register. Example C shows the literal reading produces sensible behavior: after reset, a stale `prev_in=1` combined with `in=0` would falsely capture, but since `prev_in` tracks `in` unconditionally, by the time reset deasserts, `prev_in` reflects the actual prior input. Actually, let me re-examine: if reset is high for one cycle with `in=0`, `prev_in` becomes 0. If reset is high with `in=1`, `prev_in` becomes 1. On deassert, if `in` is now 0, we'd capture a 1→0 that spans the reset boundary. Is that correct? The spec says capture when input changes 1→0 between consecutive cycles. If the input was 1 during the reset cycle and 0 after, that IS a 1→0 transition between consecutive cycles, so capturing it is arguably correct. The output was reset to 0, then the transition is detected. This seems consistent.
+
+3. **Initial X** — initialize both registers to 0 to avoid X propagation. Permitted.
+
+4. **Non-blocking ordering** — no dependency, order irrelevant.
+
+5. **32-bit independence** — bitwise operators ensure per-bit handling.
+
+6. **Sticky across many cycles** — `out | edge` feedback holds 1 until reset.
+
+7. **Reset while transition pending** — reset wins, transition discarded (Example B).
+
+8. **Multiple transitions before reset** — OR keeps it 1, no double-count.
+
+**Weak-point re-check**
+
+The main risk is `prev_in` reset behavior. Re-reading: "the output will remain 1 until the register is reset (active high synchronous reset)." This clearly scopes reset to the output register. It does not say "all registers reset." So `prev_in` updating unconditionally is the literal reading. The alternative (resetting `prev_in`) would suppress a legitimate 1→0 spanning the reset boundary, which contradicts "capture when the input signal changes from 1 in one clock cycle to 0 the next" — that transition genuinely occurred. So unconditional `prev_in` is correct.
+
+A second check: does reset need to also clear `prev_in` to avoid a false capture on the very first cycle after reset? Consider reset high, `in=1`, so `prev_in <= 1`. Next cycle reset low, `in=0`. `edge = 1 & ~0 = 1`, `out <= 1`. This captures a 1→0 that occurred across the reset boundary. Per the spec, this is a real transition between consecutive cycles, so capturing is correct. No false positive.
+
+**Final implementation**
+
+```
+always @(posedge clk) begin
+    out     <= reset ? 32'b0 : (out | (prev_in & ~in));
+    prev_in <= in;
+end
+```
+
+with both registers initialized to 0. This captures per-bit 1→0 transitions, holds them sticky, honors synchronous active-high reset with priority on the output, tracks `prev_in` unconditionally per the literal spec, and is immune to mid-cycle changes because everything is edge-sampled with non-blocking assignments.

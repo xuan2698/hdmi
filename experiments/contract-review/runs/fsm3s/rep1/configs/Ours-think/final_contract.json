@@ -1,0 +1,248 @@
+{
+  "ports": {
+    "inputs": {
+      "in": 1,
+      "reset": 1
+    },
+    "outputs": {
+      "out": 1
+    },
+    "clock": "clk"
+  },
+  "states": [
+    {
+      "name": "A",
+      "meaning": "Reset state. At a posedge: if reset=1, enter/keep A; else in=0 -> A, in=1 -> B. Moore output out=0.",
+      "update_time": "posedge",
+      "update_during_reset": true
+    },
+    {
+      "name": "B",
+      "meaning": "At a posedge: if reset=1, go to A; else in=0 -> C, in=1 -> B. Moore output out=0.",
+      "update_time": "posedge",
+      "update_during_reset": true
+    },
+    {
+      "name": "C",
+      "meaning": "At a posedge: if reset=1, go to A; else in=0 -> A, in=1 -> D. Moore output out=0.",
+      "update_time": "posedge",
+      "update_during_reset": true
+    },
+    {
+      "name": "D",
+      "meaning": "At a posedge: if reset=1, go to A; else in=0 -> C, in=1 -> B. Moore output out=1.",
+      "update_time": "posedge",
+      "update_during_reset": true
+    }
+  ],
+  "rules": [
+    {
+      "id": "reset_high",
+      "outputs": [
+        "out"
+      ],
+      "condition": "reset == 1 at a sampled posedge; synchronous reset forces state A, whose Moore output is 0.",
+      "edge": "posedge",
+      "visible": "same_cycle",
+      "priority": 0,
+      "spec_quote": "synchronous active high reset that resets the FSM to state A",
+      "uncertain": false,
+      "example": {
+        "vectors": [
+          {
+            "reset": 1,
+            "in": 0
+          },
+          {
+            "reset": 1,
+            "in": 1
+          }
+        ],
+        "expected": [
+          {
+            "out": 0
+          },
+          {
+            "out": 0
+          }
+        ]
+      }
+    },
+    {
+      "id": "state_A_out0",
+      "outputs": [
+        "out"
+      ],
+      "condition": "reset == 0 and the state after the sampled posedge is A; Moore output is 0.",
+      "edge": "posedge",
+      "visible": "same_cycle",
+      "priority": 10,
+      "spec_quote": "A | A, B | 0",
+      "uncertain": false,
+      "example": {
+        "vectors": [
+          {
+            "reset": 1,
+            "in": 0
+          },
+          {
+            "reset": 0,
+            "in": 0
+          },
+          {
+            "reset": 0,
+            "in": 0
+          }
+        ],
+        "expected": [
+          {
+            "out": 0
+          },
+          {
+            "out": 0
+          },
+          {
+            "out": 0
+          }
+        ]
+      }
+    },
+    {
+      "id": "state_B_out0",
+      "outputs": [
+        "out"
+      ],
+      "condition": "reset == 0 and the state after the sampled posedge is B; Moore output is 0.",
+      "edge": "posedge",
+      "visible": "same_cycle",
+      "priority": 11,
+      "spec_quote": "B | C, B | 0",
+      "uncertain": false,
+      "example": {
+        "vectors": [
+          {
+            "reset": 1,
+            "in": 0
+          },
+          {
+            "reset": 0,
+            "in": 1
+          },
+          {
+            "reset": 0,
+            "in": 1
+          }
+        ],
+        "expected": [
+          {
+            "out": 0
+          },
+          {
+            "out": 0
+          },
+          {
+            "out": 0
+          }
+        ]
+      }
+    },
+    {
+      "id": "state_C_out0",
+      "outputs": [
+        "out"
+      ],
+      "condition": "reset == 0 and the state after the sampled posedge is C; Moore output is 0.",
+      "edge": "posedge",
+      "visible": "same_cycle",
+      "priority": 12,
+      "spec_quote": "C | A, D | 0",
+      "uncertain": false,
+      "example": {
+        "vectors": [
+          {
+            "reset": 1,
+            "in": 0
+          },
+          {
+            "reset": 0,
+            "in": 1
+          },
+          {
+            "reset": 0,
+            "in": 0
+          }
+        ],
+        "expected": [
+          {
+            "out": 0
+          },
+          {
+            "out": 0
+          },
+          {
+            "out": 0
+          }
+        ]
+      }
+    },
+    {
+      "id": "state_D_out1",
+      "outputs": [
+        "out"
+      ],
+      "condition": "reset == 0 and the state after the sampled posedge is D; Moore output is 1.",
+      "edge": "posedge",
+      "visible": "same_cycle",
+      "priority": 13,
+      "spec_quote": "D | C, B | 1",
+      "uncertain": false,
+      "example": {
+        "vectors": [
+          {
+            "reset": 1,
+            "in": 0
+          },
+          {
+            "reset": 0,
+            "in": 1
+          },
+          {
+            "reset": 0,
+            "in": 0
+          },
+          {
+            "reset": 0,
+            "in": 1
+          }
+        ],
+        "expected": [
+          {
+            "out": 0
+          },
+          {
+            "out": 0
+          },
+          {
+            "out": 0
+          },
+          {
+            "out": 1
+          }
+        ]
+      }
+    }
+  ],
+  "reset": {
+    "kind": "sync",
+    "name": "reset",
+    "active": "high",
+    "values": {
+      "out": 0
+    },
+    "first_released_cycle": "first sampled posedge with reset=0 after a posedge with reset=1; state is A at the start of that cycle"
+  },
+  "mid": "Optional mid input changes occur after sampling, before the other edge, and are carried to the start of the next row.",
+  "uncertain": [],
+  "remaining_uncertain_fields": {},
+  "selected_interpretations": []
+}

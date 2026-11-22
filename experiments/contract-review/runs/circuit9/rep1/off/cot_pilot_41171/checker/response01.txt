@@ -1,0 +1,35 @@
+```python
+def reference(vectors):
+    # Sequential circuit inferred from the waveform:
+    #   q is a 3-bit modulo-7 counter.
+    #   There is a hidden previous-a bit p.
+    #   On each posedge:
+    #     if a == 1:        q <= 4, p <= 1
+    #     elif p == 1:      q <= q, p <= 0
+    #     else:             q <= (q + 1) mod 7, p <= 0
+    #   Equivalently: p_next = a
+    #                 q_next = 4 if a else (q if p else (q+1)%7)
+    #
+    # Initial state is unspecified; use q=0, p=0 as a concrete choice.
+    # The first sampled posedge in the given trace has a=1, so q becomes 4
+    # regardless of the initial state.
+    q = 0
+    p = 0
+    out = []
+    for row in vectors:
+        a = row.get('a', 0) & 1
+        # Compute next state from current state and input a
+        if a == 1:
+            q_next = 4
+            p_next = 1
+        else:
+            if p == 1:
+                q_next = q
+            else:
+                q_next = (q + 1) % 7
+            p_next = 0
+        q = q_next
+        p = p_next
+        out.append({'q': q & 7})
+    return out
+```

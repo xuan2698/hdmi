@@ -1,0 +1,105 @@
+Looking at this specification, I need to implement a Moore FSM with four states, one input, one output, and synchronous active-high reset. Let me work through the details carefully.
+
+**State encoding and transition table**
+
+The table gives:
+- A: in=0→A, in=1→B, out=0
+- B: in=0→C, in=1→B, out=0
+- C: in=0→A, in=1→D, out=0
+- D: in=0→C, in=1→B, out=1
+
+I'll use 2-bit encodings A=00, B=01, C=10, D=11. All four encodings are used, so there are no unused states to worry about in synthesis (though X-propagation in simulation could still produce 2'bxx, so a default case is prudent).
+
+**Architecture choice**
+
+For a Moore machine, the output depends only on the current state. The cleanest implementation is a two-block style: a combinational block computing next_state from state and in, and a sequential block latching state at the posedge with synchronous reset. The output is a combinational decode of state (out = (state==D)).
+
+This is the standard, synthesizable, race-free pattern. Non-blocking assignments in the sequential block prevent races; the combinational block uses blocking assignments and a full sensitivity list.
+
+**Reset semantics**
+
+The spec says "synchronous active high reset that resets the FSM to state A." Synchronous means reset is only honored at the clock edge, not asynchronously. So the sequential block checks `if (reset) state <= A; else state <= next_state;`. This means reset must be high at the posedge to take effect. If reset is asserted mid-cycle, nothing happens until the next posedge. That matches "synchronous."
+
+Corner case: reset asserted while in D. At the posedge, state←A, and out becomes 0 after settling. Correct — reset overrides the D output.
+
+Corner case: reset deasserted just before posedge. If reset is low at the posedge, normal transition occurs. If high, reset wins. The if/else priority ensures deterministic behavior.
+
+**Check-cycle timing**
+
+The protocol says: "Each row's values are driven before the sampled edge" and "sample after the posedge edge has settled." So the testbench drives `in` (and reset) before the posedge, waits for the posedge, then samples `out` after settling. My design samples `in` combinationally into next_state, which is latched at the posedge. Since `in` is stable before the posedge, the value at the posedge determines the transition. The output is combinational off state, so after the posedge settles (state updated via non-blocking assignment), out reflects the new state. This matches the protocol exactly.
+
+Optional mid-cycle input changes occur after sampling and before the other edge; they're carried to the start of the next row. Since my next_state is combinational, a mid-cycle change in `in` will change next_state, but that's fine — it only matters at the next posedge, and the protocol guarantees `in` is stable before that posedge. So mid-cycle changes are harmless.
+
+**Manual trace of a small example**
+
+Start: reset high at posedge → state=A, out=0.
+Row 1: in=1 driven. At posedge, next_state=B (from A, in=1). state←B, out=0.
+Row 2: in=0 driven. From B, in=0→C. state←C, out=0.
+Row 3: in=1 driven. From C, in=1→D. state←D, out=1.
+Row 4: in=0 driven. From D, in=0→C. state←C, out=0.
+Row 5: in=1 driven. From C, in=1→D. state←D, out=1.
+Row 6: in=1 driven. From D, in=1→B. state←B, out=0.
+
+This matches the table row-for-row. Good.
+
+Another trace exercising B's self-loop: from B with in=1, stay in B. From B with in=0, go to C. From D with in=1, go to B (not stay in D). Note B and D share the same next-state function (in=0→C, in=1→B) but differ in output. My case statement handles this correctly by listing B and D separately with identical next-state logic but the output decode distinguishes them.
+
+**Undefined state recovery**
+
+If state somehow becomes 2'bxx or an unused encoding (none here since all 4 are used), the `default` case sets next_state=A, and the next posedge recovers to A. Safe recovery. Since all 4 encodings are valid states, this only matters for X-propagation in simulation.
+
+**Weak points check**
+
+1. Sensitivity list: `always @(*)` includes state and in. ✓
+2. Latch inference: every case branch assigns next_state, plus default. No latch. ✓
+3. Case completeness: all 4 states + default. ✓
+4. Reset priority: checked first. ✓
+5. Bit widths: state/next_state 2 bits, in/reset/out 1 bit. ✓
+6. Output timing: combinational off state, stable after settling. ✓
+7. Race conditions: non-blocking assignment in sequential block, separate combinational block. ✓
+8. B and D sharing next-state function: intentional, they differ only in output. ✓
+
+One subtle point: the output is combinational, so during the settling transient right at the posedge, out may briefly glitch as state transitions. But the protocol samples "after the posedge has settled," so this is fine. If glitch-free output were required, I'd register the output, but that would change the Moore timing (output would lag by one cycle), violating the spec's expectation that out reflects the current state. So combinational output is correct here.
+
+Another check: the spec says "Each row's values are driven before the sampled edge." This means in is stable before the posedge. My design samples in combinationally into next_state, which is then latched at the posedge. So the value of in at the posedge (which equals the value driven before it, since it's stable) determines the transition. ✓
+
+**Final RTL**
+
+```verilog
+module fsm (
+    input  clk,
+    input  reset,
+    input  in,
+    output out
+);
+
+    localparam A = 2'b00,
+               B = 2'b01,
+               C = 2'b10,
+               D = 2'b11;
+
+    reg [1:0] state, next_state;
+
+    always @(*) begin
+        case (state)
+            A: next_state = in ? B : A;
+            B: next_state = in ? B : C;
+            C: next_state = in ? D : A;
+            D: next_state = in ? B : C;
+            default: next_state = A;
+        endcase
+    end
+
+    always @(posedge clk) begin
+        if (reset)
+            state <= A;
+        else
+            state <= next_state;
+    end
+
+    assign out = (state == D);
+
+endmodule
+```
+
+This transcribes the table row-for-row, uses synchronous active-high reset to A, produces a pure Moore output that is 1 only in D, and behaves correctly under the stated check-cycle protocol. The design is minimal, synthesizable, and free of latches or race conditions.

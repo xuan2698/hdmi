@@ -1,0 +1,34 @@
+{
+  "responses": [
+    {
+      "issue_id": "I1",
+      "decision": "accept",
+      "reason": "The public specification defines only active-high synchronous reset for the sticky output register; it does not specify the reset behavior of the internal previous-input state. The contract should record the current assumption for prev_in rather than treat it as fully specified.",
+      "spec_quote": "active high synchronous reset",
+      "edits": [
+        {
+          "path": [
+            "uncertain"
+          ],
+          "value": [
+            {
+              "issue_id": "I1",
+              "rule_id": "R_FALL",
+              "type": "ambiguity",
+              "severity": "high",
+              "detail": "The specification does not define whether prev_in is updated, held, or cleared while reset is asserted. The contract currently assumes prev_in updates on every posedge including reset, which can capture a 1-to-0 transition from the last reset cycle to the first non-reset cycle.",
+              "spec_quote": "active high synchronous reset",
+              "candidates": [
+                "prev_in updates on every posedge including reset",
+                "prev_in is held during reset",
+                "prev_in is cleared during reset"
+              ],
+              "chosen_assumption": "prev_in updates on every posedge including reset",
+              "affected_rule": "R_FALL"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

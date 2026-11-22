@@ -199,11 +199,15 @@ def render(phase):
     actual=cot["tokens"]/cot["runs"] if cot["runs"] else 0
     gap=f"{(actual-matched['target'])/matched['target']:+.2%}" if matched["target"] else "—"
     u=summary["usage"]
+    debugging=summary["pilot_debug_usage"]
     sections += ["## 用量、费用和例子",
                  f"CoT 目标 {matched['target']:,} token/运行，实测 {actual:,.1f}，偏差 "
                  f"{gap}。"
                  f"归档中去重后共 {u['calls']:,} 次逻辑调用、{u['attempts']:,} 次传输尝试、{u['tokens']:,} token，"
                  f"Go 用量 USD {u['go_usd']:.6f}、额外扣费 USD {u['charged_usd']:.6f}。",
+                 f"其中归档的试运行修复与预算校准使用 {debugging['calls']:,} 次逻辑调用、"
+                 f"{debugging['tokens']:,} token，Go 用量 USD {debugging['go_usd']:.6f}。"
+                 "金额取自接口返回的计量记录。未返回用量的断开连接只有传输记录。",
                  "[每题例子长度](spec_examples.csv) · [五个抽查样例](spec_examples_review.json) · "
                  f"[用量审计]({phase}_calls_audit.csv) · [原始统计]({phase}_summary.json)"]
     if not pilot:

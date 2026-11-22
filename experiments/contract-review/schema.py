@@ -121,7 +121,8 @@ sentence is not design evidence. For a waveform-only task use a verbatim printed
 reset {kind:"none"|"sync"|"async"|"unspecified",name:input or null,active:"high"|"low"|"none"|"unspecified",
 values:{output:value or null},first_released_cycle:string}.
 mid:string. uncertain [{rule_id,note,candidates:[distinct interpretation strings]}].
-Use compact JSON; keep independent rules concise and do not invent specification text."""
+Keep any deliberation brief and prioritize a complete compact JSON object. Keep independent rules
+concise and do not invent specification text."""
 
 
 def sentence_map(spec):
@@ -163,7 +164,8 @@ outputs for any explicit spec waveform/table/examples and compare. Report distin
 Return JSON {coverage:{Sxx:[rule IDs or "unrelated"/"missing"]},issues:[
 {issue_id,rule_id (or "global"),type:"coverage"|"grounding"|"consistency"|"ambiguity"|"spec_example",
 severity:"high"|"medium"|"low",detail,spec_evidence (verbatim spec or ""),alternative,sequence}]}.
-For ambiguity the alternative must be specific; sequence must be a nonempty list of complete
+Keep any deliberation brief and use short issue descriptions so the entire JSON fits. For ambiguity
+the alternative must be specific; sequence must be a nonempty list of complete
 width-valid nonclock input rows (optional mid) using the contract ports. For other types alternative
 can be an empty string and sequence can be []. Code and prose outside JSON are not needed."""
 

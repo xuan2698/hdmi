@@ -1,0 +1,50 @@
+```python
+def reference(vectors):
+    # Named state: out is the 32-bit sticky capture register.
+    # prev_in is the previous sampled input vector.
+    out = 0
+    prev_in = 0
+
+    # Current input values at the start of each row, after any carried mid changes.
+    cur_reset = 0
+    cur_in = 0
+
+    mask32 = 0xFFFFFFFF
+    results = []
+
+    for row in vectors:
+        # Each row's values are driven before the sampled posedge.
+        # They override any mid changes carried from the previous row.
+        if "reset" in row:
+            cur_reset = row["reset"] & 1
+        if "in" in row:
+            cur_in = row["in"] & mask32
+
+        # Synchronous active-high reset has highest priority.
+        # R_RESET: reset == 1 clears out to 0 on posedge.
+        if cur_reset == 1:
+            out = 0
+        else:
+            # R_FALL: set out bits where prev_in[i] == 1 and cur_in[i] == 0.
+            # R_HOLD: all other out bits hold their prior value implicitly.
+            fall_mask = prev_in & (~cur_in & mask32)
+            out = (out | fall_mask) & mask32
+
+        # I1 chosen assumption: prev_in updates on every posedge,
+        # including cycles where reset is asserted.
+        prev_in = cur_in & mask32
+
+        # Visible output after this sampled posedge.
+        results.append({"out": out & mask32})
+
+        # Optional mid changes occur AFTER sampling, before the other edge.
+        # They are carried to the start of the next row.
+        mid = row.get("mid")
+        if mid:
+            if "reset" in mid:
+                cur_reset = mid["reset"] & 1
+            if "in" in mid:
+                cur_in = mid["in"] & mask32
+
+    return results
+```

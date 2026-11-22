@@ -1,0 +1,22 @@
+Looking at the spec, I need to capture per-bit 1→0 transitions across consecutive clock cycles, hold them sticky, and clear on active-high synchronous reset. Let me work through the timing carefully.
+
+**Check-cycle timing.** The spec says "sample after the posedge edge has settled" and "each row's values are driven before the sampled edge." So at each posedge, I observe the current `in` and `reset`. The transition I detect is between the `in` value at the previous posedge and the `in` value at this posedge. Mid-cycle changes occur after sampling and are carried to the next row — meaning they only matter at the next posedge, which is exactly what a registered `prev_in` gives me.
+
+**State.** I need two 32-bit registers: `out` (sticky capture) and `prev_in` (last sampled input). The falling-edge mask at cycle N is `prev_in & ~in`, computed from edge-sampled values.
+
+**Reset/hold/state updates.** Reset is synchronous and active-high, so it takes effect at the posedge. Reset must clear `out`. The question is whether reset also affects `prev_in`. The spec doesn't say to reset `prev_in`, and resetting it would lose a real transition across the reset boundary. So `prev_in` updates unconditionally to `in` every cycle. `out` becomes 0 on reset, else `out | (prev_in & ~in)` — sticky OR with new captures.
+
+**Corner cases.** (1) Reset and a falling edge in the same cycle: reset wins on `out` (output 0), but `prev_in` still updates, so the transition is remembered for the next cycle's comparison — correct, since the transition is real. (2) First cycle after reset: `prev_in` holds the pre-reset `in`, so a 1→0 spanning the reset boundary is captured. This matches the literal spec ("changes from 1 in one clock cycle to 0 the next"). (3) If `in` was 0 during reset, `prev_in=0`, so no false positive on the next cycle. (4) Mid-cycle glitches are invisible because both `prev_in` and `out` use non-blocking assignments driven by edge-sampled values.
+
+**Manual trace.** `in = 01, 00, 10, 00, 00`, starting `out=0, prev_in=0`. C1: falling=00&10=00, out=00, prev=01. C2: falling=01&11=01, out=01, prev=00. C3: falling=00&01=00, out=01, prev=10. C4: falling=10&11=10, out=11, prev=00. C5: falling=00, out=11. Correct.
+
+**Weak-point recheck.** Unconditional `prev_in` update is exactly right: `prev_in` at N+1 equals `in` at N, so `prev_in & ~in` is precisely "was 1 last cycle, is 0 now." No over-capture possible; every capture corresponds to a real transition. Reset priority only affects `out`, never fabricates or suppresses a real transition's future detection.
+
+```verilog
+reg [31:0] out, prev_in;
+initial begin out = 0; prev_in = 0; end
+always @(posedge clk) begin
+    out     <= reset ? 32'b0 : (out | (prev_in & ~in));
+    prev_in <= in;
+end
+```

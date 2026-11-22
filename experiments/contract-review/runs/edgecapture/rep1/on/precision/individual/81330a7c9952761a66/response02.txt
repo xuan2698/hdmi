@@ -1,0 +1,59 @@
+def reference(vectors):
+    # R_RESET: active high synchronous reset clears out to 0
+    # R_FALL: set out[i] on 1->0 transition of in[i]
+    # R_HOLD: hold out when no falling edge and no reset
+    out = 0
+    prev_in = 0
+    cur_reset = 0
+    cur_in = 0
+    results = []
+    for row in vectors:
+        # Drive row values before the sampled posedge (subset of inputs may be given)
+        try:
+            cur_reset = row['reset']
+        except:
+            pass
+        try:
+            cur_in = row['in']
+        except:
+            pass
+        # Sample at posedge: reset has priority
+        in_masked = cur_in & 0xFFFFFFFF
+        if cur_reset == 1:
+            out = 0  # R_RESET
+        else:
+            # R_FALL: detect falling edges using previous sampled input
+            falling = prev_in & (~in_masked & 0xFFFFFFFF)
+            out = out | falling  # R_HOLD for all other bits
+        # prev_in updates on every posedge including during reset
+        prev_in = in_masked
+        results.append({'out': out})
+        # Apply optional mid input changes AFTER sampling, before the other edge.
+        # These carry to the start of the next row.
+        try:
+            mid = row['mid']
+            # mid may be a dict of signal:value
+            try:
+                cur_reset = mid['reset']
+            except:
+                pass
+            try:
+                cur_in = mid['in']
+            except:
+                pass
+            # mid may be a list of such change dicts
+            try:
+                for change in mid:
+                    try:
+                        cur_reset = change['reset']
+                    except:
+                        pass
+                    try:
+                        cur_in = change['in']
+                    except:
+                        pass
+            except:
+                pass
+        except:
+            pass
+    return results

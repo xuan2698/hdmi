@@ -1,0 +1,141 @@
+Looking at this specification, I need to implement a falling-edge detector for a 32-bit vector that captures 1-to-0 transitions and holds them until reset.
+
+Let me think through the core logic first. For each bit, I need to detect when the input goes from 1 in one cycle to 0 in the next. This requires storing the previous input value. The detection condition for bit i is: `prev_in[i] == 1 && in[i] == 0`, which can be written as `prev_in[i] & ~in[i]`.
+
+The "capture" semantics mean the output is sticky - once set to 1, it stays 1 until reset. So the update is `out <= out | (prev_in & ~in)`. The reset is active-high synchronous, so when reset=1 at a clock edge, out becomes 0 regardless of the detection.
+
+Now the critical question: what happens to `prev_in` during reset? The spec says "the output will remain 1 until the register is reset" - this refers to the output register. It doesn't say anything about resetting the previous-input tracking register. So `prev_in` should update unconditionally to the current `in` value every cycle, including during reset.
+
+Let me verify this interpretation with a scenario. Suppose cycle 1: reset=1, in=1. After edge: out=0 (reset), prev_in=1. Cycle 2: reset=0, in=0. Now prev_in=1, in=0, so falling edge detected, out becomes 1. Is this correct per spec? The input changed from 1 (cycle 1) to 0 (cycle 2), so yes, this is a 1-to-0 transition and should be captured. If we had reset prev_in to 0 during reset, we'd miss this edge. So unconditional prev_in update is correct.
+
+Timing analysis: The testbench samples after the posedge has settled. So at cycle N's rising edge, the input value present just before that edge is `in[N]`. The output after the edge is `out[N]`. The comparison is between `prev_in` (which holds `in[N-1]`) and `in[N]`. This correctly detects a 1-to-0 transition from cycle N-1 to cycle N.
+
+Mid-cycle input changes occur after sampling and before the next edge, so they become the input for the next cycle. This means only the value at the rising edge matters for detection - glitches between edges are ignored. Good.
+
+Reset priority: When reset=1 and a falling edge occurs simultaneously, reset wins (out=0). This is standard for synchronous reset. The spec doesn't explicitly state priority, but synchronous reset conventionally has priority. Also, since reset clears the output, and the output is what's being "held," it makes sense that reset overrides capture.
+
+Let me trace through a concrete example to verify. Consider a single bit:
+- Cycle 1: reset=0, in=1. Initial prev_in=0 (assume reset was applied earlier). Detection: 0 & ~1 = 0. out stays 0. After edge: prev_in=1, out=0.
+- Cycle 2: reset=0, in=0. Detection: 1 & ~0 = 1. out becomes 1. After edge: prev_in=0, out=1.
+- Cycle 3: reset=0, in=1. Detection: 0 & ~1 = 0. out stays 1 (sticky). After edge: prev_in=1, out=1.
+- Cycle 4: reset=0, in=0. Detection: 1 & ~0 = 1. out stays 1. After edge: prev_in=0, out=1.
+- Cycle 5: reset=1, in=0. Reset wins: out=0. After edge: prev_in=0, out=0.
+
+This looks correct. The output captured the first falling edge and held it through subsequent cycles until reset.
+
+Now let me check the reset-then-edge scenario more carefully:
+- Cycle 1: reset=1, in=1. Reset: out=0. prev_in updates to 1. After edge: prev_in=1, out=0.
+- Cycle 2: reset=0, in=0. Detection: 1 & ~0 = 1. out becomes 1. After edge: prev_in=0, out=1.
+
+The falling edge from cycle 1 to cycle 2 is captured. This is correct because the input did change from 1 to 0 across those cycles. The reset in cycle 1 only cleared the output, not the edge-detection history.
+
+What if reset and falling edge coincide?
+- Cycle 1: reset=0, in=1. After edge: prev_in=1, out=0.
+- Cycle 2: reset=1, in=0. Detection would be 1 & ~0 = 1, but reset wins: out=0. prev_in updates to 0. After edge: prev_in=0, out=0.
+- Cycle 3: reset=0, in=0. Detection: 0 & ~0 = 0. out stays 0.
+
+Here the falling edge at cycle 2 was masked by reset. Is this correct? The spec says output remains 1 until reset. If reset occurs simultaneously with a falling edge, the reset clears the output. The falling edge is "lost" in the sense that out doesn't become 1. But since reset was active, out=0 is the correct post-reset state. The next cycle, prev_in=0 and in=0, so no new edge. This seems consistent.
+
+But wait - what if the input was 1 during reset and becomes 0 after? Let me re-examine:
+- Cycle 1: reset=1, in=1. out=0 (reset). prev_in=1.
+- Cycle 2: reset=0, in=0. Detection: 1 & ~0 = 1. out=1.
+
+Yes, this captures the edge. The key insight is that prev_in tracks the actual input history regardless of reset, so edges spanning a reset boundary are still detected.
+
+Now let me think about the implementation structure. I need:
+- A 32-bit register `prev_in` initialized to 0 (or don't care, but 0 is safe).
+- A 32-bit register `out` initialized to 0.
+- On each posedge clk:
+  - `out <= reset ? 32'b0 : out | (prev_in & ~in);`
+  - `prev_in <= in;`
+
+Using non-blocking assignments ensures both use old values. The reset is synchronous (checked at the edge), active high.
+
+One subtle point: the spec says "sample after the posedge edge has settled." This means the testbench reads outputs after the clock edge, which is standard. The non-blocking assignments will have updated by then.
+
+Another consideration: what if reset is asserted for multiple cycles? Each cycle, out stays 0, and prev_in tracks in. When reset deasserts, the next falling edge (comparing prev_in from the last reset cycle to the new in) will be captured. This is correct per the literal spec.
+
+Let me also consider: does the spec require prev_in to be reset? "the output will remain 1 until the register is reset" - "the register" likely refers to the output register. There's no mention of resetting the edge-detection state. If we reset prev_in to 0 during reset, we might miss an edge that spans the reset boundary (in=1 during reset, in=0 after). The spec says to capture when input changes from 1 to 0 "in one clock cycle to the next" - this doesn't exclude cycles where reset was active. So unconditional prev_in update is the safer, more literal interpretation.
+
+Actually, let me reconsider. If reset is active and in=1, then after reset deasserts and in=0, is that a "change from 1 in one clock cycle to 0 the next"? Yes, literally. The reset doesn't change the input signal. So capturing this edge is correct.
+
+What about the very first cycle after power-on? If reset is applied initially, out=0 and prev_in tracks in. If reset is never applied, prev_in is undefined (X in simulation). The spec doesn't specify initial conditions, so assuming reset is applied is reasonable. In hardware, registers have some initial value, but for simulation, we should initialize prev_in to 0 to avoid X propagation. Actually, the spec says "until the register is reset" implying reset is the initialization mechanism. I'll initialize both to 0 for safety.
+
+Let me think about whether there are any cross-bit interactions. No - each bit is independent. The bitwise operations handle all 32 bits in parallel.
+
+Let me also verify the expression `prev_in & ~in` correctly identifies falling edges. For bit i:
+- prev_in[i]=1, in[i]=0: 1 & ~0 = 1 & 1 = 1 ✓
+- prev_in[i]=1, in[i]=1: 1 & ~1 = 1 & 0 = 0 ✓
+- prev_in[i]=0, in[i]=0: 0 & ~0 = 0 & 1 = 0 ✓
+- prev_in[i]=0, in[i]=1: 0 & ~1 = 0 & 0 = 0 ✓
+
+Only the 1→0 case gives 1. Correct.
+
+The OR with out makes it sticky: once out[i]=1, it stays 1 until reset. Even if prev_in & ~in becomes 0 later, out remains 1.
+
+Reset priority: `reset ? 0 : ...` ensures reset overrides. If reset=1, out=0 regardless of detection. This is correct for synchronous active-high reset.
+
+Let me trace a multi-bit example to be thorough. Suppose in changes from 0b1010 to 0b0101:
+- prev_in = 1010, in = 0101
+- ~in = 1010
+- prev_in & ~in = 1010 & 1010 = 1010
+- So bits 3 and 1 had falling edges (1→0). Bit 3: prev=1, now=0 ✓. Bit 1: prev=1, now=0 ✓. Bit 2: prev=0, now=1 (rising, not captured). Bit 0: prev=0, now=1 (rising, not captured).
+- out becomes out | 1010.
+
+Correct.
+
+Now let me think about the testbench timing more carefully. "Each row's values are driven before the sampled edge." So the testbench sets reset and in before the rising edge. "Optional mid input changes occur AFTER sampling, before the other edge, and are carried to the start of the next row." So mid-cycle changes to in happen after the posedge sampling but before the next posedge, and they persist into the next cycle. This means the value of in at the next posedge includes any mid-cycle changes. Our implementation samples in at the posedge, so it naturally handles this.
+
+"Sample after the posedge edge has settled" - the testbench reads out after the edge. Our non-blocking assignments update out at the edge, so out is stable when sampled. Good.
+
+One more corner case: what if reset is asserted and in has a falling edge in the same cycle, but out was already 1 from a previous edge? Reset clears out to 0. The falling edge is not captured (reset wins). Next cycle, if in stays 0, prev_in=0, no new edge. If in goes back to 1 then 0 again, that's a new falling edge and will be captured. This seems correct.
+
+What if reset is asserted for exactly one cycle while in=1, then reset deasserts and in=0? As analyzed, the edge is captured because prev_in=1 from the reset cycle. This is the literal interpretation.
+
+I'm confident in the implementation:
+```verilog
+reg [31:0] prev_in;
+reg [31:0] out;
+
+always @(posedge clk) begin
+    out <= reset ? 32'b0 : out | (prev_in & ~in);
+    prev_in <= in;
+end
+```
+
+With initial values of 0 for both registers (or relying on reset to initialize out, and initializing prev_in to 0 to avoid X).
+
+Actually, let me reconsider the initialization. If the testbench applies reset at the start, out becomes 0 and prev_in becomes whatever in is. If in=1 during the first reset cycle, prev_in=1. Then if in=0 next cycle, the edge is captured. Is this desired? The spec says capture 1→0 transitions. The input was 1 during reset and 0 after - that's a transition. So yes, capture it. This is consistent.
+
+But what if the testbench expects prev_in to be 0 initially (before any clock)? The spec doesn't say. I'll initialize prev_in to 0 to be safe, but note that the first cycle's behavior depends on whether reset is applied. If reset is applied with in=1, prev_in becomes 1 after the first edge. If reset is applied with in=0, prev_in stays 0. Either way, subsequent edges are detected correctly.
+
+I think the implementation is solid. Let me write it up.
+
+Wait, one more thing: the spec says "active high synchronous reset." Synchronous means reset is sampled at the clock edge, not asynchronous. My implementation checks reset inside the always @(posedge clk) block, so it's synchronous. Active high means reset=1 triggers reset. My ternary `reset ? 0 : ...` handles this. Good.
+
+Let me also consider: should prev_in be reset? I've argued no, based on the literal spec. But let me double-check the phrase "until the register is reset." This could be interpreted as "until the [output] register is reset" or "until the [state] register is reset." In context, "the output will remain 1 until the register is reset" - the register holding the output is reset. So only out is reset. prev_in is a separate tracking register that isn't mentioned as being reset. I'll stick with unconditional prev_in update.
+
+Actually, there's a subtlety: if prev_in is not reset, then after reset deasserts, the first cycle compares prev_in (from the last reset cycle) with the new in. If in was 1 during the last reset cycle and is 0 now, the edge is captured. This is correct per the literal spec. If the designer intended prev_in to be reset too, they would have said so. The spec is precise about what's reset: "the output will remain 1 until the register is reset" - only the output register.
+
+I'm confident. Let me also think about whether there's any issue with the order of non-blocking assignments. Both use old values, so order doesn't matter. `out` uses old `prev_in` and old `out`. `prev_in` uses old `in`. Correct.
+
+Final implementation:
+```verilog
+module top_module (
+    input clk,
+    input reset,
+    input [31:0] in,
+    output reg [31:0] out
+);
+    reg [31:0] prev_in;
+    
+    always @(posedge clk) begin
+        out <= reset ? 32'b0 : out | (prev_in & ~in);
+        prev_in <= in;
+    end
+endmodule
+```
+
+This satisfies all requirements: detects 1→0 transitions per bit, holds output until reset, synchronous active-high reset, reset has priority, prev_in tracks input unconditionally.
+
+Let me verify the word count is under 1600. I'll aim for a concise but thorough explanation.

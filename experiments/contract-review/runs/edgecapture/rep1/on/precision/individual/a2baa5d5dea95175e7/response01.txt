@@ -1,0 +1,60 @@
+```python
+def reference(vectors):
+    # state: 32-bit sticky capture and previous sampled input
+    out = 0
+    prev_in = 0
+    # current input state (carried across rows and mid changes)
+    reset = 0
+    inp = 0
+    results = []
+
+    for row in vectors:
+        # values driven before the sampled posedge
+        if 'reset' in row:
+            reset = int(row['reset']) & 1
+        if 'in' in row:
+            inp = int(row['in']) & 0xFFFFFFFF
+
+        # R_RESET: synchronous active-high reset clears out
+        # R_FALL: set out bits where prev_in is 1 and current in is 0
+        # R_HOLD: out retains previous value when not reset and no fall
+        # edge: posedge; reset has priority over fall
+        if reset:
+            out = 0  # R_RESET
+        else:
+            fall = (~inp) & prev_in & 0xFFFFFFFF  # R_FALL
+            out = (out | fall) & 0xFFFFFFFF      # R_FALL and R_HOLD
+
+        # prev_in updates on every posedge including reset
+        prev_in = inp & 0xFFFFFFFF
+
+        results.append({'out': out})
+
+        # optional mid input changes occur AFTER sampling, before the other edge
+        mid = row.get('mid') if isinstance(row, dict) else None
+        if mid is not None:
+            if isinstance(mid, dict):
+                changes = [mid]
+            elif isinstance(mid, (list, tuple)):
+                if len(mid) == 2 and isinstance(mid[0], str):
+                    changes = [mid]
+                else:
+                    changes = mid
+            else:
+                changes = []
+
+            for m in changes:
+                if isinstance(m, dict):
+                    if 'reset' in m:
+                        reset = int(m['reset']) & 1
+                    if 'in' in m:
+                        inp = int(m['in']) & 0xFFFFFFFF
+                elif isinstance(m, (list, tuple)) and len(m) >= 2:
+                    name, val = m[0], m[1]
+                    if name == 'reset':
+                        reset = int(val) & 1
+                    elif name == 'in':
+                        inp = int(val) & 0xFFFFFFFF
+
+    return results
+```

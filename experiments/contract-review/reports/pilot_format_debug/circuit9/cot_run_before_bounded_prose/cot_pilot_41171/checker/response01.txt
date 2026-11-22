@@ -1,0 +1,26 @@
+```python
+def reference(vectors):
+    # Sequential circuit: 3-bit counter q.
+    # From the waveform: q increments by 1 on each posedge of clk when a=0.
+    # When a=1, q holds its value.
+    # Power-up value is unspecified (x), but we must return a concrete value.
+    # The first sampled posedge at 5ns shows q=4 with a=1, meaning q held
+    # from an initial value of 4 (since a=1 holds). So initial q = 4.
+    # Check: at 45ns a=0, posedge at 55ns -> q=5 (4+1). 65ns -> 6. 75ns -> 0 (wrap 3-bit). 85ns -> 1.
+    # So: on posedge, if a==0: q = (q+1) & 7; else q unchanged.
+    # Initial q = 4.
+    q = 4
+    out = []
+    for row in vectors:
+        clk = row['clk']
+        a = row['a']
+        # Sample after posedge has settled: if clk==1, this row represents
+        # the state after the posedge (since values are driven before the edge).
+        # The waveform rows show clk=1 rows as post-posedge samples.
+        if clk == 1:
+            if a == 0:
+                q = (q + 1) & 7
+            # else hold
+        out.append({'q': q})
+    return out
+```

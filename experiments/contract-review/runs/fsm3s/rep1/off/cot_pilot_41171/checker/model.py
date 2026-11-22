@@ -1,0 +1,27 @@
+def reference(vectors):
+    # Moore FSM: states A=0,B=1,C=2,D=3; out=1 only in D.
+    # Synchronous active-high reset to A. Sample after posedge settles.
+    # Each row: drive in/reset, posedge samples, read out; mid changes carry to next row.
+    state = 0  # power-up unspecified; assume A
+    out = 0
+    results = []
+    for vec in vectors:
+        # Apply inputs (driven before sampled edge)
+        reset = vec.get('reset', 0)
+        inp = vec.get('in', 0)
+        # Posedge: synchronous reset priority, else transition
+        if reset:
+            state = 0
+        else:
+            if state == 0:      # A
+                state = 1 if inp else 0
+            elif state == 1:    # B
+                state = 1 if inp else 2
+            elif state == 2:    # C
+                state = 3 if inp else 0
+            elif state == 3:    # D
+                state = 1 if inp else 2
+        # Moore output from settled state
+        out = 1 if state == 3 else 0
+        results.append({'out': out})
+    return results
