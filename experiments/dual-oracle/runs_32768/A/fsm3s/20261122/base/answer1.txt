@@ -1,0 +1,18 @@
+def reference(vectors):
+    state=0
+    inputs={'in':0,'reset':0}
+    t=[[0,1],[2,1],[0,3],[2,1]]
+    out=[]
+    for row in vectors:
+        for k in ('in','reset'):
+            if k in row:
+                inputs[k]=row[k]
+        if inputs['reset']:
+            state=0
+        else:
+            state=t[state][inputs['in']]
+        out.append({'out':1 if state==3 else 0})
+        if 'mid' in row:
+            for k,v in row['mid'].items():
+                inputs[k]=v
+    return out

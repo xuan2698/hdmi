@@ -1,0 +1,36 @@
+def reference(vectors):
+    pht = [0] * 128
+    hist = 0
+    inp = {'areset':0,'predict_valid':0,'predict_pc':0,'train_valid':0,'train_taken':0,'train_mispredicted':0,'train_history':0,'train_pc':0}
+    res = []
+    for row in vectors:
+        for k, v in row.items():
+            if k != 'mid':
+                inp[k] = v
+        if inp['areset']:
+            pht = [0] * 128
+            hist = 0
+        idx = (inp['predict_pc'] ^ hist) & 0x7f
+        pt = 1 if pht[idx] >= 2 else 0
+        ph = hist & 0x7f
+        res.append({'predict_taken': pt, 'predict_history': ph})
+        if not inp['areset']:
+            if inp['train_valid']:
+                tidx = (inp['train_pc'] ^ inp['train_history']) & 0x7f
+                c = pht[tidx]
+                if inp['train_taken']:
+                    c = 3 if c == 3 else c + 1
+                else:
+                    c = 0 if c == 0 else c - 1
+                pht[tidx] = c
+            if inp['train_valid'] and inp['train_mispredicted']:
+                hist = ((inp['train_history'] << 1) | inp['train_taken']) & 0x7f
+            elif inp['predict_valid']:
+                hist = ((hist << 1) | pt) & 0x7f
+        if 'mid' in row:
+            for k, v in row['mid'].items():
+                inp[k] = v
+            if inp['areset']:
+                pht = [0] * 128
+                hist = 0
+    return res

@@ -1,0 +1,9 @@
+def reference(vectors):
+    q = 0
+    out = []
+    for row in vectors:
+        d = row.get('d', 0) & 255
+        reset = row.get('reset', 0)
+        q = 0x34 if reset else d
+        out.append({'q': q & 255})
+    return out

@@ -1,0 +1,46 @@
+def reference(vectors):
+    history = 0
+    pht = [0] * 128
+    results = []
+    for row in vectors:
+        areset = row.get('areset', 0)
+        predict_valid = row.get('predict_valid', 0)
+        predict_pc = row.get('predict_pc', 0) & 0x7F
+        train_valid = row.get('train_valid', 0)
+        train_taken = row.get('train_taken', 0) & 1
+        train_mispredicted = row.get('train_mispredicted', 0) & 1
+        train_history = row.get('train_history', 0) & 0x7F
+        train_pc = row.get('train_pc', 0) & 0x7F
+
+        if areset:
+            history = 0
+            pht = [0] * 128
+            idx = (predict_pc ^ 0) & 0x7F
+            taken = 1 if pht[idx] >= 2 else 0
+            results.append({'predict_taken': taken, 'predict_history': 0})
+            continue
+
+        idx_pred = (predict_pc ^ history) & 0x7F
+        taken = 1 if pht[idx_pred] >= 2 else 0
+        results.append({'predict_taken': taken, 'predict_history': history})
+
+        next_history = history
+
+        if train_valid:
+            idx_train = (train_pc ^ train_history) & 0x7F
+            cnt = pht[idx_train]
+            if train_taken:
+                if cnt < 3:
+                    pht[idx_train] = cnt + 1
+            else:
+                if cnt > 0:
+                    pht[idx_train] = cnt - 1
+            if train_mispredicted:
+                next_history = ((train_history << 1) | train_taken) & 0x7F
+
+        if predict_valid and not (train_valid and train_mispredicted):
+            next_history = ((history << 1) | taken) & 0x7F
+
+        history = next_history
+
+    return results

@@ -1,0 +1,365 @@
+{
+  "decisions": [],
+  "RM": "def reference(vectors):\n    q = 0\n    out = []\n    for v in vectors:\n        if isinstance(v, dict):\n            r = v.get('reset', 0)\n        else:\n            r = v\n        if r & 1:\n            q = 0\n        else:\n            d0 = q & 15\n            d1 = (q >> 4) & 15\n            d2 = (q >> 8) & 15\n            d3 = (q >> 12) & 15\n\n            d0 += 1\n            c = 0\n            if d0 > 9:\n                d0 = 0\n                c = 1\n            d1 += c\n            if d1 > 9:\n                d1 = 0\n                c = 1\n            else:\n                c = 0\n            d2 += c\n            if d2 > 9:\n                d2 = 0\n                c = 1\n            else:\n                c = 0\n            d3 += c\n            if d3 > 9:\n                d3 = 0\n            q = d0 | (d1 << 4) | (d2 << 8) | (d3 << 12)\n\n        d0 = q & 15\n        d1 = (q >> 4) & 15\n        d2 = (q >> 8) & 15\n        ena = 0\n        if d0 == 9:\n            ena = 1\n            if d1 == 9:\n                ena |= 2\n                if d2 == 9:\n                    ena |= 4\n        out.append({'q': q, 'ena': ena})\n    return out\n",
+  "TB": [
+    {
+      "id": "s1",
+      "spec_quote": "synchronous active-high reset",
+      "covers": [
+        "behavior",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "reset": 1
+        },
+        {
+          "reset": 1
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        }
+      ],
+      "expected": [
+        {
+          "ena": 0,
+          "q": 0
+        },
+        {
+          "ena": 0,
+          "q": 0
+        },
+        {
+          "ena": 0,
+          "q": 1
+        },
+        {
+          "ena": 0,
+          "q": 2
+        },
+        {
+          "ena": 0,
+          "q": 3
+        }
+      ]
+    },
+    {
+      "id": "s2",
+      "spec_quote": "output an enable signal indicating when each of the upper three digits should be incremented",
+      "covers": [
+        "behavior",
+        "boundary",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "reset": 1
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        }
+      ],
+      "expected": [
+        {
+          "ena": 0,
+          "q": 0
+        },
+        {
+          "ena": 0,
+          "q": 1
+        },
+        {
+          "ena": 0,
+          "q": 2
+        },
+        {
+          "ena": 0,
+          "q": 3
+        },
+        {
+          "ena": 0,
+          "q": 4
+        },
+        {
+          "ena": 0,
+          "q": 5
+        },
+        {
+          "ena": 0,
+          "q": 6
+        },
+        {
+          "ena": 0,
+          "q": 7
+        },
+        {
+          "ena": 0,
+          "q": 8
+        },
+        {
+          "ena": 1,
+          "q": 9
+        },
+        {
+          "ena": 0,
+          "q": 16
+        },
+        {
+          "ena": 0,
+          "q": 17
+        },
+        {
+          "ena": 0,
+          "q": 18
+        },
+        {
+          "ena": 0,
+          "q": 19
+        },
+        {
+          "ena": 0,
+          "q": 20
+        },
+        {
+          "ena": 0,
+          "q": 21
+        },
+        {
+          "ena": 0,
+          "q": 22
+        },
+        {
+          "ena": 0,
+          "q": 23
+        },
+        {
+          "ena": 0,
+          "q": 24
+        },
+        {
+          "ena": 1,
+          "q": 25
+        }
+      ]
+    },
+    {
+      "id": "s3",
+      "spec_quote": "active-high reset",
+      "covers": [
+        "behavior",
+        "priority",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "reset": 1
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 1
+        },
+        {
+          "reset": 1
+        },
+        {
+          "reset": 0
+        }
+      ],
+      "expected": [
+        {
+          "ena": 0,
+          "q": 0
+        },
+        {
+          "ena": 0,
+          "q": 1
+        },
+        {
+          "ena": 0,
+          "q": 2
+        },
+        {
+          "ena": 0,
+          "q": 0
+        },
+        {
+          "ena": 0,
+          "q": 0
+        },
+        {
+          "ena": 0,
+          "q": 1
+        }
+      ]
+    },
+    {
+      "id": "s4",
+      "spec_quote": "synchronous active-high reset",
+      "covers": [
+        "behavior",
+        "priority",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "reset": 1
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 1
+        },
+        {
+          "reset": 1
+        },
+        {
+          "reset": 0
+        }
+      ],
+      "expected": [
+        {
+          "ena": 0,
+          "q": 0
+        },
+        {
+          "ena": 0,
+          "q": 1
+        },
+        {
+          "ena": 0,
+          "q": 2
+        },
+        {
+          "ena": 0,
+          "q": 3
+        },
+        {
+          "ena": 0,
+          "q": 4
+        },
+        {
+          "ena": 0,
+          "q": 5
+        },
+        {
+          "ena": 0,
+          "q": 6
+        },
+        {
+          "ena": 0,
+          "q": 7
+        },
+        {
+          "ena": 0,
+          "q": 8
+        },
+        {
+          "ena": 1,
+          "q": 9
+        },
+        {
+          "ena": 0,
+          "q": 0
+        },
+        {
+          "ena": 0,
+          "q": 0
+        },
+        {
+          "ena": 0,
+          "q": 1
+        }
+      ]
+    }
+  ]
+}

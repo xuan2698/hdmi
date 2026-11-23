@@ -1,0 +1,4 @@
+{
+  "responses": [],
+  "source": "def reference(vectors):\n    state = 0\n    result = []\n    for row in vectors:\n        inp = row['in']\n        reset = row['reset']\n        if reset:\n            state = 0\n        elif state == 0:\n            state = 1 if inp else 0\n        elif state == 1:\n            state = 2 if inp == 0 else 1\n        elif state == 2:\n            state = 0 if inp == 0 else 3\n        else:\n            state = 2 if inp == 0 else 1\n        result.append({'out': 1 if state == 3 else 0})\n    return result\n"
+}

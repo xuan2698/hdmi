@@ -1,0 +1,58 @@
+def reference(vectors):
+    ins=['areset','bump_left','bump_right','ground','dig']
+    cur={k:0 for k in ins}
+    st=0
+    cnt=0
+    out=[]
+    for row in vectors:
+        for k in ins:
+            if k in row:
+                cur[k]=row[k]
+        if cur['areset']:
+            st=0
+            cnt=0
+        elif st==6:
+            pass
+        elif st in (2,3):
+            if cur['ground']==0:
+                cnt+=1
+            else:
+                if cnt>=20:
+                    st=6
+                else:
+                    st=0 if st==2 else 1
+                cnt=0
+        elif st in (0,1):
+            if cur['ground']==0:
+                st=2 if st==0 else 3
+                cnt=0
+            elif cur['dig']==1:
+                st=4 if st==0 else 5
+                cnt=0
+            else:
+                bl=cur['bump_left']
+                br=cur['bump_right']
+                if bl and br:
+                    st=1 if st==0 else 0
+                elif bl:
+                    st=1
+                elif br:
+                    st=0
+        elif st in (4,5):
+            if cur['ground']==0:
+                st=2 if st==4 else 3
+                cnt=0
+        out.append({
+            'walk_left': int(st==0),
+            'walk_right': int(st==1),
+            'aaah': int(st in (2,3)),
+            'digging': int(st in (4,5))
+        })
+        mid=row.get('mid',{})
+        for k,v in mid.items():
+            if k in ins:
+                cur[k]=v
+        if mid.get('areset',0)==1:
+            st=0
+            cnt=0
+    return out

@@ -1,0 +1,4 @@
+{
+  "responses": [],
+  "source": "def reference(vectors):\n    h = 12\n    m = 0\n    s = 0\n    pm = 0\n    out = []\n    for v in vectors:\n        r = v.get('reset', 0)\n        en = v.get('ena', 0)\n        if r:\n            h = 12\n            m = 0\n            s = 0\n            pm = 0\n        elif en:\n            s += 1\n            if s == 60:\n                s = 0\n                m += 1\n                if m == 60:\n                    m = 0\n                    if h == 12:\n                        h = 1\n                    elif h == 11:\n                        h = 12\n                        pm ^= 1\n                    else:\n                        h += 1\n        out.append({\n            'pm': pm,\n            'hh': ((h // 10) << 4) | (h % 10),\n            'mm': ((m // 10) << 4) | (m % 10),\n            'ss': ((s // 10) << 4) | (s % 10)\n        })\n    return out\n"
+}

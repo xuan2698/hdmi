@@ -1,0 +1,32 @@
+def reference(vectors):
+    pht = [0] * 128
+    bhr = 0
+    out = []
+    for v in vectors:
+        if v["areset"]:
+            pht = [0] * 128
+            bhr = 0
+            out.append({"predict_taken": 0, "predict_history": 0})
+            continue
+
+        idx = (v["predict_pc"] ^ bhr) & 0x7F
+        pred_taken = 1 if pht[idx] >= 2 else 0
+        out.append({"predict_taken": pred_taken, "predict_history": bhr})
+
+        if v["train_valid"]:
+            tidx = (v["train_pc"] ^ v["train_history"]) & 0x7F
+            c = pht[tidx]
+            if v["train_taken"]:
+                if c < 3:
+                    c += 1
+            else:
+                if c > 0:
+                    c -= 1
+            pht[tidx] = c
+
+        if v["train_valid"] and v["train_mispredicted"]:
+            bhr = ((v["train_history"] << 1) | (v["train_taken"] & 1)) & 0x7F
+        elif v["predict_valid"]:
+            bhr = ((bhr << 1) | pred_taken) & 0x7F
+
+    return out

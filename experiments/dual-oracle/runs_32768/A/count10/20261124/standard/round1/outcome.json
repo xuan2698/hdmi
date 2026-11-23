@@ -1,0 +1,273 @@
+{
+  "decisions": [],
+  "RM": "def reference(vectors):\n    s = 0\n    out = []\n    for row in vectors:\n        if isinstance(row, dict):\n            r = row.get('reset', 0)\n        else:\n            r = row[0] if len(row) else 0\n        if r:\n            s = 0\n        else:\n            s = 0 if s >= 9 else s + 1\n        out.append({'q': s})\n    return out\n",
+  "TB": [
+    {
+      "id": "s1",
+      "spec_quote": "The reset input is active high synchronous, and should reset the counter to 0.",
+      "covers": [
+        "behavior",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "reset": 1
+        },
+        {
+          "reset": 1
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        }
+      ],
+      "expected": [
+        {
+          "q": 0
+        },
+        {
+          "q": 0
+        },
+        {
+          "q": 1
+        },
+        {
+          "q": 2
+        },
+        {
+          "q": 3
+        }
+      ]
+    },
+    {
+      "id": "s2",
+      "spec_quote": "Build a decade counter that counts from 0 through 9, inclusive, with a period of 10.",
+      "covers": [
+        "behavior",
+        "boundary",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "reset": 1
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        }
+      ],
+      "expected": [
+        {
+          "q": 0
+        },
+        {
+          "q": 1
+        },
+        {
+          "q": 2
+        },
+        {
+          "q": 3
+        },
+        {
+          "q": 4
+        },
+        {
+          "q": 5
+        },
+        {
+          "q": 6
+        },
+        {
+          "q": 7
+        },
+        {
+          "q": 8
+        },
+        {
+          "q": 9
+        },
+        {
+          "q": 0
+        },
+        {
+          "q": 1
+        }
+      ]
+    },
+    {
+      "id": "s3",
+      "spec_quote": "The reset input is active high synchronous, and should reset the counter to 0.",
+      "covers": [
+        "behavior",
+        "priority",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "reset": 1
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 1
+        },
+        {
+          "reset": 1
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        }
+      ],
+      "expected": [
+        {
+          "q": 0
+        },
+        {
+          "q": 1
+        },
+        {
+          "q": 2
+        },
+        {
+          "q": 0
+        },
+        {
+          "q": 0
+        },
+        {
+          "q": 1
+        },
+        {
+          "q": 2
+        }
+      ]
+    },
+    {
+      "id": "s4",
+      "spec_quote": "The reset input is active high synchronous, and should reset the counter to 0.",
+      "covers": [
+        "behavior",
+        "priority",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "reset": 1
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 1
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        }
+      ],
+      "expected": [
+        {
+          "q": 0
+        },
+        {
+          "q": 1
+        },
+        {
+          "q": 2
+        },
+        {
+          "q": 3
+        },
+        {
+          "q": 4
+        },
+        {
+          "q": 5
+        },
+        {
+          "q": 6
+        },
+        {
+          "q": 7
+        },
+        {
+          "q": 8
+        },
+        {
+          "q": 0
+        },
+        {
+          "q": 1
+        },
+        {
+          "q": 2
+        }
+      ]
+    }
+  ]
+}

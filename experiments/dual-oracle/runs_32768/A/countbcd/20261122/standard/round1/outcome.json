@@ -1,0 +1,387 @@
+{
+  "decisions": [],
+  "RM": "def reference(vectors):\n    q = 0\n    out = []\n    for row in vectors:\n        if isinstance(row, dict):\n            reset = row.get('reset', 0)\n        else:\n            reset = row[0] if isinstance(row, (list, tuple)) else row\n        if reset:\n            q = 0\n        else:\n            ones = q & 0xF\n            tens = (q >> 4) & 0xF\n            hundreds = (q >> 8) & 0xF\n            thousands = (q >> 12) & 0xF\n            if ones < 9:\n                ones += 1\n            else:\n                ones = 0\n                if tens < 9:\n                    tens += 1\n                else:\n                    tens = 0\n                    if hundreds < 9:\n                        hundreds += 1\n                    else:\n                        hundreds = 0\n                        if thousands < 9:\n                            thousands += 1\n                        else:\n                            thousands = 0\n            q = (thousands << 12) | (hundreds << 8) | (tens << 4) | ones\n\n        ones = q & 0xF\n        tens = (q >> 4) & 0xF\n        hundreds = (q >> 8) & 0xF\n        ena = (1 if ones == 9 else 0)\n        ena |= (1 if (tens == 9 and ones == 9) else 0) << 1\n        ena |= (1 if (hundreds == 9 and tens == 9 and ones == 9) else 0) << 2\n        out.append({'q': q, 'ena': ena})\n    return out\n",
+  "TB": [
+    {
+      "id": "s1",
+      "spec_quote": "Include a synchronous active-high reset.",
+      "covers": [
+        "behavior",
+        "boundary",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "reset": 1
+        },
+        {
+          "reset": 1
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        }
+      ],
+      "expected": [
+        {
+          "ena": 0,
+          "q": 0
+        },
+        {
+          "ena": 0,
+          "q": 0
+        },
+        {
+          "ena": 0,
+          "q": 1
+        },
+        {
+          "ena": 0,
+          "q": 2
+        }
+      ]
+    },
+    {
+      "id": "s2",
+      "spec_quote": "For digits [3:1], also output an enable signal indicating when each of the upper three digits should be incremented.",
+      "covers": [
+        "behavior",
+        "boundary",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "reset": 1
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        }
+      ],
+      "expected": [
+        {
+          "ena": 0,
+          "q": 0
+        },
+        {
+          "ena": 0,
+          "q": 1
+        },
+        {
+          "ena": 0,
+          "q": 2
+        },
+        {
+          "ena": 0,
+          "q": 3
+        },
+        {
+          "ena": 0,
+          "q": 4
+        },
+        {
+          "ena": 0,
+          "q": 5
+        },
+        {
+          "ena": 0,
+          "q": 6
+        },
+        {
+          "ena": 0,
+          "q": 7
+        },
+        {
+          "ena": 0,
+          "q": 8
+        },
+        {
+          "ena": 1,
+          "q": 9
+        },
+        {
+          "ena": 0,
+          "q": 16
+        }
+      ]
+    },
+    {
+      "id": "s3",
+      "spec_quote": "Include a synchronous active-high reset.",
+      "covers": [
+        "behavior",
+        "priority",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "reset": 1
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 1
+        },
+        {
+          "reset": 0
+        }
+      ],
+      "expected": [
+        {
+          "ena": 0,
+          "q": 0
+        },
+        {
+          "ena": 0,
+          "q": 1
+        },
+        {
+          "ena": 0,
+          "q": 2
+        },
+        {
+          "ena": 0,
+          "q": 3
+        },
+        {
+          "ena": 0,
+          "q": 4
+        },
+        {
+          "ena": 0,
+          "q": 5
+        },
+        {
+          "ena": 0,
+          "q": 6
+        },
+        {
+          "ena": 0,
+          "q": 7
+        },
+        {
+          "ena": 0,
+          "q": 8
+        },
+        {
+          "ena": 1,
+          "q": 9
+        },
+        {
+          "ena": 0,
+          "q": 0
+        },
+        {
+          "ena": 0,
+          "q": 1
+        }
+      ]
+    },
+    {
+      "id": "s4",
+      "spec_quote": "Build a 4-digit BCD (binary-coded decimal) counter.",
+      "covers": [
+        "behavior",
+        "boundary",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "reset": 1
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        }
+      ],
+      "expected": [
+        {
+          "ena": 0,
+          "q": 0
+        },
+        {
+          "ena": 0,
+          "q": 1
+        },
+        {
+          "ena": 0,
+          "q": 2
+        },
+        {
+          "ena": 0,
+          "q": 3
+        },
+        {
+          "ena": 0,
+          "q": 4
+        },
+        {
+          "ena": 0,
+          "q": 5
+        },
+        {
+          "ena": 0,
+          "q": 6
+        },
+        {
+          "ena": 0,
+          "q": 7
+        },
+        {
+          "ena": 0,
+          "q": 8
+        },
+        {
+          "ena": 1,
+          "q": 9
+        },
+        {
+          "ena": 0,
+          "q": 16
+        },
+        {
+          "ena": 0,
+          "q": 17
+        },
+        {
+          "ena": 0,
+          "q": 18
+        },
+        {
+          "ena": 0,
+          "q": 19
+        },
+        {
+          "ena": 0,
+          "q": 20
+        },
+        {
+          "ena": 0,
+          "q": 21
+        },
+        {
+          "ena": 0,
+          "q": 22
+        },
+        {
+          "ena": 0,
+          "q": 23
+        },
+        {
+          "ena": 0,
+          "q": 24
+        },
+        {
+          "ena": 1,
+          "q": 25
+        }
+      ]
+    }
+  ]
+}

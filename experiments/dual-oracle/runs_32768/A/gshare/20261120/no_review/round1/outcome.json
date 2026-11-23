@@ -1,0 +1,558 @@
+{
+  "decisions": [],
+  "RM": "def reference(vectors):\n    pht = [0] * 128\n    history = 0\n    out = []\n    for row in vectors:\n        areset = row.get('areset', 0)\n        if areset:\n            pht = [0] * 128\n            history = 0\n\n        pv = row.get('predict_valid', 0)\n        ppc = row.get('predict_pc', 0) & 0x7f\n        idx = (ppc ^ history) & 0x7f\n        c = pht[idx]\n        pred_taken = 1 if c >= 2 else 0\n        pred_hist = history & 0x7f\n        out.append({'predict_taken': pred_taken, 'predict_history': pred_hist})\n\n        if areset:\n            continue\n\n        tv = row.get('train_valid', 0)\n        tt = row.get('train_taken', 0) & 1\n        tm = row.get('train_mispredicted', 0)\n        th = row.get('train_history', 0) & 0x7f\n        tpc = row.get('train_pc', 0) & 0x7f\n\n        if tv:\n            tidx = (tpc ^ th) & 0x7f\n            pcnt = pht[tidx]\n            if tt:\n                if pcnt < 3:\n                    pht[tidx] = pcnt + 1\n            else:\n                if pcnt > 0:\n                    pht[tidx] = pcnt - 1\n\n        if tv and tm:\n            history = ((th << 1) | tt) & 0x7f\n        elif pv:\n            history = ((history << 1) | pred_taken) & 0x7f\n\n    return out\n",
+  "TB": [
+    {
+      "id": "s1",
+      "spec_quote": "Reset is asynchronous active-high.",
+      "covers": [
+        "behavior",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "areset": 1,
+          "predict_valid": 0,
+          "predict_pc": 0,
+          "train_valid": 0,
+          "train_taken": 0,
+          "train_mispredicted": 0,
+          "train_history": 0,
+          "train_pc": 0
+        },
+        {
+          "areset": 0,
+          "predict_valid": 1,
+          "predict_pc": 0,
+          "train_valid": 0,
+          "train_taken": 0,
+          "train_mispredicted": 0,
+          "train_history": 0,
+          "train_pc": 0
+        },
+        {
+          "areset": 0,
+          "predict_valid": 1,
+          "predict_pc": 0,
+          "train_valid": 0,
+          "train_taken": 0,
+          "train_mispredicted": 0,
+          "train_history": 0,
+          "train_pc": 0
+        }
+      ],
+      "expected": [
+        {
+          "predict_taken": 0,
+          "predict_history": 0
+        },
+        {
+          "predict_taken": 0,
+          "predict_history": 0
+        },
+        {
+          "predict_taken": 0,
+          "predict_history": 0
+        }
+      ]
+    },
+    {
+      "id": "s2",
+      "spec_quote": "Update the pattern history table (PHT) to train the branch predictor to predict this branch more accurately next time.",
+      "covers": [
+        "behavior",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "areset": 1,
+          "predict_valid": 0,
+          "predict_pc": 0,
+          "train_valid": 0,
+          "train_taken": 0,
+          "train_mispredicted": 0,
+          "train_history": 0,
+          "train_pc": 0
+        },
+        {
+          "areset": 0,
+          "predict_valid": 0,
+          "predict_pc": 0,
+          "train_valid": 1,
+          "train_taken": 1,
+          "train_mispredicted": 0,
+          "train_history": 0,
+          "train_pc": 0
+        },
+        {
+          "areset": 0,
+          "predict_valid": 0,
+          "predict_pc": 0,
+          "train_valid": 1,
+          "train_taken": 1,
+          "train_mispredicted": 0,
+          "train_history": 0,
+          "train_pc": 0
+        },
+        {
+          "areset": 0,
+          "predict_valid": 1,
+          "predict_pc": 0,
+          "train_valid": 0,
+          "train_taken": 0,
+          "train_mispredicted": 0,
+          "train_history": 0,
+          "train_pc": 0
+        },
+        {
+          "areset": 0,
+          "predict_valid": 1,
+          "predict_pc": 1,
+          "train_valid": 0,
+          "train_taken": 0,
+          "train_mispredicted": 0,
+          "train_history": 0,
+          "train_pc": 0
+        },
+        {
+          "areset": 0,
+          "predict_valid": 1,
+          "predict_pc": 2,
+          "train_valid": 0,
+          "train_taken": 0,
+          "train_mispredicted": 0,
+          "train_history": 0,
+          "train_pc": 0
+        }
+      ],
+      "expected": [
+        {
+          "predict_taken": 0,
+          "predict_history": 0
+        },
+        {
+          "predict_taken": 0,
+          "predict_history": 0
+        },
+        {
+          "predict_taken": 0,
+          "predict_history": 0
+        },
+        {
+          "predict_taken": 1,
+          "predict_history": 0
+        },
+        {
+          "predict_taken": 1,
+          "predict_history": 1
+        },
+        {
+          "predict_taken": 0,
+          "predict_history": 3
+        }
+      ]
+    },
+    {
+      "id": "s3",
+      "spec_quote": "two-bit saturating counters",
+      "covers": [
+        "behavior",
+        "boundary",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "areset": 1,
+          "predict_valid": 0,
+          "predict_pc": 0,
+          "train_valid": 0,
+          "train_taken": 0,
+          "train_mispredicted": 0,
+          "train_history": 0,
+          "train_pc": 0
+        },
+        {
+          "areset": 0,
+          "predict_valid": 0,
+          "predict_pc": 0,
+          "train_valid": 1,
+          "train_taken": 1,
+          "train_mispredicted": 0,
+          "train_history": 0,
+          "train_pc": 0
+        },
+        {
+          "areset": 0,
+          "predict_valid": 0,
+          "predict_pc": 0,
+          "train_valid": 1,
+          "train_taken": 1,
+          "train_mispredicted": 0,
+          "train_history": 0,
+          "train_pc": 0
+        },
+        {
+          "areset": 0,
+          "predict_valid": 0,
+          "predict_pc": 0,
+          "train_valid": 1,
+          "train_taken": 1,
+          "train_mispredicted": 0,
+          "train_history": 0,
+          "train_pc": 0
+        },
+        {
+          "areset": 0,
+          "predict_valid": 0,
+          "predict_pc": 0,
+          "train_valid": 1,
+          "train_taken": 1,
+          "train_mispredicted": 0,
+          "train_history": 0,
+          "train_pc": 0
+        },
+        {
+          "areset": 0,
+          "predict_valid": 0,
+          "predict_pc": 0,
+          "train_valid": 1,
+          "train_taken": 0,
+          "train_mispredicted": 0,
+          "train_history": 0,
+          "train_pc": 0
+        },
+        {
+          "areset": 0,
+          "predict_valid": 0,
+          "predict_pc": 0,
+          "train_valid": 1,
+          "train_taken": 0,
+          "train_mispredicted": 0,
+          "train_history": 0,
+          "train_pc": 0
+        },
+        {
+          "areset": 0,
+          "predict_valid": 0,
+          "predict_pc": 0,
+          "train_valid": 1,
+          "train_taken": 0,
+          "train_mispredicted": 0,
+          "train_history": 0,
+          "train_pc": 0
+        },
+        {
+          "areset": 0,
+          "predict_valid": 0,
+          "predict_pc": 0,
+          "train_valid": 1,
+          "train_taken": 0,
+          "train_mispredicted": 0,
+          "train_history": 0,
+          "train_pc": 0
+        }
+      ],
+      "expected": [
+        {
+          "predict_taken": 0,
+          "predict_history": 0
+        },
+        {
+          "predict_taken": 0,
+          "predict_history": 0
+        },
+        {
+          "predict_taken": 0,
+          "predict_history": 0
+        },
+        {
+          "predict_taken": 1,
+          "predict_history": 0
+        },
+        {
+          "predict_taken": 1,
+          "predict_history": 0
+        },
+        {
+          "predict_taken": 1,
+          "predict_history": 0
+        },
+        {
+          "predict_taken": 1,
+          "predict_history": 0
+        },
+        {
+          "predict_taken": 0,
+          "predict_history": 0
+        },
+        {
+          "predict_taken": 0,
+          "predict_history": 0
+        }
+      ]
+    },
+    {
+      "id": "s4",
+      "spec_quote": "hashed (using xor) into a 7-bit index",
+      "covers": [
+        "behavior",
+        "boundary",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "areset": 1,
+          "predict_valid": 0,
+          "predict_pc": 0,
+          "train_valid": 0,
+          "train_taken": 0,
+          "train_mispredicted": 0,
+          "train_history": 0,
+          "train_pc": 0
+        },
+        {
+          "areset": 0,
+          "predict_valid": 0,
+          "predict_pc": 0,
+          "train_valid": 1,
+          "train_taken": 1,
+          "train_mispredicted": 0,
+          "train_history": 0,
+          "train_pc": 0
+        },
+        {
+          "areset": 0,
+          "predict_valid": 0,
+          "predict_pc": 0,
+          "train_valid": 1,
+          "train_taken": 1,
+          "train_mispredicted": 0,
+          "train_history": 0,
+          "train_pc": 0
+        },
+        {
+          "areset": 0,
+          "predict_valid": 1,
+          "predict_pc": 0,
+          "train_valid": 0,
+          "train_taken": 0,
+          "train_mispredicted": 0,
+          "train_history": 0,
+          "train_pc": 0
+        },
+        {
+          "areset": 0,
+          "predict_valid": 1,
+          "predict_pc": 1,
+          "train_valid": 0,
+          "train_taken": 0,
+          "train_mispredicted": 0,
+          "train_history": 0,
+          "train_pc": 0
+        },
+        {
+          "areset": 0,
+          "predict_valid": 1,
+          "predict_pc": 2,
+          "train_valid": 0,
+          "train_taken": 0,
+          "train_mispredicted": 0,
+          "train_history": 0,
+          "train_pc": 0
+        },
+        {
+          "areset": 0,
+          "predict_valid": 1,
+          "predict_pc": 6,
+          "train_valid": 0,
+          "train_taken": 0,
+          "train_mispredicted": 0,
+          "train_history": 0,
+          "train_pc": 0
+        }
+      ],
+      "expected": [
+        {
+          "predict_taken": 0,
+          "predict_history": 0
+        },
+        {
+          "predict_taken": 0,
+          "predict_history": 0
+        },
+        {
+          "predict_taken": 0,
+          "predict_history": 0
+        },
+        {
+          "predict_taken": 1,
+          "predict_history": 0
+        },
+        {
+          "predict_taken": 1,
+          "predict_history": 1
+        },
+        {
+          "predict_taken": 0,
+          "predict_history": 3
+        },
+        {
+          "predict_taken": 1,
+          "predict_history": 6
+        }
+      ]
+    },
+    {
+      "id": "s5",
+      "spec_quote": "if the branch being trained is mispredicted, also recover the branch history register to the state immediately after the mispredicting branch completes execution.",
+      "covers": [
+        "behavior",
+        "priority",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "areset": 1,
+          "predict_valid": 0,
+          "predict_pc": 0,
+          "train_valid": 0,
+          "train_taken": 0,
+          "train_mispredicted": 0,
+          "train_history": 0,
+          "train_pc": 0
+        },
+        {
+          "areset": 0,
+          "predict_valid": 0,
+          "predict_pc": 0,
+          "train_valid": 1,
+          "train_taken": 1,
+          "train_mispredicted": 0,
+          "train_history": 0,
+          "train_pc": 0
+        },
+        {
+          "areset": 0,
+          "predict_valid": 0,
+          "predict_pc": 0,
+          "train_valid": 1,
+          "train_taken": 1,
+          "train_mispredicted": 0,
+          "train_history": 0,
+          "train_pc": 0
+        },
+        {
+          "areset": 0,
+          "predict_valid": 1,
+          "predict_pc": 0,
+          "train_valid": 1,
+          "train_taken": 1,
+          "train_mispredicted": 1,
+          "train_history": 5,
+          "train_pc": 1
+        },
+        {
+          "areset": 0,
+          "predict_valid": 1,
+          "predict_pc": 15,
+          "train_valid": 0,
+          "train_taken": 0,
+          "train_mispredicted": 0,
+          "train_history": 0,
+          "train_pc": 0
+        }
+      ],
+      "expected": [
+        {
+          "predict_taken": 0,
+          "predict_history": 0
+        },
+        {
+          "predict_taken": 0,
+          "predict_history": 0
+        },
+        {
+          "predict_taken": 0,
+          "predict_history": 0
+        },
+        {
+          "predict_taken": 1,
+          "predict_history": 0
+        },
+        {
+          "predict_taken": 0,
+          "predict_history": 11
+        }
+      ]
+    },
+    {
+      "id": "s6",
+      "spec_quote": "If training and prediction of the same PHT entry happen at the same time, the prediction sees the PHT state before training because training only modifies the PHT at the next positive clock edge.",
+      "covers": [
+        "behavior",
+        "priority",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "areset": 1,
+          "predict_valid": 0,
+          "predict_pc": 0,
+          "train_valid": 0,
+          "train_taken": 0,
+          "train_mispredicted": 0,
+          "train_history": 0,
+          "train_pc": 0
+        },
+        {
+          "areset": 0,
+          "predict_valid": 0,
+          "predict_pc": 0,
+          "train_valid": 1,
+          "train_taken": 1,
+          "train_mispredicted": 0,
+          "train_history": 0,
+          "train_pc": 0
+        },
+        {
+          "areset": 0,
+          "predict_valid": 1,
+          "predict_pc": 0,
+          "train_valid": 1,
+          "train_taken": 1,
+          "train_mispredicted": 0,
+          "train_history": 0,
+          "train_pc": 0
+        },
+        {
+          "areset": 0,
+          "predict_valid": 1,
+          "predict_pc": 0,
+          "train_valid": 0,
+          "train_taken": 0,
+          "train_mispredicted": 0,
+          "train_history": 0,
+          "train_pc": 0
+        }
+      ],
+      "expected": [
+        {
+          "predict_taken": 0,
+          "predict_history": 0
+        },
+        {
+          "predict_taken": 0,
+          "predict_history": 0
+        },
+        {
+          "predict_taken": 0,
+          "predict_history": 0
+        },
+        {
+          "predict_taken": 1,
+          "predict_history": 0
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,616 @@
+{
+  "decisions": [],
+  "RM": "def reference(vectors):\n    mode = 0       # 0=walk, 1=fall, 2=dig, 3=splat\n    direction = 0  # 0=left, 1=right\n    fall_count = 0\n    out = []\n\n    for row in vectors:\n        if isinstance(row, dict):\n            areset = int(row.get('areset', 0))\n            bump_left = int(row.get('bump_left', 0))\n            bump_right = int(row.get('bump_right', 0))\n            ground = int(row.get('ground', 0))\n            dig = int(row.get('dig', 0))\n        else:\n            areset, bump_left, bump_right, ground, dig = [int(x) for x in row]\n\n        if areset:\n            mode = 0\n            direction = 0\n            fall_count = 0\n        elif mode == 3:\n            pass\n        elif mode == 1:\n            fall_count += 1\n            if ground == 1:\n                if fall_count > 20:\n                    mode = 3\n                else:\n                    mode = 0\n                fall_count = 0\n        elif mode == 0:\n            if ground == 0:\n                mode = 1\n                fall_count = 0\n            elif dig == 1:\n                mode = 2\n            elif direction == 0:\n                if bump_left == 1:\n                    direction = 1\n            else:\n                if bump_right == 1:\n                    direction = 0\n        elif mode == 2:\n            if ground == 0:\n                mode = 1\n                fall_count = 0\n\n        walk_left = 0\n        walk_right = 0\n        aaah = 0\n        digging = 0\n\n        if mode == 1:\n            aaah = 1\n        elif mode == 2:\n            digging = 1\n        elif mode == 0:\n            if direction == 0:\n                walk_left = 1\n            else:\n                walk_right = 1\n\n        out.append({\n            'walk_left': walk_left,\n            'walk_right': walk_right,\n            'aaah': aaah,\n            'digging': digging\n        })\n\n    return out\n",
+  "TB": [
+    {
+      "id": "s1",
+      "spec_quote": "areset is positive edge triggered asynchronous reseting the Lemming machine to walk left.",
+      "covers": [
+        "behavior",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "areset": 1,
+          "bump_left": 0,
+          "bump_right": 0,
+          "ground": 1,
+          "dig": 0
+        },
+        {
+          "areset": 0,
+          "bump_left": 0,
+          "bump_right": 0,
+          "ground": 1,
+          "dig": 0
+        },
+        {
+          "areset": 0,
+          "bump_left": 1,
+          "bump_right": 0,
+          "ground": 1,
+          "dig": 0
+        }
+      ],
+      "expected": [
+        {
+          "walk_left": 1,
+          "walk_right": 0,
+          "aaah": 0,
+          "digging": 0
+        },
+        {
+          "walk_left": 1,
+          "walk_right": 0,
+          "aaah": 0,
+          "digging": 0
+        },
+        {
+          "walk_left": 0,
+          "walk_right": 1,
+          "aaah": 0,
+          "digging": 0
+        }
+      ]
+    },
+    {
+      "id": "s2",
+      "spec_quote": "If it's bumped on both sides at the same time, it will still switch directions.",
+      "covers": [
+        "behavior",
+        "priority",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "areset": 1,
+          "bump_left": 0,
+          "bump_right": 0,
+          "ground": 1,
+          "dig": 0
+        },
+        {
+          "areset": 0,
+          "bump_left": 1,
+          "bump_right": 0,
+          "ground": 1,
+          "dig": 0
+        },
+        {
+          "areset": 0,
+          "bump_left": 0,
+          "bump_right": 1,
+          "ground": 1,
+          "dig": 0
+        },
+        {
+          "areset": 0,
+          "bump_left": 1,
+          "bump_right": 1,
+          "ground": 1,
+          "dig": 0
+        }
+      ],
+      "expected": [
+        {
+          "walk_left": 1,
+          "walk_right": 0,
+          "aaah": 0,
+          "digging": 0
+        },
+        {
+          "walk_left": 0,
+          "walk_right": 1,
+          "aaah": 0,
+          "digging": 0
+        },
+        {
+          "walk_left": 1,
+          "walk_right": 0,
+          "aaah": 0,
+          "digging": 0
+        },
+        {
+          "walk_left": 0,
+          "walk_right": 1,
+          "aaah": 0,
+          "digging": 0
+        }
+      ]
+    },
+    {
+      "id": "s3",
+      "spec_quote": "Being bumped while falling does not affect the walking direction",
+      "covers": [
+        "behavior",
+        "priority",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "areset": 1,
+          "bump_left": 0,
+          "bump_right": 0,
+          "ground": 1,
+          "dig": 0
+        },
+        {
+          "areset": 0,
+          "bump_left": 1,
+          "bump_right": 0,
+          "ground": 1,
+          "dig": 0
+        },
+        {
+          "areset": 0,
+          "bump_left": 1,
+          "bump_right": 0,
+          "ground": 0,
+          "dig": 1
+        },
+        {
+          "areset": 0,
+          "bump_left": 1,
+          "bump_right": 0,
+          "ground": 0,
+          "dig": 0
+        },
+        {
+          "areset": 0,
+          "bump_left": 0,
+          "bump_right": 0,
+          "ground": 1,
+          "dig": 0
+        }
+      ],
+      "expected": [
+        {
+          "walk_left": 1,
+          "walk_right": 0,
+          "aaah": 0,
+          "digging": 0
+        },
+        {
+          "walk_left": 0,
+          "walk_right": 1,
+          "aaah": 0,
+          "digging": 0
+        },
+        {
+          "walk_left": 0,
+          "walk_right": 0,
+          "aaah": 1,
+          "digging": 0
+        },
+        {
+          "walk_left": 0,
+          "walk_right": 0,
+          "aaah": 1,
+          "digging": 0
+        },
+        {
+          "walk_left": 0,
+          "walk_right": 1,
+          "aaah": 0,
+          "digging": 0
+        }
+      ]
+    },
+    {
+      "id": "s4",
+      "spec_quote": "A Lemming can dig if it is currently walking on ground",
+      "covers": [
+        "behavior",
+        "priority",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "areset": 1,
+          "bump_left": 0,
+          "bump_right": 0,
+          "ground": 1,
+          "dig": 0
+        },
+        {
+          "areset": 0,
+          "bump_left": 0,
+          "bump_right": 0,
+          "ground": 1,
+          "dig": 1
+        },
+        {
+          "areset": 0,
+          "bump_left": 0,
+          "bump_right": 0,
+          "ground": 1,
+          "dig": 0
+        },
+        {
+          "areset": 0,
+          "bump_left": 0,
+          "bump_right": 0,
+          "ground": 0,
+          "dig": 1
+        },
+        {
+          "areset": 0,
+          "bump_left": 0,
+          "bump_right": 0,
+          "ground": 1,
+          "dig": 0
+        }
+      ],
+      "expected": [
+        {
+          "walk_left": 1,
+          "walk_right": 0,
+          "aaah": 0,
+          "digging": 0
+        },
+        {
+          "walk_left": 0,
+          "walk_right": 0,
+          "aaah": 0,
+          "digging": 1
+        },
+        {
+          "walk_left": 0,
+          "walk_right": 0,
+          "aaah": 0,
+          "digging": 1
+        },
+        {
+          "walk_left": 0,
+          "walk_right": 0,
+          "aaah": 1,
+          "digging": 0
+        },
+        {
+          "walk_left": 1,
+          "walk_right": 0,
+          "aaah": 0,
+          "digging": 0
+        }
+      ]
+    },
+    {
+      "id": "s5",
+      "spec_quote": "If more than one of these conditions are satisfied, fall has higher precedence than dig, which has higher precedence than switching directions.",
+      "covers": [
+        "behavior",
+        "priority",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "areset": 1,
+          "bump_left": 0,
+          "bump_right": 0,
+          "ground": 1,
+          "dig": 0
+        },
+        {
+          "areset": 0,
+          "bump_left": 1,
+          "bump_right": 0,
+          "ground": 1,
+          "dig": 1
+        },
+        {
+          "areset": 0,
+          "bump_left": 1,
+          "bump_right": 0,
+          "ground": 0,
+          "dig": 0
+        },
+        {
+          "areset": 0,
+          "bump_left": 0,
+          "bump_right": 0,
+          "ground": 1,
+          "dig": 0
+        }
+      ],
+      "expected": [
+        {
+          "walk_left": 1,
+          "walk_right": 0,
+          "aaah": 0,
+          "digging": 0
+        },
+        {
+          "walk_left": 0,
+          "walk_right": 0,
+          "aaah": 0,
+          "digging": 1
+        },
+        {
+          "walk_left": 0,
+          "walk_right": 0,
+          "aaah": 1,
+          "digging": 0
+        },
+        {
+          "walk_left": 1,
+          "walk_right": 0,
+          "aaah": 0,
+          "digging": 0
+        }
+      ]
+    },
+    {
+      "id": "s6",
+      "spec_quote": "When the ground reappears (ground=1), the Lemming will resume walking in the same direction as before the fall.",
+      "covers": [
+        "behavior",
+        "boundary",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "areset": 1,
+          "bump_left": 0,
+          "bump_right": 0,
+          "ground": 1,
+          "dig": 0
+        },
+        {
+          "areset": 0,
+          "bump_left": 0,
+          "bump_right": 0,
+          "ground": 0,
+          "dig": 0
+        },
+        {
+          "areset": 0,
+          "bump_left": 0,
+          "bump_right": 0,
+          "ground": 0,
+          "dig": 0
+        },
+        {
+          "areset": 0,
+          "bump_left": 0,
+          "bump_right": 0,
+          "ground": 0,
+          "dig": 0
+        },
+        {
+          "areset": 0,
+          "bump_left": 0,
+          "bump_right": 0,
+          "ground": 0,
+          "dig": 0
+        },
+        {
+          "areset": 0,
+          "bump_left": 0,
+          "bump_right": 0,
+          "ground": 0,
+          "dig": 0
+        },
+        {
+          "areset": 0,
+          "bump_left": 0,
+          "bump_right": 0,
+          "ground": 0,
+          "dig": 0
+        },
+        {
+          "areset": 0,
+          "bump_left": 0,
+          "bump_right": 0,
+          "ground": 0,
+          "dig": 0
+        },
+        {
+          "areset": 0,
+          "bump_left": 0,
+          "bump_right": 0,
+          "ground": 0,
+          "dig": 0
+        },
+        {
+          "areset": 0,
+          "bump_left": 0,
+          "bump_right": 0,
+          "ground": 0,
+          "dig": 0
+        },
+        {
+          "areset": 0,
+          "bump_left": 0,
+          "bump_right": 0,
+          "ground": 0,
+          "dig": 0
+        },
+        {
+          "areset": 0,
+          "bump_left": 0,
+          "bump_right": 0,
+          "ground": 0,
+          "dig": 0
+        },
+        {
+          "areset": 0,
+          "bump_left": 0,
+          "bump_right": 0,
+          "ground": 0,
+          "dig": 0
+        },
+        {
+          "areset": 0,
+          "bump_left": 0,
+          "bump_right": 0,
+          "ground": 0,
+          "dig": 0
+        },
+        {
+          "areset": 0,
+          "bump_left": 0,
+          "bump_right": 0,
+          "ground": 0,
+          "dig": 0
+        },
+        {
+          "areset": 0,
+          "bump_left": 0,
+          "bump_right": 0,
+          "ground": 0,
+          "dig": 0
+        },
+        {
+          "areset": 0,
+          "bump_left": 0,
+          "bump_right": 0,
+          "ground": 0,
+          "dig": 0
+        },
+        {
+          "areset": 0,
+          "bump_left": 0,
+          "bump_right": 0,
+          "ground": 0,
+          "dig": 0
+        },
+        {
+          "areset": 0,
+          "bump_left": 0,
+          "bump_right": 0,
+          "ground": 0,
+          "dig": 0
+        },
+        {
+          "areset": 0,
+          "bump_left": 0,
+          "bump_right": 0,
+          "ground": 1,
+          "dig": 0
+        }
+      ],
+      "expected": [
+        {
+          "walk_left": 1,
+          "walk_right": 0,
+          "aaah": 0,
+          "digging": 0
+        },
+        {
+          "walk_left": 0,
+          "walk_right": 0,
+          "aaah": 1,
+          "digging": 0
+        },
+        {
+          "walk_left": 0,
+          "walk_right": 0,
+          "aaah": 1,
+          "digging": 0
+        },
+        {
+          "walk_left": 0,
+          "walk_right": 0,
+          "aaah": 1,
+          "digging": 0
+        },
+        {
+          "walk_left": 0,
+          "walk_right": 0,
+          "aaah": 1,
+          "digging": 0
+        },
+        {
+          "walk_left": 0,
+          "walk_right": 0,
+          "aaah": 1,
+          "digging": 0
+        },
+        {
+          "walk_left": 0,
+          "walk_right": 0,
+          "aaah": 1,
+          "digging": 0
+        },
+        {
+          "walk_left": 0,
+          "walk_right": 0,
+          "aaah": 1,
+          "digging": 0
+        },
+        {
+          "walk_left": 0,
+          "walk_right": 0,
+          "aaah": 1,
+          "digging": 0
+        },
+        {
+          "walk_left": 0,
+          "walk_right": 0,
+          "aaah": 1,
+          "digging": 0
+        },
+        {
+          "walk_left": 0,
+          "walk_right": 0,
+          "aaah": 1,
+          "digging": 0
+        },
+        {
+          "walk_left": 0,
+          "walk_right": 0,
+          "aaah": 1,
+          "digging": 0
+        },
+        {
+          "walk_left": 0,
+          "walk_right": 0,
+          "aaah": 1,
+          "digging": 0
+        },
+        {
+          "walk_left": 0,
+          "walk_right": 0,
+          "aaah": 1,
+          "digging": 0
+        },
+        {
+          "walk_left": 0,
+          "walk_right": 0,
+          "aaah": 1,
+          "digging": 0
+        },
+        {
+          "walk_left": 0,
+          "walk_right": 0,
+          "aaah": 1,
+          "digging": 0
+        },
+        {
+          "walk_left": 0,
+          "walk_right": 0,
+          "aaah": 1,
+          "digging": 0
+        },
+        {
+          "walk_left": 0,
+          "walk_right": 0,
+          "aaah": 1,
+          "digging": 0
+        },
+        {
+          "walk_left": 0,
+          "walk_right": 0,
+          "aaah": 1,
+          "digging": 0
+        },
+        {
+          "walk_left": 1,
+          "walk_right": 0,
+          "aaah": 0,
+          "digging": 0
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,549 @@
+{
+  "decisions": [],
+  "RM": "def reference(vectors):\n    h = 12\n    m = 0\n    s = 0\n    pm = 0\n    out = []\n    for v in vectors:\n        if v['reset']:\n            h = 12\n            m = 0\n            s = 0\n            pm = 0\n        elif v['ena']:\n            s += 1\n            if s == 60:\n                s = 0\n                m += 1\n                if m == 60:\n                    m = 0\n                    if h == 11:\n                        h = 12\n                        pm ^= 1\n                    elif h == 12:\n                        h = 1\n                    else:\n                        h += 1\n        hh = ((h // 10) << 4) | (h % 10)\n        mm = ((m // 10) << 4) | (m % 10)\n        ss = ((s // 10) << 4) | (s % 10)\n        out.append({'pm': pm, 'hh': hh, 'mm': mm, 'ss': ss})\n    return out\n",
+  "TB": [
+    {
+      "id": "s1",
+      "spec_quote": "Reset has higher priority than enable and can occur even when not enabled.",
+      "covers": [
+        "behavior",
+        "priority",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "reset": 1,
+          "ena": 1
+        },
+        {
+          "reset": 0,
+          "ena": 0
+        },
+        {
+          "reset": 0,
+          "ena": 1
+        },
+        {
+          "reset": 1,
+          "ena": 0
+        },
+        {
+          "reset": 1,
+          "ena": 1
+        },
+        {
+          "reset": 0,
+          "ena": 0
+        },
+        {
+          "reset": 0,
+          "ena": 1
+        },
+        {
+          "reset": 0,
+          "ena": 1
+        }
+      ],
+      "expected": [
+        {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 0
+        },
+        {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 0
+        },
+        {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 1
+        },
+        {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 0
+        },
+        {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 0
+        },
+        {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 0
+        },
+        {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 1
+        },
+        {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 2
+        }
+      ]
+    },
+    {
+      "id": "s2",
+      "spec_quote": "pulse on ena whenever your clock should increment",
+      "covers": [
+        "behavior",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "reset": 1,
+          "ena": 0
+        },
+        {
+          "reset": 0,
+          "ena": 0
+        },
+        {
+          "reset": 0,
+          "ena": 0
+        },
+        {
+          "reset": 0,
+          "ena": 1
+        },
+        {
+          "reset": 0,
+          "ena": 0
+        },
+        {
+          "reset": 0,
+          "ena": 1
+        },
+        {
+          "reset": 0,
+          "ena": 1
+        },
+        {
+          "reset": 0,
+          "ena": 0
+        },
+        {
+          "reset": 0,
+          "ena": 1
+        }
+      ],
+      "expected": [
+        {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 0
+        },
+        {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 0
+        },
+        {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 0
+        },
+        {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 1
+        },
+        {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 1
+        },
+        {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 2
+        },
+        {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 3
+        },
+        {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 3
+        },
+        {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 4
+        }
+      ]
+    },
+    {
+      "id": "s3",
+      "spec_quote": "seconds (00-59)",
+      "covers": [
+        "behavior",
+        "boundary",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "reset": 1,
+          "ena": 0
+        },
+        {
+          "reset": 0,
+          "ena": 1
+        },
+        {
+          "reset": 0,
+          "ena": 1
+        },
+        {
+          "reset": 0,
+          "ena": 1
+        },
+        {
+          "reset": 0,
+          "ena": 1
+        },
+        {
+          "reset": 0,
+          "ena": 1
+        },
+        {
+          "reset": 0,
+          "ena": 1
+        },
+        {
+          "reset": 0,
+          "ena": 1
+        },
+        {
+          "reset": 0,
+          "ena": 1
+        },
+        {
+          "reset": 0,
+          "ena": 1
+        },
+        {
+          "reset": 0,
+          "ena": 1
+        },
+        {
+          "reset": 0,
+          "ena": 1
+        },
+        {
+          "reset": 0,
+          "ena": 1
+        },
+        {
+          "reset": 0,
+          "ena": 1
+        },
+        {
+          "reset": 0,
+          "ena": 1
+        },
+        {
+          "reset": 0,
+          "ena": 1
+        },
+        {
+          "reset": 0,
+          "ena": 1
+        },
+        {
+          "reset": 0,
+          "ena": 1
+        },
+        {
+          "reset": 0,
+          "ena": 1
+        },
+        {
+          "reset": 0,
+          "ena": 1
+        }
+      ],
+      "expected": [
+        {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 0
+        },
+        {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 1
+        },
+        {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 2
+        },
+        {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 3
+        },
+        {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 4
+        },
+        {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 5
+        },
+        {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 6
+        },
+        {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 7
+        },
+        {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 8
+        },
+        {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 9
+        },
+        {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 16
+        },
+        {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 17
+        },
+        {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 18
+        },
+        {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 19
+        },
+        {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 20
+        },
+        {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 21
+        },
+        {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 22
+        },
+        {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 23
+        },
+        {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 24
+        },
+        {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 25
+        }
+      ]
+    },
+    {
+      "id": "s4",
+      "spec_quote": "asserted if the clock is PM, or is otherwise AM.",
+      "covers": [
+        "behavior",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "reset": 1,
+          "ena": 1
+        },
+        {
+          "reset": 0,
+          "ena": 0
+        },
+        {
+          "reset": 0,
+          "ena": 1
+        },
+        {
+          "reset": 0,
+          "ena": 1
+        },
+        {
+          "reset": 0,
+          "ena": 1
+        },
+        {
+          "reset": 0,
+          "ena": 1
+        },
+        {
+          "reset": 0,
+          "ena": 0
+        }
+      ],
+      "expected": [
+        {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 0
+        },
+        {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 0
+        },
+        {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 1
+        },
+        {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 2
+        },
+        {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 3
+        },
+        {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 4
+        },
+        {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 4
+        }
+      ]
+    },
+    {
+      "id": "s5",
+      "spec_quote": "hh, mm, and ss are two BCD (Binary-Coded Decimal) digits each for hours (01-12), minutes (00-59), and seconds (00-59)",
+      "covers": [
+        "behavior",
+        "boundary",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "reset": 1,
+          "ena": 1
+        },
+        {
+          "reset": 0,
+          "ena": 0
+        },
+        {
+          "reset": 0,
+          "ena": 1
+        },
+        {
+          "reset": 0,
+          "ena": 1
+        }
+      ],
+      "expected": [
+        {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 0
+        },
+        {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 0
+        },
+        {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 1
+        },
+        {
+          "pm": 0,
+          "hh": 18,
+          "mm": 0,
+          "ss": 2
+        }
+      ]
+    }
+  ]
+}

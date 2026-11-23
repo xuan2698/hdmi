@@ -1,0 +1,4 @@
+{
+  "responses": [],
+  "source": "def reference(vectors):\n    rows = list(vectors)\n    if rows and 'clk' in rows[0]:\n        s = 0\n        pc = 0\n        pa = 0\n        pb = 0\n        out = []\n        for r in rows:\n            c = r.get('clk', 0) & 1\n            a = r.get('a', 0) & 1\n            b = r.get('b', 0) & 1\n            if pc == 0 and c == 1:\n                s = (pa & pb) | (s & (pa | pb))\n            out.append({'q': s ^ a ^ b, 'state': s})\n            pc = c\n            pa = a\n            pb = b\n        return out\n    else:\n        s = 0\n        out = []\n        for r in rows:\n            a = r.get('a', 0) & 1\n            b = r.get('b', 0) & 1\n            s = (a & b) | (s & (a | b))\n            out.append({'q': s ^ a ^ b, 'state': s})\n        return out\n"
+}

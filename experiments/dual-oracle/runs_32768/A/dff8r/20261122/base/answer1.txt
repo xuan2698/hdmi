@@ -1,0 +1,15 @@
+def reference(vectors):
+    q = 0
+    cur = {'d': 0, 'reset': 0}
+    out = []
+    for row in vectors:
+        for k in ('d', 'reset'):
+            if k in row:
+                cur[k] = row[k]
+        q = 0 if cur['reset'] else (cur['d'] & 255)
+        out.append({'q': q})
+        if 'mid' in row:
+            for k in ('d', 'reset'):
+                if k in row['mid']:
+                    cur[k] = row['mid'][k]
+    return out

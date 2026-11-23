@@ -1,0 +1,4 @@
+{
+  "responses": [],
+  "source": "def reference(vectors):\n    s = 'A'\n    result = []\n    for r in vectors:\n        if r.get('reset', 0):\n            s = 'A'\n        else:\n            i = r.get('in', 0)\n            if s == 'A':\n                s = 'B' if i else 'A'\n            elif s == 'B':\n                s = 'C' if not i else 'B'\n            elif s == 'C':\n                s = 'D' if i else 'A'\n            else:\n                s = 'B' if i else 'C'\n        result.append({'out': 1 if s == 'D' else 0})\n    return result\n"
+}

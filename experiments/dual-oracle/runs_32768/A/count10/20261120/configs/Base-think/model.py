@@ -1,0 +1,17 @@
+def reference(vectors):
+    q=0
+    inp={'reset':0}
+    res=[]
+    for row in vectors:
+        for k,v in row.items():
+            if k!='mid':
+                inp[k]=v
+        if inp.get('reset',0):
+            q=0
+        else:
+            q=0 if q==9 else q+1
+        res.append({'q':q})
+        if 'mid' in row:
+            for k,v in row['mid'].items():
+                inp[k]=v
+    return res

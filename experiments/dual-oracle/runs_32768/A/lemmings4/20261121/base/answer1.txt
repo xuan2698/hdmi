@@ -1,0 +1,48 @@
+def reference(vectors):
+    mode=0; d=0; c=0
+    cur={'areset':0,'bump_left':0,'bump_right':0,'ground':1,'dig':0}
+    out=[]
+    for row in vectors:
+        mid=row.get('mid',{}) or {}
+        for k,v in row.items():
+            if k!='mid':
+                cur[k]=v
+        if cur.get('areset',0):
+            mode=0; d=0; c=0
+        else:
+            g=cur.get('ground',1); bl=cur.get('bump_left',0); br=cur.get('bump_right',0); dg=cur.get('dig',0)
+            if mode==0:
+                if not g:
+                    mode=1; c=1
+                else:
+                    if dg:
+                        mode=2
+                    elif d==0:
+                        if bl: d=1
+                    else:
+                        if br: d=0
+            elif mode==2:
+                if not g:
+                    mode=1; c=1
+            elif mode==1:
+                if not g:
+                    c+=1
+                else:
+                    if c>20:
+                        mode=3; c=0
+                    else:
+                        mode=0; c=0
+        o={'walk_left':0,'walk_right':0,'aaah':0,'digging':0}
+        if mode==0:
+            o['walk_left']=int(d==0); o['walk_right']=int(d==1)
+        elif mode==1:
+            o['aaah']=1
+        elif mode==2:
+            o['digging']=1
+        out.append(o)
+        old=cur.get('areset',0)
+        for k,v in mid.items():
+            cur[k]=v
+        if cur.get('areset',0)==1 and old==0:
+            mode=0; d=0; c=0
+    return out

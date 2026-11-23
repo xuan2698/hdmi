@@ -1,0 +1,82 @@
+def reference(vectors):
+    state = 0
+    fall_count = 0
+    out = []
+    for row in vectors:
+        if isinstance(row, dict):
+            a = int(row.get('areset', 0))
+            bl = int(row.get('bump_left', 0))
+            br = int(row.get('bump_right', 0))
+            g = int(row.get('ground', 0))
+            d = int(row.get('dig', 0))
+        else:
+            a = int(row[0])
+            bl = int(row[1])
+            br = int(row[2])
+            g = int(row[3])
+            d = int(row[4])
+
+        if a:
+            state = 0
+            fall_count = 0
+        else:
+            if state == 0:
+                if g == 0:
+                    state = 4
+                    fall_count = 1
+                elif d == 1:
+                    state = 2
+                    fall_count = 0
+                elif bl == 1:
+                    state = 1
+            elif state == 1:
+                if g == 0:
+                    state = 5
+                    fall_count = 1
+                elif d == 1:
+                    state = 3
+                    fall_count = 0
+                elif br == 1:
+                    state = 0
+            elif state == 2:
+                if g == 0:
+                    state = 4
+                    fall_count = 1
+            elif state == 3:
+                if g == 0:
+                    state = 5
+                    fall_count = 1
+            elif state == 4:
+                if g == 1:
+                    if fall_count > 20:
+                        state = 6
+                    else:
+                        state = 0
+                    fall_count = 0
+                else:
+                    fall_count += 1
+            elif state == 5:
+                if g == 1:
+                    if fall_count > 20:
+                        state = 6
+                    else:
+                        state = 1
+                    fall_count = 0
+                else:
+                    fall_count += 1
+            elif state == 6:
+                pass
+
+        if state == 0:
+            wl, wr, aa, dg = 1, 0, 0, 0
+        elif state == 1:
+            wl, wr, aa, dg = 0, 1, 0, 0
+        elif state == 2 or state == 3:
+            wl, wr, aa, dg = 0, 0, 0, 1
+        elif state == 4 or state == 5:
+            wl, wr, aa, dg = 0, 0, 1, 0
+        else:
+            wl, wr, aa, dg = 0, 0, 0, 0
+
+        out.append({'walk_left': wl, 'walk_right': wr, 'aaah': aa, 'digging': dg})
+    return out

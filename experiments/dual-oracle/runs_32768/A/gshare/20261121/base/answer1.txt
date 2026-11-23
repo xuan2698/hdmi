@@ -1,0 +1,53 @@
+def reference(vectors):
+    pht=[0]*128
+    hist=0
+    ot=0
+    oh=0
+    inp={'areset':0,'predict_valid':0,'predict_pc':0,'train_valid':0,'train_taken':0,'train_mispredicted':0,'train_history':0,'train_pc':0}
+    ans=[]
+    for row in vectors:
+        for k,v in row.items():
+            if k!='mid': inp[k]=v
+        if inp.get('areset',0):
+            pht=[0]*128
+            hist=0
+            ot=0
+            oh=0
+        else:
+            pv=inp.get('predict_valid',0)
+            pc=inp.get('predict_pc',0)&127
+            old=hist
+            idx=(pc^old)&127
+            pt=1 if pht[idx]>=2 else 0
+            if pv:
+                ot=pt
+                oh=old
+            tv=inp.get('train_valid',0)
+            if tv:
+                th=inp.get('train_history',0)&127
+                tpc=inp.get('train_pc',0)&127
+                ti=(tpc^th)&127
+                c=pht[ti]
+                if inp.get('train_taken',0):
+                    if c<3: c+=1
+                else:
+                    if c>0: c-=1
+                pht[ti]=c
+            nh=old
+            if pv:
+                nh=((old<<1)|pt)&127
+            if tv and inp.get('train_mispredicted',0):
+                th=inp.get('train_history',0)&127
+                nh=((th<<1)|inp.get('train_taken',0))&127
+            hist=nh
+        ans.append({'predict_taken':ot&1,'predict_history':oh&127})
+        mid=row.get('mid')
+        if mid:
+            for k,v in mid.items():
+                inp[k]=v
+            if inp.get('areset',0):
+                pht=[0]*128
+                hist=0
+                ot=0
+                oh=0
+    return ans

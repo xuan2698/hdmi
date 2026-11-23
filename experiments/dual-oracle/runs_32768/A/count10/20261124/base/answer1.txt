@@ -1,0 +1,17 @@
+def reference(vectors):
+    q=0
+    r=0
+    out=[]
+    for v in vectors:
+        if 'reset' in v:
+            r=v['reset']
+        if r:
+            q=0
+        else:
+            q=0 if q==9 else q+1
+        out.append({'q':q})
+        if 'mid' in v:
+            m=v['mid']
+            if 'reset' in m:
+                r=m['reset']
+    return out

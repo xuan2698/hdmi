@@ -1,0 +1,33 @@
+def reference(vectors):
+    h, m, s, pm = 12, 0, 0, 0
+    out = []
+    for row in vectors:
+        if isinstance(row, dict):
+            reset = row.get("reset", 0)
+            ena = row.get("ena", 0)
+        else:
+            reset = row[0]
+            ena = row[1]
+        reset = 1 if reset else 0
+        ena = 1 if ena else 0
+        if reset:
+            h, m, s, pm = 12, 0, 0, 0
+        elif ena:
+            s += 1
+            if s == 60:
+                s = 0
+                m += 1
+                if m == 60:
+                    m = 0
+                    if h == 11:
+                        h = 12
+                        pm ^= 1
+                    elif h == 12:
+                        h = 1
+                    else:
+                        h += 1
+        hh = ((h // 10) << 4) | (h % 10)
+        mm = ((m // 10) << 4) | (m % 10)
+        ss = ((s // 10) << 4) | (s % 10)
+        out.append({"pm": pm, "hh": hh, "mm": mm, "ss": ss})
+    return out

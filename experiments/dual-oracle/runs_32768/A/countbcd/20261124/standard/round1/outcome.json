@@ -1,0 +1,448 @@
+{
+  "decisions": [],
+  "RM": "def reference(vectors):\n    q = 0\n    out = []\n    for row in vectors:\n        if isinstance(row, dict):\n            reset = row.get(\"reset\", 0)\n        elif isinstance(row, (list, tuple)):\n            reset = row[0]\n        else:\n            reset = row\n\n        if reset:\n            q = 0\n        else:\n            d0 = q & 15\n            d1 = (q >> 4) & 15\n            d2 = (q >> 8) & 15\n            d3 = (q >> 12) & 15\n\n            d0 += 1\n            if d0 == 10:\n                d0 = 0\n                d1 += 1\n                if d1 == 10:\n                    d1 = 0\n                    d2 += 1\n                    if d2 == 10:\n                        d2 = 0\n                        d3 += 1\n                        if d3 == 10:\n                            d3 = 0\n\n            q = d0 | (d1 << 4) | (d2 << 8) | (d3 << 12)\n\n        d0 = q & 15\n        d1 = (q >> 4) & 15\n        d2 = (q >> 8) & 15\n        ena = (1 if d0 == 9 else 0) | (2 if d0 == 9 and d1 == 9 else 0) | (4 if d0 == 9 and d1 == 9 and d2 == 9 else 0)\n        out.append({\"q\": q, \"ena\": ena})\n\n    return out\n",
+  "TB": [
+    {
+      "id": "s1",
+      "spec_quote": "Include a synchronous active-high reset.",
+      "covers": [
+        "behavior",
+        "priority",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "reset": 1
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 1
+        },
+        {
+          "reset": 0
+        }
+      ],
+      "expected": [
+        {
+          "ena": 0,
+          "q": 0
+        },
+        {
+          "ena": 0,
+          "q": 1
+        },
+        {
+          "ena": 0,
+          "q": 2
+        },
+        {
+          "ena": 0,
+          "q": 0
+        },
+        {
+          "ena": 0,
+          "q": 1
+        }
+      ]
+    },
+    {
+      "id": "s2",
+      "spec_quote": "q[3:0] is the ones digit",
+      "covers": [
+        "behavior",
+        "boundary",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "reset": 1
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        }
+      ],
+      "expected": [
+        {
+          "ena": 0,
+          "q": 0
+        },
+        {
+          "ena": 0,
+          "q": 1
+        },
+        {
+          "ena": 0,
+          "q": 2
+        },
+        {
+          "ena": 0,
+          "q": 3
+        },
+        {
+          "ena": 0,
+          "q": 4
+        },
+        {
+          "ena": 0,
+          "q": 5
+        },
+        {
+          "ena": 0,
+          "q": 6
+        },
+        {
+          "ena": 0,
+          "q": 7
+        },
+        {
+          "ena": 0,
+          "q": 8
+        },
+        {
+          "ena": 1,
+          "q": 9
+        },
+        {
+          "ena": 0,
+          "q": 16
+        },
+        {
+          "ena": 0,
+          "q": 17
+        }
+      ]
+    },
+    {
+      "id": "s3",
+      "spec_quote": "q[7:4] is the tens digit",
+      "covers": [
+        "behavior",
+        "boundary",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "reset": 1
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        }
+      ],
+      "expected": [
+        {
+          "ena": 0,
+          "q": 0
+        },
+        {
+          "ena": 0,
+          "q": 1
+        },
+        {
+          "ena": 0,
+          "q": 2
+        },
+        {
+          "ena": 0,
+          "q": 3
+        },
+        {
+          "ena": 0,
+          "q": 4
+        },
+        {
+          "ena": 0,
+          "q": 5
+        },
+        {
+          "ena": 0,
+          "q": 6
+        },
+        {
+          "ena": 0,
+          "q": 7
+        },
+        {
+          "ena": 0,
+          "q": 8
+        },
+        {
+          "ena": 1,
+          "q": 9
+        },
+        {
+          "ena": 0,
+          "q": 16
+        },
+        {
+          "ena": 0,
+          "q": 17
+        },
+        {
+          "ena": 0,
+          "q": 18
+        },
+        {
+          "ena": 0,
+          "q": 19
+        },
+        {
+          "ena": 0,
+          "q": 20
+        },
+        {
+          "ena": 0,
+          "q": 21
+        },
+        {
+          "ena": 0,
+          "q": 22
+        },
+        {
+          "ena": 0,
+          "q": 23
+        },
+        {
+          "ena": 0,
+          "q": 24
+        },
+        {
+          "ena": 1,
+          "q": 25
+        }
+      ]
+    },
+    {
+      "id": "s4",
+      "spec_quote": "Include a synchronous active-high reset.",
+      "covers": [
+        "behavior",
+        "priority",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "reset": 1
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 1
+        },
+        {
+          "reset": 0
+        }
+      ],
+      "expected": [
+        {
+          "ena": 0,
+          "q": 0
+        },
+        {
+          "ena": 0,
+          "q": 1
+        },
+        {
+          "ena": 0,
+          "q": 2
+        },
+        {
+          "ena": 0,
+          "q": 3
+        },
+        {
+          "ena": 0,
+          "q": 4
+        },
+        {
+          "ena": 0,
+          "q": 5
+        },
+        {
+          "ena": 0,
+          "q": 6
+        },
+        {
+          "ena": 0,
+          "q": 7
+        },
+        {
+          "ena": 0,
+          "q": 8
+        },
+        {
+          "ena": 1,
+          "q": 9
+        },
+        {
+          "ena": 0,
+          "q": 0
+        },
+        {
+          "ena": 0,
+          "q": 1
+        }
+      ]
+    },
+    {
+      "id": "s5",
+      "spec_quote": "Include a synchronous active-high reset.",
+      "covers": [
+        "behavior",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "reset": 1
+        },
+        {
+          "reset": 1
+        },
+        {
+          "reset": 1
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        }
+      ],
+      "expected": [
+        {
+          "ena": 0,
+          "q": 0
+        },
+        {
+          "ena": 0,
+          "q": 0
+        },
+        {
+          "ena": 0,
+          "q": 0
+        },
+        {
+          "ena": 0,
+          "q": 1
+        },
+        {
+          "ena": 0,
+          "q": 2
+        }
+      ]
+    }
+  ]
+}

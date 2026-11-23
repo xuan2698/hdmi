@@ -1,0 +1,4 @@
+{
+  "responses": [],
+  "source": "def reference(vectors):\n    state = 0\n    outputs = []\n    for row in vectors:\n        areset = row.get('areset', 0)\n        x = row.get('x', 0)\n\n        if areset:\n            state = 0\n            z = 0\n        else:\n            if state == 0:\n                state = 1 if x else 0\n            elif state == 1:\n                state = 2 if x == 0 else 3\n            elif state == 2:\n                state = 2 if x == 0 else 3\n            else:\n                state = 2 if x == 0 else 3\n\n            z = 0 if state == 0 or state == 3 else 1\n\n        outputs.append({'z': z})\n\n    return outputs\n"
+}

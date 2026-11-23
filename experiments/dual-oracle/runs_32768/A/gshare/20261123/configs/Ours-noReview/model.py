@@ -1,0 +1,44 @@
+def reference(vectors):
+    history = 0
+    pht = [0] * 128
+    out = []
+    for row in vectors:
+        areset = row.get('areset', 0) & 1
+        if areset:
+            history = 0
+            pht = [0] * 128
+            out.append({'predict_taken': 0, 'predict_history': 0})
+            continue
+
+        pc = row.get('predict_pc', 0) & 0x7F
+        idx = (pc ^ history) & 0x7F
+        cnt = pht[idx]
+        predict_taken = 1 if cnt >= 2 else 0
+        predict_history = history & 0x7F
+        out.append({'predict_taken': predict_taken, 'predict_history': predict_history})
+
+        train_valid = row.get('train_valid', 0) & 1
+        train_taken = row.get('train_taken', 0) & 1
+        train_mispredicted = row.get('train_mispredicted', 0) & 1
+        train_history = row.get('train_history', 0) & 0x7F
+        train_pc = row.get('train_pc', 0) & 0x7F
+
+        if train_valid:
+            tidx = (train_pc ^ train_history) & 0x7F
+            old = pht[tidx]
+            if train_taken:
+                newc = old + 1
+                if newc > 3:
+                    newc = 3
+            else:
+                newc = old - 1
+                if newc < 0:
+                    newc = 0
+            pht[tidx] = newc
+
+        if train_valid and train_mispredicted:
+            history = ((train_history << 1) & 0x7F) | train_taken
+        elif row.get('predict_valid', 0) & 1:
+            history = ((history << 1) & 0x7F) | predict_taken
+
+    return out

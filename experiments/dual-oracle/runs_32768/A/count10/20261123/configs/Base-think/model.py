@@ -1,0 +1,18 @@
+def reference(vectors):
+    q = 0
+    reset = 0
+    out = []
+    for row in vectors:
+        for k, v in row.items():
+            if k == 'reset':
+                reset = int(v)
+        if reset:
+            q = 0
+        else:
+            q = (q + 1) % 10
+        out.append({'q': q})
+        if 'mid' in row:
+            for k, v in row['mid'].items():
+                if k == 'reset':
+                    reset = int(v)
+    return out

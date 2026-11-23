@@ -1,0 +1,326 @@
+{
+  "decisions": [
+    {
+      "id": "s5/4/z",
+      "label": "RM",
+      "spec_quote": "beginning with the least-significant bit of the number, and the output (Z) is the 2's complement of the input."
+    }
+  ],
+  "RM": "def reference(vectors):\n    state = 0  # 0: no 1 seen, 1: carry with z=1, 2: carry with z=0\n    result = []\n    for row in vectors:\n        if row.get('areset', 0):\n            state = 0\n        else:\n            x = row.get('x', 0)\n            if state == 0:\n                if x:\n                    state = 1\n            elif state == 1:\n                if x:\n                    state = 2\n            else:\n                if not x:\n                    state = 1\n        result.append({'z': 1 if state == 1 else 0})\n    return result\n",
+  "TB": [
+    {
+      "id": "s1",
+      "spec_quote": "positive edge triggered asynchronous reset",
+      "covers": [
+        "behavior",
+        "priority",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "areset": 1,
+          "x": 0
+        },
+        {
+          "areset": 1,
+          "x": 1
+        },
+        {
+          "areset": 0,
+          "x": 1
+        },
+        {
+          "areset": 0,
+          "x": 0
+        },
+        {
+          "areset": 0,
+          "x": 1
+        },
+        {
+          "areset": 0,
+          "x": 0
+        }
+      ],
+      "expected": [
+        {
+          "z": 0
+        },
+        {
+          "z": 0
+        },
+        {
+          "z": 1
+        },
+        {
+          "z": 1
+        },
+        {
+          "z": 0
+        },
+        {
+          "z": 1
+        }
+      ]
+    },
+    {
+      "id": "s2",
+      "spec_quote": "accept input numbers of arbitrary length",
+      "covers": [
+        "behavior",
+        "boundary",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "areset": 1,
+          "x": 0
+        },
+        {
+          "areset": 0,
+          "x": 0
+        },
+        {
+          "areset": 0,
+          "x": 0
+        },
+        {
+          "areset": 0,
+          "x": 0
+        },
+        {
+          "areset": 0,
+          "x": 0
+        },
+        {
+          "areset": 0,
+          "x": 0
+        }
+      ],
+      "expected": [
+        {
+          "z": 0
+        },
+        {
+          "z": 0
+        },
+        {
+          "z": 0
+        },
+        {
+          "z": 0
+        },
+        {
+          "z": 0
+        },
+        {
+          "z": 0
+        }
+      ]
+    },
+    {
+      "id": "s3",
+      "spec_quote": "output (Z) is the 2's complement of the input",
+      "covers": [
+        "behavior",
+        "boundary",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "areset": 1,
+          "x": 0
+        },
+        {
+          "areset": 0,
+          "x": 1
+        },
+        {
+          "areset": 0,
+          "x": 1
+        },
+        {
+          "areset": 0,
+          "x": 1
+        },
+        {
+          "areset": 0,
+          "x": 1
+        },
+        {
+          "areset": 0,
+          "x": 0
+        },
+        {
+          "areset": 0,
+          "x": 1
+        }
+      ],
+      "expected": [
+        {
+          "z": 0
+        },
+        {
+          "z": 1
+        },
+        {
+          "z": 0
+        },
+        {
+          "z": 0
+        },
+        {
+          "z": 0
+        },
+        {
+          "z": 1
+        },
+        {
+          "z": 0
+        }
+      ]
+    },
+    {
+      "id": "s4",
+      "spec_quote": "beginning with the least-significant bit of the number",
+      "covers": [
+        "behavior",
+        "boundary",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "areset": 1,
+          "x": 0
+        },
+        {
+          "areset": 0,
+          "x": 0
+        },
+        {
+          "areset": 0,
+          "x": 0
+        },
+        {
+          "areset": 0,
+          "x": 1
+        },
+        {
+          "areset": 0,
+          "x": 0
+        },
+        {
+          "areset": 0,
+          "x": 1
+        },
+        {
+          "areset": 0,
+          "x": 0
+        }
+      ],
+      "expected": [
+        {
+          "z": 0
+        },
+        {
+          "z": 0
+        },
+        {
+          "z": 0
+        },
+        {
+          "z": 1
+        },
+        {
+          "z": 1
+        },
+        {
+          "z": 0
+        },
+        {
+          "z": 1
+        }
+      ]
+    },
+    {
+      "id": "s5",
+      "spec_quote": "The conversion begins when Reset is released and stops when Reset is asserted.",
+      "covers": [
+        "behavior",
+        "priority",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "areset": 1,
+          "x": 0
+        },
+        {
+          "areset": 0,
+          "x": 1
+        },
+        {
+          "areset": 0,
+          "x": 1,
+          "mid": {
+            "areset": 1,
+            "x": 0
+          }
+        },
+        {
+          "areset": 0,
+          "x": 1
+        },
+        {
+          "areset": 0,
+          "x": 1
+        },
+        {
+          "areset": 0,
+          "x": 0
+        },
+        {
+          "areset": 1,
+          "x": 0
+        },
+        {
+          "areset": 1,
+          "x": 1
+        },
+        {
+          "areset": 0,
+          "x": 0
+        }
+      ],
+      "expected": [
+        {
+          "z": 0
+        },
+        {
+          "z": 1
+        },
+        {
+          "z": 0
+        },
+        {
+          "z": 1
+        },
+        {
+          "z": 0
+        },
+        {
+          "z": 1
+        },
+        {
+          "z": 0
+        },
+        {
+          "z": 0
+        },
+        {
+          "z": 0
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,41 @@
+def reference(vectors):
+    q = 0
+    out = []
+    for row in vectors:
+        if isinstance(row, dict):
+            reset = row.get('reset', 0)
+        else:
+            reset = row[0] if isinstance(row, (list, tuple)) else row
+        if reset:
+            q = 0
+        else:
+            ones = q & 0xF
+            tens = (q >> 4) & 0xF
+            hundreds = (q >> 8) & 0xF
+            thousands = (q >> 12) & 0xF
+            if ones < 9:
+                ones += 1
+            else:
+                ones = 0
+                if tens < 9:
+                    tens += 1
+                else:
+                    tens = 0
+                    if hundreds < 9:
+                        hundreds += 1
+                    else:
+                        hundreds = 0
+                        if thousands < 9:
+                            thousands += 1
+                        else:
+                            thousands = 0
+            q = (thousands << 12) | (hundreds << 8) | (tens << 4) | ones
+
+        ones = q & 0xF
+        tens = (q >> 4) & 0xF
+        hundreds = (q >> 8) & 0xF
+        ena = (1 if ones == 9 else 0)
+        ena |= (1 if (tens == 9 and ones == 9) else 0) << 1
+        ena |= (1 if (hundreds == 9 and tens == 9 and ones == 9) else 0) << 2
+        out.append({'q': q, 'ena': ena})
+    return out

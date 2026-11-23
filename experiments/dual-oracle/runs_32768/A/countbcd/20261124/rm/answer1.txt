@@ -1,0 +1,41 @@
+def reference(vectors):
+    q = 0
+    out = []
+    for row in vectors:
+        if isinstance(row, dict):
+            reset = row.get("reset", 0)
+        elif isinstance(row, (list, tuple)):
+            reset = row[0]
+        else:
+            reset = row
+
+        if reset:
+            q = 0
+        else:
+            d0 = q & 15
+            d1 = (q >> 4) & 15
+            d2 = (q >> 8) & 15
+            d3 = (q >> 12) & 15
+
+            d0 += 1
+            if d0 == 10:
+                d0 = 0
+                d1 += 1
+                if d1 == 10:
+                    d1 = 0
+                    d2 += 1
+                    if d2 == 10:
+                        d2 = 0
+                        d3 += 1
+                        if d3 == 10:
+                            d3 = 0
+
+            q = d0 | (d1 << 4) | (d2 << 8) | (d3 << 12)
+
+        d0 = q & 15
+        d1 = (q >> 4) & 15
+        d2 = (q >> 8) & 15
+        ena = (1 if d0 == 9 else 0) | (2 if d0 == 9 and d1 == 9 else 0) | (4 if d0 == 9 and d1 == 9 and d2 == 9 else 0)
+        out.append({"q": q, "ena": ena})
+
+    return out

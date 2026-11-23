@@ -1,0 +1,354 @@
+{
+  "decisions": [
+    {
+      "id": "s2/2/q",
+      "label": "RM",
+      "source": "TB assumed correct per baseline"
+    },
+    {
+      "id": "s2/3/q",
+      "label": "RM",
+      "source": "TB assumed correct per baseline"
+    },
+    {
+      "id": "s2/4/q",
+      "label": "RM",
+      "source": "TB assumed correct per baseline"
+    },
+    {
+      "id": "s3/2/q",
+      "label": "RM",
+      "source": "TB assumed correct per baseline"
+    },
+    {
+      "id": "s3/3/q",
+      "label": "RM",
+      "source": "TB assumed correct per baseline"
+    },
+    {
+      "id": "s3/4/q",
+      "label": "RM",
+      "source": "TB assumed correct per baseline"
+    },
+    {
+      "id": "s4/2/q",
+      "label": "RM",
+      "source": "TB assumed correct per baseline"
+    },
+    {
+      "id": "s4/3/q",
+      "label": "RM",
+      "source": "TB assumed correct per baseline"
+    },
+    {
+      "id": "s4/4/q",
+      "label": "RM",
+      "source": "TB assumed correct per baseline"
+    },
+    {
+      "id": "s5/2/q",
+      "label": "RM",
+      "source": "TB assumed correct per baseline"
+    },
+    {
+      "id": "s5/3/q",
+      "label": "RM",
+      "source": "TB assumed correct per baseline"
+    },
+    {
+      "id": "s5/4/q",
+      "label": "RM",
+      "source": "TB assumed correct per baseline"
+    }
+  ],
+  "RM": "def reference(vectors):\n    c = 4\n    out = []\n    for v in vectors:\n        a = v['a']\n        q = c\n        if a:\n            c = 4\n        else:\n            c = 0 if c == 6 else c + 1\n        out.append({'q': q})\n    return out\n",
+  "TB": [
+    {
+      "id": "s1",
+      "spec_quote": "This is a sequential circuit.",
+      "covers": [
+        "behavior",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "a": 1
+        },
+        {
+          "a": 1
+        },
+        {
+          "a": 1
+        },
+        {
+          "a": 1
+        }
+      ],
+      "expected": [
+        {
+          "q": 4
+        },
+        {
+          "q": 4
+        },
+        {
+          "q": 4
+        },
+        {
+          "q": 4
+        }
+      ]
+    },
+    {
+      "id": "s2",
+      "spec_quote": "This is a sequential circuit.",
+      "covers": [
+        "behavior",
+        "boundary"
+      ],
+      "vectors": [
+        {
+          "a": 1
+        },
+        {
+          "a": 0
+        },
+        {
+          "a": 0
+        },
+        {
+          "a": 0
+        },
+        {
+          "a": 0
+        },
+        {
+          "a": 0
+        },
+        {
+          "a": 0
+        },
+        {
+          "a": 0
+        },
+        {
+          "a": 0
+        }
+      ],
+      "expected": [
+        {
+          "q": 4
+        },
+        {
+          "q": 5
+        },
+        {
+          "q": 6
+        },
+        {
+          "q": 0
+        },
+        {
+          "q": 1
+        },
+        {
+          "q": 2
+        },
+        {
+          "q": 3
+        },
+        {
+          "q": 4
+        },
+        {
+          "q": 5
+        }
+      ]
+    },
+    {
+      "id": "s3",
+      "spec_quote": "This is a sequential circuit.",
+      "covers": [
+        "behavior",
+        "boundary",
+        "priority",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "a": 1
+        },
+        {
+          "a": 0
+        },
+        {
+          "a": 0
+        },
+        {
+          "a": 1
+        },
+        {
+          "a": 1
+        },
+        {
+          "a": 0
+        }
+      ],
+      "expected": [
+        {
+          "q": 4
+        },
+        {
+          "q": 5
+        },
+        {
+          "q": 6
+        },
+        {
+          "q": 4
+        },
+        {
+          "q": 4
+        },
+        {
+          "q": 5
+        }
+      ]
+    },
+    {
+      "id": "s4",
+      "spec_quote": "This is a sequential circuit.",
+      "covers": [
+        "behavior",
+        "boundary",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "a": 1
+        },
+        {
+          "a": 0
+        },
+        {
+          "a": 0
+        },
+        {
+          "a": 0
+        },
+        {
+          "a": 0
+        },
+        {
+          "a": 0
+        },
+        {
+          "a": 0
+        },
+        {
+          "a": 0
+        },
+        {
+          "a": 1
+        },
+        {
+          "a": 0
+        }
+      ],
+      "expected": [
+        {
+          "q": 4
+        },
+        {
+          "q": 5
+        },
+        {
+          "q": 6
+        },
+        {
+          "q": 0
+        },
+        {
+          "q": 1
+        },
+        {
+          "q": 2
+        },
+        {
+          "q": 3
+        },
+        {
+          "q": 4
+        },
+        {
+          "q": 4
+        },
+        {
+          "q": 5
+        }
+      ]
+    },
+    {
+      "id": "s5",
+      "spec_quote": "This is a sequential circuit.",
+      "covers": [
+        "behavior",
+        "boundary",
+        "priority",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "a": 1
+        },
+        {
+          "a": 0
+        },
+        {
+          "a": 0
+        },
+        {
+          "a": 0
+        },
+        {
+          "a": 1
+        },
+        {
+          "a": 0
+        },
+        {
+          "a": 1
+        },
+        {
+          "a": 1
+        }
+      ],
+      "expected": [
+        {
+          "q": 4
+        },
+        {
+          "q": 5
+        },
+        {
+          "q": 6
+        },
+        {
+          "q": 0
+        },
+        {
+          "q": 4
+        },
+        {
+          "q": 5
+        },
+        {
+          "q": 4
+        },
+        {
+          "q": 4
+        }
+      ]
+    }
+  ]
+}

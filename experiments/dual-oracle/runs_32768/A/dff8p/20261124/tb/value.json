@@ -1,0 +1,260 @@
+[
+  {
+    "id": "s1",
+    "spec_quote": "The flip-flops must be reset to 0x34 rather than zero.",
+    "covers": [
+      "behavior",
+      "boundary",
+      "reset"
+    ],
+    "vectors": [
+      {
+        "d": 0,
+        "reset": 1
+      },
+      {
+        "d": 255,
+        "reset": 1
+      },
+      {
+        "d": 255,
+        "reset": 0
+      },
+      {
+        "d": 0,
+        "reset": 0
+      }
+    ],
+    "expected": [
+      {
+        "q": 52
+      },
+      {
+        "q": 52
+      },
+      {
+        "q": 255
+      },
+      {
+        "q": 0
+      }
+    ]
+  },
+  {
+    "id": "s2",
+    "spec_quote": "Create 8 D flip-flops with active high synchronous reset.",
+    "covers": [
+      "behavior",
+      "reset"
+    ],
+    "vectors": [
+      {
+        "d": 18,
+        "reset": 1
+      },
+      {
+        "d": 0,
+        "reset": 0
+      },
+      {
+        "d": 170,
+        "reset": 0
+      },
+      {
+        "d": 85,
+        "reset": 1
+      },
+      {
+        "d": 85,
+        "reset": 0
+      }
+    ],
+    "expected": [
+      {
+        "q": 52
+      },
+      {
+        "q": 0
+      },
+      {
+        "q": 170
+      },
+      {
+        "q": 52
+      },
+      {
+        "q": 85
+      }
+    ]
+  },
+  {
+    "id": "s3",
+    "spec_quote": "active high synchronous reset",
+    "covers": [
+      "behavior",
+      "priority",
+      "reset"
+    ],
+    "vectors": [
+      {
+        "d": 0,
+        "reset": 1
+      },
+      {
+        "d": 170,
+        "reset": 0
+      },
+      {
+        "d": 85,
+        "reset": 1
+      },
+      {
+        "d": 85,
+        "reset": 0
+      },
+      {
+        "d": 127,
+        "reset": 1
+      },
+      {
+        "d": 127,
+        "reset": 0
+      }
+    ],
+    "expected": [
+      {
+        "q": 52
+      },
+      {
+        "q": 170
+      },
+      {
+        "q": 52
+      },
+      {
+        "q": 85
+      },
+      {
+        "q": 52
+      },
+      {
+        "q": 127
+      }
+    ]
+  },
+  {
+    "id": "s4",
+    "spec_quote": "triggered by the negative edge of clk",
+    "covers": [
+      "behavior",
+      "reset"
+    ],
+    "vectors": [
+      {
+        "d": 0,
+        "reset": 1
+      },
+      {
+        "d": 129,
+        "reset": 0,
+        "mid": {
+          "d": 126
+        }
+      },
+      {
+        "d": 126,
+        "reset": 0
+      },
+      {
+        "d": 0,
+        "reset": 1
+      },
+      {
+        "d": 255,
+        "reset": 0
+      }
+    ],
+    "expected": [
+      {
+        "q": 52
+      },
+      {
+        "q": 129
+      },
+      {
+        "q": 126
+      },
+      {
+        "q": 52
+      },
+      {
+        "q": 255
+      }
+    ]
+  },
+  {
+    "id": "s5",
+    "spec_quote": "All DFFs should be triggered by the negative edge of clk.",
+    "covers": [
+      "behavior",
+      "boundary",
+      "reset"
+    ],
+    "vectors": [
+      {
+        "d": 0,
+        "reset": 1
+      },
+      {
+        "d": 0,
+        "reset": 0
+      },
+      {
+        "d": 255,
+        "reset": 0
+      },
+      {
+        "d": 127,
+        "reset": 0,
+        "mid": {
+          "d": 128
+        }
+      },
+      {
+        "d": 128,
+        "reset": 0
+      },
+      {
+        "d": 52,
+        "reset": 1
+      },
+      {
+        "d": 52,
+        "reset": 0
+      }
+    ],
+    "expected": [
+      {
+        "q": 52
+      },
+      {
+        "q": 0
+      },
+      {
+        "q": 255
+      },
+      {
+        "q": 127
+      },
+      {
+        "q": 128
+      },
+      {
+        "q": 52
+      },
+      {
+        "q": 52
+      }
+    ]
+  }
+]

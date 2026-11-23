@@ -1,0 +1,237 @@
+{
+  "group": "A",
+  "task": "dff8p",
+  "seed": 20261121,
+  "config": "Ours-noReview",
+  "status": "ready",
+  "model": "runs_32768/A/dff8p/20261121/configs/Ours-noReview/model.py",
+  "scenes": [
+    {
+      "id": "s1",
+      "spec_quote": "The flip-flops must be reset to 0x34 rather than zero.",
+      "covers": [
+        "behavior",
+        "boundary",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "d": 0,
+          "reset": 1
+        },
+        {
+          "d": 18,
+          "reset": 0
+        },
+        {
+          "d": 255,
+          "reset": 0
+        },
+        {
+          "d": 0,
+          "reset": 1
+        }
+      ],
+      "expected": [
+        {
+          "q": 52
+        },
+        {
+          "q": 18
+        },
+        {
+          "q": 255
+        },
+        {
+          "q": 52
+        }
+      ]
+    },
+    {
+      "id": "s2",
+      "spec_quote": "active high synchronous reset",
+      "covers": [
+        "behavior",
+        "priority",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "d": 0,
+          "reset": 1
+        },
+        {
+          "d": 165,
+          "reset": 1
+        },
+        {
+          "d": 165,
+          "reset": 0
+        },
+        {
+          "d": 255,
+          "reset": 1
+        }
+      ],
+      "expected": [
+        {
+          "q": 52
+        },
+        {
+          "q": 52
+        },
+        {
+          "q": 165
+        },
+        {
+          "q": 52
+        }
+      ]
+    },
+    {
+      "id": "s3",
+      "spec_quote": "active high synchronous reset",
+      "covers": [
+        "behavior",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "d": 0,
+          "reset": 1
+        },
+        {
+          "d": 90,
+          "reset": 0
+        },
+        {
+          "d": 90,
+          "reset": 0,
+          "mid": {
+            "d": 0,
+            "reset": 1
+          }
+        },
+        {
+          "d": 0,
+          "reset": 1
+        }
+      ],
+      "expected": [
+        {
+          "q": 52
+        },
+        {
+          "q": 90
+        },
+        {
+          "q": 90
+        },
+        {
+          "q": 52
+        }
+      ]
+    },
+    {
+      "id": "s4",
+      "spec_quote": "All DFFs should be triggered by the negative edge of clk.",
+      "covers": [
+        "behavior",
+        "boundary",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "d": 0,
+          "reset": 1
+        },
+        {
+          "d": 1,
+          "reset": 0
+        },
+        {
+          "d": 1,
+          "reset": 0,
+          "mid": {
+            "d": 254
+          }
+        },
+        {
+          "d": 254,
+          "reset": 0
+        }
+      ],
+      "expected": [
+        {
+          "q": 52
+        },
+        {
+          "q": 1
+        },
+        {
+          "q": 1
+        },
+        {
+          "q": 254
+        }
+      ]
+    },
+    {
+      "id": "s5",
+      "spec_quote": "Create 8 D flip-flops",
+      "covers": [
+        "behavior",
+        "boundary",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "d": 255,
+          "reset": 1
+        },
+        {
+          "d": 0,
+          "reset": 0
+        },
+        {
+          "d": 255,
+          "reset": 0
+        },
+        {
+          "d": 52,
+          "reset": 0
+        },
+        {
+          "d": 128,
+          "reset": 0
+        }
+      ],
+      "expected": [
+        {
+          "q": 52
+        },
+        {
+          "q": 0
+        },
+        {
+          "q": 255
+        },
+        {
+          "q": 52
+        },
+        {
+          "q": 128
+        }
+      ]
+    }
+  ],
+  "usage": {
+    "calls": 2,
+    "attempts": 2,
+    "tokens": 7766,
+    "go_usd": 0.00261216,
+    "charged_usd": 0
+  },
+  "route": "no_review",
+  "last_round": 1
+}

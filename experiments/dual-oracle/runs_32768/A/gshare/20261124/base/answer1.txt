@@ -1,0 +1,48 @@
+```python
+def reference(vectors):
+    pht=[0]*128
+    ghr=0
+    pt=0
+    ph=0
+    out=[]
+    for row in vectors:
+        if row.get('areset',0):
+            pht=[0]*128
+            ghr=0
+            pt=0
+            ph=0
+        else:
+            pv=row.get('predict_valid',0)
+            ppc=row.get('predict_pc',0)&127
+            idx=(ppc^ghr)&127
+            pred=(pht[idx]>>1)&1
+            old=ghr
+            if pv:
+                pt=pred
+                ph=old
+            nghr=ghr
+            if pv:
+                nghr=((ghr<<1)|pred)&127
+            if row.get('train_valid',0):
+                tt=row.get('train_taken',0)
+                th=row.get('train_history',0)&127
+                tpc=row.get('train_pc',0)&127
+                if row.get('train_mispredicted',0):
+                    nghr=((th<<1)|tt)&127
+                ti=(tpc^th)&127
+                c=pht[ti]
+                if tt:
+                    c=min(3,c+1)
+                else:
+                    c=max(0,c-1)
+                pht[ti]=c
+            ghr=nghr
+        out.append({'predict_taken':pt,'predict_history':ph})
+        m=row.get('mid')
+        if m and m.get('areset',0):
+            pht=[0]*128
+            ghr=0
+            pt=0
+            ph=0
+    return out
+```

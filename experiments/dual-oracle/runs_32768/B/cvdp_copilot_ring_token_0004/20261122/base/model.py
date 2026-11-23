@@ -1,0 +1,43 @@
+def reference(vectors):
+    node = 0
+    out = []
+    for i, v in enumerate(vectors):
+        if isinstance(v, dict):
+            rst = v.get('rst', 0)
+            data_in = v.get('data_in', 0)
+            has = v.get('has_data_to_send', 0)
+            is_posedge = (v.get('clk', 1) == 1) if 'clk' in v else (i % 2 == 0)
+        else:
+            if len(v) == 4:
+                clk, rst, data_in, has = v
+                is_posedge = (clk == 1)
+            elif len(v) == 3:
+                rst, data_in, has = v
+                is_posedge = (i % 2 == 0)
+            else:
+                rst = v[0] if len(v) > 0 else 0
+                data_in = v[1] if len(v) > 1 else 0
+                has = v[2] if len(v) > 2 else 0
+                is_posedge = (i % 2 == 0)
+
+        if rst == 1:
+            node = 0
+
+        token_received = (1 << node) & 0xF
+        if rst == 1:
+            token = 0
+            data_out = 0
+        else:
+            token = (1 << ((node + 1) & 3)) & 0xF
+            data_out = (data_in if has else 0) & 0xF
+
+        out.append({
+            'data_out': data_out,
+            'token_received': token_received,
+            'token': token
+        })
+
+        if is_posedge and rst == 0:
+            node = (node + 1) & 3
+
+    return out

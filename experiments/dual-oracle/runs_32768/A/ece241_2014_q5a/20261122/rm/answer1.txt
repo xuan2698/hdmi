@@ -1,0 +1,30 @@
+def reference(vectors):
+    s = 0
+    out = []
+    for r in vectors:
+        a = r.get('areset', 0)
+        x = r.get('x', 0)
+        if a:
+            s = 0
+            z = 0
+        else:
+            if s == 0:
+                if x:
+                    s = 1
+                    z = 1
+                else:
+                    z = 0
+            elif s == 1:
+                if x:
+                    s = 2
+                    z = 0
+                else:
+                    z = 1
+            else:
+                if x:
+                    z = 0
+                else:
+                    s = 1
+                    z = 1
+        out.append({'z': z})
+    return out

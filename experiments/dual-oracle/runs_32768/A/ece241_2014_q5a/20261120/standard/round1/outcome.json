@@ -1,0 +1,285 @@
+{
+  "decisions": [],
+  "RM": "def reference(vectors):\n    state = 0\n    outputs = []\n    for row in vectors:\n        areset = row.get('areset', 0)\n        x = row.get('x', 0)\n\n        if areset:\n            state = 0\n            z = 0\n        else:\n            if state == 0:\n                state = 1 if x else 0\n            elif state == 1:\n                state = 2 if x == 0 else 3\n            elif state == 2:\n                state = 2 if x == 0 else 3\n            else:\n                state = 2 if x == 0 else 3\n\n            z = 0 if state == 0 or state == 3 else 1\n\n        outputs.append({'z': z})\n\n    return outputs\n",
+  "TB": [
+    {
+      "id": "s1",
+      "spec_quote": "The conversion begins when Reset is released and stops when Reset is asserted.",
+      "covers": [
+        "behavior",
+        "priority",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "areset": 1,
+          "x": 0
+        },
+        {
+          "areset": 1,
+          "x": 1
+        },
+        {
+          "areset": 0,
+          "x": 0
+        },
+        {
+          "areset": 0,
+          "x": 0
+        },
+        {
+          "areset": 0,
+          "x": 0
+        }
+      ],
+      "expected": [
+        {
+          "z": 0
+        },
+        {
+          "z": 0
+        },
+        {
+          "z": 0
+        },
+        {
+          "z": 0
+        },
+        {
+          "z": 0
+        }
+      ]
+    },
+    {
+      "id": "s2",
+      "spec_quote": "the output (Z) is the 2's complement of the input",
+      "covers": [
+        "behavior",
+        "boundary",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "areset": 1,
+          "x": 0
+        },
+        {
+          "areset": 0,
+          "x": 1
+        },
+        {
+          "areset": 0,
+          "x": 0
+        },
+        {
+          "areset": 0,
+          "x": 1
+        }
+      ],
+      "expected": [
+        {
+          "z": 0
+        },
+        {
+          "z": 1
+        },
+        {
+          "z": 1
+        },
+        {
+          "z": 0
+        }
+      ]
+    },
+    {
+      "id": "s3",
+      "spec_quote": "beginning with the least-significant bit of the number",
+      "covers": [
+        "behavior",
+        "boundary",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "areset": 1,
+          "x": 1
+        },
+        {
+          "areset": 0,
+          "x": 0
+        },
+        {
+          "areset": 0,
+          "x": 0
+        },
+        {
+          "areset": 0,
+          "x": 1
+        },
+        {
+          "areset": 0,
+          "x": 0
+        }
+      ],
+      "expected": [
+        {
+          "z": 0
+        },
+        {
+          "z": 0
+        },
+        {
+          "z": 0
+        },
+        {
+          "z": 1
+        },
+        {
+          "z": 1
+        }
+      ]
+    },
+    {
+      "id": "s4",
+      "spec_quote": "The circuit requires a positive edge triggered asynchronous reset.",
+      "covers": [
+        "behavior",
+        "priority",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "areset": 1,
+          "x": 0
+        },
+        {
+          "areset": 0,
+          "x": 1
+        },
+        {
+          "areset": 0,
+          "x": 0,
+          "mid": {
+            "areset": 1,
+            "x": 0
+          }
+        },
+        {
+          "areset": 1,
+          "x": 1
+        },
+        {
+          "areset": 1,
+          "x": 0
+        },
+        {
+          "areset": 0,
+          "x": 0
+        },
+        {
+          "areset": 0,
+          "x": 1
+        }
+      ],
+      "expected": [
+        {
+          "z": 0
+        },
+        {
+          "z": 1
+        },
+        {
+          "z": 1
+        },
+        {
+          "z": 0
+        },
+        {
+          "z": 0
+        },
+        {
+          "z": 0
+        },
+        {
+          "z": 1
+        }
+      ]
+    },
+    {
+      "id": "s5",
+      "spec_quote": "The machine will accept input numbers of arbitrary length.",
+      "covers": [
+        "behavior",
+        "boundary",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "areset": 1,
+          "x": 0
+        },
+        {
+          "areset": 0,
+          "x": 0
+        },
+        {
+          "areset": 0,
+          "x": 1
+        },
+        {
+          "areset": 0,
+          "x": 0
+        },
+        {
+          "areset": 0,
+          "x": 1
+        },
+        {
+          "areset": 0,
+          "x": 0
+        },
+        {
+          "areset": 0,
+          "x": 1
+        },
+        {
+          "areset": 0,
+          "x": 0
+        },
+        {
+          "areset": 0,
+          "x": 1
+        }
+      ],
+      "expected": [
+        {
+          "z": 0
+        },
+        {
+          "z": 0
+        },
+        {
+          "z": 1
+        },
+        {
+          "z": 1
+        },
+        {
+          "z": 0
+        },
+        {
+          "z": 1
+        },
+        {
+          "z": 0
+        },
+        {
+          "z": 1
+        },
+        {
+          "z": 0
+        }
+      ]
+    }
+  ]
+}

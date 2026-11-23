@@ -1,0 +1,28 @@
+def reference(vectors):
+    seen=0
+    z=0
+    a=0
+    x=0
+    out=[]
+    for row in vectors:
+        if 'areset' in row:
+            a=row['areset']
+        if 'x' in row:
+            x=row['x']&1
+        if a:
+            seen=0
+            z=0
+        else:
+            z=(x^seen)&1
+            seen=(seen|x)&1
+        out.append({'z':z&1})
+        mid=row.get('mid')
+        if mid:
+            if 'areset' in mid:
+                a=mid['areset']
+                if a:
+                    seen=0
+                    z=0
+            if 'x' in mid:
+                x=mid['x']&1
+    return out

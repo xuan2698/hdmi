@@ -1,0 +1,10 @@
+def reference(vectors):
+    s={'d':0,'reset':0}; out=[]
+    for r in vectors:
+        for k in ('d','reset'):
+            if k in r: s[k]=r[k]
+        out.append({'q': 0x34 if s['reset'] else (s['d'] & 0xFF)})
+        if 'mid' in r:
+            for k in ('d','reset'):
+                if k in r['mid']: s[k]=r['mid'][k]
+    return out

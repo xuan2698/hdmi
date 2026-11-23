@@ -1,0 +1,20 @@
+def reference(vectors):
+    s = 0
+    cur = {}
+    ans = []
+    trans = {0: {0: 0, 1: 1}, 1: {0: 2, 1: 1}, 2: {0: 0, 1: 3}, 3: {0: 2, 1: 1}}
+    for row in vectors:
+        for k, v in row.items():
+            if k != 'mid':
+                cur[k] = v
+        r = cur.get('reset', 0)
+        i = cur.get('in', 0)
+        if r:
+            s = 0
+        else:
+            s = trans[s][i]
+        ans.append({'out': 1 if s == 3 else 0})
+        if 'mid' in row:
+            for k, v in row['mid'].items():
+                cur[k] = v
+    return ans

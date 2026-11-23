@@ -1,0 +1,30 @@
+def reference(vectors):
+    h,m,s,pm=12,0,0,0
+    inp={'reset':0,'ena':0}
+    out=[]
+    for row in vectors:
+        for k in ('reset','ena'):
+            if k in row:
+                inp[k]=row[k]
+        if inp['reset']:
+            h,m,s,pm=12,0,0,0
+        elif inp['ena']:
+            s+=1
+            if s==60:
+                s=0
+                m+=1
+                if m==60:
+                    m=0
+                    if h==11:
+                        h=12
+                        pm^=1
+                    elif h==12:
+                        h=1
+                    else:
+                        h+=1
+        out.append({'pm':pm,'hh':((h//10)<<4)|(h%10),'mm':((m//10)<<4)|(m%10),'ss':((s//10)<<4)|(s%10)})
+        if 'mid' in row:
+            for k,v in row['mid'].items():
+                if k in inp:
+                    inp[k]=v
+    return out

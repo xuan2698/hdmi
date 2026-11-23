@@ -1,0 +1,28 @@
+def reference(vectors):
+    rows = list(vectors)
+    if rows and 'clk' in rows[0]:
+        s = 0
+        pc = 0
+        pa = 0
+        pb = 0
+        out = []
+        for r in rows:
+            c = r.get('clk', 0) & 1
+            a = r.get('a', 0) & 1
+            b = r.get('b', 0) & 1
+            if pc == 0 and c == 1:
+                s = (pa & pb) | (s & (pa | pb))
+            out.append({'q': s ^ a ^ b, 'state': s})
+            pc = c
+            pa = a
+            pb = b
+        return out
+    else:
+        s = 0
+        out = []
+        for r in rows:
+            a = r.get('a', 0) & 1
+            b = r.get('b', 0) & 1
+            s = (a & b) | (s & (a | b))
+            out.append({'q': s ^ a ^ b, 'state': s})
+        return out

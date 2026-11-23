@@ -1,0 +1,35 @@
+```python
+def reference(vectors):
+    h, m, s, pm = 12, 0, 0, 0
+    cur = {'reset': 0, 'ena': 0}
+    out = []
+    for row in vectors:
+        for k, v in row.items():
+            if k != 'mid' and k in cur:
+                cur[k] = v
+        if cur['reset']:
+            h, m, s, pm = 12, 0, 0, 0
+        elif cur['ena']:
+            s += 1
+            if s == 60:
+                s = 0
+                m += 1
+                if m == 60:
+                    m = 0
+                    if h == 12:
+                        h = 1
+                    elif h == 11:
+                        h = 12
+                        pm ^= 1
+                    else:
+                        h += 1
+        hh = ((h // 10) << 4) | (h % 10)
+        mm = ((m // 10) << 4) | (m % 10)
+        ss = ((s // 10) << 4) | (s % 10)
+        out.append({'pm': pm & 1, 'hh': hh & 255, 'mm': mm & 255, 'ss': ss & 255})
+        if isinstance(row.get('mid'), dict):
+            for k, v in row['mid'].items():
+                if k in cur:
+                    cur[k] = v
+    return out
+```

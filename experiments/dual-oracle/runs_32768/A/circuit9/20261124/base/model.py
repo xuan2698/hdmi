@@ -1,0 +1,22 @@
+def reference(vectors):
+    q=0
+    prev=0
+    cur={}
+    res=[]
+    for v in vectors:
+        for k,x in v.items():
+            if k!='mid':
+                cur[k]=x
+        clk=cur.get('clk',0)
+        if prev==0 and clk==1:
+            a=cur.get('a',0)
+            if a:
+                q=4
+            else:
+                q=(q+1)%7
+        res.append({'q':q&7})
+        if 'mid' in v:
+            for k,x in v['mid'].items():
+                cur[k]=x
+        prev=clk
+    return res

@@ -1,0 +1,21 @@
+def reference(vectors):
+    nxt = ((0, 1), (2, 1), (0, 3), (2, 1))
+    out = (0, 0, 0, 1)
+    state = 0
+    result = []
+
+    if isinstance(vectors, dict):
+        keys = list(vectors.keys())
+        length = len(vectors[keys[0]]) if keys else 0
+        rows = ({k: vectors[k][i] for k in keys} for i in range(length))
+    else:
+        rows = vectors
+
+    for row in rows:
+        if row.get('reset', 0):
+            state = 0
+        else:
+            state = nxt[state][int(row.get('in', 0)) & 1]
+        result.append({'out': out[state]})
+
+    return result

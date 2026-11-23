@@ -1,0 +1,43 @@
+def reference(vectors):
+    q = 0
+    reset = 0
+    res = []
+    for row in vectors:
+        if 'reset' in row:
+            reset = row['reset']
+        if reset:
+            q = 0
+        else:
+            ones = q & 0xF
+            tens = (q >> 4) & 0xF
+            hud = (q >> 8) & 0xF
+            tho = (q >> 12) & 0xF
+            ones += 1
+            if ones == 10:
+                ones = 0
+                tens += 1
+                if tens == 10:
+                    tens = 0
+                    hud += 1
+                    if hud == 10:
+                        hud = 0
+                        tho += 1
+                        if tho == 10:
+                            tho = 0
+            q = ones | (tens << 4) | (hud << 8) | (tho << 12)
+        ena = 0
+        o = q & 0xF
+        t = (q >> 4) & 0xF
+        h = (q >> 8) & 0xF
+        if o == 9:
+            ena |= 1
+            if t == 9:
+                ena |= 2
+                if h == 9:
+                    ena |= 4
+        res.append({'q': q, 'ena': ena})
+        if 'mid' in row:
+            for k, v in row['mid'].items():
+                if k == 'reset':
+                    reset = v
+    return res

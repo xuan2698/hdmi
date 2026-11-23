@@ -1,0 +1,18 @@
+def reference(vectors):
+    s = 0
+    outs = []
+    for v in vectors:
+        i = v.get('in', 0)
+        r = v.get('reset', 0)
+        if r:
+            s = 0
+        elif s == 0:
+            s = 1 if i else 0
+        elif s == 1:
+            s = 2 if i == 0 else 1
+        elif s == 2:
+            s = 3 if i else 0
+        else:
+            s = 2 if i == 0 else 1
+        outs.append({'out': 1 if s == 3 else 0})
+    return outs
