@@ -124,13 +124,13 @@ class Cell:
         released = set()
         reached = {name: set() for name in self.inputs if name not in resets}
         for scene in scenes:
-            name = str(scene["id"])
-            if not name or name in seen:
+            scene_id = str(scene["id"])
+            if not scene_id or scene_id in seen:
                 raise ValueError("Scene IDs must be unique")
-            seen.add(name)
+            seen.add(scene_id)
             evidence = citation(scene.get("spec_quote", scene.get("quote")), self.spec)
             if evidence is None:
-                raise ValueError(f"Scene {name} requires a short verbatim substring from Public specification")
+                raise ValueError(f"Scene {scene_id} requires a short verbatim substring from Public specification")
             tags = coverage_labels(scene.get("covers", [])) | {"behavior"}
             ins, outs = [], []
             rows = scene["cycles"]
@@ -158,7 +158,8 @@ class Cell:
                 reached[name].update(sample[name] for sample in ins)
             coverage.update(tags)
             total += len(rows)
-            result.append({"id": name, "spec_quote": evidence, "covers": sorted(tags), "vectors": ins, "expected": outs})
+            result.append({"id": scene_id, "spec_quote": evidence, "covers": sorted(tags),
+                           "vectors": ins, "expected": outs})
         if total > PLAN["max_total_scene_cycles"]:
             raise ValueError("More than 120 total scenario cycles")
         if reached and not any({0, (1 << self.inputs[n]) - 1} <= visited for n, visited in reached.items()):
@@ -487,10 +488,13 @@ def main():
     if load(ROOT / "reports/cvdp_self_replay.json")["status"] != "passed":
         raise SystemExit("The CVDP self-replay gate must pass first")
     phase = "pilot" if args.phase == "initial" else args.phase
+    gate_path = ROOT / "reports/pilot_gate.json"
+    if phase == "pilot" and gate_path.is_file() and load(gate_path)["status"] == "failed_after_3_repairs":
+        raise SystemExit("The stopped pilot is sealed. Its available artifacts can be evaluated offline.")
     if phase == "full":
-        amendment = load(ROOT / "amendment.json")
-        if load(ROOT / "reports/pilot_gate.json")["status"] != "passed":
+        if not gate_path.is_file() or load(gate_path)["status"] != "passed":
             raise SystemExit("Pilot generation gate did not pass")
+        amendment = load(ROOT / "amendment.json")
         from data import REPO
         import subprocess
         committed = subprocess.check_output(["git", "show", f"HEAD:{(ROOT / 'amendment.json').relative_to(REPO)}"], cwd=REPO)

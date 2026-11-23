@@ -1,0 +1,94 @@
+def reference(vectors):
+    state = 0
+    a_reg = 0
+    b_reg = 0
+    res_reg = 0
+    ov_reg = 0
+
+    def val(row, name, default=0):
+        if name in row:
+            v = row[name]
+            if isinstance(v, str):
+                try:
+                    return int(v, 0)
+                except:
+                    return 0
+            return int(v)
+        return default
+
+    def is_pos(edge):
+        if isinstance(edge, str):
+            s = edge.lower()
+            if 'pos' in s or s in ('1', 'p', 'rise', 'rising'):
+                return True
+            if 'neg' in s or s in ('0', 'n', 'fall', 'falling'):
+                return False
+            return False
+        return int(edge) == 1
+
+    outputs = []
+    for idx, row in enumerate(vectors):
+        rst_n = val(row, 'i_rst_n', 1)
+        start = val(row, 'i_start', 0)
+        enable = val(row, 'i_enable', 1)
+        mode = val(row, 'i_mode', 0)
+        clear = val(row, 'i_clear', 0)
+        opa = val(row, 'i_operand_a', 0) & 0xFF
+        opb = val(row, 'i_operand_b', 0) & 0xFF
+
+        if rst_n == 0:
+            state = 0
+            a_reg = 0
+            b_reg = 0
+            res_reg = 0
+            ov_reg = 0
+
+        outputs.append({
+            'o_resultant_sum': res_reg & 0xFF,
+            'o_overflow': ov_reg & 1,
+            'o_ready': 1 if state == 3 else 0,
+            'o_status': state & 3
+        })
+
+        if 'edge' in row:
+            posedge = is_pos(row['edge'])
+        else:
+            posedge = (idx % 2 == 0)
+
+        if not posedge:
+            continue
+
+        if rst_n == 0:
+            continue
+        if clear:
+            state = 0
+            a_reg = 0
+            b_reg = 0
+            res_reg = 0
+            ov_reg = 0
+        elif enable == 0:
+            state = 0
+        else:
+            if state == 0:
+                if start == 1:
+                    state = 1
+            elif state == 1:
+                a_reg = opa
+                b_reg = opb
+                state = 2
+            elif state == 2:
+                a_s = a_reg - 256 if (a_reg & 0x80) else a_reg
+                b_s = b_reg - 256 if (b_reg & 0x80) else b_reg
+                if mode == 1:
+                    full = a_s - b_s
+                else:
+                    full = a_s + b_s
+                res_reg = full & 0xFF
+                ov_reg = 1 if (full < -128 or full > 127) else 0
+                state = 3
+            elif state == 3:
+                state = 0
+            else:
+                state = 0
+
+    return outputs

@@ -37,6 +37,8 @@ def proportion(a, b):
 
 
 def rate(rows, metric):
+    if all(r["status"] == "not_run_gate" for r in rows):
+        return None
     if metric == "H":
         return proportion(sum(r["H_detected"] for r in rows), sum(r["H_total"] for r in rows))
     scored = sum(r["golden_pass"] is not None for r in rows)
@@ -87,7 +89,8 @@ def summaries(runs, phase):
     result = []
     for (group, mode, arm), values in by_arm.items():
         row = {"group": group, "mode": mode, "config": arm, "scored": sum(x["golden_pass"] is not None for x in values),
-               "planned": len(values), "failures": sum(x["status"]!="ready" for x in values),
+               "planned": len(values), "failures": sum(x["status"]=="generation_failed" for x in values),
+               "stopped": sum(x["status"]=="not_run_gate" for x in values),
                "tokens": sum(x["tokens"] for x in values), "go_usd": sum(x["go_usd"] for x in values),
                "charged_usd": sum(x["charged_usd"] for x in values),
                "historical_tokens": sum(x.get("historical_tokens",0) for x in values)}
@@ -162,12 +165,13 @@ def diagnostics(data, judgments, stages, phase):
                                  "FPR":proportion(sum(x is False for x in items),scored)})
         chosen=[r for r in judgments if r["group"]==group and r["config"]=="Ours"]
         for by in ("verdict","actual"):
-            for label in ("RM","TB","ambiguous","both_wrong"):
+            for label in ("RM","TB","ambiguous","both_wrong","untraceable"):
                 subset=[r for r in chosen if r[by]==label]
+                rated=[r["correct"] for r in subset if r["correct"] is not None]
                 repairs=[r["repair_success"] for r in subset if r["repair_success"] is not None]
                 decisions.append({"group":group,"classified_by":by,"label":label,"count":len(subset),
-                                  "correct":sum(r["correct"] for r in subset),
-                                  "confirmed_rate":proportion(sum(r["correct"] for r in subset),len(subset)),
+                                  "scored":len(rated),"correct":sum(rated),
+                                  "confirmed_rate":proportion(sum(rated),len(rated)),
                                   "repairs_scored":len(repairs),"repair_success":proportion(sum(repairs),len(repairs))})
     for name,rows in (("diagnostic_summary",scene),("judgment_summary",decisions),("rm_stage_summary",stage_result)):
         csv_file(phase,name,rows)
@@ -185,15 +189,19 @@ def examples(cases,phase):
         if rm.is_file():
             samples.setdefault("RM",{**ids,"source":rm.read_text()})
         if review.is_file() and load(review):
-            samples.setdefault("review",{**ids,"issues":load(review),
-                "responses":load(reply)["responses"] if reply.is_file() else None})
+            response=load(reply)["responses"] if reply.is_file() else None
+            if "review" not in samples or (response and not samples["review"]["responses"]):
+                samples["review"]={**ids,"issues":load(review),"responses":response}
         if tb.is_file():
             samples.setdefault("TB",{**ids,"scene":load(tb)[0]})
         rounds=[]
         for folder in sorted((h/"standard").glob("round*")):
             before,after=folder/"disagreements.json",folder/"outcome.json"
+            pre_repair = folder / "arbiter/value.json"
             if before.is_file() and load(before)["points"]:
                 samples.setdefault("disagreement",{**ids,**load(before)["points"][0]})
+            if pre_repair.is_file() and load(pre_repair):
+                samples.setdefault("judgment",{**ids,**load(pre_repair)[0]})
             if after.is_file():
                 result=load(after)
                 rounds.append({"round":folder.name,"before":load(before),"after":result})
@@ -201,13 +209,24 @@ def examples(cases,phase):
                     samples.setdefault("judgment",{**ids,**result["decisions"][0]})
                 if any(x["label"]!="ambiguous" for x in result["decisions"]):
                     samples.setdefault("repair",{**ids,**result})
-        common.extend({**ids,**r} for r in ours.get("final_diagnostic",{}).get("common_examples",[]))
-        wrong.extend({**ids,**r} for r in ours.get("decisions",[]) if not r["correct"])
+        common.extend({**ids,"stage":"Ours-final",**r}
+                      for r in ours.get("final_diagnostic",{}).get("common_examples",[]))
+        if phase=="pilot":
+            for stage in ("initial","reviewed"):
+                directed=case["stages"].get(stage,{}).get("directed") or {}
+                common.extend({**ids,"stage":stage,**r} for r in directed.get("common_examples",[]))
+            mid=next(row for row in case["outcomes"] if row["config"]=="Ours-R1")
+            common.extend({**ids,"stage":"Ours-R1",**r}
+                          for r in mid.get("final_diagnostic",{}).get("common_examples",[]))
+        wrong.extend({**ids,**r} for r in ours.get("decisions",[]) if r["correct"] is False)
         if ours["status"]=="ready" and rounds and all(p.is_file() for p in (rm,review,reply,tb)):
             complete.append({**ids,"spec_excerpt":interface(group,task)["spec"][:1800],
                 "initial_RM":rm.read_text(),"review":load(review),"response":load(reply),"TB":load(tb),
                 "rounds":rounds,"final_RM":(ROOT/ours["model"]).read_text(),"golden_and_H":ours["primary"]})
     save(REPORTS/f"{phase}_examples.json",samples)
+    if phase=="pilot":
+        save(REPORTS/"pilot_common_mode_examples.json",common)
+        save(REPORTS/"pilot_arbiter_error_examples.json",wrong)
     if phase=="full":
         picked=[]
         for group in ("A","B"):
@@ -236,12 +255,15 @@ def table(header,rows):
 def render(phase,summary,pairs,diag,judgments,stages,samples):
     gen=load(REPORTS/f"{phase}_generation.json")
     bill=usage(p.parent for d in (ROOT/"runs",REPORTS/"repair_archive") for p in d.rglob("calls.jsonl"))
+    vote = f"Vote-think 使用 {gen['N']} 个独立成员。" if gen["N"] else "Vote-think 的 N 未完成标定。"
+    stop = f"{gen['stopped']} 个配置因停止规则封存。" if gen.get("stopped") else ""
     text=["# Dual-oracle "+("五题试运行" if phase=="pilot" else "全量结果"),
-          f"计划 {gen['configs']} 个配置，{gen['failures']} 个生成失败，Vote-think 使用 {gen['N']} 个独立成员。"
+          f"计划 {gen['configs']} 个配置，{gen['failures']} 个生成失败。"+stop+vote+
           "CVDP golden 自回放在 50 份冻结输入上通过。",
           "[预注册](../PREREG.md) · [逐次结果]("+phase+"_by_run.csv) · [逐题结果]("+phase+"_by_task.csv)",
           "## 主指标和追加场景评测",
-          "误报率基于可评分检查器。生成失败保留在 H 的计划分母并计零检出。追加评测沿同一场景输入顺序接到 A0 之后。",
+          "误报率基于可评分检查器。生成失败保留在 H 的计划分母并计零检出。所有单元均在门槛处封存的配置显示为空。"
+          "部分封存时 H 为已观测的计划分母下界。追加评测沿同一场景输入顺序接到 A0 之后。",
           table(("组","配置","激励","可评分/计划","误报 macro","误报 pooled","H macro","H pooled","新增 Token","Go USD"),[
             (r["group"],r["config"],r["mode"],f'{r["scored"]}/{r["planned"]}',pct(r["FP_macro"]),pct(r["FP_pooled"]),
              pct(r["H_macro"]),pct(r["H_pooled"]),r["tokens"],f'{r["go_usd"]:.5f}') for r in summary]),
@@ -258,8 +280,8 @@ def render(phase,summary,pairs,diag,judgments,stages,samples):
           table(("组","配置","阶段","分歧拍率","共模错误","TB 准确率","已知采样"),[
             (r["group"],r["config"],r["stage"],pct(r["disagreement"]),pct(r["common_mode"]),pct(r["TB_accuracy"]),
              r["known_samples"]) for r in diag]),
-          table(("组","核对分组","类别","点数","核对率","修正可评分","修正成功率"),[
-            (r["group"],r["classified_by"],r["label"],r["count"],pct(r["confirmed_rate"]),r["repairs_scored"],
+          table(("组","核对分组","类别","点数","可追溯","核对率","修正可评分","修正成功率"),[
+            (r["group"],r["classified_by"],r["label"],r["count"],r["scored"],pct(r["confirmed_rate"]),r["repairs_scored"],
              pct(r["repair_success"])) for r in judgments]),
           table(("组","RM 阶段","可评分","误报率"),[(r["group"],r["stage"],r["scored"],pct(r["FPR"])) for r in stages]),
           "## 用量和案例",
@@ -269,7 +291,11 @@ def render(phase,summary,pairs,diag,judgments,stages,samples):
           f"可归档完整 Ours 单元 {samples['complete']} 个，共模错误场景 {samples['common']} 个，"
           f"裁决与观测不符 {samples['arbitration_error']} 个点。"]
     if phase=="pilot":
-        text.append("[试运行各阶段样例](pilot_examples.json) · [门槛](pilot_gate.json)")
+        text.append("[试运行各阶段样例](pilot_examples.json) · [共模错误](pilot_common_mode_examples.json) · "
+                    "[裁决错误](pilot_arbiter_error_examples.json) · [门槛](pilot_gate.json)")
+        if gen.get("stopped"):
+            text.append("停止前的场景归档发现了 ID 碰撞。配对按输入历史和原 TB 值追溯，不能唯一定位的点单列。"
+                        "碰撞路径上的 TB 定点修正不计成功率。原始生成产物保持归档。")
     else:
         text.append("[完整案例](ten_cases.json) · [共模错误案例](common_mode_examples.json) · [裁决错误案例](arbiter_error_examples.json)")
     (REPORTS/("PILOT.md" if phase=="pilot" else "REPORT.md")).write_text("\n\n".join(text)+"\n")

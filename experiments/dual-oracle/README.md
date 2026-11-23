@@ -12,6 +12,9 @@ python3 experiments/dual-oracle/eval/report.py pilot
 
 试运行结束后检查 `reports/pilot_gate.json`。通过门槛再把 N 写入 `PREREG.md` Amendment 和 `amendment.json` 并提交。然后依次运行上述三份生成和评测脚本的 `full` 模式。每个 API 产物单独保存原始收据、原始响应和校验状态，执行断开后可从这些断点恢复。A 组已归档的 Base-think 检查器从预注册指定的 commit 逐文件读取。
 
+当前试运行已按停止规则封存。复算归档只运行 `eval/score.py pilot` 和 `eval/report.py pilot`。
+
 - [预注册](PREREG.md)
 - [CVDP 自回放](reports/cvdp_self_replay.json)
 - [试运行修复日志](reports/REPAIRS.md)
+- [停止决定与试运行结果](reports/REPORT.md)

@@ -1,0 +1,73 @@
+def reference(vectors):
+    IDLE, LOAD, COMPUTE, OUTPUT = 0, 1, 2, 3
+    state = IDLE
+    result = 0
+    overflow = 0
+    a_reg = 0
+    b_reg = 0
+    prev_clk = 0
+    out = []
+
+    for idx, row in enumerate(vectors):
+        if 'edge' in row:
+            e = row['edge']
+            if isinstance(e, str):
+                el = e.lower()
+                pe = el.startswith('p') or el == '1' or el == 'true'
+            else:
+                pe = (e == 1 or e is True)
+        elif 'i_clk' in row:
+            clk = row.get('i_clk', 0)
+            pe = (prev_clk == 0 and clk == 1)
+            prev_clk = clk
+        else:
+            pe = (idx % 2 == 0)
+
+        rst = row.get('i_rst_n', 1)
+        clear = row.get('i_clear', 0)
+        en = row.get('i_enable', 0)
+        start = row.get('i_start', 0)
+        mode = row.get('i_mode', 0)
+        opa = row.get('i_operand_a', 0)
+        opb = row.get('i_operand_b', 0)
+
+        if rst == 0 or clear == 1:
+            state = IDLE
+            result = 0
+            overflow = 0
+            a_reg = 0
+            b_reg = 0
+        elif pe:
+            if en == 0:
+                state = IDLE
+            else:
+                if state == IDLE:
+                    if start == 1:
+                        state = LOAD
+                elif state == LOAD:
+                    a_reg = opa & 0xFF
+                    b_reg = opb & 0xFF
+                    state = COMPUTE
+                elif state == COMPUTE:
+                    a_s = a_reg - 256 if (a_reg & 0x80) else a_reg
+                    b_s = b_reg - 256 if (b_reg & 0x80) else b_reg
+
+                    if mode == 0:
+                        r = a_s + b_s
+                    else:
+                        r = a_s - b_s
+
+                    overflow = 1 if (r < -128 or r > 127) else 0
+                    result = r & 0xFF
+                    state = OUTPUT
+                elif state == OUTPUT:
+                    state = IDLE
+
+        out.append({
+            'o_resultant_sum': result & 0xFF,
+            'o_overflow': overflow & 1,
+            'o_ready': 1 if state == OUTPUT else 0,
+            'o_status': state & 3
+        })
+
+    return out

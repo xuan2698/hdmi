@@ -12,6 +12,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 from data import PLAN, case_path, checker_inputs, check_rows, interface, load, roster, save, vectors
+from api import relaxed_json
 from pilot2_sim import VectorReplay
 from pilot3_evaluation import archive, upstream
 from simulate import RunError
@@ -54,6 +55,14 @@ class Evaluation:
         self.out = self.ports["output"]
         self.fixed = vectors(group, task, seed, self.ports)
         self.cache = {}
+        tb = self.home / "tb"
+        self.authored_ids = []
+        if (tb / "value.json").is_file():
+            selected = load(tb / "status.json")["selected"]
+            source = relaxed_json((tb / selected).read_text())
+            self.authored_ids = [str(row["id"]) for row in (source["scenes"] if isinstance(source, dict) else source)]
+            if len(set(self.authored_ids)) != len(self.authored_ids):
+                raise ValueError("The authored scenario IDs are not unique")
         if group == "A":
             source = upstream(task)
             self.golden_rtl = (source / "golden_rtl.v").read_text()
@@ -89,6 +98,25 @@ class Evaluation:
 
     def predicted(self, item, stimulus):
         return model_predictions(item, self.out, checker_inputs(self.group, stimulus))
+
+    def named_scenes(self, scenes):
+        return [{**scene, "id": author_id}
+                for scene, author_id in zip(scenes, self.authored_ids, strict=True)]
+
+    def identify_scene(self, scenes, point):
+        candidates = [i for i, scene in enumerate(scenes) if scene["id"] == point["scene"]]
+        if len(candidates) <= 1:
+            return candidates[0] if candidates else None
+        sample, output = point["sample"], point["output"]
+        matches = []
+        for i in candidates:
+            scene = scenes[i]
+            prefix = checker_inputs(self.group, scene["vectors"])[:sample]
+            if self.group == "A" and prefix and "mid" not in point["input_history"][-1]:
+                prefix[-1] = {n: v for n, v in prefix[-1].items() if n != "mid"}
+            if prefix == point["input_history"] and scene["expected"][sample - 1][output] == point["TB"]:
+                matches.append(i)
+        return matches[0] if len(matches) == 1 else None
 
     def score_mode(self, item, stimulus):
         result = {"golden_pass": None, "golden_failed_samples": None, "H_total": len(self.held),
@@ -150,19 +178,34 @@ class Evaluation:
         evaluations = []
         for count in range(1, limit + 1):
             folder = self.home / route / f"round{count}"
+            if not (folder / "disagreements.json").is_file():
+                break
             initial = load(folder / "disagreements.json")
-            result = load(folder / "outcome.json")
-            decisions = {row["id"]: row for row in result["decisions"]}
-            scenes_by_name = {row["id"]: row for row in scenes}
-            changed_tb = {row["id"]: row for row in result["TB"]}
+            completed = (folder / "outcome.json").is_file()
+            result = load(folder / "outcome.json") if completed else None
+            if result:
+                decisions = {row["id"]: row for row in result["decisions"]}
+            elif (folder / "arbiter/value.json").is_file():
+                decisions = {row["id"]: row for row in load(folder / "arbiter/value.json")}
+            elif route == "no_arbiter":
+                decisions = {row["id"]: {"label": "RM"} for row in initial["selected"]}
+            else:
+                break
+            collision = len({row["id"] for row in scenes}) != len(scenes)
+            changed_tb = result["TB"] if result else []
             revised = {}
             for pt in initial["selected"]:
                 decision = decisions[pt["id"]]
                 label = decision["label"]
-                scene = scenes_by_name[pt["scene"]]
-                if pt["scene"] not in revised:
-                    revised[pt["scene"]] = check_rows(result["RM"], self.out,
-                                                       checker_inputs(self.group, scene["vectors"]))
+                idx = self.identify_scene(scenes, pt)
+                if idx is None:
+                    evaluations.append({**pt, "route": route, "round": count, "verdict": label,
+                                        "actual": "untraceable", "correct": None, "repair_success": None,
+                                        "scene_id_collision": collision, "spec_quote": decision.get("spec_quote")})
+                    continue
+                scene = scenes[idx]
+                if completed and idx not in revised:
+                    revised[idx] = check_rows(result["RM"], self.out, checker_inputs(self.group, scene["vectors"]))
                 gold, _ = self.traces(scene["vectors"])
                 pos, n = pt["sample"] - 1, pt["output"]
                 bits = gold[pos][n]
@@ -170,15 +213,22 @@ class Evaluation:
                     return match_bits(f"{value:0{len(bits)}b}", bits, bits)
                 rm_ok, tb_ok = consistent(pt["RM"]), consistent(pt["TB"])
                 truth = ("TB" if rm_ok else "RM") if rm_ok != tb_ok else ("ambiguous" if rm_ok else "both_wrong")
-                r_after = revised[pt["scene"]][pos][n]
-                t_after = changed_tb[pt["scene"]]["expected"][pos][n]
+                r_after = revised[idx][pos][n] if completed else None
+                t_after = changed_tb[idx]["expected"][pos][n] if completed else None
                 fixed = {"RM": r_after, "TB": t_after}.get(label)
-                evaluations.append({**pt, "route": route, "round": count, "verdict": label,
+                evaluations.append({**pt, "archived_scene": pt["scene"], "scene": self.authored_ids[idx],
+                                    "scene_id_collision": collision,
+                                    "route": route, "round": count, "verdict": label,
                                     "spec_quote": decision.get("spec_quote"), "actual": truth,
                                     "correct": label == truth, "golden": bits, "revised_RM": r_after,
-                                    "revised_TB": t_after, "repair_success": None if fixed is None or not any(
+                                    "revised_TB": t_after,
+                                    "selected_side_matched_before": {"RM": rm_ok, "TB": tb_ok}.get(label),
+                                    "repair_success": None if (label == "TB" and collision) or fixed is None or not any(
                                         c in "01" for c in bits) else consistent(fixed)})
-            scenes = result["TB"]
+            if completed:
+                scenes = result["TB"]
+            else:
+                break
         return evaluations
 
     def run(self, phase):
@@ -190,10 +240,11 @@ class Evaluation:
             item = load(self.home / "configs" / arm / "result.json")
             row = {**item, "primary": self.score_mode(item, self.fixed),
                    "secondary": self.score_mode(item, appended) if appended else None}
-            if item.get("route") and item["status"] == "ready":
-                src = (ROOT / item["model"]).read_text()
-                row["final_diagnostic"] = self.diagnostic(src, item["scenes"])
-                row["decisions"] = self.judgments(item["route"], scenes, item["last_round"])
+            if item.get("route") and scenes is not None:
+                if item["status"] == "ready":
+                    src = (ROOT / item["model"]).read_text()
+                    row["final_diagnostic"] = self.diagnostic(src, self.named_scenes(item["scenes"]))
+                row["decisions"] = self.judgments(item["route"], scenes, 1 if arm == "Ours-R1" else 2)
             results.append(row)
         stages = {}
         paths = {"initial": self.home / "rm/model.py", "reviewed": self.home / "configs/Ours-noTB/model.py",
@@ -205,9 +256,11 @@ class Evaluation:
                 fixed = self.score_mode(signature, self.fixed)
                 stages[name] = {"golden_pass": fixed["golden_pass"],
                                 "golden_failed_samples": fixed["golden_failed_samples"],
-                                "directed": self.diagnostic(path.read_text(), scenes) if scenes else None}
+                                "directed": self.diagnostic(path.read_text(), self.named_scenes(scenes)) if scenes else None}
         result = {"group": self.group, "task": self.task, "seed": self.seed,
                   "fixed_cycles": len(self.fixed), "stages": stages, "outcomes": results}
+        if scenes is not None:
+            result["scene_id_collision"] = len({r["id"] for r in scenes}) != len(scenes)
         save(ROOT / "eval" / phase / self.group / self.task / f"{self.seed}.json", result)
         print(self.group, self.task, self.seed, "evaluated", flush=True)
 

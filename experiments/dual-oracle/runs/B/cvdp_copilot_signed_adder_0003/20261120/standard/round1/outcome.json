@@ -1,0 +1,717 @@
+{
+  "decisions": [
+    {
+      "id": "i_operand_b/7/o_status",
+      "label": "TB",
+      "spec_quote": "Immediately clears outputs and resets the state machine to **IDLE**."
+    }
+  ],
+  "RM": "def reference(vectors):\n    IDLE, LOAD, COMPUTE, OUTPUT = 0, 1, 2, 3\n    state = IDLE\n    result = 0\n    overflow = 0\n    a_reg = 0\n    b_reg = 0\n    out = []\n    prev_clk = 0\n\n    for idx, row in enumerate(vectors):\n        if 'edge' in row:\n            e = row['edge']\n            if isinstance(e, str):\n                el = e.lower()\n                pe = el.startswith('p') or el == '1' or el == 'true'\n            else:\n                pe = (e == 1 or e is True)\n        elif 'i_clk' in row:\n            clk = row.get('i_clk', 0)\n            pe = (prev_clk == 0 and clk == 1)\n            prev_clk = clk\n        else:\n            pe = (idx % 2 == 0)\n\n        rst = row.get('i_rst_n', 1)\n        clear = row.get('i_clear', 0)\n        en = row.get('i_enable', 0)\n        start = row.get('i_start', 0)\n        mode = row.get('i_mode', 0)\n        opa = row.get('i_operand_a', 0)\n        opb = row.get('i_operand_b', 0)\n\n        if rst == 0 or clear == 1:\n            state = IDLE\n            result = 0\n            overflow = 0\n            a_reg = 0\n            b_reg = 0\n\n        out.append({\n            'o_resultant_sum': result & 0xFF,\n            'o_overflow': overflow & 1,\n            'o_ready': 1 if state == OUTPUT else 0,\n            'o_status': state & 3\n        })\n\n        if pe and not (rst == 0 or clear == 1):\n            if en == 0:\n                state = IDLE\n            else:\n                if state == IDLE:\n                    if start == 1:\n                        state = LOAD\n                elif state == LOAD:\n                    a_reg = opa & 0xFF\n                    b_reg = opb & 0xFF\n                    state = COMPUTE\n                elif state == COMPUTE:\n                    a_s = a_reg - 256 if (a_reg & 0x80) else a_reg\n                    b_s = b_reg - 256 if (b_reg & 0x80) else b_reg\n\n                    if mode == 0:\n                        r = a_s + b_s\n                    else:\n                        r = a_s - b_s\n\n                    overflow = 1 if (r < -128 or r > 127) else 0\n                    result = r & 0xFF\n                    state = OUTPUT\n                elif state == OUTPUT:\n                    state = IDLE\n\n    return out\n",
+  "TB": [
+    {
+      "id": "i_operand_b",
+      "spec_quote": "When `i_rst_n` is deasserted (low), internal registers and outputs are cleared, and the module returns to the **IDLE** state.",
+      "covers": [
+        "behavior",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "i_rst_n": 0,
+          "i_start": 0,
+          "i_enable": 0,
+          "i_mode": 0,
+          "i_clear": 0,
+          "i_operand_a": 0,
+          "i_operand_b": 0
+        },
+        {
+          "i_rst_n": 1,
+          "i_start": 1,
+          "i_enable": 0,
+          "i_mode": 0,
+          "i_clear": 0,
+          "i_operand_a": 18,
+          "i_operand_b": 52
+        },
+        {
+          "i_rst_n": 1,
+          "i_start": 0,
+          "i_enable": 1,
+          "i_mode": 0,
+          "i_clear": 0,
+          "i_operand_a": 5,
+          "i_operand_b": 3
+        },
+        {
+          "i_rst_n": 1,
+          "i_start": 1,
+          "i_enable": 1,
+          "i_mode": 0,
+          "i_clear": 0,
+          "i_operand_a": 5,
+          "i_operand_b": 3
+        },
+        {
+          "i_rst_n": 1,
+          "i_start": 0,
+          "i_enable": 1,
+          "i_mode": 0,
+          "i_clear": 0,
+          "i_operand_a": 5,
+          "i_operand_b": 3
+        }
+      ],
+      "expected": [
+        {
+          "o_resultant_sum": 0,
+          "o_overflow": 0,
+          "o_ready": 0,
+          "o_status": 0
+        },
+        {
+          "o_resultant_sum": 0,
+          "o_overflow": 0,
+          "o_ready": 0,
+          "o_status": 0
+        },
+        {
+          "o_resultant_sum": 0,
+          "o_overflow": 0,
+          "o_ready": 0,
+          "o_status": 0
+        },
+        {
+          "o_resultant_sum": 0,
+          "o_overflow": 0,
+          "o_ready": 0,
+          "o_status": 0
+        },
+        {
+          "o_resultant_sum": 0,
+          "o_overflow": 0,
+          "o_ready": 0,
+          "o_status": 0
+        },
+        {
+          "o_resultant_sum": 0,
+          "o_overflow": 0,
+          "o_ready": 0,
+          "o_status": 0
+        },
+        {
+          "o_resultant_sum": 0,
+          "o_overflow": 0,
+          "o_ready": 0,
+          "o_status": 0
+        },
+        {
+          "o_resultant_sum": 0,
+          "o_overflow": 0,
+          "o_ready": 0,
+          "o_status": 1
+        },
+        {
+          "o_resultant_sum": 0,
+          "o_overflow": 0,
+          "o_ready": 0,
+          "o_status": 1
+        },
+        {
+          "o_resultant_sum": 0,
+          "o_overflow": 0,
+          "o_ready": 0,
+          "o_status": 2
+        }
+      ]
+    },
+    {
+      "id": "i_operand_b",
+      "spec_quote": "The design transitions to **LOAD** if `i_enable` and `i_start` are high.",
+      "covers": [
+        "behavior",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "i_rst_n": 0,
+          "i_start": 0,
+          "i_enable": 0,
+          "i_mode": 0,
+          "i_clear": 0,
+          "i_operand_a": 0,
+          "i_operand_b": 0
+        },
+        {
+          "i_rst_n": 1,
+          "i_start": 1,
+          "i_enable": 1,
+          "i_mode": 0,
+          "i_clear": 0,
+          "i_operand_a": 10,
+          "i_operand_b": 5
+        },
+        {
+          "i_rst_n": 1,
+          "i_start": 0,
+          "i_enable": 1,
+          "i_mode": 0,
+          "i_clear": 0,
+          "i_operand_a": 10,
+          "i_operand_b": 5
+        },
+        {
+          "i_rst_n": 1,
+          "i_start": 0,
+          "i_enable": 1,
+          "i_mode": 0,
+          "i_clear": 0,
+          "i_operand_a": 10,
+          "i_operand_b": 5
+        },
+        {
+          "i_rst_n": 1,
+          "i_start": 0,
+          "i_enable": 0,
+          "i_mode": 0,
+          "i_clear": 0,
+          "i_operand_a": 0,
+          "i_operand_b": 0
+        }
+      ],
+      "expected": [
+        {
+          "o_resultant_sum": 0,
+          "o_overflow": 0,
+          "o_ready": 0,
+          "o_status": 0
+        },
+        {
+          "o_resultant_sum": 0,
+          "o_overflow": 0,
+          "o_ready": 0,
+          "o_status": 0
+        },
+        {
+          "o_resultant_sum": 0,
+          "o_overflow": 0,
+          "o_ready": 0,
+          "o_status": 0
+        },
+        {
+          "o_resultant_sum": 0,
+          "o_overflow": 0,
+          "o_ready": 0,
+          "o_status": 1
+        },
+        {
+          "o_resultant_sum": 0,
+          "o_overflow": 0,
+          "o_ready": 0,
+          "o_status": 1
+        },
+        {
+          "o_resultant_sum": 0,
+          "o_overflow": 0,
+          "o_ready": 0,
+          "o_status": 2
+        },
+        {
+          "o_resultant_sum": 0,
+          "o_overflow": 0,
+          "o_ready": 0,
+          "o_status": 2
+        },
+        {
+          "o_resultant_sum": 15,
+          "o_overflow": 0,
+          "o_ready": 1,
+          "o_status": 3
+        },
+        {
+          "o_resultant_sum": 15,
+          "o_overflow": 0,
+          "o_ready": 1,
+          "o_status": 3
+        },
+        {
+          "o_resultant_sum": 15,
+          "o_overflow": 0,
+          "o_ready": 0,
+          "o_status": 0
+        }
+      ]
+    },
+    {
+      "id": "i_operand_b",
+      "spec_quote": "Both operands positive, result negative.",
+      "covers": [
+        "behavior",
+        "boundary",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "i_rst_n": 0,
+          "i_start": 0,
+          "i_enable": 0,
+          "i_mode": 0,
+          "i_clear": 0,
+          "i_operand_a": 0,
+          "i_operand_b": 0
+        },
+        {
+          "i_rst_n": 1,
+          "i_start": 1,
+          "i_enable": 1,
+          "i_mode": 0,
+          "i_clear": 0,
+          "i_operand_a": 127,
+          "i_operand_b": 1
+        },
+        {
+          "i_rst_n": 1,
+          "i_start": 0,
+          "i_enable": 1,
+          "i_mode": 0,
+          "i_clear": 0,
+          "i_operand_a": 127,
+          "i_operand_b": 1
+        },
+        {
+          "i_rst_n": 1,
+          "i_start": 0,
+          "i_enable": 1,
+          "i_mode": 0,
+          "i_clear": 0,
+          "i_operand_a": 127,
+          "i_operand_b": 1
+        },
+        {
+          "i_rst_n": 1,
+          "i_start": 0,
+          "i_enable": 0,
+          "i_mode": 0,
+          "i_clear": 0,
+          "i_operand_a": 0,
+          "i_operand_b": 0
+        }
+      ],
+      "expected": [
+        {
+          "o_resultant_sum": 0,
+          "o_overflow": 0,
+          "o_ready": 0,
+          "o_status": 0
+        },
+        {
+          "o_resultant_sum": 0,
+          "o_overflow": 0,
+          "o_ready": 0,
+          "o_status": 0
+        },
+        {
+          "o_resultant_sum": 0,
+          "o_overflow": 0,
+          "o_ready": 0,
+          "o_status": 0
+        },
+        {
+          "o_resultant_sum": 0,
+          "o_overflow": 0,
+          "o_ready": 0,
+          "o_status": 1
+        },
+        {
+          "o_resultant_sum": 0,
+          "o_overflow": 0,
+          "o_ready": 0,
+          "o_status": 1
+        },
+        {
+          "o_resultant_sum": 0,
+          "o_overflow": 0,
+          "o_ready": 0,
+          "o_status": 2
+        },
+        {
+          "o_resultant_sum": 0,
+          "o_overflow": 0,
+          "o_ready": 0,
+          "o_status": 2
+        },
+        {
+          "o_resultant_sum": 128,
+          "o_overflow": 1,
+          "o_ready": 1,
+          "o_status": 3
+        },
+        {
+          "o_resultant_sum": 128,
+          "o_overflow": 1,
+          "o_ready": 1,
+          "o_status": 3
+        },
+        {
+          "o_resultant_sum": 128,
+          "o_overflow": 1,
+          "o_ready": 0,
+          "o_status": 0
+        }
+      ]
+    },
+    {
+      "id": "i_operand_b",
+      "spec_quote": "Subtraction (`o_resultant_sum = i_operand_a - i_operand_b`)",
+      "covers": [
+        "behavior",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "i_rst_n": 0,
+          "i_start": 0,
+          "i_enable": 0,
+          "i_mode": 0,
+          "i_clear": 0,
+          "i_operand_a": 0,
+          "i_operand_b": 0
+        },
+        {
+          "i_rst_n": 1,
+          "i_start": 1,
+          "i_enable": 1,
+          "i_mode": 1,
+          "i_clear": 0,
+          "i_operand_a": 5,
+          "i_operand_b": 3
+        },
+        {
+          "i_rst_n": 1,
+          "i_start": 0,
+          "i_enable": 1,
+          "i_mode": 1,
+          "i_clear": 0,
+          "i_operand_a": 5,
+          "i_operand_b": 3
+        },
+        {
+          "i_rst_n": 1,
+          "i_start": 0,
+          "i_enable": 1,
+          "i_mode": 1,
+          "i_clear": 0,
+          "i_operand_a": 5,
+          "i_operand_b": 3
+        },
+        {
+          "i_rst_n": 1,
+          "i_start": 0,
+          "i_enable": 0,
+          "i_mode": 0,
+          "i_clear": 0,
+          "i_operand_a": 0,
+          "i_operand_b": 0
+        }
+      ],
+      "expected": [
+        {
+          "o_resultant_sum": 0,
+          "o_overflow": 0,
+          "o_ready": 0,
+          "o_status": 0
+        },
+        {
+          "o_resultant_sum": 0,
+          "o_overflow": 0,
+          "o_ready": 0,
+          "o_status": 0
+        },
+        {
+          "o_resultant_sum": 0,
+          "o_overflow": 0,
+          "o_ready": 0,
+          "o_status": 0
+        },
+        {
+          "o_resultant_sum": 0,
+          "o_overflow": 0,
+          "o_ready": 0,
+          "o_status": 1
+        },
+        {
+          "o_resultant_sum": 0,
+          "o_overflow": 0,
+          "o_ready": 0,
+          "o_status": 1
+        },
+        {
+          "o_resultant_sum": 0,
+          "o_overflow": 0,
+          "o_ready": 0,
+          "o_status": 2
+        },
+        {
+          "o_resultant_sum": 0,
+          "o_overflow": 0,
+          "o_ready": 0,
+          "o_status": 2
+        },
+        {
+          "o_resultant_sum": 2,
+          "o_overflow": 0,
+          "o_ready": 1,
+          "o_status": 3
+        },
+        {
+          "o_resultant_sum": 2,
+          "o_overflow": 0,
+          "o_ready": 1,
+          "o_status": 3
+        },
+        {
+          "o_resultant_sum": 2,
+          "o_overflow": 0,
+          "o_ready": 0,
+          "o_status": 0
+        }
+      ]
+    },
+    {
+      "id": "i_operand_b",
+      "spec_quote": "When `i_clear` is high, the design resets outputs and returns to **IDLE** no matter the current state.",
+      "covers": [
+        "behavior",
+        "priority",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "i_rst_n": 0,
+          "i_start": 0,
+          "i_enable": 0,
+          "i_mode": 0,
+          "i_clear": 0,
+          "i_operand_a": 0,
+          "i_operand_b": 0
+        },
+        {
+          "i_rst_n": 1,
+          "i_start": 1,
+          "i_enable": 1,
+          "i_mode": 0,
+          "i_clear": 0,
+          "i_operand_a": 10,
+          "i_operand_b": 5
+        },
+        {
+          "i_rst_n": 1,
+          "i_start": 0,
+          "i_enable": 1,
+          "i_mode": 0,
+          "i_clear": 0,
+          "i_operand_a": 10,
+          "i_operand_b": 5
+        },
+        {
+          "i_rst_n": 1,
+          "i_start": 0,
+          "i_enable": 1,
+          "i_mode": 0,
+          "i_clear": 1,
+          "i_operand_a": 10,
+          "i_operand_b": 5
+        },
+        {
+          "i_rst_n": 1,
+          "i_start": 0,
+          "i_enable": 0,
+          "i_mode": 0,
+          "i_clear": 0,
+          "i_operand_a": 0,
+          "i_operand_b": 0
+        }
+      ],
+      "expected": [
+        {
+          "o_resultant_sum": 0,
+          "o_overflow": 0,
+          "o_ready": 0,
+          "o_status": 0
+        },
+        {
+          "o_resultant_sum": 0,
+          "o_overflow": 0,
+          "o_ready": 0,
+          "o_status": 0
+        },
+        {
+          "o_resultant_sum": 0,
+          "o_overflow": 0,
+          "o_ready": 0,
+          "o_status": 0
+        },
+        {
+          "o_resultant_sum": 0,
+          "o_overflow": 0,
+          "o_ready": 0,
+          "o_status": 1
+        },
+        {
+          "o_resultant_sum": 0,
+          "o_overflow": 0,
+          "o_ready": 0,
+          "o_status": 1
+        },
+        {
+          "o_resultant_sum": 0,
+          "o_overflow": 0,
+          "o_ready": 0,
+          "o_status": 2
+        },
+        {
+          "o_resultant_sum": 0,
+          "o_overflow": 0,
+          "o_ready": 0,
+          "o_status": 2
+        },
+        {
+          "o_resultant_sum": 0,
+          "o_overflow": 0,
+          "o_ready": 0,
+          "o_status": 0
+        },
+        {
+          "o_resultant_sum": 0,
+          "o_overflow": 0,
+          "o_ready": 0,
+          "o_status": 0
+        },
+        {
+          "o_resultant_sum": 0,
+          "o_overflow": 0,
+          "o_ready": 0,
+          "o_status": 0
+        }
+      ]
+    },
+    {
+      "id": "i_operand_b",
+      "spec_quote": "Both operands negative, result positive.",
+      "covers": [
+        "behavior",
+        "boundary",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "i_rst_n": 0,
+          "i_start": 0,
+          "i_enable": 0,
+          "i_mode": 0,
+          "i_clear": 0,
+          "i_operand_a": 0,
+          "i_operand_b": 0
+        },
+        {
+          "i_rst_n": 1,
+          "i_start": 1,
+          "i_enable": 1,
+          "i_mode": 0,
+          "i_clear": 0,
+          "i_operand_a": 128,
+          "i_operand_b": 255
+        },
+        {
+          "i_rst_n": 1,
+          "i_start": 0,
+          "i_enable": 1,
+          "i_mode": 0,
+          "i_clear": 0,
+          "i_operand_a": 128,
+          "i_operand_b": 255
+        },
+        {
+          "i_rst_n": 1,
+          "i_start": 0,
+          "i_enable": 1,
+          "i_mode": 0,
+          "i_clear": 0,
+          "i_operand_a": 128,
+          "i_operand_b": 255
+        },
+        {
+          "i_rst_n": 1,
+          "i_start": 0,
+          "i_enable": 0,
+          "i_mode": 0,
+          "i_clear": 0,
+          "i_operand_a": 0,
+          "i_operand_b": 0
+        }
+      ],
+      "expected": [
+        {
+          "o_resultant_sum": 0,
+          "o_overflow": 0,
+          "o_ready": 0,
+          "o_status": 0
+        },
+        {
+          "o_resultant_sum": 0,
+          "o_overflow": 0,
+          "o_ready": 0,
+          "o_status": 0
+        },
+        {
+          "o_resultant_sum": 0,
+          "o_overflow": 0,
+          "o_ready": 0,
+          "o_status": 0
+        },
+        {
+          "o_resultant_sum": 0,
+          "o_overflow": 0,
+          "o_ready": 0,
+          "o_status": 1
+        },
+        {
+          "o_resultant_sum": 0,
+          "o_overflow": 0,
+          "o_ready": 0,
+          "o_status": 1
+        },
+        {
+          "o_resultant_sum": 0,
+          "o_overflow": 0,
+          "o_ready": 0,
+          "o_status": 2
+        },
+        {
+          "o_resultant_sum": 0,
+          "o_overflow": 0,
+          "o_ready": 0,
+          "o_status": 2
+        },
+        {
+          "o_resultant_sum": 127,
+          "o_overflow": 1,
+          "o_ready": 1,
+          "o_status": 3
+        },
+        {
+          "o_resultant_sum": 127,
+          "o_overflow": 1,
+          "o_ready": 1,
+          "o_status": 3
+        },
+        {
+          "o_resultant_sum": 127,
+          "o_overflow": 1,
+          "o_ready": 0,
+          "o_status": 0
+        }
+      ]
+    }
+  ]
+}
