@@ -1,0 +1,25 @@
+def reference(vectors):
+    state = 0
+    prev_clk = 0
+    out = []
+    has_clk = bool(vectors) and isinstance(vectors[0], dict) and 'clk' in vectors[0]
+
+    for i, v in enumerate(vectors):
+        a = v.get('a', 0) & 1
+        b = v.get('b', 0) & 1
+
+        if has_clk:
+            clk = v['clk'] & 1
+        else:
+            clk = i & 1
+
+        posedge = (prev_clk == 0 and clk == 1)
+
+        if posedge:
+            state = (a & b) | (state & (a | b))
+
+        q = (a ^ b ^ state) & 1
+        out.append({'q': q, 'state': state & 1})
+        prev_clk = clk
+
+    return out

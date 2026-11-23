@@ -1,0 +1,71 @@
+def reference(vectors):
+    state = 1
+    results = []
+    for i, row in enumerate(vectors):
+        is_pos = (i % 2 == 0)
+        rst = 0
+        data_in = 0
+        has = 0
+
+        if isinstance(row, dict):
+            rst = int(row.get('rst', 0)) & 1
+            data_in = int(row.get('data_in', 0)) & 15
+            has = int(row.get('has_data_to_send', 0)) & 1
+            edge = row.get('edge', None)
+            if edge is None:
+                edge = row.get('clk', None)
+            if isinstance(edge, str):
+                s = edge.lower()
+                if 'pos' in s or 'rise' in s or s == '1':
+                    is_pos = True
+                elif 'neg' in s or 'fall' in s or s == '0':
+                    is_pos = False
+            elif edge is not None:
+                is_pos = bool(edge)
+        elif isinstance(row, (list, tuple)):
+            vals = list(row)
+            if vals and isinstance(vals[0], str):
+                s = vals[0].lower()
+                if 'pos' in s or 'rise' in s:
+                    is_pos = True
+                    vals = vals[1:]
+                elif 'neg' in s or 'fall' in s:
+                    is_pos = False
+                    vals = vals[1:]
+            elif len(vals) == 4 and isinstance(vals[0], (int, bool)) and vals[0] in (0, 1):
+                is_pos = bool(vals[0])
+                vals = vals[1:]
+            if len(vals) >= 3:
+                rst = int(vals[0]) & 1
+                data_in = int(vals[1]) & 15
+                has = int(vals[2]) & 1
+            elif len(vals) == 2:
+                data_in = int(vals[0]) & 15
+                has = int(vals[1]) & 1
+            elif len(vals) == 1:
+                rst = int(vals[0]) & 1
+
+        if rst:
+            state = 1
+        if state not in (1, 2, 4, 8):
+            state = 1
+
+        if rst:
+            data_out = 0
+            token_received = 1
+            token = 0
+        else:
+            data_out = data_in if has else 0
+            token_received = state
+            token = ((state << 1) | (state >> 3)) & 15
+
+        results.append({
+            'data_out': data_out & 15,
+            'token_received': token_received & 15,
+            'token': token & 15
+        })
+
+        if is_pos:
+            state = 1 if rst else token
+
+    return results

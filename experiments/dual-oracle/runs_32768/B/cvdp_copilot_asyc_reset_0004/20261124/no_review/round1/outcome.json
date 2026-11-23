@@ -1,0 +1,1109 @@
+{
+  "decisions": [
+    {
+      "id": "s5/1/gate_clk_o",
+      "label": "RM",
+      "spec_quote": "greater than zero and less than `5'hE`"
+    },
+    {
+      "id": "s5/1/cnt_q",
+      "label": "RM",
+      "spec_quote": "initializes to `5'h1F` upon reset"
+    },
+    {
+      "id": "s5/2/release_reset_o",
+      "label": "RM",
+      "spec_quote": "less than `5'h8`"
+    },
+    {
+      "id": "s6/1/release_reset_o",
+      "label": "RM",
+      "spec_quote": "less than `5'h8`"
+    },
+    {
+      "id": "s6/1/cnt_q",
+      "label": "RM",
+      "spec_quote": "initializes to `5'h1F` upon reset"
+    },
+    {
+      "id": "s6/2/release_reset_o",
+      "label": "RM",
+      "spec_quote": "less than `5'h8`"
+    }
+  ],
+  "RM": "def reference(vectors):\n    cnt = 31\n    result = []\n    for row in vectors:\n        reset_val = 0\n        edge = None\n        if isinstance(row, dict):\n            if 'reset' in row:\n                reset_val = int(row['reset'])\n            if 'edge' in row:\n                v = row['edge']\n                s = str(v).lower()\n                if 'pos' in s or s == '1':\n                    edge = 1\n                elif 'neg' in s or s == '0':\n                    edge = 0\n            elif 'clk' in row:\n                v = row['clk']\n                s = str(v).lower()\n                if 'pos' in s or s == '1':\n                    edge = 1\n                elif 'neg' in s or s == '0':\n                    edge = 0\n        if reset_val == 1:\n            cnt = 31\n        out_cnt = cnt & 31\n        gate = 1 if (0 < out_cnt < 14) else 0\n        rel = 1 if out_cnt < 8 else 0\n        result.append({'cnt_q': out_cnt, 'gate_clk_o': gate, 'release_reset_o': rel})\n        if edge == 1:\n            if reset_val == 1:\n                cnt = 31\n            elif cnt > 0:\n                cnt -= 1\n    return result\n",
+  "TB": [
+    {
+      "id": "s1",
+      "spec_quote": "- `reset` must be **asserted for multiple clock cycles** before being de-asserted.",
+      "covers": [
+        "behavior",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "reset": 1,
+          "mid": {
+            "reset": 1
+          }
+        },
+        {
+          "reset": 1,
+          "mid": {
+            "reset": 0
+          }
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        }
+      ],
+      "expected": [
+        {
+          "release_reset_o": 0,
+          "gate_clk_o": 0,
+          "cnt_q": 31
+        },
+        {
+          "release_reset_o": 0,
+          "gate_clk_o": 0,
+          "cnt_q": 31
+        },
+        {
+          "release_reset_o": 0,
+          "gate_clk_o": 0,
+          "cnt_q": 31
+        },
+        {
+          "release_reset_o": 0,
+          "gate_clk_o": 0,
+          "cnt_q": 31
+        },
+        {
+          "release_reset_o": 0,
+          "gate_clk_o": 0,
+          "cnt_q": 31
+        },
+        {
+          "release_reset_o": 0,
+          "gate_clk_o": 0,
+          "cnt_q": 30
+        },
+        {
+          "release_reset_o": 0,
+          "gate_clk_o": 0,
+          "cnt_q": 30
+        },
+        {
+          "release_reset_o": 0,
+          "gate_clk_o": 0,
+          "cnt_q": 29
+        },
+        {
+          "release_reset_o": 0,
+          "gate_clk_o": 0,
+          "cnt_q": 29
+        },
+        {
+          "release_reset_o": 0,
+          "gate_clk_o": 0,
+          "cnt_q": 28
+        },
+        {
+          "release_reset_o": 0,
+          "gate_clk_o": 0,
+          "cnt_q": 28
+        },
+        {
+          "release_reset_o": 0,
+          "gate_clk_o": 0,
+          "cnt_q": 27
+        }
+      ]
+    },
+    {
+      "id": "s2",
+      "spec_quote": "- **Gate clock boundary**: Ensure `gate_clk_o` transitions correctly when `cnt_q` moves from `5'hE` to `5'hD`.",
+      "covers": [
+        "behavior",
+        "boundary",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "reset": 1,
+          "mid": {
+            "reset": 1
+          }
+        },
+        {
+          "reset": 1,
+          "mid": {
+            "reset": 0
+          }
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        }
+      ],
+      "expected": [
+        {
+          "release_reset_o": 0,
+          "gate_clk_o": 0,
+          "cnt_q": 31
+        },
+        {
+          "release_reset_o": 0,
+          "gate_clk_o": 0,
+          "cnt_q": 31
+        },
+        {
+          "release_reset_o": 0,
+          "gate_clk_o": 0,
+          "cnt_q": 31
+        },
+        {
+          "release_reset_o": 0,
+          "gate_clk_o": 0,
+          "cnt_q": 31
+        },
+        {
+          "release_reset_o": 0,
+          "gate_clk_o": 0,
+          "cnt_q": 31
+        },
+        {
+          "release_reset_o": 0,
+          "gate_clk_o": 0,
+          "cnt_q": 30
+        },
+        {
+          "release_reset_o": 0,
+          "gate_clk_o": 0,
+          "cnt_q": 30
+        },
+        {
+          "release_reset_o": 0,
+          "gate_clk_o": 0,
+          "cnt_q": 29
+        },
+        {
+          "release_reset_o": 0,
+          "gate_clk_o": 0,
+          "cnt_q": 29
+        },
+        {
+          "release_reset_o": 0,
+          "gate_clk_o": 0,
+          "cnt_q": 28
+        },
+        {
+          "release_reset_o": 0,
+          "gate_clk_o": 0,
+          "cnt_q": 28
+        },
+        {
+          "release_reset_o": 0,
+          "gate_clk_o": 0,
+          "cnt_q": 27
+        },
+        {
+          "release_reset_o": 0,
+          "gate_clk_o": 0,
+          "cnt_q": 27
+        },
+        {
+          "release_reset_o": 0,
+          "gate_clk_o": 0,
+          "cnt_q": 26
+        },
+        {
+          "release_reset_o": 0,
+          "gate_clk_o": 0,
+          "cnt_q": 26
+        },
+        {
+          "release_reset_o": 0,
+          "gate_clk_o": 0,
+          "cnt_q": 25
+        },
+        {
+          "release_reset_o": 0,
+          "gate_clk_o": 0,
+          "cnt_q": 25
+        },
+        {
+          "release_reset_o": 0,
+          "gate_clk_o": 0,
+          "cnt_q": 24
+        },
+        {
+          "release_reset_o": 0,
+          "gate_clk_o": 0,
+          "cnt_q": 24
+        },
+        {
+          "release_reset_o": 0,
+          "gate_clk_o": 0,
+          "cnt_q": 23
+        },
+        {
+          "release_reset_o": 0,
+          "gate_clk_o": 0,
+          "cnt_q": 23
+        },
+        {
+          "release_reset_o": 0,
+          "gate_clk_o": 0,
+          "cnt_q": 22
+        },
+        {
+          "release_reset_o": 0,
+          "gate_clk_o": 0,
+          "cnt_q": 22
+        },
+        {
+          "release_reset_o": 0,
+          "gate_clk_o": 0,
+          "cnt_q": 21
+        },
+        {
+          "release_reset_o": 0,
+          "gate_clk_o": 0,
+          "cnt_q": 21
+        },
+        {
+          "release_reset_o": 0,
+          "gate_clk_o": 0,
+          "cnt_q": 20
+        },
+        {
+          "release_reset_o": 0,
+          "gate_clk_o": 0,
+          "cnt_q": 20
+        },
+        {
+          "release_reset_o": 0,
+          "gate_clk_o": 0,
+          "cnt_q": 19
+        },
+        {
+          "release_reset_o": 0,
+          "gate_clk_o": 0,
+          "cnt_q": 19
+        },
+        {
+          "release_reset_o": 0,
+          "gate_clk_o": 0,
+          "cnt_q": 18
+        },
+        {
+          "release_reset_o": 0,
+          "gate_clk_o": 0,
+          "cnt_q": 18
+        },
+        {
+          "release_reset_o": 0,
+          "gate_clk_o": 0,
+          "cnt_q": 17
+        },
+        {
+          "release_reset_o": 0,
+          "gate_clk_o": 0,
+          "cnt_q": 17
+        },
+        {
+          "release_reset_o": 0,
+          "gate_clk_o": 0,
+          "cnt_q": 16
+        },
+        {
+          "release_reset_o": 0,
+          "gate_clk_o": 0,
+          "cnt_q": 16
+        },
+        {
+          "release_reset_o": 0,
+          "gate_clk_o": 0,
+          "cnt_q": 15
+        },
+        {
+          "release_reset_o": 0,
+          "gate_clk_o": 0,
+          "cnt_q": 15
+        },
+        {
+          "release_reset_o": 0,
+          "gate_clk_o": 0,
+          "cnt_q": 14
+        },
+        {
+          "release_reset_o": 0,
+          "gate_clk_o": 0,
+          "cnt_q": 14
+        },
+        {
+          "release_reset_o": 0,
+          "gate_clk_o": 1,
+          "cnt_q": 13
+        }
+      ]
+    },
+    {
+      "id": "s3",
+      "spec_quote": "- **Mid-count reset**: Apply reset when `cnt_q = 5'hF` and ensure re-initialization.",
+      "covers": [
+        "behavior",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "reset": 1,
+          "mid": {
+            "reset": 1
+          }
+        },
+        {
+          "reset": 1,
+          "mid": {
+            "reset": 0
+          }
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 1,
+          "mid": {
+            "reset": 1
+          }
+        },
+        {
+          "reset": 1,
+          "mid": {
+            "reset": 0
+          }
+        }
+      ],
+      "expected": [
+        {
+          "release_reset_o": 0,
+          "gate_clk_o": 0,
+          "cnt_q": 31
+        },
+        {
+          "release_reset_o": 0,
+          "gate_clk_o": 0,
+          "cnt_q": 31
+        },
+        {
+          "release_reset_o": 0,
+          "gate_clk_o": 0,
+          "cnt_q": 31
+        },
+        {
+          "release_reset_o": 0,
+          "gate_clk_o": 0,
+          "cnt_q": 31
+        },
+        {
+          "release_reset_o": 0,
+          "gate_clk_o": 0,
+          "cnt_q": 31
+        },
+        {
+          "release_reset_o": 0,
+          "gate_clk_o": 0,
+          "cnt_q": 30
+        },
+        {
+          "release_reset_o": 0,
+          "gate_clk_o": 0,
+          "cnt_q": 30
+        },
+        {
+          "release_reset_o": 0,
+          "gate_clk_o": 0,
+          "cnt_q": 29
+        },
+        {
+          "release_reset_o": 0,
+          "gate_clk_o": 0,
+          "cnt_q": 29
+        },
+        {
+          "release_reset_o": 0,
+          "gate_clk_o": 0,
+          "cnt_q": 28
+        },
+        {
+          "release_reset_o": 0,
+          "gate_clk_o": 0,
+          "cnt_q": 28
+        },
+        {
+          "release_reset_o": 0,
+          "gate_clk_o": 0,
+          "cnt_q": 27
+        },
+        {
+          "release_reset_o": 0,
+          "gate_clk_o": 0,
+          "cnt_q": 27
+        },
+        {
+          "release_reset_o": 0,
+          "gate_clk_o": 0,
+          "cnt_q": 26
+        },
+        {
+          "release_reset_o": 0,
+          "gate_clk_o": 0,
+          "cnt_q": 26
+        },
+        {
+          "release_reset_o": 0,
+          "gate_clk_o": 0,
+          "cnt_q": 25
+        },
+        {
+          "release_reset_o": 0,
+          "gate_clk_o": 0,
+          "cnt_q": 25
+        },
+        {
+          "release_reset_o": 0,
+          "gate_clk_o": 0,
+          "cnt_q": 24
+        },
+        {
+          "release_reset_o": 0,
+          "gate_clk_o": 0,
+          "cnt_q": 24
+        },
+        {
+          "release_reset_o": 0,
+          "gate_clk_o": 0,
+          "cnt_q": 23
+        },
+        {
+          "release_reset_o": 0,
+          "gate_clk_o": 0,
+          "cnt_q": 23
+        },
+        {
+          "release_reset_o": 0,
+          "gate_clk_o": 0,
+          "cnt_q": 22
+        },
+        {
+          "release_reset_o": 0,
+          "gate_clk_o": 0,
+          "cnt_q": 22
+        },
+        {
+          "release_reset_o": 0,
+          "gate_clk_o": 0,
+          "cnt_q": 21
+        },
+        {
+          "release_reset_o": 0,
+          "gate_clk_o": 0,
+          "cnt_q": 21
+        },
+        {
+          "release_reset_o": 0,
+          "gate_clk_o": 0,
+          "cnt_q": 20
+        },
+        {
+          "release_reset_o": 0,
+          "gate_clk_o": 0,
+          "cnt_q": 20
+        },
+        {
+          "release_reset_o": 0,
+          "gate_clk_o": 0,
+          "cnt_q": 19
+        },
+        {
+          "release_reset_o": 0,
+          "gate_clk_o": 0,
+          "cnt_q": 19
+        },
+        {
+          "release_reset_o": 0,
+          "gate_clk_o": 0,
+          "cnt_q": 18
+        },
+        {
+          "release_reset_o": 0,
+          "gate_clk_o": 0,
+          "cnt_q": 18
+        },
+        {
+          "release_reset_o": 0,
+          "gate_clk_o": 0,
+          "cnt_q": 17
+        },
+        {
+          "release_reset_o": 0,
+          "gate_clk_o": 0,
+          "cnt_q": 17
+        },
+        {
+          "release_reset_o": 0,
+          "gate_clk_o": 0,
+          "cnt_q": 16
+        },
+        {
+          "release_reset_o": 0,
+          "gate_clk_o": 0,
+          "cnt_q": 16
+        },
+        {
+          "release_reset_o": 0,
+          "gate_clk_o": 0,
+          "cnt_q": 15
+        },
+        {
+          "release_reset_o": 0,
+          "gate_clk_o": 0,
+          "cnt_q": 31
+        },
+        {
+          "release_reset_o": 0,
+          "gate_clk_o": 0,
+          "cnt_q": 31
+        },
+        {
+          "release_reset_o": 0,
+          "gate_clk_o": 0,
+          "cnt_q": 31
+        },
+        {
+          "release_reset_o": 0,
+          "gate_clk_o": 0,
+          "cnt_q": 31
+        }
+      ]
+    },
+    {
+      "id": "s4",
+      "spec_quote": "- **Reset during critical transitions**: Apply reset at `cnt_q = 5'hE` and `cnt_q = 5'h8`.",
+      "covers": [
+        "behavior",
+        "boundary",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "reset": 1,
+          "mid": {
+            "reset": 1
+          }
+        },
+        {
+          "reset": 1,
+          "mid": {
+            "reset": 0
+          }
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 1
+        }
+      ],
+      "expected": [
+        {
+          "release_reset_o": 0,
+          "gate_clk_o": 0,
+          "cnt_q": 31
+        },
+        {
+          "release_reset_o": 0,
+          "gate_clk_o": 0,
+          "cnt_q": 31
+        },
+        {
+          "release_reset_o": 0,
+          "gate_clk_o": 0,
+          "cnt_q": 31
+        },
+        {
+          "release_reset_o": 0,
+          "gate_clk_o": 0,
+          "cnt_q": 31
+        },
+        {
+          "release_reset_o": 0,
+          "gate_clk_o": 0,
+          "cnt_q": 31
+        },
+        {
+          "release_reset_o": 0,
+          "gate_clk_o": 0,
+          "cnt_q": 30
+        },
+        {
+          "release_reset_o": 0,
+          "gate_clk_o": 0,
+          "cnt_q": 30
+        },
+        {
+          "release_reset_o": 0,
+          "gate_clk_o": 0,
+          "cnt_q": 29
+        },
+        {
+          "release_reset_o": 0,
+          "gate_clk_o": 0,
+          "cnt_q": 29
+        },
+        {
+          "release_reset_o": 0,
+          "gate_clk_o": 0,
+          "cnt_q": 28
+        },
+        {
+          "release_reset_o": 0,
+          "gate_clk_o": 0,
+          "cnt_q": 28
+        },
+        {
+          "release_reset_o": 0,
+          "gate_clk_o": 0,
+          "cnt_q": 27
+        },
+        {
+          "release_reset_o": 0,
+          "gate_clk_o": 0,
+          "cnt_q": 27
+        },
+        {
+          "release_reset_o": 0,
+          "gate_clk_o": 0,
+          "cnt_q": 26
+        },
+        {
+          "release_reset_o": 0,
+          "gate_clk_o": 0,
+          "cnt_q": 26
+        },
+        {
+          "release_reset_o": 0,
+          "gate_clk_o": 0,
+          "cnt_q": 25
+        },
+        {
+          "release_reset_o": 0,
+          "gate_clk_o": 0,
+          "cnt_q": 25
+        },
+        {
+          "release_reset_o": 0,
+          "gate_clk_o": 0,
+          "cnt_q": 24
+        },
+        {
+          "release_reset_o": 0,
+          "gate_clk_o": 0,
+          "cnt_q": 24
+        },
+        {
+          "release_reset_o": 0,
+          "gate_clk_o": 0,
+          "cnt_q": 23
+        },
+        {
+          "release_reset_o": 0,
+          "gate_clk_o": 0,
+          "cnt_q": 23
+        },
+        {
+          "release_reset_o": 0,
+          "gate_clk_o": 0,
+          "cnt_q": 22
+        },
+        {
+          "release_reset_o": 0,
+          "gate_clk_o": 0,
+          "cnt_q": 22
+        },
+        {
+          "release_reset_o": 0,
+          "gate_clk_o": 0,
+          "cnt_q": 21
+        },
+        {
+          "release_reset_o": 0,
+          "gate_clk_o": 0,
+          "cnt_q": 21
+        },
+        {
+          "release_reset_o": 0,
+          "gate_clk_o": 0,
+          "cnt_q": 20
+        },
+        {
+          "release_reset_o": 0,
+          "gate_clk_o": 0,
+          "cnt_q": 20
+        },
+        {
+          "release_reset_o": 0,
+          "gate_clk_o": 0,
+          "cnt_q": 19
+        },
+        {
+          "release_reset_o": 0,
+          "gate_clk_o": 0,
+          "cnt_q": 19
+        },
+        {
+          "release_reset_o": 0,
+          "gate_clk_o": 0,
+          "cnt_q": 18
+        },
+        {
+          "release_reset_o": 0,
+          "gate_clk_o": 0,
+          "cnt_q": 18
+        },
+        {
+          "release_reset_o": 0,
+          "gate_clk_o": 0,
+          "cnt_q": 17
+        },
+        {
+          "release_reset_o": 0,
+          "gate_clk_o": 0,
+          "cnt_q": 17
+        },
+        {
+          "release_reset_o": 0,
+          "gate_clk_o": 0,
+          "cnt_q": 16
+        },
+        {
+          "release_reset_o": 0,
+          "gate_clk_o": 0,
+          "cnt_q": 16
+        },
+        {
+          "release_reset_o": 0,
+          "gate_clk_o": 0,
+          "cnt_q": 15
+        },
+        {
+          "release_reset_o": 0,
+          "gate_clk_o": 0,
+          "cnt_q": 15
+        },
+        {
+          "release_reset_o": 0,
+          "gate_clk_o": 0,
+          "cnt_q": 14
+        },
+        {
+          "release_reset_o": 0,
+          "gate_clk_o": 0,
+          "cnt_q": 31
+        },
+        {
+          "release_reset_o": 0,
+          "gate_clk_o": 0,
+          "cnt_q": 31
+        }
+      ]
+    },
+    {
+      "id": "s5",
+      "spec_quote": "- `release_reset_o`: **Reset release output**, active when the counter is less than `5'h8`.",
+      "covers": [
+        "behavior",
+        "boundary"
+      ],
+      "vectors": [
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        }
+      ],
+      "expected": [
+        {
+          "release_reset_o": 0,
+          "gate_clk_o": 1,
+          "cnt_q": 8
+        },
+        {
+          "release_reset_o": 1,
+          "gate_clk_o": 1,
+          "cnt_q": 7
+        },
+        {
+          "release_reset_o": 1,
+          "gate_clk_o": 1,
+          "cnt_q": 7
+        },
+        {
+          "release_reset_o": 1,
+          "gate_clk_o": 1,
+          "cnt_q": 6
+        },
+        {
+          "release_reset_o": 1,
+          "gate_clk_o": 1,
+          "cnt_q": 6
+        },
+        {
+          "release_reset_o": 1,
+          "gate_clk_o": 1,
+          "cnt_q": 5
+        },
+        {
+          "release_reset_o": 1,
+          "gate_clk_o": 1,
+          "cnt_q": 5
+        },
+        {
+          "release_reset_o": 1,
+          "gate_clk_o": 1,
+          "cnt_q": 4
+        }
+      ]
+    },
+    {
+      "id": "s6",
+      "spec_quote": "- **Counter stability at zero**: Ensure `cnt_q` holds at `0` after reaching the minimum value.",
+      "covers": [
+        "behavior",
+        "boundary"
+      ],
+      "vectors": [
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0
+        },
+        {
+          "reset": 0,
+          "mid": {
+            "reset": 1
+          }
+        },
+        {
+          "reset": 1,
+          "mid": {
+            "reset": 0
+          }
+        }
+      ],
+      "expected": [
+        {
+          "release_reset_o": 1,
+          "gate_clk_o": 0,
+          "cnt_q": 0
+        },
+        {
+          "release_reset_o": 1,
+          "gate_clk_o": 0,
+          "cnt_q": 0
+        },
+        {
+          "release_reset_o": 1,
+          "gate_clk_o": 0,
+          "cnt_q": 0
+        },
+        {
+          "release_reset_o": 1,
+          "gate_clk_o": 0,
+          "cnt_q": 0
+        },
+        {
+          "release_reset_o": 1,
+          "gate_clk_o": 0,
+          "cnt_q": 0
+        },
+        {
+          "release_reset_o": 0,
+          "gate_clk_o": 0,
+          "cnt_q": 31
+        },
+        {
+          "release_reset_o": 0,
+          "gate_clk_o": 0,
+          "cnt_q": 31
+        },
+        {
+          "release_reset_o": 0,
+          "gate_clk_o": 0,
+          "cnt_q": 31
+        }
+      ]
+    }
+  ]
+}

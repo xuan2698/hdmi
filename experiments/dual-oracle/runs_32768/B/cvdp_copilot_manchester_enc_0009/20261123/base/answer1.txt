@@ -1,0 +1,51 @@
+```python
+def reference(vectors):
+    eo = ev = do = dv = 0
+    out = []
+    for idx, row in enumerate(vectors):
+        if 'edge' in row:
+            e = row['edge']
+            if isinstance(e, str):
+                pos = 'pos' in e.lower()
+            else:
+                pos = (e == 1 or e is True)
+        elif 'clk_in' in row:
+            pos = (row['clk_in'] == 1)
+        else:
+            pos = (idx % 2 == 0)
+
+        rst = row.get('rst_in', 0)
+        if rst:
+            eo = ev = do = dv = 0
+
+        out.append({
+            'enc_valid_out': ev & 1,
+            'enc_data_out': eo & 0xFFFF,
+            'dec_valid_out': dv & 1,
+            'dec_data_out': do & 0xFF
+        })
+
+        if pos and not rst:
+            vi = row.get('enc_valid_in', 0) & 1
+            din = row.get('enc_data_in', 0)
+            y = 0
+            for i in range(8):
+                if (din >> i) & 1:
+                    y |= 1 << (2 * i)
+                else:
+                    y |= 2 << (2 * i)
+
+            dvi = row.get('dec_valid_in', 0) & 1
+            ddin = row.get('dec_data_in', 0)
+            dy = 0
+            for i in range(8):
+                if ((ddin >> (2 * i)) & 3) == 1:
+                    dy |= 1 << i
+
+            ev = vi
+            eo = y & 0xFFFF
+            dv = dvi
+            do = dy & 0xFF
+
+    return out
+```

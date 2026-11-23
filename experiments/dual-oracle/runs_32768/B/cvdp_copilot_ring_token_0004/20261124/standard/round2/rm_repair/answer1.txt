@@ -1,0 +1,39 @@
+def reference(vectors):
+    node = 0
+    out = []
+    for i, row in enumerate(vectors):
+        rst = row.get('rst', 0)
+        if rst:
+            node = 0
+
+        e = row.get('edge', 'posedge' if i % 2 == 0 else 'negedge')
+        if isinstance(e, str):
+            is_pos = 'pos' in e.lower()
+        else:
+            is_pos = (e == 1)
+
+        if rst:
+            data_out = 0
+            token_received = 1
+            token = 0
+        else:
+            token_received = 1 << node
+            token = 1 << ((node + 1) % 4)
+            if row.get('has_data_to_send', 0):
+                data_out = row.get('data_in', 0) & 0xF
+            else:
+                data_out = 0
+
+        out.append({
+            'data_out': data_out,
+            'token_received': token_received,
+            'token': token
+        })
+
+        if is_pos:
+            if rst:
+                node = 0
+            else:
+                node = (node + 1) % 4
+
+    return out

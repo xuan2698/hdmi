@@ -1,0 +1,22 @@
+```python
+def reference(vectors):
+    c = 31
+    out = []
+    for i, row in enumerate(vectors):
+        if isinstance(row, dict):
+            reset = row.get('reset', 0)
+        else:
+            reset = row[0] if isinstance(row, (list, tuple)) else row
+        if reset:
+            c = 31
+        clk = 1 if i % 2 == 0 else 0
+        gate = 1 if (clk and 0 < c < 14) else 0
+        rel = 1 if c < 8 else 0
+        out.append({'cnt_q': c, 'gate_clk_o': gate, 'release_reset_o': rel})
+        if i % 2 == 0:
+            if reset:
+                c = 31
+            elif c > 0:
+                c -= 1
+    return out
+```

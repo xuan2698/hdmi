@@ -1,0 +1,29 @@
+def reference(vectors):
+    out1 = out2 = out3 = 0
+    prev_clk = 0
+    res = []
+    for row in vectors:
+        if isinstance(row, dict):
+            reset = row.get('reset', 0)
+            clk = row.get('clk', 0)
+            in1 = row.get('in_1', 0)
+            in2 = row.get('in_2', 0)
+            in3 = row.get('in_3', 0)
+        else:
+            reset = getattr(row, 'reset', 0)
+            clk = getattr(row, 'clk', 0)
+            in1 = getattr(row, 'in_1', 0)
+            in2 = getattr(row, 'in_2', 0)
+            in3 = getattr(row, 'in_3', 0)
+        if reset:
+            out1 = out2 = out3 = 0
+        res.append({'out_1': out1 & 0xFFFF, 'out_2': out2 & 0xFFFF, 'out_3': out3 & 0xFFFF})
+        if clk == 1 and prev_clk == 0:
+            if not reset:
+                out1 = in1 & 0xFFFF
+                out2 = in2 & 0xFFFF
+                out3 = in3 & 0xFFFF
+            else:
+                out1 = out2 = out3 = 0
+        prev_clk = clk
+    return res

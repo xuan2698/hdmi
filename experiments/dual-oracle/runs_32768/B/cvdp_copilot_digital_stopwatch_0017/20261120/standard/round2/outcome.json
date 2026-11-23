@@ -1,0 +1,656 @@
+{
+  "decisions": [],
+  "RM": "def reference(vectors):\n    counter = 0\n    pulse = 0\n    sec = 0\n    minute = 0\n    hour = 0\n    out = []\n    prev_clk = 0\n\n    for i, row in enumerate(vectors):\n        reset = row.get('reset', 0)\n        start_stop = row.get('start_stop', 0)\n        reset = 1 if reset else 0\n        start_stop = 1 if start_stop else 0\n\n        is_pos = None\n        if 'clk' in row:\n            clk_val = row['clk']\n            if clk_val not in (0, 1):\n                clk_val = int(clk_val)\n            is_pos = (prev_clk == 0 and clk_val == 1)\n            prev_clk = clk_val\n        else:\n            e = row.get('edge', None)\n            if e is not None:\n                if isinstance(e, str):\n                    is_pos = e.lower().startswith('pos')\n                else:\n                    is_pos = (int(e) == 1)\n            else:\n                is_pos = (i % 2 == 0)\n\n        if reset:\n            counter = 0\n            pulse = 0\n            sec = 0\n            minute = 0\n            hour = 0\n\n        out.append({\n            'seconds': sec & 63,\n            'minutes': minute & 63,\n            'hour': hour & 1\n        })\n\n        if is_pos:\n            if reset:\n                counter = 0\n                pulse = 0\n                sec = 0\n                minute = 0\n                hour = 0\n            else:\n                if counter == 3:\n                    new_counter = 0\n                    new_pulse = 1\n                else:\n                    new_counter = counter + 1\n                    new_pulse = 0\n\n                if start_stop and pulse:\n                    if sec == 59:\n                        new_sec = 0\n                        if minute == 59:\n                            new_minute = 0\n                            new_hour = hour ^ 1\n                        else:\n                            new_minute = minute + 1\n                            new_hour = hour\n                    else:\n                        new_sec = sec + 1\n                        new_minute = minute\n                        new_hour = hour\n\n                    sec = new_sec\n                    minute = new_minute\n                    hour = new_hour\n\n                counter = new_counter\n                pulse = new_pulse\n\n    return out\n",
+  "TB": [
+    {
+      "id": "s1",
+      "spec_quote": "- `reset` is asserted at the beginning to initialize the stopwatch and deasserted after 100 nanoseconds.",
+      "covers": [
+        "behavior",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "reset": 1,
+          "start_stop": 0,
+          "mid": {
+            "reset": 1,
+            "start_stop": 0
+          }
+        },
+        {
+          "reset": 1,
+          "start_stop": 1,
+          "mid": {
+            "reset": 0,
+            "start_stop": 1
+          }
+        },
+        {
+          "reset": 0,
+          "start_stop": 0,
+          "mid": {
+            "reset": 0,
+            "start_stop": 0
+          }
+        },
+        {
+          "reset": 0,
+          "start_stop": 0,
+          "mid": {
+            "reset": 0,
+            "start_stop": 0
+          }
+        }
+      ],
+      "expected": [
+        {
+          "seconds": 0,
+          "minutes": 0,
+          "hour": 0
+        },
+        {
+          "seconds": 0,
+          "minutes": 0,
+          "hour": 0
+        },
+        {
+          "seconds": 0,
+          "minutes": 0,
+          "hour": 0
+        },
+        {
+          "seconds": 0,
+          "minutes": 0,
+          "hour": 0
+        },
+        {
+          "seconds": 0,
+          "minutes": 0,
+          "hour": 0
+        },
+        {
+          "seconds": 0,
+          "minutes": 0,
+          "hour": 0
+        },
+        {
+          "seconds": 0,
+          "minutes": 0,
+          "hour": 0
+        },
+        {
+          "seconds": 0,
+          "minutes": 0,
+          "hour": 0
+        }
+      ]
+    },
+    {
+      "id": "s2",
+      "spec_quote": "The stopwatch starts with `start_stop = 1` and stops with `start_stop = 0`.",
+      "covers": [
+        "behavior",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "reset": 1,
+          "start_stop": 0,
+          "mid": {
+            "reset": 0,
+            "start_stop": 0
+          }
+        },
+        {
+          "reset": 0,
+          "start_stop": 1,
+          "mid": {
+            "reset": 0,
+            "start_stop": 1
+          }
+        },
+        {
+          "reset": 0,
+          "start_stop": 1,
+          "mid": {
+            "reset": 0,
+            "start_stop": 1
+          }
+        },
+        {
+          "reset": 0,
+          "start_stop": 1,
+          "mid": {
+            "reset": 0,
+            "start_stop": 0
+          }
+        },
+        {
+          "reset": 0,
+          "start_stop": 0,
+          "mid": {
+            "reset": 0,
+            "start_stop": 0
+          }
+        }
+      ],
+      "expected": [
+        {
+          "seconds": 0,
+          "minutes": 0,
+          "hour": 0
+        },
+        {
+          "seconds": 0,
+          "minutes": 0,
+          "hour": 0
+        },
+        {
+          "seconds": 0,
+          "minutes": 0,
+          "hour": 0
+        },
+        {
+          "seconds": 0,
+          "minutes": 0,
+          "hour": 0
+        },
+        {
+          "seconds": 0,
+          "minutes": 0,
+          "hour": 0
+        },
+        {
+          "seconds": 0,
+          "minutes": 0,
+          "hour": 0
+        },
+        {
+          "seconds": 0,
+          "minutes": 0,
+          "hour": 0
+        },
+        {
+          "seconds": 0,
+          "minutes": 0,
+          "hour": 0
+        },
+        {
+          "seconds": 0,
+          "minutes": 0,
+          "hour": 0
+        },
+        {
+          "seconds": 0,
+          "minutes": 0,
+          "hour": 0
+        }
+      ]
+    },
+    {
+      "id": "s3",
+      "spec_quote": "The `reset` signal is asserted for 5 clock cycles to reset the counters.",
+      "covers": [
+        "behavior",
+        "priority",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "reset": 1,
+          "start_stop": 1,
+          "mid": {
+            "reset": 1,
+            "start_stop": 1
+          }
+        },
+        {
+          "reset": 1,
+          "start_stop": 0,
+          "mid": {
+            "reset": 1,
+            "start_stop": 0
+          }
+        },
+        {
+          "reset": 0,
+          "start_stop": 1,
+          "mid": {
+            "reset": 0,
+            "start_stop": 1
+          }
+        },
+        {
+          "reset": 0,
+          "start_stop": 1,
+          "mid": {
+            "reset": 0,
+            "start_stop": 0
+          }
+        },
+        {
+          "reset": 0,
+          "start_stop": 0,
+          "mid": {
+            "reset": 0,
+            "start_stop": 0
+          }
+        }
+      ],
+      "expected": [
+        {
+          "seconds": 0,
+          "minutes": 0,
+          "hour": 0
+        },
+        {
+          "seconds": 0,
+          "minutes": 0,
+          "hour": 0
+        },
+        {
+          "seconds": 0,
+          "minutes": 0,
+          "hour": 0
+        },
+        {
+          "seconds": 0,
+          "minutes": 0,
+          "hour": 0
+        },
+        {
+          "seconds": 0,
+          "minutes": 0,
+          "hour": 0
+        },
+        {
+          "seconds": 0,
+          "minutes": 0,
+          "hour": 0
+        },
+        {
+          "seconds": 0,
+          "minutes": 0,
+          "hour": 0
+        },
+        {
+          "seconds": 0,
+          "minutes": 0,
+          "hour": 0
+        },
+        {
+          "seconds": 0,
+          "minutes": 0,
+          "hour": 0
+        },
+        {
+          "seconds": 0,
+          "minutes": 0,
+          "hour": 0
+        }
+      ]
+    },
+    {
+      "id": "s4",
+      "spec_quote": "The `reset` signal is asserted for 5 clock cycles to reset the counters.",
+      "covers": [
+        "behavior",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "reset": 1,
+          "start_stop": 0,
+          "mid": {
+            "reset": 0,
+            "start_stop": 1
+          }
+        },
+        {
+          "reset": 0,
+          "start_stop": 1,
+          "mid": {
+            "reset": 0,
+            "start_stop": 1
+          }
+        },
+        {
+          "reset": 0,
+          "start_stop": 1,
+          "mid": {
+            "reset": 0,
+            "start_stop": 1
+          }
+        },
+        {
+          "reset": 0,
+          "start_stop": 1,
+          "mid": {
+            "reset": 1,
+            "start_stop": 0
+          }
+        },
+        {
+          "reset": 1,
+          "start_stop": 0,
+          "mid": {
+            "reset": 1,
+            "start_stop": 0
+          }
+        },
+        {
+          "reset": 0,
+          "start_stop": 0,
+          "mid": {
+            "reset": 0,
+            "start_stop": 0
+          }
+        }
+      ],
+      "expected": [
+        {
+          "seconds": 0,
+          "minutes": 0,
+          "hour": 0
+        },
+        {
+          "seconds": 0,
+          "minutes": 0,
+          "hour": 0
+        },
+        {
+          "seconds": 0,
+          "minutes": 0,
+          "hour": 0
+        },
+        {
+          "seconds": 0,
+          "minutes": 0,
+          "hour": 0
+        },
+        {
+          "seconds": 0,
+          "minutes": 0,
+          "hour": 0
+        },
+        {
+          "seconds": 0,
+          "minutes": 0,
+          "hour": 0
+        },
+        {
+          "seconds": 0,
+          "minutes": 0,
+          "hour": 0
+        },
+        {
+          "seconds": 0,
+          "minutes": 0,
+          "hour": 0
+        },
+        {
+          "seconds": 0,
+          "minutes": 0,
+          "hour": 0
+        },
+        {
+          "seconds": 0,
+          "minutes": 0,
+          "hour": 0
+        },
+        {
+          "seconds": 0,
+          "minutes": 0,
+          "hour": 0
+        },
+        {
+          "seconds": 0,
+          "minutes": 0,
+          "hour": 0
+        }
+      ]
+    },
+    {
+      "id": "s5",
+      "spec_quote": "The testbench uses the one-second pulse from the stopwatch to simulate precise elapsed time durations.",
+      "covers": [
+        "behavior",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "reset": 1,
+          "start_stop": 0,
+          "mid": {
+            "reset": 0,
+            "start_stop": 1
+          }
+        },
+        {
+          "reset": 0,
+          "start_stop": 1,
+          "mid": {
+            "reset": 0,
+            "start_stop": 1
+          }
+        },
+        {
+          "reset": 0,
+          "start_stop": 1,
+          "mid": {
+            "reset": 0,
+            "start_stop": 1
+          }
+        },
+        {
+          "reset": 0,
+          "start_stop": 1,
+          "mid": {
+            "reset": 0,
+            "start_stop": 0
+          }
+        },
+        {
+          "reset": 0,
+          "start_stop": 0,
+          "mid": {
+            "reset": 1,
+            "start_stop": 0
+          }
+        }
+      ],
+      "expected": [
+        {
+          "seconds": 0,
+          "minutes": 0,
+          "hour": 0
+        },
+        {
+          "seconds": 0,
+          "minutes": 0,
+          "hour": 0
+        },
+        {
+          "seconds": 0,
+          "minutes": 0,
+          "hour": 0
+        },
+        {
+          "seconds": 0,
+          "minutes": 0,
+          "hour": 0
+        },
+        {
+          "seconds": 0,
+          "minutes": 0,
+          "hour": 0
+        },
+        {
+          "seconds": 0,
+          "minutes": 0,
+          "hour": 0
+        },
+        {
+          "seconds": 0,
+          "minutes": 0,
+          "hour": 0
+        },
+        {
+          "seconds": 0,
+          "minutes": 0,
+          "hour": 0
+        },
+        {
+          "seconds": 0,
+          "minutes": 0,
+          "hour": 0
+        },
+        {
+          "seconds": 0,
+          "minutes": 0,
+          "hour": 0
+        }
+      ]
+    },
+    {
+      "id": "s6",
+      "spec_quote": "The stopwatch is paused with `start_stop = 0`.",
+      "covers": [
+        "behavior",
+        "boundary",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "reset": 1,
+          "start_stop": 0,
+          "mid": {
+            "reset": 0,
+            "start_stop": 1
+          }
+        },
+        {
+          "reset": 0,
+          "start_stop": 1,
+          "mid": {
+            "reset": 0,
+            "start_stop": 1
+          }
+        },
+        {
+          "reset": 0,
+          "start_stop": 1,
+          "mid": {
+            "reset": 0,
+            "start_stop": 0
+          }
+        },
+        {
+          "reset": 0,
+          "start_stop": 0,
+          "mid": {
+            "reset": 0,
+            "start_stop": 0
+          }
+        },
+        {
+          "reset": 0,
+          "start_stop": 0,
+          "mid": {
+            "reset": 0,
+            "start_stop": 1
+          }
+        },
+        {
+          "reset": 0,
+          "start_stop": 1,
+          "mid": {
+            "reset": 0,
+            "start_stop": 0
+          }
+        },
+        {
+          "reset": 0,
+          "start_stop": 0,
+          "mid": {
+            "reset": 0,
+            "start_stop": 0
+          }
+        }
+      ],
+      "expected": [
+        {
+          "seconds": 0,
+          "minutes": 0,
+          "hour": 0
+        },
+        {
+          "seconds": 0,
+          "minutes": 0,
+          "hour": 0
+        },
+        {
+          "seconds": 0,
+          "minutes": 0,
+          "hour": 0
+        },
+        {
+          "seconds": 0,
+          "minutes": 0,
+          "hour": 0
+        },
+        {
+          "seconds": 0,
+          "minutes": 0,
+          "hour": 0
+        },
+        {
+          "seconds": 0,
+          "minutes": 0,
+          "hour": 0
+        },
+        {
+          "seconds": 0,
+          "minutes": 0,
+          "hour": 0
+        },
+        {
+          "seconds": 0,
+          "minutes": 0,
+          "hour": 0
+        },
+        {
+          "seconds": 0,
+          "minutes": 0,
+          "hour": 0
+        },
+        {
+          "seconds": 0,
+          "minutes": 0,
+          "hour": 0
+        },
+        {
+          "seconds": 0,
+          "minutes": 0,
+          "hour": 0
+        },
+        {
+          "seconds": 1,
+          "minutes": 0,
+          "hour": 0
+        },
+        {
+          "seconds": 1,
+          "minutes": 0,
+          "hour": 0
+        },
+        {
+          "seconds": 1,
+          "minutes": 0,
+          "hour": 0
+        }
+      ]
+    }
+  ]
+}

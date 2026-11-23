@@ -1,0 +1,39 @@
+def reference(vectors):
+    sec = minute = hour = 0
+    div = 0
+    out = []
+    for row in vectors:
+        if isinstance(row, dict):
+            edge = row.get('edge', row.get('clk', 0))
+            reset = row.get('reset', 0)
+            start_stop = row.get('start_stop', 0)
+        else:
+            edge = row[0] if len(row) > 0 else 0
+            reset = row[1] if len(row) > 1 else 0
+            start_stop = row[2] if len(row) > 2 else 0
+        if isinstance(edge, str):
+            e = edge.lower()
+            is_pos = ('pos' in e) or (e == '1') or (e == 'p')
+        else:
+            is_pos = bool(edge)
+        reset = 1 if reset in (1, True, '1') else 0
+        start_stop = 1 if start_stop in (1, True, '1') else 0
+        if reset:
+            sec = minute = hour = div = 0
+        out.append({'seconds': sec, 'minutes': minute, 'hour': hour})
+        if is_pos and not reset:
+            if start_stop:
+                if div == 3:
+                    div = 0
+                    if sec == 59:
+                        sec = 0
+                        if minute == 59:
+                            minute = 0
+                            hour = (hour + 1) & 1
+                        else:
+                            minute += 1
+                    else:
+                        sec += 1
+                else:
+                    div += 1
+    return out

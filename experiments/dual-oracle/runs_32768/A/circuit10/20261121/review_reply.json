@@ -1,0 +1,4 @@
+{
+  "responses": [],
+  "source": "def reference(vectors):\n    state = 0\n    prev_clk = 0\n    out = []\n    has_clk = bool(vectors) and isinstance(vectors[0], dict) and 'clk' in vectors[0]\n\n    for i, v in enumerate(vectors):\n        a = v.get('a', 0) & 1\n        b = v.get('b', 0) & 1\n\n        if has_clk:\n            clk = v['clk'] & 1\n        else:\n            clk = i & 1\n\n        posedge = (prev_clk == 0 and clk == 1)\n\n        if posedge:\n            state = (a & b) | (state & (a | b))\n\n        q = (a ^ b ^ state) & 1\n        out.append({'q': q, 'state': state & 1})\n        prev_clk = clk\n\n    return out\n"
+}

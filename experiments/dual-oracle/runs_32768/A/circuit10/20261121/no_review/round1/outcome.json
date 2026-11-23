@@ -1,0 +1,400 @@
+{
+  "decisions": [
+    {
+      "id": "s1/5/q",
+      "label": "TB",
+      "spec_quote": "Read the simulation waveforms to determine what the circuit does"
+    },
+    {
+      "id": "s1/5/state",
+      "label": "TB",
+      "spec_quote": "The output of the flip-flop has been made observable through the output state."
+    },
+    {
+      "id": "s3/1/q",
+      "label": "RM",
+      "spec_quote": "Read the simulation waveforms to determine what the circuit does"
+    },
+    {
+      "id": "s3/2/q",
+      "label": "RM",
+      "spec_quote": "Read the simulation waveforms to determine what the circuit does"
+    },
+    {
+      "id": "s3/5/state",
+      "label": "TB",
+      "spec_quote": "The output of the flip-flop has been made observable through the output state."
+    },
+    {
+      "id": "s5/7/q",
+      "label": "TB",
+      "spec_quote": "Read the simulation waveforms to determine what the circuit does"
+    },
+    {
+      "id": "s5/7/state",
+      "label": "TB",
+      "spec_quote": "The output of the flip-flop has been made observable through the output state."
+    }
+  ],
+  "RM": "def reference(vectors):\n    state = 0\n    prev_clk = 0\n    out = []\n    has_clk = bool(vectors) and isinstance(vectors[0], dict) and 'clk' in vectors[0]\n\n    for i, v in enumerate(vectors):\n        a = v.get('a', 0) & 1\n        b = v.get('b', 0) & 1\n\n        if has_clk:\n            clk = v['clk'] & 1\n        else:\n            clk = i & 1\n\n        posedge = (prev_clk == 0 and clk == 1)\n\n        if posedge:\n            state = (a & b) | (state & (a | b))\n\n        q = (a ^ b ^ state) & 1\n        out.append({'q': q, 'state': state & 1})\n        prev_clk = clk\n\n    return out\n",
+  "TB": [
+    {
+      "id": "s1",
+      "spec_quote": "// 15ns            1               0               0               0               0               ",
+      "covers": [
+        "behavior",
+        "boundary",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "a": 0,
+          "b": 0
+        },
+        {
+          "a": 0,
+          "b": 0
+        },
+        {
+          "a": 0,
+          "b": 1
+        },
+        {
+          "a": 1,
+          "b": 0
+        },
+        {
+          "a": 1,
+          "b": 1
+        },
+        {
+          "a": 0,
+          "b": 0
+        }
+      ],
+      "expected": [
+        {
+          "q": 0,
+          "state": 0
+        },
+        {
+          "q": 0,
+          "state": 0
+        },
+        {
+          "q": 1,
+          "state": 0
+        },
+        {
+          "q": 1,
+          "state": 0
+        },
+        {
+          "q": 1,
+          "state": 1
+        },
+        {
+          "q": 0,
+          "state": 0
+        }
+      ]
+    },
+    {
+      "id": "s2",
+      "spec_quote": "// 75ns            1               0               0               1               1               ",
+      "covers": [
+        "behavior",
+        "boundary",
+        "priority"
+      ],
+      "vectors": [
+        {
+          "a": 0,
+          "b": 0
+        },
+        {
+          "a": 1,
+          "b": 1
+        },
+        {
+          "a": 0,
+          "b": 1
+        },
+        {
+          "a": 1,
+          "b": 0
+        },
+        {
+          "a": 1,
+          "b": 1
+        },
+        {
+          "a": 0,
+          "b": 0
+        }
+      ],
+      "expected": [
+        {
+          "q": 0,
+          "state": 0
+        },
+        {
+          "q": 1,
+          "state": 1
+        },
+        {
+          "q": 0,
+          "state": 1
+        },
+        {
+          "q": 0,
+          "state": 1
+        },
+        {
+          "q": 1,
+          "state": 1
+        },
+        {
+          "q": 0,
+          "state": 0
+        }
+      ]
+    },
+    {
+      "id": "s3",
+      "spec_quote": "// 75ns            1               0               0               1               1               ",
+      "covers": [
+        "behavior",
+        "boundary"
+      ],
+      "vectors": [
+        {
+          "a": 0,
+          "b": 0,
+          "mid": {
+            "a": 1,
+            "b": 0
+          }
+        },
+        {
+          "a": 0,
+          "b": 0,
+          "mid": {
+            "a": 0,
+            "b": 1
+          }
+        },
+        {
+          "a": 0,
+          "b": 0,
+          "mid": {
+            "a": 1,
+            "b": 1
+          }
+        },
+        {
+          "a": 1,
+          "b": 1,
+          "mid": {
+            "a": 0,
+            "b": 0
+          }
+        },
+        {
+          "a": 0,
+          "b": 0,
+          "mid": {
+            "a": 1,
+            "b": 0
+          }
+        },
+        {
+          "a": 1,
+          "b": 1,
+          "mid": {
+            "a": 1,
+            "b": 1
+          }
+        }
+      ],
+      "expected": [
+        {
+          "q": 1,
+          "state": 0
+        },
+        {
+          "q": 1,
+          "state": 0
+        },
+        {
+          "q": 0,
+          "state": 0
+        },
+        {
+          "q": 1,
+          "state": 1
+        },
+        {
+          "q": 1,
+          "state": 0
+        },
+        {
+          "q": 1,
+          "state": 1
+        }
+      ]
+    },
+    {
+      "id": "s4",
+      "spec_quote": "// time            clk             a               b               state           q               ",
+      "covers": [
+        "behavior",
+        "priority"
+      ],
+      "vectors": [
+        {
+          "a": 0,
+          "b": 0
+        },
+        {
+          "a": 0,
+          "b": 1
+        },
+        {
+          "a": 1,
+          "b": 0
+        },
+        {
+          "a": 1,
+          "b": 1
+        },
+        {
+          "a": 0,
+          "b": 1
+        },
+        {
+          "a": 1,
+          "b": 0
+        },
+        {
+          "a": 1,
+          "b": 1
+        },
+        {
+          "a": 0,
+          "b": 0
+        }
+      ],
+      "expected": [
+        {
+          "q": 0,
+          "state": 0
+        },
+        {
+          "q": 1,
+          "state": 0
+        },
+        {
+          "q": 1,
+          "state": 0
+        },
+        {
+          "q": 1,
+          "state": 1
+        },
+        {
+          "q": 0,
+          "state": 1
+        },
+        {
+          "q": 0,
+          "state": 1
+        },
+        {
+          "q": 1,
+          "state": 1
+        },
+        {
+          "q": 0,
+          "state": 0
+        }
+      ]
+    },
+    {
+      "id": "s5",
+      "spec_quote": "// 115ns           1               1               0               1               0               ",
+      "covers": [
+        "behavior",
+        "boundary"
+      ],
+      "vectors": [
+        {
+          "a": 0,
+          "b": 0
+        },
+        {
+          "a": 1,
+          "b": 1
+        },
+        {
+          "a": 1,
+          "b": 0
+        },
+        {
+          "a": 1,
+          "b": 0
+        },
+        {
+          "a": 0,
+          "b": 1
+        },
+        {
+          "a": 0,
+          "b": 1
+        },
+        {
+          "a": 0,
+          "b": 0
+        },
+        {
+          "a": 0,
+          "b": 0
+        }
+      ],
+      "expected": [
+        {
+          "q": 0,
+          "state": 0
+        },
+        {
+          "q": 1,
+          "state": 1
+        },
+        {
+          "q": 0,
+          "state": 1
+        },
+        {
+          "q": 0,
+          "state": 1
+        },
+        {
+          "q": 0,
+          "state": 1
+        },
+        {
+          "q": 0,
+          "state": 1
+        },
+        {
+          "q": 0,
+          "state": 0
+        },
+        {
+          "q": 0,
+          "state": 0
+        }
+      ]
+    }
+  ]
+}

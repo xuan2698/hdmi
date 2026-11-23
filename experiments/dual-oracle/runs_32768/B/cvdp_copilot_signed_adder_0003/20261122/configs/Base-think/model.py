@@ -1,0 +1,73 @@
+def reference(vectors):
+    state = 0
+    a_reg = 0
+    b_reg = 0
+    result_reg = 0
+    overflow_reg = 0
+    out_list = []
+    fallback_pos = True
+    for row in vectors:
+        rst_n = row.get('i_rst_n', 1)
+        if rst_n == 0:
+            state = 0
+            a_reg = 0
+            b_reg = 0
+            result_reg = 0
+            overflow_reg = 0
+        
+        e = row.get('edge', None)
+        if e is None:
+            e = row.get('i_clk', None)
+        if e is None:
+            is_pos = fallback_pos
+            fallback_pos = not fallback_pos
+        else:
+            if isinstance(e, str):
+                s = e.lower()
+                is_pos = ('pos' in s) or (s == '1')
+            else:
+                is_pos = (e == 1)
+        
+        o_resultant_sum = result_reg & 0xFF
+        o_overflow = overflow_reg & 0x1
+        o_ready = 1 if state == 3 else 0
+        o_status = state & 0x3
+        out_list.append({
+            'o_resultant_sum': o_resultant_sum,
+            'o_overflow': o_overflow,
+            'o_ready': o_ready,
+            'o_status': o_status
+        })
+        
+        if is_pos and rst_n != 0:
+            clear = row.get('i_clear', 0)
+            if clear:
+                state = 0
+                a_reg = 0
+                b_reg = 0
+                result_reg = 0
+                overflow_reg = 0
+            else:
+                if state == 0:
+                    if row.get('i_enable', 0) and row.get('i_start', 0):
+                        state = 1
+                elif state == 1:
+                    a_reg = row.get('i_operand_a', 0) & 0xFF
+                    b_reg = row.get('i_operand_b', 0) & 0xFF
+                    state = 2
+                elif state == 2:
+                    mode = row.get('i_mode', 0)
+                    a_s = a_reg - 256 if (a_reg & 0x80) else a_reg
+                    b_s = b_reg - 256 if (b_reg & 0x80) else b_reg
+                    if mode == 0:
+                        res_s = a_s + b_s
+                        overflow = 1 if (a_s >= 0 and b_s >= 0 and res_s > 127) or (a_s < 0 and b_s < 0 and res_s < -128) else 0
+                    else:
+                        res_s = a_s - b_s
+                        overflow = 1 if (a_s >= 0 and b_s < 0 and res_s > 127) or (a_s < 0 and b_s >= 0 and res_s < -128) else 0
+                    result_reg = res_s & 0xFF
+                    overflow_reg = overflow
+                    state = 3
+                elif state == 3:
+                    state = 0
+    return out_list

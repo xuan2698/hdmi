@@ -1,0 +1,64 @@
+```python
+def reference(vectors):
+    cnt = 31
+    out = []
+    for row in vectors:
+        reset = 0
+        edge = None
+        clk = None
+        if isinstance(row, dict):
+            if 'reset' in row:
+                reset = row['reset']
+            if 'edge' in row:
+                edge = row['edge']
+            if 'clk' in row:
+                clk = row['clk']
+        elif isinstance(row, (list, tuple)):
+            if len(row) == 2:
+                if isinstance(row[0], str):
+                    edge = row[0]
+                    reset = row[1]
+                else:
+                    clk = row[0]
+                    reset = row[1]
+            elif len(row) >= 3:
+                clk = row[0]
+                reset = row[1]
+                if isinstance(row[2], str):
+                    edge = row[2]
+            elif len(row) == 1:
+                reset = row[0]
+
+        if isinstance(reset, str):
+            reset = 1 if reset.lower() in ('1', 'true', 'high') else 0
+        else:
+            reset = int(reset) & 1
+
+        is_pos = False
+        if clk is not None:
+            if isinstance(clk, str):
+                is_pos = 'pos' in clk.lower() or clk == '1'
+            else:
+                is_pos = (int(clk) & 1) == 1
+        elif edge is not None:
+            if isinstance(edge, str):
+                e = edge.lower()
+                is_pos = ('pos' in e) or e.startswith('1') or e == 'p'
+            else:
+                is_pos = (int(edge) & 1) == 1
+
+        if reset:
+            cnt = 31
+
+        gate = 1 if (cnt > 0 and cnt < 14) else 0
+        rel = 1 if cnt < 8 else 0
+        out.append({'cnt_q': cnt, 'gate_clk_o': gate, 'release_reset_o': rel})
+
+        if is_pos:
+            if reset:
+                cnt = 31
+            elif cnt > 0:
+                cnt -= 1
+
+    return out
+```

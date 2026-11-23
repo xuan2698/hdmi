@@ -1,0 +1,451 @@
+{
+  "decisions": [
+    {
+      "id": "s1/2/token",
+      "label": "TB",
+      "spec_quote": "The FSM cycles through the four nodes, passing the token sequentially."
+    },
+    {
+      "id": "s1/3/token",
+      "label": "TB",
+      "spec_quote": "The FSM cycles through the four nodes, passing the token sequentially."
+    },
+    {
+      "id": "s1/4/token_received",
+      "label": "TB",
+      "spec_quote": "The FSM cycles through the four nodes, passing the token sequentially."
+    },
+    {
+      "id": "s2/2/token",
+      "label": "TB",
+      "spec_quote": "The FSM cycles through the four nodes, passing the token sequentially."
+    },
+    {
+      "id": "s2/3/data_out",
+      "label": "TB",
+      "spec_quote": "When a node holds the token and `has_data_to_send` is HIGH, `data_out` reflects `data_in`."
+    },
+    {
+      "id": "s2/3/token",
+      "label": "TB",
+      "spec_quote": "The FSM cycles through the four nodes, passing the token sequentially."
+    },
+    {
+      "id": "s3/2/token",
+      "label": "TB",
+      "spec_quote": "The FSM cycles through the four nodes, passing the token sequentially."
+    },
+    {
+      "id": "s3/3/data_out",
+      "label": "TB",
+      "spec_quote": "When a node holds the token and `has_data_to_send` is HIGH, `data_out` reflects `data_in`."
+    },
+    {
+      "id": "s3/3/token",
+      "label": "TB",
+      "spec_quote": "The FSM cycles through the four nodes, passing the token sequentially."
+    },
+    {
+      "id": "s4/2/data_out",
+      "label": "TB",
+      "spec_quote": "When a node holds the token and `has_data_to_send` is HIGH, `data_out` reflects `data_in`."
+    },
+    {
+      "id": "s4/2/token",
+      "label": "TB",
+      "spec_quote": "The FSM cycles through the four nodes, passing the token sequentially."
+    },
+    {
+      "id": "s4/3/data_out",
+      "label": "TB",
+      "spec_quote": "When a node holds the token and `has_data_to_send` is HIGH, `data_out` reflects `data_in`."
+    }
+  ],
+  "RM": "def reference(vectors):\n    state = 1\n    results = []\n    for i, row in enumerate(vectors):\n        rst = 0\n        data_in = 0\n        has = 0\n        is_pos = (i % 2 == 0)\n        if isinstance(row, dict):\n            rst = int(row.get('rst', 0)) & 1\n            data_in = int(row.get('data_in', 0)) & 0xF\n            has = int(row.get('has_data_to_send', 0)) & 1\n            if 'edge' in row:\n                v = row['edge']\n                if isinstance(v, str):\n                    s = v.lower()\n                    if 'pos' in s or 'rise' in s:\n                        is_pos = True\n                    elif 'neg' in s or 'fall' in s:\n                        is_pos = False\n                else:\n                    is_pos = bool(v)\n            elif 'clk' in row:\n                v = row['clk']\n                if isinstance(v, str):\n                    s = v.lower()\n                    if 'pos' in s or 'rise' in s or s == '1':\n                        is_pos = True\n                    elif 'neg' in s or 'fall' in s or s == '0':\n                        is_pos = False\n                else:\n                    is_pos = bool(v)\n            elif 'posedge' in row:\n                is_pos = bool(row['posedge'])\n            elif 'negedge' in row:\n                is_pos = not bool(row['negedge'])\n        elif isinstance(row, (list, tuple)):\n            vals = list(row)\n            if vals and isinstance(vals[0], str):\n                s = vals[0].lower()\n                if 'pos' in s or 'rise' in s:\n                    is_pos = True\n                    vals = vals[1:]\n                elif 'neg' in s or 'fall' in s:\n                    is_pos = False\n                    vals = vals[1:]\n            elif len(vals) == 4 and isinstance(vals[0], (int, bool)) and vals[0] in (0, 1):\n                is_pos = bool(vals[0])\n                vals = vals[1:]\n            if len(vals) >= 3:\n                rst = int(vals[0]) & 1\n                data_in = int(vals[1]) & 0xF\n                has = int(vals[2]) & 1\n            elif len(vals) == 2:\n                rst = 0\n                data_in = int(vals[0]) & 0xF\n                has = int(vals[1]) & 1\n            elif len(vals) == 1:\n                rst = int(vals[0]) & 1\n                data_in = 0\n                has = 0\n        if rst:\n            state = 1\n        if state not in (1, 2, 4, 8):\n            state = 1\n        if rst:\n            data_out = 0\n            tr_out = 1\n            token_out = 0\n        else:\n            valid = state in (1, 2, 4, 8)\n            data_out = data_in if (has and valid) else 0\n            tr_out = state & 0xF\n            token_out = ((state << 1) | (state >> 3)) & 0xF\n        results.append({'data_out': data_out & 0xF, 'token_received': tr_out & 0xF, 'token': token_out & 0xF})\n        if is_pos:\n            if rst:\n                state = 1\n            else:\n                state = token_out\n    return results\n",
+  "TB": [
+    {
+      "id": "s1",
+      "spec_quote": "When `rst` is asserted HIGH, the FSM resets to `NODE0`, `token_received` is set to `4'b0001`, and other outputs are cleared.",
+      "covers": [
+        "behavior",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "rst": 1,
+          "data_in": 0,
+          "has_data_to_send": 0,
+          "mid": {
+            "rst": 0
+          }
+        },
+        {
+          "rst": 0,
+          "data_in": 0,
+          "has_data_to_send": 0
+        },
+        {
+          "rst": 0,
+          "data_in": 0,
+          "has_data_to_send": 0
+        },
+        {
+          "rst": 0,
+          "data_in": 0,
+          "has_data_to_send": 0
+        },
+        {
+          "rst": 0,
+          "data_in": 0,
+          "has_data_to_send": 0
+        },
+        {
+          "rst": 0,
+          "data_in": 0,
+          "has_data_to_send": 0
+        }
+      ],
+      "expected": [
+        {
+          "data_out": 0,
+          "token_received": 1,
+          "token": 0
+        },
+        {
+          "data_out": 0,
+          "token_received": 1,
+          "token": 2
+        },
+        {
+          "data_out": 0,
+          "token_received": 1,
+          "token": 2
+        },
+        {
+          "data_out": 0,
+          "token_received": 2,
+          "token": 2
+        },
+        {
+          "data_out": 0,
+          "token_received": 1,
+          "token": 2
+        },
+        {
+          "data_out": 0,
+          "token_received": 2,
+          "token": 4
+        },
+        {
+          "data_out": 0,
+          "token_received": 2,
+          "token": 4
+        },
+        {
+          "data_out": 0,
+          "token_received": 4,
+          "token": 8
+        },
+        {
+          "data_out": 0,
+          "token_received": 4,
+          "token": 8
+        },
+        {
+          "data_out": 0,
+          "token_received": 8,
+          "token": 1
+        },
+        {
+          "data_out": 0,
+          "token_received": 8,
+          "token": 1
+        },
+        {
+          "data_out": 0,
+          "token_received": 1,
+          "token": 2
+        }
+      ]
+    },
+    {
+      "id": "s2",
+      "spec_quote": "When a node holds the token and `has_data_to_send` is HIGH, `data_out` reflects `data_in`.",
+      "covers": [
+        "behavior",
+        "boundary",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "rst": 1,
+          "data_in": 0,
+          "has_data_to_send": 0,
+          "mid": {
+            "rst": 0
+          }
+        },
+        {
+          "rst": 0,
+          "data_in": 5,
+          "has_data_to_send": 1
+        },
+        {
+          "rst": 0,
+          "data_in": 10,
+          "has_data_to_send": 1
+        },
+        {
+          "rst": 0,
+          "data_in": 15,
+          "has_data_to_send": 0
+        },
+        {
+          "rst": 0,
+          "data_in": 15,
+          "has_data_to_send": 1
+        },
+        {
+          "rst": 0,
+          "data_in": 0,
+          "has_data_to_send": 1
+        }
+      ],
+      "expected": [
+        {
+          "data_out": 0,
+          "token_received": 1,
+          "token": 0
+        },
+        {
+          "data_out": 0,
+          "token_received": 1,
+          "token": 2
+        },
+        {
+          "data_out": 5,
+          "token_received": 1,
+          "token": 2
+        },
+        {
+          "data_out": 5,
+          "token_received": 1,
+          "token": 2
+        },
+        {
+          "data_out": 5,
+          "token_received": 1,
+          "token": 2
+        },
+        {
+          "data_out": 10,
+          "token_received": 2,
+          "token": 4
+        },
+        {
+          "data_out": 10,
+          "token_received": 2,
+          "token": 4
+        },
+        {
+          "data_out": 0,
+          "token_received": 4,
+          "token": 8
+        },
+        {
+          "data_out": 0,
+          "token_received": 4,
+          "token": 8
+        },
+        {
+          "data_out": 15,
+          "token_received": 8,
+          "token": 1
+        },
+        {
+          "data_out": 15,
+          "token_received": 8,
+          "token": 1
+        },
+        {
+          "data_out": 0,
+          "token_received": 1,
+          "token": 2
+        }
+      ]
+    },
+    {
+      "id": "s3",
+      "spec_quote": "The FSM cycles through the four nodes, passing the token sequentially.",
+      "covers": [
+        "behavior",
+        "priority",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "rst": 1,
+          "data_in": 0,
+          "has_data_to_send": 0,
+          "mid": {
+            "rst": 0
+          }
+        },
+        {
+          "rst": 0,
+          "data_in": 9,
+          "has_data_to_send": 1
+        },
+        {
+          "rst": 0,
+          "data_in": 11,
+          "has_data_to_send": 1,
+          "mid": {
+            "rst": 1
+          }
+        },
+        {
+          "rst": 1,
+          "data_in": 0,
+          "has_data_to_send": 0,
+          "mid": {
+            "rst": 0
+          }
+        },
+        {
+          "rst": 0,
+          "data_in": 3,
+          "has_data_to_send": 1
+        }
+      ],
+      "expected": [
+        {
+          "data_out": 0,
+          "token_received": 1,
+          "token": 0
+        },
+        {
+          "data_out": 0,
+          "token_received": 1,
+          "token": 2
+        },
+        {
+          "data_out": 9,
+          "token_received": 1,
+          "token": 2
+        },
+        {
+          "data_out": 9,
+          "token_received": 1,
+          "token": 2
+        },
+        {
+          "data_out": 9,
+          "token_received": 1,
+          "token": 2
+        },
+        {
+          "data_out": 0,
+          "token_received": 1,
+          "token": 0
+        },
+        {
+          "data_out": 0,
+          "token_received": 1,
+          "token": 0
+        },
+        {
+          "data_out": 0,
+          "token_received": 1,
+          "token": 0
+        },
+        {
+          "data_out": 0,
+          "token_received": 1,
+          "token": 0
+        },
+        {
+          "data_out": 3,
+          "token_received": 1,
+          "token": 2
+        }
+      ]
+    },
+    {
+      "id": "s4",
+      "spec_quote": "If no node is ready to send, `data_out` remains `4'b0000`.",
+      "covers": [
+        "behavior",
+        "boundary",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "rst": 1,
+          "data_in": 15,
+          "has_data_to_send": 1,
+          "mid": {
+            "rst": 0
+          }
+        },
+        {
+          "rst": 0,
+          "data_in": 15,
+          "has_data_to_send": 1
+        },
+        {
+          "rst": 0,
+          "data_in": 0,
+          "has_data_to_send": 1
+        },
+        {
+          "rst": 0,
+          "data_in": 5,
+          "has_data_to_send": 0
+        }
+      ],
+      "expected": [
+        {
+          "data_out": 0,
+          "token_received": 1,
+          "token": 0
+        },
+        {
+          "data_out": 15,
+          "token_received": 1,
+          "token": 2
+        },
+        {
+          "data_out": 15,
+          "token_received": 1,
+          "token": 0
+        },
+        {
+          "data_out": 15,
+          "token_received": 1,
+          "token": 2
+        },
+        {
+          "data_out": 15,
+          "token_received": 1,
+          "token": 2
+        },
+        {
+          "data_out": 0,
+          "token_received": 2,
+          "token": 4
+        },
+        {
+          "data_out": 0,
+          "token_received": 2,
+          "token": 4
+        },
+        {
+          "data_out": 0,
+          "token_received": 4,
+          "token": 8
+        }
+      ]
+    }
+  ]
+}

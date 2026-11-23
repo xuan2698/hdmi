@@ -1,0 +1,56 @@
+```python
+def reference(vectors):
+    counter = 0
+    one_sec_pulse = 0
+    seconds = 0
+    minutes = 0
+    hour = 0
+    out = []
+    for i, row in enumerate(vectors):
+        reset = row.get('reset', 0)
+        start_stop = row.get('start_stop', 0)
+        is_posedge = (i % 2 == 0)
+        if 'edge' in row:
+            e = row['edge']
+            if e in ('posedge', 1):
+                is_posedge = True
+            elif e in ('negedge', 0):
+                is_posedge = False
+        if reset == 1:
+            counter = 0
+            one_sec_pulse = 0
+            seconds = 0
+            minutes = 0
+            hour = 0
+        out.append({'seconds': seconds, 'minutes': minutes, 'hour': hour})
+        if is_posedge and reset == 0:
+            if start_stop:
+                if counter == 3:
+                    next_counter = 0
+                    next_one_sec_pulse = 1
+                else:
+                    next_counter = counter + 1
+                    next_one_sec_pulse = 0
+            else:
+                next_counter = counter
+                next_one_sec_pulse = 0
+            next_seconds = seconds
+            next_minutes = minutes
+            next_hour = hour
+            if one_sec_pulse:
+                if seconds == 59:
+                    next_seconds = 0
+                    if minutes == 59:
+                        next_minutes = 0
+                        next_hour = 1
+                    else:
+                        next_minutes = minutes + 1
+                else:
+                    next_seconds = seconds + 1
+            counter = next_counter
+            one_sec_pulse = next_one_sec_pulse
+            seconds = next_seconds
+            minutes = next_minutes
+            hour = next_hour
+    return out
+```

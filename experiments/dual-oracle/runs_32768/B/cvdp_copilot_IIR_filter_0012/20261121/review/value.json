@@ -1,0 +1,26 @@
+[
+  {
+    "id": "no_filter_processing",
+    "location": "lines 22-25: if reset == 0 and clk == 1 and prev_clk == 0: out_1 = row.get('in_1', 0) & 0xFFFF ...",
+    "spec_quote": "- **Filter Processing:** The selected filter should be applied to the inputs, and the outputs should reflect the processed values.",
+    "fix": "Implement the filter equations using internal state and selected coefficients instead of directly copying input samples to outputs."
+  },
+  {
+    "id": "filter_select_ignored",
+    "location": "reference(); no occurrence of filter_select or row.get('filter_select')",
+    "spec_quote": "- **`filter_select [1:0] (2-bit, unsigned)`**: Filter selection signal that determines which filter coefficients are applied.",
+    "fix": "Read filter_select and use it to choose the coefficient set applied during filtering."
+  },
+  {
+    "id": "reset_internal_states_missing",
+    "location": "lines 14-16: if reset == 1: out_1 = out_2 = out_3 = 0; cur_1, cur_2, cur_3 = ...",
+    "spec_quote": "- **Reset Handling:** The filter should correctly initialize all internal states upon reset.",
+    "fix": "Maintain explicit filter history/state registers and clear them when reset is asserted, in addition to clearing outputs."
+  },
+  {
+    "id": "saturation_wrap",
+    "location": "lines 18-20 and 23-25: cur_1 & 0xFFFF; out_1 = row.get('in_1', 0) & 0xFFFF",
+    "spec_quote": "- **Saturation and Stability:** The filter should handle extreme values without causing instability.",
+    "fix": "Clamp filtered results to the signed 16-bit range [-32768, 32767] instead of wrapping with & 0xFFFF."
+  }
+]

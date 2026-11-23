@@ -1,0 +1,511 @@
+{
+  "decisions": [],
+  "RM": "def reference(vectors):\n    N = 8\n    enc_valid_out = 0\n    enc_data_out = 0\n    dec_valid_out = 0\n    dec_data_out = 0\n    outputs = []\n    for idx, row in enumerate(vectors):\n        rst = row.get('rst_in', 0)\n        if rst:\n            enc_valid_out = 0\n            enc_data_out = 0\n            dec_valid_out = 0\n            dec_data_out = 0\n        outputs.append({\n            'enc_valid_out': enc_valid_out,\n            'enc_data_out': enc_data_out,\n            'dec_valid_out': dec_valid_out,\n            'dec_data_out': dec_data_out\n        })\n        if idx % 2 == 0 and not rst:\n            enc_valid_in = row.get('enc_valid_in', 0)\n            enc_data_in = row.get('enc_data_in', 0)\n            dec_valid_in = row.get('dec_valid_in', 0)\n            dec_data_in = row.get('dec_data_in', 0)\n            next_enc_data = 0\n            for i in range(N):\n                d = (enc_data_in >> i) & 1\n                next_enc_data |= (d << (2 * i)) | ((1 - d) << (2 * i + 1))\n            next_dec_data = 0\n            for i in range(N):\n                low = (dec_data_in >> (2 * i)) & 1\n                high = (dec_data_in >> (2 * i + 1)) & 1\n                bit = low if high != low else 0\n                next_dec_data |= bit << i\n            enc_valid_out = enc_valid_in\n            enc_data_out = next_enc_data\n            dec_valid_out = dec_valid_in\n            dec_data_out = next_dec_data\n    return outputs\n",
+  "TB": [
+    {
+      "id": "s1",
+      "spec_quote": "When `rst_in` is asserted, all outputs (`enc_data_out`, `enc_valid_out`, `dec_data_out`, `dec_valid_out`) are cleared to zero.",
+      "covers": [
+        "behavior",
+        "priority",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "rst_in": 1,
+          "enc_valid_in": 1,
+          "enc_data_in": 165,
+          "dec_valid_in": 1,
+          "dec_data_in": 21845
+        },
+        {
+          "rst_in": 1,
+          "enc_valid_in": 1,
+          "enc_data_in": 165,
+          "dec_valid_in": 1,
+          "dec_data_in": 21845,
+          "mid": {
+            "rst_in": 0,
+            "enc_valid_in": 1,
+            "enc_data_in": 165,
+            "dec_valid_in": 1,
+            "dec_data_in": 21845
+          }
+        },
+        {
+          "rst_in": 0,
+          "enc_valid_in": 1,
+          "enc_data_in": 165,
+          "dec_valid_in": 0,
+          "dec_data_in": 65535
+        },
+        {
+          "rst_in": 0,
+          "enc_valid_in": 0,
+          "enc_data_in": 0,
+          "dec_valid_in": 1,
+          "dec_data_in": 21845,
+          "mid": {
+            "rst_in": 1,
+            "enc_valid_in": 0,
+            "enc_data_in": 0,
+            "dec_valid_in": 1,
+            "dec_data_in": 21845
+          }
+        },
+        {
+          "rst_in": 1,
+          "enc_valid_in": 0,
+          "enc_data_in": 0,
+          "dec_valid_in": 0,
+          "dec_data_in": 0
+        }
+      ],
+      "expected": [
+        {
+          "enc_valid_out": 0,
+          "enc_data_out": 0,
+          "dec_valid_out": 0,
+          "dec_data_out": 0
+        },
+        {
+          "enc_valid_out": 0,
+          "enc_data_out": 0,
+          "dec_valid_out": 0,
+          "dec_data_out": 0
+        },
+        {
+          "enc_valid_out": 0,
+          "enc_data_out": 0,
+          "dec_valid_out": 0,
+          "dec_data_out": 0
+        },
+        {
+          "enc_valid_out": 0,
+          "enc_data_out": 0,
+          "dec_valid_out": 0,
+          "dec_data_out": 0
+        },
+        {
+          "enc_valid_out": 0,
+          "enc_data_out": 0,
+          "dec_valid_out": 0,
+          "dec_data_out": 0
+        },
+        {
+          "enc_valid_out": 1,
+          "enc_data_out": 26265,
+          "dec_valid_out": 0,
+          "dec_data_out": 0
+        },
+        {
+          "enc_valid_out": 1,
+          "enc_data_out": 26265,
+          "dec_valid_out": 0,
+          "dec_data_out": 0
+        },
+        {
+          "enc_valid_out": 0,
+          "enc_data_out": 0,
+          "dec_valid_out": 0,
+          "dec_data_out": 0
+        },
+        {
+          "enc_valid_out": 0,
+          "enc_data_out": 0,
+          "dec_valid_out": 0,
+          "dec_data_out": 0
+        },
+        {
+          "enc_valid_out": 0,
+          "enc_data_out": 0,
+          "dec_valid_out": 0,
+          "dec_data_out": 0
+        }
+      ]
+    },
+    {
+      "id": "s2",
+      "spec_quote": "The encoder converts N-bit input data (`enc_data_in`) into 2N-bit Manchester-encoded data (`enc_data_out`).",
+      "covers": [
+        "behavior",
+        "boundary",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "rst_in": 1,
+          "enc_valid_in": 0,
+          "enc_data_in": 0,
+          "dec_valid_in": 0,
+          "dec_data_in": 0,
+          "mid": {
+            "rst_in": 0,
+            "enc_valid_in": 0,
+            "enc_data_in": 0,
+            "dec_valid_in": 0,
+            "dec_data_in": 0
+          }
+        },
+        {
+          "rst_in": 0,
+          "enc_valid_in": 1,
+          "enc_data_in": 0,
+          "dec_valid_in": 0,
+          "dec_data_in": 0
+        },
+        {
+          "rst_in": 0,
+          "enc_valid_in": 0,
+          "enc_data_in": 255,
+          "dec_valid_in": 1,
+          "dec_data_in": 21845
+        },
+        {
+          "rst_in": 0,
+          "enc_valid_in": 1,
+          "enc_data_in": 0,
+          "dec_valid_in": 0,
+          "dec_data_in": 43690
+        }
+      ],
+      "expected": [
+        {
+          "enc_valid_out": 0,
+          "enc_data_out": 0,
+          "dec_valid_out": 0,
+          "dec_data_out": 0
+        },
+        {
+          "enc_valid_out": 0,
+          "enc_data_out": 0,
+          "dec_valid_out": 0,
+          "dec_data_out": 0
+        },
+        {
+          "enc_valid_out": 0,
+          "enc_data_out": 0,
+          "dec_valid_out": 0,
+          "dec_data_out": 0
+        },
+        {
+          "enc_valid_out": 1,
+          "enc_data_out": 43690,
+          "dec_valid_out": 0,
+          "dec_data_out": 0
+        },
+        {
+          "enc_valid_out": 1,
+          "enc_data_out": 43690,
+          "dec_valid_out": 0,
+          "dec_data_out": 0
+        },
+        {
+          "enc_valid_out": 0,
+          "enc_data_out": 21845,
+          "dec_valid_out": 1,
+          "dec_data_out": 255
+        },
+        {
+          "enc_valid_out": 0,
+          "enc_data_out": 21845,
+          "dec_valid_out": 1,
+          "dec_data_out": 255
+        },
+        {
+          "enc_valid_out": 1,
+          "enc_data_out": 43690,
+          "dec_valid_out": 0,
+          "dec_data_out": 0
+        }
+      ]
+    },
+    {
+      "id": "s3",
+      "spec_quote": "`1` is encoded as `01`.",
+      "covers": [
+        "behavior",
+        "boundary",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "rst_in": 1,
+          "enc_valid_in": 0,
+          "enc_data_in": 0,
+          "dec_valid_in": 0,
+          "dec_data_in": 0,
+          "mid": {
+            "rst_in": 0,
+            "enc_valid_in": 0,
+            "enc_data_in": 0,
+            "dec_valid_in": 0,
+            "dec_data_in": 0
+          }
+        },
+        {
+          "rst_in": 0,
+          "enc_valid_in": 1,
+          "enc_data_in": 255,
+          "dec_valid_in": 0,
+          "dec_data_in": 0
+        },
+        {
+          "rst_in": 0,
+          "enc_valid_in": 0,
+          "enc_data_in": 0,
+          "dec_valid_in": 1,
+          "dec_data_in": 43690
+        },
+        {
+          "rst_in": 0,
+          "enc_valid_in": 1,
+          "enc_data_in": 255,
+          "dec_valid_in": 1,
+          "dec_data_in": 21845
+        }
+      ],
+      "expected": [
+        {
+          "enc_valid_out": 0,
+          "enc_data_out": 0,
+          "dec_valid_out": 0,
+          "dec_data_out": 0
+        },
+        {
+          "enc_valid_out": 0,
+          "enc_data_out": 0,
+          "dec_valid_out": 0,
+          "dec_data_out": 0
+        },
+        {
+          "enc_valid_out": 0,
+          "enc_data_out": 0,
+          "dec_valid_out": 0,
+          "dec_data_out": 0
+        },
+        {
+          "enc_valid_out": 1,
+          "enc_data_out": 21845,
+          "dec_valid_out": 0,
+          "dec_data_out": 0
+        },
+        {
+          "enc_valid_out": 1,
+          "enc_data_out": 21845,
+          "dec_valid_out": 0,
+          "dec_data_out": 0
+        },
+        {
+          "enc_valid_out": 0,
+          "enc_data_out": 43690,
+          "dec_valid_out": 1,
+          "dec_data_out": 0
+        },
+        {
+          "enc_valid_out": 0,
+          "enc_data_out": 43690,
+          "dec_valid_out": 1,
+          "dec_data_out": 0
+        },
+        {
+          "enc_valid_out": 1,
+          "enc_data_out": 21845,
+          "dec_valid_out": 1,
+          "dec_data_out": 255
+        }
+      ]
+    },
+    {
+      "id": "s4",
+      "spec_quote": "`01` is decoded as `1`.",
+      "covers": [
+        "behavior",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "rst_in": 1,
+          "enc_valid_in": 0,
+          "enc_data_in": 0,
+          "dec_valid_in": 0,
+          "dec_data_in": 0,
+          "mid": {
+            "rst_in": 0,
+            "enc_valid_in": 0,
+            "enc_data_in": 0,
+            "dec_valid_in": 0,
+            "dec_data_in": 0
+          }
+        },
+        {
+          "rst_in": 0,
+          "enc_valid_in": 0,
+          "enc_data_in": 0,
+          "dec_valid_in": 1,
+          "dec_data_in": 21845
+        },
+        {
+          "rst_in": 0,
+          "enc_valid_in": 1,
+          "enc_data_in": 255,
+          "dec_valid_in": 0,
+          "dec_data_in": 43690
+        },
+        {
+          "rst_in": 0,
+          "enc_valid_in": 0,
+          "enc_data_in": 0,
+          "dec_valid_in": 1,
+          "dec_data_in": 21845
+        }
+      ],
+      "expected": [
+        {
+          "enc_valid_out": 0,
+          "enc_data_out": 0,
+          "dec_valid_out": 0,
+          "dec_data_out": 0
+        },
+        {
+          "enc_valid_out": 0,
+          "enc_data_out": 0,
+          "dec_valid_out": 0,
+          "dec_data_out": 0
+        },
+        {
+          "enc_valid_out": 0,
+          "enc_data_out": 0,
+          "dec_valid_out": 0,
+          "dec_data_out": 0
+        },
+        {
+          "enc_valid_out": 0,
+          "enc_data_out": 43690,
+          "dec_valid_out": 1,
+          "dec_data_out": 255
+        },
+        {
+          "enc_valid_out": 0,
+          "enc_data_out": 43690,
+          "dec_valid_out": 1,
+          "dec_data_out": 255
+        },
+        {
+          "enc_valid_out": 1,
+          "enc_data_out": 21845,
+          "dec_valid_out": 0,
+          "dec_data_out": 0
+        },
+        {
+          "enc_valid_out": 1,
+          "enc_data_out": 21845,
+          "dec_valid_out": 0,
+          "dec_data_out": 0
+        },
+        {
+          "enc_valid_out": 0,
+          "enc_data_out": 43690,
+          "dec_valid_out": 1,
+          "dec_data_out": 255
+        }
+      ]
+    },
+    {
+      "id": "s5",
+      "spec_quote": "Invalid patterns (e.g., `00` or `11`) are decoded as `0`.",
+      "covers": [
+        "behavior",
+        "boundary",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "rst_in": 1,
+          "enc_valid_in": 0,
+          "enc_data_in": 0,
+          "dec_valid_in": 0,
+          "dec_data_in": 0,
+          "mid": {
+            "rst_in": 0,
+            "enc_valid_in": 0,
+            "enc_data_in": 0,
+            "dec_valid_in": 0,
+            "dec_data_in": 0
+          }
+        },
+        {
+          "rst_in": 0,
+          "enc_valid_in": 0,
+          "enc_data_in": 255,
+          "dec_valid_in": 1,
+          "dec_data_in": 3855
+        },
+        {
+          "rst_in": 0,
+          "enc_valid_in": 1,
+          "enc_data_in": 0,
+          "dec_valid_in": 0,
+          "dec_data_in": 0
+        },
+        {
+          "rst_in": 0,
+          "enc_valid_in": 0,
+          "enc_data_in": 255,
+          "dec_valid_in": 1,
+          "dec_data_in": 65535
+        }
+      ],
+      "expected": [
+        {
+          "enc_valid_out": 0,
+          "enc_data_out": 0,
+          "dec_valid_out": 0,
+          "dec_data_out": 0
+        },
+        {
+          "enc_valid_out": 0,
+          "enc_data_out": 0,
+          "dec_valid_out": 0,
+          "dec_data_out": 0
+        },
+        {
+          "enc_valid_out": 0,
+          "enc_data_out": 0,
+          "dec_valid_out": 0,
+          "dec_data_out": 0
+        },
+        {
+          "enc_valid_out": 0,
+          "enc_data_out": 21845,
+          "dec_valid_out": 1,
+          "dec_data_out": 0
+        },
+        {
+          "enc_valid_out": 0,
+          "enc_data_out": 21845,
+          "dec_valid_out": 1,
+          "dec_data_out": 0
+        },
+        {
+          "enc_valid_out": 1,
+          "enc_data_out": 43690,
+          "dec_valid_out": 0,
+          "dec_data_out": 0
+        },
+        {
+          "enc_valid_out": 1,
+          "enc_data_out": 43690,
+          "dec_valid_out": 0,
+          "dec_data_out": 0
+        },
+        {
+          "enc_valid_out": 0,
+          "enc_data_out": 21845,
+          "dec_valid_out": 1,
+          "dec_data_out": 0
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,811 @@
+{
+  "decisions": [],
+  "RM": "def reference(vectors):\n    enc_data = 0\n    enc_valid = 0\n    dec_data = 0\n    dec_valid = 0\n    out = []\n    for idx, row in enumerate(vectors):\n        rst = row.get('rst_in', 0)\n        enc_valid_in = row.get('enc_valid_in', 0)\n        enc_data_in = row.get('enc_data_in', 0)\n        dec_valid_in = row.get('dec_valid_in', 0)\n        dec_data_in = row.get('dec_data_in', 0)\n        if rst:\n            enc_data = 0\n            enc_valid = 0\n            dec_data = 0\n            dec_valid = 0\n        out.append({\n            'enc_valid_out': enc_valid,\n            'enc_data_out': enc_data,\n            'dec_valid_out': dec_valid,\n            'dec_data_out': dec_data\n        })\n        clk = row.get('clk_in') if isinstance(row, dict) else None\n        if clk is not None:\n            is_posedge = (clk == 1)\n        else:\n            is_posedge = (idx % 2 == 0)\n        if is_posedge and not rst:\n            enc_valid = enc_valid_in\n            enc_val = 0\n            for i in range(8):\n                bit = (enc_data_in >> i) & 1\n                pair = 1 if bit else 2\n                enc_val |= pair << (2 * i)\n            enc_data = enc_val\n\n            dec_valid = dec_valid_in\n            dec_val = 0\n            for i in range(8):\n                pair = (dec_data_in >> (2 * i)) & 3\n                if pair == 1:\n                    dec_val |= 1 << i\n            dec_data = dec_val\n    return out\n",
+  "TB": [
+    {
+      "id": "s1",
+      "spec_quote": "When `rst_in` is asserted, all outputs (`enc_data_out`, `enc_valid_out`, `dec_data_out`, `dec_valid_out`) are cleared to zero.",
+      "covers": [
+        "behavior",
+        "priority",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "rst_in": 1,
+          "enc_valid_in": 0,
+          "enc_data_in": 0,
+          "dec_valid_in": 0,
+          "dec_data_in": 0,
+          "mid": {
+            "rst_in": 1,
+            "enc_valid_in": 0,
+            "enc_data_in": 0,
+            "dec_valid_in": 0,
+            "dec_data_in": 0
+          }
+        },
+        {
+          "rst_in": 1,
+          "enc_valid_in": 1,
+          "enc_data_in": 170,
+          "dec_valid_in": 1,
+          "dec_data_in": 21845,
+          "mid": {
+            "rst_in": 1,
+            "enc_valid_in": 1,
+            "enc_data_in": 170,
+            "dec_valid_in": 1,
+            "dec_data_in": 21845
+          }
+        },
+        {
+          "rst_in": 0,
+          "enc_valid_in": 1,
+          "enc_data_in": 1,
+          "dec_valid_in": 1,
+          "dec_data_in": 21845,
+          "mid": {
+            "rst_in": 0,
+            "enc_valid_in": 1,
+            "enc_data_in": 1,
+            "dec_valid_in": 1,
+            "dec_data_in": 21845
+          }
+        },
+        {
+          "rst_in": 0,
+          "enc_valid_in": 0,
+          "enc_data_in": 1,
+          "dec_valid_in": 0,
+          "dec_data_in": 21845,
+          "mid": {
+            "rst_in": 0,
+            "enc_valid_in": 0,
+            "enc_data_in": 1,
+            "dec_valid_in": 0,
+            "dec_data_in": 21845
+          }
+        },
+        {
+          "rst_in": 0,
+          "enc_valid_in": 1,
+          "enc_data_in": 255,
+          "dec_valid_in": 1,
+          "dec_data_in": 43690,
+          "mid": {
+            "rst_in": 1,
+            "enc_valid_in": 1,
+            "enc_data_in": 255,
+            "dec_valid_in": 1,
+            "dec_data_in": 43690
+          }
+        },
+        {
+          "rst_in": 1,
+          "enc_valid_in": 0,
+          "enc_data_in": 0,
+          "dec_valid_in": 0,
+          "dec_data_in": 0,
+          "mid": {
+            "rst_in": 1,
+            "enc_valid_in": 0,
+            "enc_data_in": 0,
+            "dec_valid_in": 0,
+            "dec_data_in": 0
+          }
+        }
+      ],
+      "expected": [
+        {
+          "enc_valid_out": 0,
+          "enc_data_out": 0,
+          "dec_valid_out": 0,
+          "dec_data_out": 0
+        },
+        {
+          "enc_valid_out": 0,
+          "enc_data_out": 0,
+          "dec_valid_out": 0,
+          "dec_data_out": 0
+        },
+        {
+          "enc_valid_out": 0,
+          "enc_data_out": 0,
+          "dec_valid_out": 0,
+          "dec_data_out": 0
+        },
+        {
+          "enc_valid_out": 0,
+          "enc_data_out": 0,
+          "dec_valid_out": 0,
+          "dec_data_out": 0
+        },
+        {
+          "enc_valid_out": 0,
+          "enc_data_out": 0,
+          "dec_valid_out": 0,
+          "dec_data_out": 0
+        },
+        {
+          "enc_valid_out": 1,
+          "enc_data_out": 43689,
+          "dec_valid_out": 1,
+          "dec_data_out": 255
+        },
+        {
+          "enc_valid_out": 1,
+          "enc_data_out": 43689,
+          "dec_valid_out": 1,
+          "dec_data_out": 255
+        },
+        {
+          "enc_valid_out": 0,
+          "enc_data_out": 43689,
+          "dec_valid_out": 0,
+          "dec_data_out": 255
+        },
+        {
+          "enc_valid_out": 0,
+          "enc_data_out": 43689,
+          "dec_valid_out": 0,
+          "dec_data_out": 255
+        },
+        {
+          "enc_valid_out": 0,
+          "enc_data_out": 0,
+          "dec_valid_out": 0,
+          "dec_data_out": 0
+        },
+        {
+          "enc_valid_out": 0,
+          "enc_data_out": 0,
+          "dec_valid_out": 0,
+          "dec_data_out": 0
+        },
+        {
+          "enc_valid_out": 0,
+          "enc_data_out": 0,
+          "dec_valid_out": 0,
+          "dec_data_out": 0
+        }
+      ]
+    },
+    {
+      "id": "s2",
+      "spec_quote": "The encoder converts N-bit input data (`enc_data_in`) into 2N-bit Manchester-encoded data (`enc_data_out`).",
+      "covers": [
+        "behavior",
+        "boundary",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "rst_in": 1,
+          "enc_valid_in": 0,
+          "enc_data_in": 0,
+          "dec_valid_in": 0,
+          "dec_data_in": 0,
+          "mid": {
+            "rst_in": 1,
+            "enc_valid_in": 0,
+            "enc_data_in": 0,
+            "dec_valid_in": 0,
+            "dec_data_in": 0
+          }
+        },
+        {
+          "rst_in": 0,
+          "enc_valid_in": 1,
+          "enc_data_in": 0,
+          "dec_valid_in": 0,
+          "dec_data_in": 0,
+          "mid": {
+            "rst_in": 0,
+            "enc_valid_in": 1,
+            "enc_data_in": 0,
+            "dec_valid_in": 0,
+            "dec_data_in": 0
+          }
+        },
+        {
+          "rst_in": 0,
+          "enc_valid_in": 1,
+          "enc_data_in": 255,
+          "dec_valid_in": 0,
+          "dec_data_in": 0,
+          "mid": {
+            "rst_in": 0,
+            "enc_valid_in": 1,
+            "enc_data_in": 255,
+            "dec_valid_in": 0,
+            "dec_data_in": 0
+          }
+        },
+        {
+          "rst_in": 0,
+          "enc_valid_in": 1,
+          "enc_data_in": 170,
+          "dec_valid_in": 0,
+          "dec_data_in": 0,
+          "mid": {
+            "rst_in": 0,
+            "enc_valid_in": 1,
+            "enc_data_in": 170,
+            "dec_valid_in": 0,
+            "dec_data_in": 0
+          }
+        },
+        {
+          "rst_in": 0,
+          "enc_valid_in": 1,
+          "enc_data_in": 85,
+          "dec_valid_in": 0,
+          "dec_data_in": 0,
+          "mid": {
+            "rst_in": 0,
+            "enc_valid_in": 1,
+            "enc_data_in": 85,
+            "dec_valid_in": 0,
+            "dec_data_in": 0
+          }
+        },
+        {
+          "rst_in": 0,
+          "enc_valid_in": 1,
+          "enc_data_in": 128,
+          "dec_valid_in": 0,
+          "dec_data_in": 0,
+          "mid": {
+            "rst_in": 0,
+            "enc_valid_in": 1,
+            "enc_data_in": 128,
+            "dec_valid_in": 0,
+            "dec_data_in": 0
+          }
+        },
+        {
+          "rst_in": 0,
+          "enc_valid_in": 1,
+          "enc_data_in": 127,
+          "dec_valid_in": 0,
+          "dec_data_in": 0,
+          "mid": {
+            "rst_in": 0,
+            "enc_valid_in": 1,
+            "enc_data_in": 127,
+            "dec_valid_in": 0,
+            "dec_data_in": 0
+          }
+        }
+      ],
+      "expected": [
+        {
+          "enc_valid_out": 0,
+          "enc_data_out": 0,
+          "dec_valid_out": 0,
+          "dec_data_out": 0
+        },
+        {
+          "enc_valid_out": 0,
+          "enc_data_out": 0,
+          "dec_valid_out": 0,
+          "dec_data_out": 0
+        },
+        {
+          "enc_valid_out": 0,
+          "enc_data_out": 0,
+          "dec_valid_out": 0,
+          "dec_data_out": 0
+        },
+        {
+          "enc_valid_out": 1,
+          "enc_data_out": 43690,
+          "dec_valid_out": 0,
+          "dec_data_out": 0
+        },
+        {
+          "enc_valid_out": 1,
+          "enc_data_out": 43690,
+          "dec_valid_out": 0,
+          "dec_data_out": 0
+        },
+        {
+          "enc_valid_out": 1,
+          "enc_data_out": 21845,
+          "dec_valid_out": 0,
+          "dec_data_out": 0
+        },
+        {
+          "enc_valid_out": 1,
+          "enc_data_out": 21845,
+          "dec_valid_out": 0,
+          "dec_data_out": 0
+        },
+        {
+          "enc_valid_out": 1,
+          "enc_data_out": 26214,
+          "dec_valid_out": 0,
+          "dec_data_out": 0
+        },
+        {
+          "enc_valid_out": 1,
+          "enc_data_out": 26214,
+          "dec_valid_out": 0,
+          "dec_data_out": 0
+        },
+        {
+          "enc_valid_out": 1,
+          "enc_data_out": 39321,
+          "dec_valid_out": 0,
+          "dec_data_out": 0
+        },
+        {
+          "enc_valid_out": 1,
+          "enc_data_out": 39321,
+          "dec_valid_out": 0,
+          "dec_data_out": 0
+        },
+        {
+          "enc_valid_out": 1,
+          "enc_data_out": 27306,
+          "dec_valid_out": 0,
+          "dec_data_out": 0
+        },
+        {
+          "enc_valid_out": 1,
+          "enc_data_out": 27306,
+          "dec_valid_out": 0,
+          "dec_data_out": 0
+        },
+        {
+          "enc_valid_out": 1,
+          "enc_data_out": 38229,
+          "dec_valid_out": 0,
+          "dec_data_out": 0
+        }
+      ]
+    },
+    {
+      "id": "s3",
+      "spec_quote": "Invalid patterns (e.g., `00` or `11`) are decoded as `0`.",
+      "covers": [
+        "behavior",
+        "boundary",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "rst_in": 1,
+          "enc_valid_in": 0,
+          "enc_data_in": 0,
+          "dec_valid_in": 0,
+          "dec_data_in": 0,
+          "mid": {
+            "rst_in": 1,
+            "enc_valid_in": 0,
+            "enc_data_in": 0,
+            "dec_valid_in": 0,
+            "dec_data_in": 0
+          }
+        },
+        {
+          "rst_in": 0,
+          "enc_valid_in": 0,
+          "enc_data_in": 0,
+          "dec_valid_in": 1,
+          "dec_data_in": 21845,
+          "mid": {
+            "rst_in": 0,
+            "enc_valid_in": 0,
+            "enc_data_in": 0,
+            "dec_valid_in": 1,
+            "dec_data_in": 21845
+          }
+        },
+        {
+          "rst_in": 0,
+          "enc_valid_in": 0,
+          "enc_data_in": 0,
+          "dec_valid_in": 1,
+          "dec_data_in": 43690,
+          "mid": {
+            "rst_in": 0,
+            "enc_valid_in": 0,
+            "enc_data_in": 0,
+            "dec_valid_in": 1,
+            "dec_data_in": 43690
+          }
+        },
+        {
+          "rst_in": 0,
+          "enc_valid_in": 0,
+          "enc_data_in": 0,
+          "dec_valid_in": 1,
+          "dec_data_in": 65535,
+          "mid": {
+            "rst_in": 0,
+            "enc_valid_in": 0,
+            "enc_data_in": 0,
+            "dec_valid_in": 1,
+            "dec_data_in": 65535
+          }
+        },
+        {
+          "rst_in": 0,
+          "enc_valid_in": 0,
+          "enc_data_in": 0,
+          "dec_valid_in": 1,
+          "dec_data_in": 0,
+          "mid": {
+            "rst_in": 0,
+            "enc_valid_in": 0,
+            "enc_data_in": 0,
+            "dec_valid_in": 1,
+            "dec_data_in": 0
+          }
+        },
+        {
+          "rst_in": 0,
+          "enc_valid_in": 0,
+          "enc_data_in": 0,
+          "dec_valid_in": 1,
+          "dec_data_in": 26214,
+          "mid": {
+            "rst_in": 0,
+            "enc_valid_in": 0,
+            "enc_data_in": 0,
+            "dec_valid_in": 1,
+            "dec_data_in": 26214
+          }
+        },
+        {
+          "rst_in": 0,
+          "enc_valid_in": 0,
+          "enc_data_in": 0,
+          "dec_valid_in": 1,
+          "dec_data_in": 39321,
+          "mid": {
+            "rst_in": 0,
+            "enc_valid_in": 0,
+            "enc_data_in": 0,
+            "dec_valid_in": 1,
+            "dec_data_in": 39321
+          }
+        },
+        {
+          "rst_in": 0,
+          "enc_valid_in": 0,
+          "enc_data_in": 0,
+          "dec_valid_in": 1,
+          "dec_data_in": 51657,
+          "mid": {
+            "rst_in": 0,
+            "enc_valid_in": 0,
+            "enc_data_in": 0,
+            "dec_valid_in": 1,
+            "dec_data_in": 51657
+          }
+        },
+        {
+          "rst_in": 0,
+          "enc_valid_in": 0,
+          "enc_data_in": 0,
+          "dec_valid_in": 0,
+          "dec_data_in": 51657,
+          "mid": {
+            "rst_in": 0,
+            "enc_valid_in": 0,
+            "enc_data_in": 0,
+            "dec_valid_in": 0,
+            "dec_data_in": 51657
+          }
+        }
+      ],
+      "expected": [
+        {
+          "enc_valid_out": 0,
+          "enc_data_out": 0,
+          "dec_valid_out": 0,
+          "dec_data_out": 0
+        },
+        {
+          "enc_valid_out": 0,
+          "enc_data_out": 0,
+          "dec_valid_out": 0,
+          "dec_data_out": 0
+        },
+        {
+          "enc_valid_out": 0,
+          "enc_data_out": 0,
+          "dec_valid_out": 0,
+          "dec_data_out": 0
+        },
+        {
+          "enc_valid_out": 0,
+          "enc_data_out": 43690,
+          "dec_valid_out": 1,
+          "dec_data_out": 255
+        },
+        {
+          "enc_valid_out": 0,
+          "enc_data_out": 43690,
+          "dec_valid_out": 1,
+          "dec_data_out": 255
+        },
+        {
+          "enc_valid_out": 0,
+          "enc_data_out": 43690,
+          "dec_valid_out": 1,
+          "dec_data_out": 0
+        },
+        {
+          "enc_valid_out": 0,
+          "enc_data_out": 43690,
+          "dec_valid_out": 1,
+          "dec_data_out": 0
+        },
+        {
+          "enc_valid_out": 0,
+          "enc_data_out": 43690,
+          "dec_valid_out": 1,
+          "dec_data_out": 0
+        },
+        {
+          "enc_valid_out": 0,
+          "enc_data_out": 43690,
+          "dec_valid_out": 1,
+          "dec_data_out": 0
+        },
+        {
+          "enc_valid_out": 0,
+          "enc_data_out": 43690,
+          "dec_valid_out": 1,
+          "dec_data_out": 0
+        },
+        {
+          "enc_valid_out": 0,
+          "enc_data_out": 43690,
+          "dec_valid_out": 1,
+          "dec_data_out": 0
+        },
+        {
+          "enc_valid_out": 0,
+          "enc_data_out": 43690,
+          "dec_valid_out": 1,
+          "dec_data_out": 170
+        },
+        {
+          "enc_valid_out": 0,
+          "enc_data_out": 43690,
+          "dec_valid_out": 1,
+          "dec_data_out": 170
+        },
+        {
+          "enc_valid_out": 0,
+          "enc_data_out": 43690,
+          "dec_valid_out": 1,
+          "dec_data_out": 85
+        },
+        {
+          "enc_valid_out": 0,
+          "enc_data_out": 43690,
+          "dec_valid_out": 1,
+          "dec_data_out": 85
+        },
+        {
+          "enc_valid_out": 0,
+          "enc_data_out": 43690,
+          "dec_valid_out": 1,
+          "dec_data_out": 17
+        },
+        {
+          "enc_valid_out": 0,
+          "enc_data_out": 43690,
+          "dec_valid_out": 1,
+          "dec_data_out": 17
+        },
+        {
+          "enc_valid_out": 0,
+          "enc_data_out": 43690,
+          "dec_valid_out": 0,
+          "dec_data_out": 17
+        }
+      ]
+    },
+    {
+      "id": "s4",
+      "spec_quote": "`1` is encoded as `01`.",
+      "covers": [
+        "behavior",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "rst_in": 1,
+          "enc_valid_in": 0,
+          "enc_data_in": 0,
+          "dec_valid_in": 0,
+          "dec_data_in": 0,
+          "mid": {
+            "rst_in": 1,
+            "enc_valid_in": 0,
+            "enc_data_in": 0,
+            "dec_valid_in": 0,
+            "dec_data_in": 0
+          }
+        },
+        {
+          "rst_in": 0,
+          "enc_valid_in": 1,
+          "enc_data_in": 170,
+          "dec_valid_in": 1,
+          "dec_data_in": 21845,
+          "mid": {
+            "rst_in": 0,
+            "enc_valid_in": 1,
+            "enc_data_in": 170,
+            "dec_valid_in": 1,
+            "dec_data_in": 21845
+          }
+        },
+        {
+          "rst_in": 0,
+          "enc_valid_in": 1,
+          "enc_data_in": 85,
+          "dec_valid_in": 1,
+          "dec_data_in": 43690,
+          "mid": {
+            "rst_in": 0,
+            "enc_valid_in": 1,
+            "enc_data_in": 85,
+            "dec_valid_in": 1,
+            "dec_data_in": 43690
+          }
+        },
+        {
+          "rst_in": 0,
+          "enc_valid_in": 0,
+          "enc_data_in": 85,
+          "dec_valid_in": 0,
+          "dec_data_in": 43690,
+          "mid": {
+            "rst_in": 0,
+            "enc_valid_in": 0,
+            "enc_data_in": 85,
+            "dec_valid_in": 0,
+            "dec_data_in": 43690
+          }
+        },
+        {
+          "rst_in": 0,
+          "enc_valid_in": 1,
+          "enc_data_in": 0,
+          "dec_valid_in": 0,
+          "dec_data_in": 43690,
+          "mid": {
+            "rst_in": 0,
+            "enc_valid_in": 1,
+            "enc_data_in": 0,
+            "dec_valid_in": 0,
+            "dec_data_in": 43690
+          }
+        },
+        {
+          "rst_in": 0,
+          "enc_valid_in": 0,
+          "enc_data_in": 0,
+          "dec_valid_in": 1,
+          "dec_data_in": 26214,
+          "mid": {
+            "rst_in": 0,
+            "enc_valid_in": 0,
+            "enc_data_in": 0,
+            "dec_valid_in": 1,
+            "dec_data_in": 26214
+          }
+        },
+        {
+          "rst_in": 0,
+          "enc_valid_in": 1,
+          "enc_data_in": 255,
+          "dec_valid_in": 1,
+          "dec_data_in": 39321,
+          "mid": {
+            "rst_in": 0,
+            "enc_valid_in": 1,
+            "enc_data_in": 255,
+            "dec_valid_in": 1,
+            "dec_data_in": 39321
+          }
+        }
+      ],
+      "expected": [
+        {
+          "enc_valid_out": 0,
+          "enc_data_out": 0,
+          "dec_valid_out": 0,
+          "dec_data_out": 0
+        },
+        {
+          "enc_valid_out": 0,
+          "enc_data_out": 0,
+          "dec_valid_out": 0,
+          "dec_data_out": 0
+        },
+        {
+          "enc_valid_out": 0,
+          "enc_data_out": 0,
+          "dec_valid_out": 0,
+          "dec_data_out": 0
+        },
+        {
+          "enc_valid_out": 1,
+          "enc_data_out": 26214,
+          "dec_valid_out": 1,
+          "dec_data_out": 255
+        },
+        {
+          "enc_valid_out": 1,
+          "enc_data_out": 26214,
+          "dec_valid_out": 1,
+          "dec_data_out": 255
+        },
+        {
+          "enc_valid_out": 1,
+          "enc_data_out": 39321,
+          "dec_valid_out": 1,
+          "dec_data_out": 0
+        },
+        {
+          "enc_valid_out": 1,
+          "enc_data_out": 39321,
+          "dec_valid_out": 1,
+          "dec_data_out": 0
+        },
+        {
+          "enc_valid_out": 0,
+          "enc_data_out": 39321,
+          "dec_valid_out": 0,
+          "dec_data_out": 0
+        },
+        {
+          "enc_valid_out": 0,
+          "enc_data_out": 39321,
+          "dec_valid_out": 0,
+          "dec_data_out": 0
+        },
+        {
+          "enc_valid_out": 1,
+          "enc_data_out": 43690,
+          "dec_valid_out": 0,
+          "dec_data_out": 0
+        },
+        {
+          "enc_valid_out": 1,
+          "enc_data_out": 43690,
+          "dec_valid_out": 0,
+          "dec_data_out": 0
+        },
+        {
+          "enc_valid_out": 0,
+          "enc_data_out": 43690,
+          "dec_valid_out": 1,
+          "dec_data_out": 170
+        },
+        {
+          "enc_valid_out": 0,
+          "enc_data_out": 43690,
+          "dec_valid_out": 1,
+          "dec_data_out": 170
+        },
+        {
+          "enc_valid_out": 1,
+          "enc_data_out": 21845,
+          "dec_valid_out": 1,
+          "dec_data_out": 85
+        }
+      ]
+    }
+  ]
+}

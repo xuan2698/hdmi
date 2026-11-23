@@ -1,0 +1,396 @@
+{
+  "decisions": [
+    {
+      "id": "s2/5/q",
+      "label": "RM",
+      "spec_quote": "The circuit consists of combinational logic and one bit of memory (i.e., one flip-flop)."
+    },
+    {
+      "id": "s2/5/state",
+      "label": "RM",
+      "spec_quote": "The circuit consists of combinational logic and one bit of memory (i.e., one flip-flop)."
+    },
+    {
+      "id": "s3/2/q",
+      "label": "RM",
+      "spec_quote": "The circuit consists of combinational logic and one bit of memory (i.e., one flip-flop)."
+    },
+    {
+      "id": "s3/2/state",
+      "label": "RM",
+      "spec_quote": "The circuit consists of combinational logic and one bit of memory (i.e., one flip-flop)."
+    },
+    {
+      "id": "s3/3/q",
+      "label": "RM",
+      "spec_quote": "The circuit consists of combinational logic and one bit of memory (i.e., one flip-flop)."
+    },
+    {
+      "id": "s4/3/q",
+      "label": "RM",
+      "spec_quote": "The circuit consists of combinational logic and one bit of memory (i.e., one flip-flop)."
+    },
+    {
+      "id": "s4/3/state",
+      "label": "RM",
+      "spec_quote": "The circuit consists of combinational logic and one bit of memory (i.e., one flip-flop)."
+    },
+    {
+      "id": "s4/6/q",
+      "label": "RM",
+      "spec_quote": "The circuit consists of combinational logic and one bit of memory (i.e., one flip-flop)."
+    },
+    {
+      "id": "s5/4/q",
+      "label": "RM",
+      "spec_quote": "The circuit consists of combinational logic and one bit of memory (i.e., one flip-flop)."
+    },
+    {
+      "id": "s5/4/state",
+      "label": "RM",
+      "spec_quote": "The circuit consists of combinational logic and one bit of memory (i.e., one flip-flop)."
+    },
+    {
+      "id": "s5/5/q",
+      "label": "RM",
+      "spec_quote": "The circuit consists of combinational logic and one bit of memory (i.e., one flip-flop)."
+    }
+  ],
+  "RM": "def reference(vectors):\n    state = 0\n    prev_clk = 0\n    out = []\n    for row in vectors:\n        clk = row.get('clk', 0)\n        a = row.get('a', 0)\n        b = row.get('b', 0)\n        q = a ^ b ^ state\n        out.append({'q': q, 'state': state})\n        if prev_clk == 1 and clk == 0:\n            state = (a & b) | (a & state) | (b & state)\n        prev_clk = clk\n    return out\n",
+  "TB": [
+    {
+      "id": "s1",
+      "spec_quote": "This is a sequential circuit.",
+      "covers": [
+        "behavior",
+        "boundary",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "a": 0,
+          "b": 0
+        },
+        {
+          "a": 0,
+          "b": 0
+        },
+        {
+          "a": 0,
+          "b": 0
+        }
+      ],
+      "expected": [
+        {
+          "q": 0,
+          "state": 0
+        },
+        {
+          "q": 0,
+          "state": 0
+        },
+        {
+          "q": 0,
+          "state": 0
+        }
+      ]
+    },
+    {
+      "id": "s2",
+      "spec_quote": "The circuit consists of combinational logic and one bit of memory",
+      "covers": [
+        "behavior",
+        "boundary"
+      ],
+      "vectors": [
+        {
+          "a": 0,
+          "b": 0
+        },
+        {
+          "a": 0,
+          "b": 0
+        },
+        {
+          "a": 0,
+          "b": 1
+        },
+        {
+          "a": 1,
+          "b": 0
+        },
+        {
+          "a": 1,
+          "b": 1
+        },
+        {
+          "a": 0,
+          "b": 0
+        },
+        {
+          "a": 0,
+          "b": 0
+        }
+      ],
+      "expected": [
+        {
+          "q": 0,
+          "state": 0
+        },
+        {
+          "q": 0,
+          "state": 0
+        },
+        {
+          "q": 1,
+          "state": 0
+        },
+        {
+          "q": 1,
+          "state": 0
+        },
+        {
+          "q": 1,
+          "state": 1
+        },
+        {
+          "q": 0,
+          "state": 0
+        },
+        {
+          "q": 0,
+          "state": 0
+        }
+      ]
+    },
+    {
+      "id": "s3",
+      "spec_quote": "one bit of memory (i.e., one flip-flop)",
+      "covers": [
+        "behavior",
+        "boundary"
+      ],
+      "vectors": [
+        {
+          "a": 0,
+          "b": 0
+        },
+        {
+          "a": 1,
+          "b": 1
+        },
+        {
+          "a": 0,
+          "b": 1
+        },
+        {
+          "a": 1,
+          "b": 0
+        },
+        {
+          "a": 1,
+          "b": 1
+        },
+        {
+          "a": 0,
+          "b": 0
+        },
+        {
+          "a": 0,
+          "b": 0
+        }
+      ],
+      "expected": [
+        {
+          "q": 0,
+          "state": 0
+        },
+        {
+          "q": 1,
+          "state": 1
+        },
+        {
+          "q": 0,
+          "state": 1
+        },
+        {
+          "q": 0,
+          "state": 1
+        },
+        {
+          "q": 1,
+          "state": 1
+        },
+        {
+          "q": 0,
+          "state": 0
+        },
+        {
+          "q": 0,
+          "state": 0
+        }
+      ]
+    },
+    {
+      "id": "s4",
+      "spec_quote": "The output of the flip-flop has been made observable through the output state.",
+      "covers": [
+        "behavior",
+        "boundary"
+      ],
+      "vectors": [
+        {
+          "a": 0,
+          "b": 0
+        },
+        {
+          "a": 0,
+          "b": 1
+        },
+        {
+          "a": 1,
+          "b": 1
+        },
+        {
+          "a": 0,
+          "b": 0
+        },
+        {
+          "a": 1,
+          "b": 0
+        },
+        {
+          "a": 1,
+          "b": 1
+        },
+        {
+          "a": 1,
+          "b": 1
+        },
+        {
+          "a": 0,
+          "b": 0
+        }
+      ],
+      "expected": [
+        {
+          "q": 0,
+          "state": 0
+        },
+        {
+          "q": 1,
+          "state": 0
+        },
+        {
+          "q": 1,
+          "state": 1
+        },
+        {
+          "q": 0,
+          "state": 0
+        },
+        {
+          "q": 1,
+          "state": 0
+        },
+        {
+          "q": 1,
+          "state": 1
+        },
+        {
+          "q": 1,
+          "state": 1
+        },
+        {
+          "q": 0,
+          "state": 0
+        }
+      ]
+    },
+    {
+      "id": "s5",
+      "spec_quote": "Read the simulation waveforms to determine what the circuit does, then implement it.",
+      "covers": [
+        "behavior",
+        "boundary",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "a": 0,
+          "b": 0
+        },
+        {
+          "a": 0,
+          "b": 1
+        },
+        {
+          "a": 1,
+          "b": 0
+        },
+        {
+          "a": 1,
+          "b": 1
+        },
+        {
+          "a": 0,
+          "b": 1
+        },
+        {
+          "a": 1,
+          "b": 0
+        },
+        {
+          "a": 0,
+          "b": 0
+        },
+        {
+          "a": 1,
+          "b": 1
+        },
+        {
+          "a": 0,
+          "b": 0
+        }
+      ],
+      "expected": [
+        {
+          "q": 0,
+          "state": 0
+        },
+        {
+          "q": 1,
+          "state": 0
+        },
+        {
+          "q": 1,
+          "state": 0
+        },
+        {
+          "q": 1,
+          "state": 1
+        },
+        {
+          "q": 0,
+          "state": 1
+        },
+        {
+          "q": 0,
+          "state": 1
+        },
+        {
+          "q": 0,
+          "state": 0
+        },
+        {
+          "q": 1,
+          "state": 1
+        },
+        {
+          "q": 0,
+          "state": 0
+        }
+      ]
+    }
+  ]
+}

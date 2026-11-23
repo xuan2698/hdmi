@@ -1,0 +1,8 @@
+[
+  {
+    "id": "1",
+    "location": "posedge update block: `if state == 0:`; subsequent `elif state == 1/2/3:` transitions do not check `i_enable`",
+    "spec_quote": "If deasserted, the design will ignore `i_start` and revert or stay in **IDLE**.",
+    "fix": "After the `i_clear` priority branch, if `i_enable` is low, force `state = 0`; e.g. add `elif (row.get('i_enable',0) & 1) == 0: state = 0` before the state-specific transitions."
+  }
+]

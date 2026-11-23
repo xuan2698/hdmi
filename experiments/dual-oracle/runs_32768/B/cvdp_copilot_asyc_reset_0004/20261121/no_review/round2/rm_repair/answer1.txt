@@ -1,0 +1,47 @@
+def reference(vectors):
+    cnt = 0x1F
+    out = []
+    for i, row in enumerate(vectors):
+        is_pos = (i % 2 == 0)
+        reset = 0
+
+        if isinstance(row, dict):
+            reset = int(row.get('reset', 0))
+            if 'edge' in row:
+                e = row['edge']
+                if isinstance(e, str):
+                    el = e.lower()
+                    is_pos = el.startswith('pos') or el == '1'
+                else:
+                    is_pos = bool(e)
+            elif 'clk' in row:
+                is_pos = (int(row['clk']) == 1)
+        elif isinstance(row, (list, tuple)):
+            if len(row) > 0:
+                reset = int(row[0])
+            if len(row) > 1:
+                v = row[1]
+                if isinstance(v, str):
+                    lv = v.lower()
+                    is_pos = lv.startswith('pos') or lv == '1'
+                else:
+                    is_pos = bool(v)
+        else:
+            reset = int(row)
+
+        if reset:
+            cnt = 0x1F
+
+        gate = 1 if 0 < cnt < 0x0E else 0
+        release = 1 if cnt < 0x08 else 0
+
+        out.append({
+            'cnt_q': cnt,
+            'gate_clk_o': gate,
+            'release_reset_o': release
+        })
+
+        if is_pos and not reset and cnt > 0:
+            cnt -= 1
+
+    return out

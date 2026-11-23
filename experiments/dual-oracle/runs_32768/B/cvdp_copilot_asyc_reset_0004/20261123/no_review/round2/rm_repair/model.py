@@ -1,0 +1,56 @@
+def reference(vectors):
+    cnt = 31
+    outs = []
+    for row in vectors:
+        reset = 0
+        edge = None
+        clk = None
+        if isinstance(row, dict):
+            reset = row.get('reset', 0)
+            edge = row.get('edge', None)
+            clk = row.get('clk', None)
+        elif isinstance(row, (list, tuple)):
+            if len(row) == 1:
+                reset = row[0]
+            elif len(row) == 2:
+                if isinstance(row[0], str):
+                    edge, reset = row[0], row[1]
+                else:
+                    clk, reset = row[0], row[1]
+            elif len(row) >= 3:
+                clk, reset, edge = row[0], row[1], row[2]
+
+        if isinstance(reset, str):
+            r = reset.strip().lower()
+            reset = 1 if r in ('1', 'true', 'high', 'posedge', 'pos') else 0
+        else:
+            reset = int(reset) & 1
+
+        if reset:
+            cnt = 31
+
+        is_pos = False
+        if clk is not None:
+            if isinstance(clk, str):
+                s = clk.lower()
+                is_pos = ('pos' in s) or s in ('1', 'p', 'true')
+            else:
+                is_pos = (int(clk) & 1) == 1
+        elif edge is not None:
+            if isinstance(edge, str):
+                s = edge.lower()
+                is_pos = ('pos' in s) or s in ('1', 'p') or s.startswith('1')
+            else:
+                is_pos = (int(edge) & 1) == 1
+
+        gate = 1 if (cnt > 0 and cnt < 14) else 0
+        rel = 1 if cnt < 8 else 0
+        outs.append({'cnt_q': cnt, 'gate_clk_o': gate, 'release_reset_o': rel})
+
+        if is_pos:
+            if reset:
+                cnt = 31
+            elif cnt > 0:
+                cnt -= 1
+
+    return outs

@@ -1,0 +1,245 @@
+{
+  "decisions": [
+    {
+      "id": "s2/1/q",
+      "label": "TB",
+      "spec_quote": "The circuit consists of combinational logic and one bit of memory"
+    },
+    {
+      "id": "s2/1/state",
+      "label": "TB",
+      "spec_quote": "The output of the flip-flop has been made observable through the output state."
+    },
+    {
+      "id": "s2/4/q",
+      "label": "TB",
+      "spec_quote": "The circuit consists of combinational logic and one bit of memory"
+    },
+    {
+      "id": "s3/4/q",
+      "label": "TB",
+      "spec_quote": "The circuit consists of combinational logic and one bit of memory"
+    },
+    {
+      "id": "s3/4/state",
+      "label": "TB",
+      "spec_quote": "The output of the flip-flop has been made observable through the output state."
+    },
+    {
+      "id": "s3/5/q",
+      "label": "TB",
+      "spec_quote": "The circuit consists of combinational logic and one bit of memory"
+    },
+    {
+      "id": "s4/1/q",
+      "label": "TB",
+      "spec_quote": "The circuit consists of combinational logic and one bit of memory"
+    },
+    {
+      "id": "s4/1/state",
+      "label": "TB",
+      "spec_quote": "The output of the flip-flop has been made observable through the output state."
+    },
+    {
+      "id": "s4/4/q",
+      "label": "TB",
+      "spec_quote": "The circuit consists of combinational logic and one bit of memory"
+    }
+  ],
+  "RM": "def reference(vectors):\n    state = 0\n    result = []\n    for row in vectors:\n        a = row['a']\n        b = row['b']\n        q = a ^ b ^ state\n        result.append({'q': q, 'state': state})\n        state = (a & b) | (a & state) | (b & state)\n    return result\n",
+  "TB": [
+    {
+      "id": "s1",
+      "spec_quote": "The output of the flip-flop has been made observable through the output state.",
+      "covers": [
+        "behavior",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "a": 0,
+          "b": 0
+        },
+        {
+          "a": 0,
+          "b": 0
+        },
+        {
+          "a": 0,
+          "b": 0
+        }
+      ],
+      "expected": [
+        {
+          "q": 0,
+          "state": 0
+        },
+        {
+          "q": 0,
+          "state": 0
+        },
+        {
+          "q": 0,
+          "state": 0
+        }
+      ]
+    },
+    {
+      "id": "s2",
+      "spec_quote": "one bit of memory (i.e., one flip-flop).",
+      "covers": [
+        "behavior",
+        "boundary",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "a": 1,
+          "b": 1
+        },
+        {
+          "a": 0,
+          "b": 1
+        },
+        {
+          "a": 1,
+          "b": 0
+        },
+        {
+          "a": 0,
+          "b": 0
+        }
+      ],
+      "expected": [
+        {
+          "q": 1,
+          "state": 1
+        },
+        {
+          "q": 0,
+          "state": 1
+        },
+        {
+          "q": 0,
+          "state": 1
+        },
+        {
+          "q": 0,
+          "state": 0
+        }
+      ]
+    },
+    {
+      "id": "s3",
+      "spec_quote": "This is a sequential circuit.",
+      "covers": [
+        "behavior",
+        "boundary"
+      ],
+      "vectors": [
+        {
+          "a": 0,
+          "b": 0
+        },
+        {
+          "a": 0,
+          "b": 1
+        },
+        {
+          "a": 1,
+          "b": 0
+        },
+        {
+          "a": 1,
+          "b": 1
+        },
+        {
+          "a": 0,
+          "b": 0
+        }
+      ],
+      "expected": [
+        {
+          "q": 0,
+          "state": 0
+        },
+        {
+          "q": 1,
+          "state": 0
+        },
+        {
+          "q": 1,
+          "state": 0
+        },
+        {
+          "q": 1,
+          "state": 1
+        },
+        {
+          "q": 0,
+          "state": 0
+        }
+      ]
+    },
+    {
+      "id": "s4",
+      "spec_quote": "The circuit consists of combinational logic and one bit of memory",
+      "covers": [
+        "behavior",
+        "priority"
+      ],
+      "vectors": [
+        {
+          "a": 1,
+          "b": 1
+        },
+        {
+          "a": 1,
+          "b": 1
+        },
+        {
+          "a": 0,
+          "b": 1
+        },
+        {
+          "a": 0,
+          "b": 0
+        },
+        {
+          "a": 1,
+          "b": 1
+        },
+        {
+          "a": 0,
+          "b": 0
+        }
+      ],
+      "expected": [
+        {
+          "q": 1,
+          "state": 1
+        },
+        {
+          "q": 1,
+          "state": 1
+        },
+        {
+          "q": 0,
+          "state": 1
+        },
+        {
+          "q": 0,
+          "state": 0
+        },
+        {
+          "q": 1,
+          "state": 1
+        },
+        {
+          "q": 0,
+          "state": 0
+        }
+      ]
+    }
+  ]
+}

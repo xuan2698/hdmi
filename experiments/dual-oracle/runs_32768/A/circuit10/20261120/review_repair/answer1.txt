@@ -1,0 +1,17 @@
+{
+  "responses": [
+    {
+      "id": "state-edge",
+      "decision": "accept",
+      "reason": "The waveform's next state is captured from the low-clock inputs and observed on the following high-clock row, so updating after the falling edge for the next sample matches the evidence.",
+      "spec_quote": "// 65ns            1               1               1               0               0"
+    },
+    {
+      "id": "state-update-order",
+      "decision": "accept",
+      "reason": "At 70ns the output uses the old state, and the new state from a=1,b=1 appears at 75ns; therefore compute q/state before applying the falling-edge update.",
+      "spec_quote": "// 70ns            0               1               1               0               0\n// 75ns            1               0               0               1               1"
+    }
+  ],
+  "source": "def reference(vectors):\n    state = 0\n    prev_clk = 0\n    out = []\n    for row in vectors:\n        clk = row.get('clk', 0)\n        a = row.get('a', 0)\n        b = row.get('b', 0)\n        q = a ^ b ^ state\n        out.append({'q': q, 'state': state})\n        if prev_clk == 1 and clk == 0:\n            state = (a & b) | (a & state) | (b & state)\n        prev_clk = clk\n    return out"
+}

@@ -1,0 +1,61 @@
+def reference(vectors):
+    ev = ed = dv = dd = 0
+    out = []
+    for i, row in enumerate(vectors):
+        if isinstance(row, dict):
+            rst = int(row.get('rst_in', 0)) & 1
+            evi = int(row.get('enc_valid_in', 0)) & 1
+            edi = int(row.get('enc_data_in', 0)) & 255
+            dvi = int(row.get('dec_valid_in', 0)) & 1
+            ddi = int(row.get('dec_data_in', 0)) & 65535
+            e = row.get('edge', None)
+            if e is None:
+                e = row.get('clk_in', None)
+        else:
+            e = None
+            rst = evi = edi = dvi = ddi = 0
+            if isinstance(row, (list, tuple)):
+                if len(row) >= 6:
+                    e = row[0]
+                    rst = int(row[1]) & 1
+                    evi = int(row[2]) & 1
+                    edi = int(row[3]) & 255
+                    dvi = int(row[4]) & 1
+                    ddi = int(row[5]) & 65535
+                elif len(row) == 5:
+                    rst = int(row[0]) & 1
+                    evi = int(row[1]) & 1
+                    edi = int(row[2]) & 255
+                    dvi = int(row[3]) & 1
+                    ddi = int(row[4]) & 65535
+        if e is None:
+            pos = (i % 2 == 0)
+        elif isinstance(e, str):
+            s = e.lower()
+            pos = s.startswith('p') or s == '1'
+        else:
+            pos = bool(e)
+        if rst:
+            ev = ed = dv = dd = 0
+        out.append({
+            'enc_valid_out': ev & 1,
+            'enc_data_out': ed & 0xFFFF,
+            'dec_valid_out': dv & 1,
+            'dec_data_out': dd & 0xFF
+        })
+        if pos and not rst:
+            ev = evi
+            dv = dvi
+            enc = 0
+            for j in range(8):
+                bit = (edi >> j) & 1
+                pair = 1 if bit else 2
+                enc |= pair << (2 * j)
+            ed = enc & 0xFFFF
+            dec = 0
+            for j in range(8):
+                pair = (ddi >> (2 * j)) & 3
+                if pair == 1:
+                    dec |= 1 << j
+            dd = dec & 0xFF
+    return out

@@ -1,0 +1,4 @@
+{
+  "responses": [],
+  "source": "def reference(vectors):\n    cnt = 0x1F\n    out = []\n    for i, row in enumerate(vectors):\n        if isinstance(row, dict):\n            r = row.get('reset', 0)\n        elif isinstance(row, (list, tuple)):\n            r = row[-1] if len(row) else 0\n        else:\n            r = row\n        if r:\n            cnt = 0x1F\n        gate = 1 if 0 < cnt < 0xE else 0\n        rel = 1 if cnt < 0x8 else 0\n        out.append({'cnt_q': cnt & 0x1F, 'gate_clk_o': gate, 'release_reset_o': rel})\n        if (i % 2 == 0) and not r:\n            if cnt > 0:\n                cnt = (cnt - 1) & 0x1F\n    return out\n"
+}

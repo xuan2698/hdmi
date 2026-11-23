@@ -1,0 +1,464 @@
+{
+  "group": "B",
+  "task": "cvdp_copilot_manchester_enc_0009",
+  "seed": 20261120,
+  "config": "Ours-noReview",
+  "status": "ready",
+  "model": "runs_32768/B/cvdp_copilot_manchester_enc_0009/20261120/configs/Ours-noReview/model.py",
+  "scenes": [
+    {
+      "id": "s1",
+      "spec_quote": "When `rst_in` is asserted, all outputs (`enc_data_out`, `enc_valid_out`, `dec_data_out`, `dec_valid_out`) are cleared to zero.",
+      "covers": [
+        "behavior",
+        "priority",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "rst_in": 1,
+          "enc_valid_in": 1,
+          "enc_data_in": 255,
+          "dec_valid_in": 1,
+          "dec_data_in": 65535
+        },
+        {
+          "rst_in": 0,
+          "enc_valid_in": 1,
+          "enc_data_in": 0,
+          "dec_valid_in": 1,
+          "dec_data_in": 0
+        },
+        {
+          "rst_in": 0,
+          "enc_valid_in": 1,
+          "enc_data_in": 255,
+          "dec_valid_in": 1,
+          "dec_data_in": 65535
+        }
+      ],
+      "expected": [
+        {
+          "enc_valid_out": 0,
+          "enc_data_out": 0,
+          "dec_valid_out": 0,
+          "dec_data_out": 0
+        },
+        {
+          "enc_valid_out": 0,
+          "enc_data_out": 0,
+          "dec_valid_out": 0,
+          "dec_data_out": 0
+        },
+        {
+          "enc_valid_out": 0,
+          "enc_data_out": 0,
+          "dec_valid_out": 0,
+          "dec_data_out": 0
+        },
+        {
+          "enc_valid_out": 1,
+          "enc_data_out": 43690,
+          "dec_valid_out": 1,
+          "dec_data_out": 0
+        },
+        {
+          "enc_valid_out": 1,
+          "enc_data_out": 43690,
+          "dec_valid_out": 1,
+          "dec_data_out": 0
+        },
+        {
+          "enc_valid_out": 1,
+          "enc_data_out": 21845,
+          "dec_valid_out": 1,
+          "dec_data_out": 0
+        }
+      ]
+    },
+    {
+      "id": "s2",
+      "spec_quote": "The encoder converts N-bit input data (`enc_data_in`) into 2N-bit Manchester-encoded data (`enc_data_out`).",
+      "covers": [
+        "behavior",
+        "boundary",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "rst_in": 1,
+          "enc_valid_in": 0,
+          "enc_data_in": 0,
+          "dec_valid_in": 0,
+          "dec_data_in": 0
+        },
+        {
+          "rst_in": 0,
+          "enc_valid_in": 1,
+          "enc_data_in": 170,
+          "dec_valid_in": 1,
+          "dec_data_in": 26214
+        },
+        {
+          "rst_in": 0,
+          "enc_valid_in": 1,
+          "enc_data_in": 85,
+          "dec_valid_in": 1,
+          "dec_data_in": 39321
+        },
+        {
+          "rst_in": 0,
+          "enc_valid_in": 0,
+          "enc_data_in": 85,
+          "dec_valid_in": 0,
+          "dec_data_in": 39321
+        }
+      ],
+      "expected": [
+        {
+          "enc_valid_out": 0,
+          "enc_data_out": 0,
+          "dec_valid_out": 0,
+          "dec_data_out": 0
+        },
+        {
+          "enc_valid_out": 0,
+          "enc_data_out": 0,
+          "dec_valid_out": 0,
+          "dec_data_out": 0
+        },
+        {
+          "enc_valid_out": 0,
+          "enc_data_out": 0,
+          "dec_valid_out": 0,
+          "dec_data_out": 0
+        },
+        {
+          "enc_valid_out": 1,
+          "enc_data_out": 26214,
+          "dec_valid_out": 1,
+          "dec_data_out": 170
+        },
+        {
+          "enc_valid_out": 1,
+          "enc_data_out": 26214,
+          "dec_valid_out": 1,
+          "dec_data_out": 170
+        },
+        {
+          "enc_valid_out": 1,
+          "enc_data_out": 39321,
+          "dec_valid_out": 1,
+          "dec_data_out": 85
+        },
+        {
+          "enc_valid_out": 1,
+          "enc_data_out": 39321,
+          "dec_valid_out": 1,
+          "dec_data_out": 85
+        },
+        {
+          "enc_valid_out": 0,
+          "enc_data_out": 39321,
+          "dec_valid_out": 0,
+          "dec_data_out": 85
+        }
+      ]
+    },
+    {
+      "id": "s3",
+      "spec_quote": "Invalid patterns (e.g., `00` or `11`) are decoded as `0`.",
+      "covers": [
+        "behavior",
+        "boundary",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "rst_in": 1,
+          "enc_valid_in": 0,
+          "enc_data_in": 0,
+          "dec_valid_in": 1,
+          "dec_data_in": 65535
+        },
+        {
+          "rst_in": 0,
+          "enc_valid_in": 1,
+          "enc_data_in": 0,
+          "dec_valid_in": 1,
+          "dec_data_in": 0
+        },
+        {
+          "rst_in": 0,
+          "enc_valid_in": 1,
+          "enc_data_in": 0,
+          "dec_valid_in": 1,
+          "dec_data_in": 65535
+        },
+        {
+          "rst_in": 0,
+          "enc_valid_in": 1,
+          "enc_data_in": 0,
+          "dec_valid_in": 1,
+          "dec_data_in": 4660
+        },
+        {
+          "rst_in": 0,
+          "enc_valid_in": 1,
+          "enc_data_in": 0,
+          "dec_valid_in": 1,
+          "dec_data_in": 43690
+        }
+      ],
+      "expected": [
+        {
+          "enc_valid_out": 0,
+          "enc_data_out": 0,
+          "dec_valid_out": 0,
+          "dec_data_out": 0
+        },
+        {
+          "enc_valid_out": 0,
+          "enc_data_out": 0,
+          "dec_valid_out": 0,
+          "dec_data_out": 0
+        },
+        {
+          "enc_valid_out": 0,
+          "enc_data_out": 0,
+          "dec_valid_out": 0,
+          "dec_data_out": 0
+        },
+        {
+          "enc_valid_out": 1,
+          "enc_data_out": 43690,
+          "dec_valid_out": 1,
+          "dec_data_out": 0
+        },
+        {
+          "enc_valid_out": 1,
+          "enc_data_out": 43690,
+          "dec_valid_out": 1,
+          "dec_data_out": 0
+        },
+        {
+          "enc_valid_out": 1,
+          "enc_data_out": 43690,
+          "dec_valid_out": 1,
+          "dec_data_out": 0
+        },
+        {
+          "enc_valid_out": 1,
+          "enc_data_out": 43690,
+          "dec_valid_out": 1,
+          "dec_data_out": 0
+        },
+        {
+          "enc_valid_out": 1,
+          "enc_data_out": 43690,
+          "dec_valid_out": 1,
+          "dec_data_out": 66
+        },
+        {
+          "enc_valid_out": 1,
+          "enc_data_out": 43690,
+          "dec_valid_out": 1,
+          "dec_data_out": 66
+        },
+        {
+          "enc_valid_out": 1,
+          "enc_data_out": 43690,
+          "dec_valid_out": 1,
+          "dec_data_out": 0
+        }
+      ]
+    },
+    {
+      "id": "s4",
+      "spec_quote": "`1` is encoded as `01`.",
+      "covers": [
+        "behavior",
+        "boundary",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "rst_in": 1,
+          "enc_valid_in": 0,
+          "enc_data_in": 0,
+          "dec_valid_in": 0,
+          "dec_data_in": 0
+        },
+        {
+          "rst_in": 0,
+          "enc_valid_in": 1,
+          "enc_data_in": 165,
+          "dec_valid_in": 1,
+          "dec_data_in": 26265
+        },
+        {
+          "rst_in": 0,
+          "enc_valid_in": 1,
+          "enc_data_in": 90,
+          "dec_valid_in": 1,
+          "dec_data_in": 39270
+        }
+      ],
+      "expected": [
+        {
+          "enc_valid_out": 0,
+          "enc_data_out": 0,
+          "dec_valid_out": 0,
+          "dec_data_out": 0
+        },
+        {
+          "enc_valid_out": 0,
+          "enc_data_out": 0,
+          "dec_valid_out": 0,
+          "dec_data_out": 0
+        },
+        {
+          "enc_valid_out": 0,
+          "enc_data_out": 0,
+          "dec_valid_out": 0,
+          "dec_data_out": 0
+        },
+        {
+          "enc_valid_out": 1,
+          "enc_data_out": 26265,
+          "dec_valid_out": 1,
+          "dec_data_out": 165
+        },
+        {
+          "enc_valid_out": 1,
+          "enc_data_out": 26265,
+          "dec_valid_out": 1,
+          "dec_data_out": 165
+        },
+        {
+          "enc_valid_out": 1,
+          "enc_data_out": 39270,
+          "dec_valid_out": 1,
+          "dec_data_out": 90
+        }
+      ]
+    },
+    {
+      "id": "s5",
+      "spec_quote": "1-bit Input valid signal for the encoder.",
+      "covers": [
+        "behavior",
+        "priority",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "rst_in": 1,
+          "enc_valid_in": 0,
+          "enc_data_in": 0,
+          "dec_valid_in": 0,
+          "dec_data_in": 0
+        },
+        {
+          "rst_in": 0,
+          "enc_valid_in": 1,
+          "enc_data_in": 15,
+          "dec_valid_in": 1,
+          "dec_data_in": 21845
+        },
+        {
+          "rst_in": 0,
+          "enc_valid_in": 1,
+          "enc_data_in": 240,
+          "dec_valid_in": 0,
+          "dec_data_in": 21845
+        },
+        {
+          "rst_in": 0,
+          "enc_valid_in": 0,
+          "enc_data_in": 240,
+          "dec_valid_in": 1,
+          "dec_data_in": 4660
+        },
+        {
+          "rst_in": 0,
+          "enc_valid_in": 0,
+          "enc_data_in": 240,
+          "dec_valid_in": 0,
+          "dec_data_in": 4660
+        }
+      ],
+      "expected": [
+        {
+          "enc_valid_out": 0,
+          "enc_data_out": 0,
+          "dec_valid_out": 0,
+          "dec_data_out": 0
+        },
+        {
+          "enc_valid_out": 0,
+          "enc_data_out": 0,
+          "dec_valid_out": 0,
+          "dec_data_out": 0
+        },
+        {
+          "enc_valid_out": 0,
+          "enc_data_out": 0,
+          "dec_valid_out": 0,
+          "dec_data_out": 0
+        },
+        {
+          "enc_valid_out": 1,
+          "enc_data_out": 43605,
+          "dec_valid_out": 1,
+          "dec_data_out": 255
+        },
+        {
+          "enc_valid_out": 1,
+          "enc_data_out": 43605,
+          "dec_valid_out": 1,
+          "dec_data_out": 255
+        },
+        {
+          "enc_valid_out": 1,
+          "enc_data_out": 21930,
+          "dec_valid_out": 0,
+          "dec_data_out": 255
+        },
+        {
+          "enc_valid_out": 1,
+          "enc_data_out": 21930,
+          "dec_valid_out": 0,
+          "dec_data_out": 255
+        },
+        {
+          "enc_valid_out": 0,
+          "enc_data_out": 21930,
+          "dec_valid_out": 1,
+          "dec_data_out": 66
+        },
+        {
+          "enc_valid_out": 0,
+          "enc_data_out": 21930,
+          "dec_valid_out": 1,
+          "dec_data_out": 66
+        },
+        {
+          "enc_valid_out": 0,
+          "enc_data_out": 21930,
+          "dec_valid_out": 0,
+          "dec_data_out": 66
+        }
+      ]
+    }
+  ],
+  "usage": {
+    "calls": 3,
+    "attempts": 3,
+    "tokens": 46362,
+    "go_usd": 0.015999390000000002,
+    "charged_usd": 0
+  },
+  "route": "no_review",
+  "last_round": 1
+}

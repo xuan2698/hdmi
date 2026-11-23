@@ -1,0 +1,68 @@
+def reference(vectors):
+    enc_data_reg = 0
+    enc_valid_reg = 0
+    dec_data_reg = 0
+    dec_valid_reg = 0
+    out = []
+
+    for idx, row in enumerate(vectors):
+        if hasattr(row, 'get'):
+            rst = row.get('rst_in', 0)
+        else:
+            rst = 0
+
+        if rst:
+            enc_data_reg = 0
+            enc_valid_reg = 0
+            dec_data_reg = 0
+            dec_valid_reg = 0
+
+        posedge = (idx % 2 == 0)
+        if hasattr(row, 'get'):
+            if 'clk_in' in row:
+                posedge = (int(row.get('clk_in', 0)) == 1)
+            elif 'edge' in row:
+                e = row.get('edge')
+                if isinstance(e, str):
+                    e = e.lower()
+                    posedge = e.startswith('p') or e in ('1', 'true', 'posedge')
+                else:
+                    posedge = (e == 1 or e is True)
+
+        out.append({
+            'enc_valid_out': enc_valid_reg & 1,
+            'enc_data_out': enc_data_reg & 0xFFFF,
+            'dec_valid_out': dec_valid_reg & 1,
+            'dec_data_out': dec_data_reg & 0xFF,
+        })
+
+        if posedge and not rst:
+            if hasattr(row, 'get'):
+                enc_valid = row.get('enc_valid_in', 0) & 1
+                enc_in = row.get('enc_data_in', 0) & 0xFF
+                dec_valid = row.get('dec_valid_in', 0) & 1
+                dec_in = row.get('dec_data_in', 0) & 0xFFFF
+            else:
+                enc_valid = 0
+                enc_in = 0
+                dec_valid = 0
+                dec_in = 0
+
+            enc_out = 0
+            for i in range(8):
+                if (enc_in >> i) & 1:
+                    enc_out |= 1 << (2 * i)
+                else:
+                    enc_out |= 2 << (2 * i)
+
+            dec_out = 0
+            for i in range(8):
+                if ((dec_in >> (2 * i)) & 3) == 1:
+                    dec_out |= 1 << i
+
+            enc_data_reg = enc_out & 0xFFFF
+            enc_valid_reg = enc_valid
+            dec_data_reg = dec_out & 0xFF
+            dec_valid_reg = dec_valid
+
+    return out

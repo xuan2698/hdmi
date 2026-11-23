@@ -1,0 +1,35 @@
+def reference(vectors):
+    cnt = 31
+    result = []
+    for row in vectors:
+        reset_val = 0
+        edge = None
+        if isinstance(row, dict):
+            if 'reset' in row:
+                reset_val = int(row['reset'])
+            if 'edge' in row:
+                v = row['edge']
+                s = str(v).lower()
+                if 'pos' in s or s == '1':
+                    edge = 1
+                elif 'neg' in s or s == '0':
+                    edge = 0
+            elif 'clk' in row:
+                v = row['clk']
+                s = str(v).lower()
+                if 'pos' in s or s == '1':
+                    edge = 1
+                elif 'neg' in s or s == '0':
+                    edge = 0
+        if reset_val == 1:
+            cnt = 31
+        out_cnt = cnt & 31
+        gate = 1 if (0 < out_cnt < 14) else 0
+        rel = 1 if out_cnt < 8 else 0
+        result.append({'cnt_q': out_cnt, 'gate_clk_o': gate, 'release_reset_o': rel})
+        if edge == 1:
+            if reset_val == 1:
+                cnt = 31
+            elif cnt > 0:
+                cnt -= 1
+    return result

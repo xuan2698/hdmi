@@ -1,0 +1,82 @@
+def reference(vectors):
+    counter = 0
+    pulse = 0
+    sec = 0
+    minute = 0
+    hour = 0
+    out = []
+    prev_clk = 0
+
+    for i, row in enumerate(vectors):
+        reset = row.get('reset', 0)
+        start_stop = row.get('start_stop', 0)
+        reset = 1 if reset else 0
+        start_stop = 1 if start_stop else 0
+
+        is_pos = None
+        if 'clk' in row:
+            clk_val = row['clk']
+            if clk_val not in (0, 1):
+                clk_val = int(clk_val)
+            is_pos = (prev_clk == 0 and clk_val == 1)
+            prev_clk = clk_val
+        else:
+            e = row.get('edge', None)
+            if e is not None:
+                if isinstance(e, str):
+                    is_pos = e.lower().startswith('pos')
+                else:
+                    is_pos = (int(e) == 1)
+            else:
+                is_pos = (i % 2 == 0)
+
+        if reset:
+            counter = 0
+            pulse = 0
+            sec = 0
+            minute = 0
+            hour = 0
+
+        out.append({
+            'seconds': sec & 63,
+            'minutes': minute & 63,
+            'hour': hour & 1
+        })
+
+        if is_pos:
+            if reset:
+                counter = 0
+                pulse = 0
+                sec = 0
+                minute = 0
+                hour = 0
+            else:
+                if counter == 3:
+                    new_counter = 0
+                    new_pulse = 1
+                else:
+                    new_counter = counter + 1
+                    new_pulse = 0
+
+                if start_stop and pulse:
+                    if sec == 59:
+                        new_sec = 0
+                        if minute == 59:
+                            new_minute = 0
+                            new_hour = hour ^ 1
+                        else:
+                            new_minute = minute + 1
+                            new_hour = hour
+                    else:
+                        new_sec = sec + 1
+                        new_minute = minute
+                        new_hour = hour
+
+                    sec = new_sec
+                    minute = new_minute
+                    hour = new_hour
+
+                counter = new_counter
+                pulse = new_pulse
+
+    return out
