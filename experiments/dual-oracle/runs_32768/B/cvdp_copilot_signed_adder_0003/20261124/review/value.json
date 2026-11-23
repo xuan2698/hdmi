@@ -1,0 +1,8 @@
+[
+  {
+    "id": "enable_not_global",
+    "location": "if state == 0: if enable == 1 and start == 1: state = 1 (enable is not checked in states 1-3)",
+    "spec_quote": "- **Usage**: If deasserted, the design will ignore `i_start` and revert or stay in **IDLE**.",
+    "fix": "Add a global guard during the posedge update, e.g. `if enable == 0: state = 0`, so deasserting i_enable returns the FSM to IDLE from any state."
+  }
+]

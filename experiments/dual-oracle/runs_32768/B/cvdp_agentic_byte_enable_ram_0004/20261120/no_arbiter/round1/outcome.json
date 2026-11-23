@@ -1,0 +1,407 @@
+{
+  "decisions": [],
+  "RM": "def reference(vectors):\n    MASK32 = (1 << 32) - 1\n    LINES = 8192\n    BYTES = 4\n    ram = [0] * LINES\n    cur = {}\n    addr_a_reg = 0\n    en_a_reg = 0\n    be_a_reg = 0\n    data_in_a_reg = 0\n    addr_b_reg = 0\n    en_b_reg = 0\n    be_b_reg = 0\n    data_in_b_reg = 0\n    out_a = 0\n    out_b = 0\n    res = []\n    idx = 0\n    for row in vectors:\n        for k, v in row.items():\n            cur[k] = v\n        pos = False\n        if 'edge' in row:\n            e = row['edge']\n            if isinstance(e, str):\n                s = e.lower()\n                if 'pos' in s:\n                    pos = True\n                elif 'neg' in s:\n                    pos = False\n                elif s in ('1', 'true', 'rise'):\n                    pos = True\n                elif s in ('0', 'false', 'fall'):\n                    pos = False\n                else:\n                    pos = (idx % 2 == 0)\n            else:\n                pos = bool(e)\n        elif 'clk' in row:\n            pos = (row['clk'] == 1 or row['clk'] is True)\n        elif 'CLK' in row:\n            pos = (row['CLK'] == 1 or row['CLK'] is True)\n        else:\n            pos = (idx % 2 == 0)\n\n        res.append({'data_out_a': out_a & MASK32, 'data_out_b': out_b & MASK32})\n\n        if pos:\n            next_out_a = ram[addr_a_reg]\n            next_out_b = ram[addr_b_reg]\n\n            if en_a_reg and en_b_reg and addr_a_reg == addr_b_reg:\n                addr = addr_a_reg\n                new = ram[addr]\n                for i in range(BYTES):\n                    bit = 1 << i\n                    shift = 8 * i\n                    if be_a_reg & bit:\n                        byte = (data_in_a_reg >> shift) & 0xFF\n                        new = (new & (MASK32 ^ (0xFF << shift))) | (byte << shift)\n                    elif be_b_reg & bit:\n                        byte = (data_in_b_reg >> shift) & 0xFF\n                        new = (new & (MASK32 ^ (0xFF << shift))) | (byte << shift)\n                ram[addr] = new & MASK32\n            else:\n                if en_a_reg:\n                    addr = addr_a_reg\n                    new = ram[addr]\n                    for i in range(BYTES):\n                        bit = 1 << i\n                        shift = 8 * i\n                        if be_a_reg & bit:\n                            byte = (data_in_a_reg >> shift) & 0xFF\n                            new = (new & (MASK32 ^ (0xFF << shift))) | (byte << shift)\n                    ram[addr] = new & MASK32\n                if en_b_reg:\n                    addr = addr_b_reg\n                    new = ram[addr]\n                    for i in range(BYTES):\n                        bit = 1 << i\n                        shift = 8 * i\n                        if be_b_reg & bit:\n                            byte = (data_in_b_reg >> shift) & 0xFF\n                            new = (new & (MASK32 ^ (0xFF << shift))) | (byte << shift)\n                    ram[addr] = new & MASK32\n\n            addr_a_reg = int(cur.get('addr_a', 0)) & 0x1FFF\n            en_a_reg = int(cur.get('en_a', 0)) & 1\n            be_a_reg = int(cur.get('be_a', 0)) & 0xF\n            data_in_a_reg = int(cur.get('data_in_a', 0)) & MASK32\n            addr_b_reg = int(cur.get('addr_b', 0)) & 0x1FFF\n            en_b_reg = int(cur.get('en_b', 0)) & 1\n            be_b_reg = int(cur.get('be_b', 0)) & 0xF\n            data_in_b_reg = int(cur.get('data_in_b', 0)) & MASK32\n\n            out_a = next_out_a & MASK32\n            out_b = next_out_b & MASK32\n\n        idx += 1\n\n    return res\n",
+  "TB": [
+    {
+      "id": "s1",
+      "spec_quote": "Memory initialized to zero at startup.",
+      "covers": [
+        "behavior",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "addr_a": 0,
+          "en_a": 0,
+          "be_a": 15,
+          "data_in_a": 2863311530,
+          "addr_b": 0,
+          "en_b": 0,
+          "be_b": 15,
+          "data_in_b": 1431655765
+        },
+        {
+          "addr_a": 0,
+          "en_a": 0,
+          "be_a": 0,
+          "data_in_a": 0,
+          "addr_b": 0,
+          "en_b": 0,
+          "be_b": 0,
+          "data_in_b": 0
+        },
+        {
+          "addr_a": 1,
+          "en_a": 0,
+          "be_a": 15,
+          "data_in_a": 4294967295,
+          "addr_b": 0,
+          "en_b": 0,
+          "be_b": 0,
+          "data_in_b": 0
+        },
+        {
+          "addr_a": 1,
+          "en_a": 0,
+          "be_a": 0,
+          "data_in_a": 0,
+          "addr_b": 0,
+          "en_b": 0,
+          "be_b": 0,
+          "data_in_b": 0
+        }
+      ],
+      "expected": [
+        {
+          "data_out_a": 0,
+          "data_out_b": 0
+        },
+        {
+          "data_out_a": 0,
+          "data_out_b": 0
+        },
+        {
+          "data_out_a": 0,
+          "data_out_b": 0
+        },
+        {
+          "data_out_a": 0,
+          "data_out_b": 0
+        },
+        {
+          "data_out_a": 0,
+          "data_out_b": 0
+        },
+        {
+          "data_out_a": 0,
+          "data_out_b": 0
+        },
+        {
+          "data_out_a": 0,
+          "data_out_b": 0
+        },
+        {
+          "data_out_a": 0,
+          "data_out_b": 0
+        }
+      ]
+    },
+    {
+      "id": "s2",
+      "spec_quote": "Byte-enable vector controlling byte-level writes.",
+      "covers": [
+        "behavior",
+        "boundary"
+      ],
+      "vectors": [
+        {
+          "addr_a": 10,
+          "en_a": 1,
+          "be_a": 15,
+          "data_in_a": 287454020,
+          "addr_b": 20,
+          "en_b": 0,
+          "be_b": 0,
+          "data_in_b": 0
+        },
+        {
+          "addr_a": 10,
+          "en_a": 0,
+          "be_a": 0,
+          "data_in_a": 0,
+          "addr_b": 20,
+          "en_b": 1,
+          "be_b": 5,
+          "data_in_b": 4294967295
+        },
+        {
+          "addr_a": 10,
+          "en_a": 0,
+          "be_a": 0,
+          "data_in_a": 0,
+          "addr_b": 20,
+          "en_b": 0,
+          "be_b": 0,
+          "data_in_b": 0
+        },
+        {
+          "addr_a": 10,
+          "en_a": 0,
+          "be_a": 0,
+          "data_in_a": 0,
+          "addr_b": 20,
+          "en_b": 0,
+          "be_b": 0,
+          "data_in_b": 0
+        }
+      ],
+      "expected": [
+        {
+          "data_out_a": 0,
+          "data_out_b": 0
+        },
+        {
+          "data_out_a": 0,
+          "data_out_b": 0
+        },
+        {
+          "data_out_a": 0,
+          "data_out_b": 0
+        },
+        {
+          "data_out_a": 0,
+          "data_out_b": 0
+        },
+        {
+          "data_out_a": 0,
+          "data_out_b": 0
+        },
+        {
+          "data_out_a": 287454020,
+          "data_out_b": 0
+        },
+        {
+          "data_out_a": 287454020,
+          "data_out_b": 0
+        },
+        {
+          "data_out_a": 287454020,
+          "data_out_b": 16711935
+        }
+      ]
+    },
+    {
+      "id": "s3",
+      "spec_quote": "Port A's byte-enable active",
+      "covers": [
+        "behavior",
+        "priority"
+      ],
+      "vectors": [
+        {
+          "addr_a": 30,
+          "en_a": 1,
+          "be_a": 5,
+          "data_in_a": 2863311530,
+          "addr_b": 30,
+          "en_b": 1,
+          "be_b": 15,
+          "data_in_b": 1431655765
+        },
+        {
+          "addr_a": 30,
+          "en_a": 0,
+          "be_a": 0,
+          "data_in_a": 0,
+          "addr_b": 30,
+          "en_b": 0,
+          "be_b": 0,
+          "data_in_b": 0
+        },
+        {
+          "addr_a": 30,
+          "en_a": 0,
+          "be_a": 0,
+          "data_in_a": 0,
+          "addr_b": 30,
+          "en_b": 0,
+          "be_b": 0,
+          "data_in_b": 0
+        }
+      ],
+      "expected": [
+        {
+          "data_out_a": 0,
+          "data_out_b": 0
+        },
+        {
+          "data_out_a": 0,
+          "data_out_b": 0
+        },
+        {
+          "data_out_a": 0,
+          "data_out_b": 0
+        },
+        {
+          "data_out_a": 0,
+          "data_out_b": 0
+        },
+        {
+          "data_out_a": 0,
+          "data_out_b": 0
+        },
+        {
+          "data_out_a": 1437226410,
+          "data_out_b": 1437226410
+        }
+      ]
+    },
+    {
+      "id": "s4",
+      "spec_quote": "Without collision, each port independently updates enabled bytes.",
+      "covers": [
+        "behavior"
+      ],
+      "vectors": [
+        {
+          "addr_a": 40,
+          "en_a": 1,
+          "be_a": 15,
+          "data_in_a": 286331153,
+          "addr_b": 41,
+          "en_b": 1,
+          "be_b": 15,
+          "data_in_b": 572662306
+        },
+        {
+          "addr_a": 40,
+          "en_a": 0,
+          "be_a": 0,
+          "data_in_a": 0,
+          "addr_b": 41,
+          "en_b": 0,
+          "be_b": 0,
+          "data_in_b": 0
+        },
+        {
+          "addr_a": 40,
+          "en_a": 0,
+          "be_a": 0,
+          "data_in_a": 0,
+          "addr_b": 41,
+          "en_b": 0,
+          "be_b": 0,
+          "data_in_b": 0
+        }
+      ],
+      "expected": [
+        {
+          "data_out_a": 0,
+          "data_out_b": 0
+        },
+        {
+          "data_out_a": 0,
+          "data_out_b": 0
+        },
+        {
+          "data_out_a": 0,
+          "data_out_b": 0
+        },
+        {
+          "data_out_a": 0,
+          "data_out_b": 0
+        },
+        {
+          "data_out_a": 0,
+          "data_out_b": 0
+        },
+        {
+          "data_out_a": 286331153,
+          "data_out_b": 572662306
+        }
+      ]
+    },
+    {
+      "id": "s5",
+      "spec_quote": "Number of 32-bit words in memory (default: 8192).",
+      "covers": [
+        "behavior",
+        "boundary"
+      ],
+      "vectors": [
+        {
+          "addr_a": 8191,
+          "en_a": 1,
+          "be_a": 15,
+          "data_in_a": 4294967295,
+          "addr_b": 0,
+          "en_b": 0,
+          "be_b": 0,
+          "data_in_b": 0
+        },
+        {
+          "addr_a": 8191,
+          "en_a": 0,
+          "be_a": 0,
+          "data_in_a": 0,
+          "addr_b": 0,
+          "en_b": 0,
+          "be_b": 0,
+          "data_in_b": 0
+        },
+        {
+          "addr_a": 8191,
+          "en_a": 1,
+          "be_a": 0,
+          "data_in_a": 0,
+          "addr_b": 0,
+          "en_b": 0,
+          "be_b": 0,
+          "data_in_b": 0
+        },
+        {
+          "addr_a": 8191,
+          "en_a": 0,
+          "be_a": 0,
+          "data_in_a": 0,
+          "addr_b": 0,
+          "en_b": 0,
+          "be_b": 0,
+          "data_in_b": 0
+        },
+        {
+          "addr_a": 8191,
+          "en_a": 0,
+          "be_a": 0,
+          "data_in_a": 0,
+          "addr_b": 0,
+          "en_b": 0,
+          "be_b": 0,
+          "data_in_b": 0
+        }
+      ],
+      "expected": [
+        {
+          "data_out_a": 0,
+          "data_out_b": 0
+        },
+        {
+          "data_out_a": 0,
+          "data_out_b": 0
+        },
+        {
+          "data_out_a": 0,
+          "data_out_b": 0
+        },
+        {
+          "data_out_a": 0,
+          "data_out_b": 0
+        },
+        {
+          "data_out_a": 0,
+          "data_out_b": 0
+        },
+        {
+          "data_out_a": 4294967295,
+          "data_out_b": 0
+        },
+        {
+          "data_out_a": 4294967295,
+          "data_out_b": 0
+        },
+        {
+          "data_out_a": 4294967295,
+          "data_out_b": 0
+        },
+        {
+          "data_out_a": 4294967295,
+          "data_out_b": 0
+        },
+        {
+          "data_out_a": 4294967295,
+          "data_out_b": 0
+        }
+      ]
+    }
+  ]
+}

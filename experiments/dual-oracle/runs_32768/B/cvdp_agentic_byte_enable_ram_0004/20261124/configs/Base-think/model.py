@@ -1,0 +1,97 @@
+def reference(vectors):
+    ram = [0] * 8192
+    addr_a_reg = 0
+    en_a_reg = 0
+    be_a_reg = 0
+    data_in_a_reg = 0
+    addr_b_reg = 0
+    en_b_reg = 0
+    be_b_reg = 0
+    data_in_b_reg = 0
+    data_out_a = 0
+    data_out_b = 0
+    last = {
+        'addr_a': 0, 'en_a': 0, 'be_a': 0, 'data_in_a': 0,
+        'addr_b': 0, 'en_b': 0, 'be_b': 0, 'data_in_b': 0
+    }
+    results = []
+    for row in vectors:
+        if isinstance(row, dict):
+            edge_val = row.get('edge', row.get('clk', None))
+            for k in last:
+                if k in row:
+                    last[k] = row[k]
+        else:
+            edge_val = None
+
+        if isinstance(edge_val, str):
+            ev = edge_val.lower()
+            posedge = ev.startswith('pos') or ev in ('1', 'true', 'rising')
+        elif edge_val is not None:
+            posedge = bool(edge_val)
+        else:
+            posedge = (len(results) % 2 == 0)
+
+        results.append({
+            'data_out_a': data_out_a & 0xFFFFFFFF,
+            'data_out_b': data_out_b & 0xFFFFFFFF
+        })
+
+        if posedge:
+            addr_a = last['addr_a'] & 0x1FFF
+            en_a = last['en_a'] & 1
+            be_a = last['be_a'] & 0xF
+            data_in_a = last['data_in_a'] & 0xFFFFFFFF
+            addr_b = last['addr_b'] & 0x1FFF
+            en_b = last['en_b'] & 1
+            be_b = last['be_b'] & 0xF
+            data_in_b = last['data_in_b'] & 0xFFFFFFFF
+
+            read_a = ram[addr_a_reg]
+            read_b = ram[addr_b_reg]
+
+            if en_a_reg and en_b_reg and addr_a_reg == addr_b_reg:
+                addr = addr_a_reg
+                new_word = ram[addr]
+                for i in range(4):
+                    mask = 0xFF << (8 * i)
+                    if (be_a_reg >> i) & 1:
+                        b = (data_in_a_reg >> (8 * i)) & 0xFF
+                        new_word = (new_word & ~mask) | (b << (8 * i))
+                    elif (be_b_reg >> i) & 1:
+                        b = (data_in_b_reg >> (8 * i)) & 0xFF
+                        new_word = (new_word & ~mask) | (b << (8 * i))
+                ram[addr] = new_word & 0xFFFFFFFF
+            else:
+                if en_a_reg:
+                    addr = addr_a_reg
+                    new_word = ram[addr]
+                    for i in range(4):
+                        if (be_a_reg >> i) & 1:
+                            mask = 0xFF << (8 * i)
+                            b = (data_in_a_reg >> (8 * i)) & 0xFF
+                            new_word = (new_word & ~mask) | (b << (8 * i))
+                    ram[addr] = new_word & 0xFFFFFFFF
+                if en_b_reg:
+                    addr = addr_b_reg
+                    new_word = ram[addr]
+                    for i in range(4):
+                        if (be_b_reg >> i) & 1:
+                            mask = 0xFF << (8 * i)
+                            b = (data_in_b_reg >> (8 * i)) & 0xFF
+                            new_word = (new_word & ~mask) | (b << (8 * i))
+                    ram[addr] = new_word & 0xFFFFFFFF
+
+            data_out_a = read_a & 0xFFFFFFFF
+            data_out_b = read_b & 0xFFFFFFFF
+
+            addr_a_reg = addr_a
+            en_a_reg = en_a
+            be_a_reg = be_a
+            data_in_a_reg = data_in_a
+            addr_b_reg = addr_b
+            en_b_reg = en_b
+            be_b_reg = be_b
+            data_in_b_reg = data_in_b
+
+    return results

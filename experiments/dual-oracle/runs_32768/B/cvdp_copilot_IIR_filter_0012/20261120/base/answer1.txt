@@ -1,0 +1,46 @@
+```python
+def reference(vectors):
+    y1 = y2 = y3 = 0
+    outs = []
+
+    def s16(x):
+        x = int(x) & 0xFFFF
+        return x - 65536 if x >= 32768 else x
+
+    def sat(x):
+        if x > 32767:
+            return 32767
+        if x < -32768:
+            return -32768
+        return x
+
+    for row in vectors:
+        edge = row.get('edge', row.get('clk_edge', row.get('edge_type', 1)))
+        if isinstance(edge, str):
+            e = edge.lower()
+            is_pos = e.startswith('p') or e in ('1', 'high', 'pos')
+        else:
+            is_pos = bool(edge)
+
+        rst = int(row.get('reset', 0)) & 1
+        if rst:
+            y1 = y2 = y3 = 0
+
+        outs.append({
+            'out_1': y1 & 0xFFFF,
+            'out_2': y2 & 0xFFFF,
+            'out_3': y3 & 0xFFFF
+        })
+
+        if is_pos and not rst:
+            x1 = s16(row.get('in_1', 0))
+            x2 = s16(row.get('in_2', 0))
+            x3 = s16(row.get('in_3', 0))
+            fs = int(row.get('filter_select', 0)) & 3
+
+            y1 = sat(y1 + ((x1 - y1) >> fs))
+            y2 = sat(y2 + ((x2 - y2) >> fs))
+            y3 = sat(y3 + ((x3 - y3) >> fs))
+
+    return outs
+```

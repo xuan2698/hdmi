@@ -1,0 +1,37 @@
+def reference(vectors):
+    s1 = s2 = s3 = 0
+    res = []
+    for v in vectors:
+        e = v.get('edge')
+        r = v.get('reset', 0)
+        a = v.get('in_1', 0)
+        b = v.get('in_2', 0)
+        c = v.get('in_3', 0)
+        sel = v.get('filter_select', 0)
+        if r:
+            s1 = s2 = s3 = 0
+            o1 = o2 = o3 = 0
+        else:
+            po = (e == 'posedge' or e == 1)
+            if po:
+                o1, o2, o3 = s1, s2, s3
+                if sel == 0:
+                    s1 = (a + s1) >> 1
+                    s2 = (b + s2) >> 1
+                    s3 = (c + s3) >> 1
+                elif sel == 1:
+                    s1 = (a + 3 * s1) >> 2
+                    s2 = (b + 3 * s2) >> 2
+                    s3 = (c + 3 * s3) >> 2
+                elif sel == 2:
+                    s1 = (a + 7 * s1) >> 3
+                    s2 = (b + 7 * s2) >> 3
+                    s3 = (c + 7 * s3) >> 3
+                else:
+                    s1 = (a + 15 * s1) >> 4
+                    s2 = (b + 15 * s2) >> 4
+                    s3 = (c + 15 * s3) >> 4
+            else:
+                o1, o2, o3 = s1, s2, s3
+        res.append({'out_1': o1 & 0xFFFF, 'out_2': o2 & 0xFFFF, 'out_3': o3 & 0xFFFF})
+    return res

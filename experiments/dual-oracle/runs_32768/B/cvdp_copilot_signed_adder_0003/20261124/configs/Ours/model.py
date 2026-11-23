@@ -1,0 +1,116 @@
+def reference(vectors):
+    state = 0
+    reg_a = 0
+    reg_b = 0
+    result = 0
+    ov = 0
+    cur = {
+        'i_rst_n': 1,
+        'i_start': 0,
+        'i_enable': 0,
+        'i_mode': 0,
+        'i_clear': 0,
+        'i_operand_a': 0,
+        'i_operand_b': 0
+    }
+    outs = []
+    keys = ['i_rst_n', 'i_start', 'i_enable', 'i_mode', 'i_clear', 'i_operand_a', 'i_operand_b']
+    bit_keys = {'i_rst_n', 'i_start', 'i_enable', 'i_mode', 'i_clear'}
+    for idx, row in enumerate(vectors):
+        edge = None
+        if isinstance(row, dict):
+            for k in keys:
+                if k in row:
+                    v = row[k]
+                    cur[k] = v & (1 if k in bit_keys else 255)
+            if 'edge' in row:
+                e = row['edge']
+                if isinstance(e, str):
+                    el = e.lower()
+                    if 'pos' in el:
+                        edge = 1
+                    elif 'neg' in el:
+                        edge = 0
+                else:
+                    edge = 1 if e else 0
+            elif 'i_clk' in row:
+                edge = 1 if (row['i_clk'] & 1) else 0
+        elif isinstance(row, (list, tuple)):
+            for i, k in enumerate(keys):
+                if i < len(row):
+                    v = row[i]
+                    if isinstance(v, int):
+                        cur[k] = v & (1 if k in bit_keys else 255)
+                    else:
+                        cur[k] = v
+            if len(row) > 7:
+                e = row[7]
+                if isinstance(e, str):
+                    el = e.lower()
+                    if 'pos' in el:
+                        edge = 1
+                    elif 'neg' in el:
+                        edge = 0
+                else:
+                    edge = 1 if e else 0
+        if edge is None:
+            edge = 1 if (idx % 2 == 0) else 0
+
+        rst_n = cur['i_rst_n'] & 1
+        start = cur['i_start'] & 1
+        enable = cur['i_enable'] & 1
+        mode = cur['i_mode'] & 1
+        clear = cur['i_clear'] & 1
+        a = cur['i_operand_a'] & 255
+        b = cur['i_operand_b'] & 255
+
+        if rst_n == 0:
+            state = 0
+            reg_a = 0
+            reg_b = 0
+            result = 0
+            ov = 0
+        elif clear == 1:
+            state = 0
+            result = 0
+            ov = 0
+
+        outs.append({
+            'o_resultant_sum': result & 255,
+            'o_overflow': ov & 1,
+            'o_ready': 1 if state == 3 else 0,
+            'o_status': state & 3
+        })
+
+        if rst_n == 0 or clear == 1:
+            continue
+
+        if edge == 1:
+            if enable == 0:
+                state = 0
+            elif state == 0:
+                if start == 1:
+                    state = 1
+            elif state == 1:
+                reg_a = a
+                reg_b = b
+                state = 2
+            elif state == 2:
+                sa = reg_a - 256 if reg_a >= 128 else reg_a
+                sb = reg_b - 256 if reg_b >= 128 else reg_b
+                if mode == 0:
+                    full = sa + sb
+                else:
+                    full = sa - sb
+                res_u = full & 255
+                sres = res_u - 256 if res_u >= 128 else res_u
+                if mode == 0:
+                    ov_new = 1 if ((sa >= 0 and sb >= 0 and sres < 0) or (sa < 0 and sb < 0 and sres >= 0)) else 0
+                else:
+                    ov_new = 1 if ((sa >= 0 and sb < 0 and sres < 0) or (sa < 0 and sb >= 0 and sres >= 0)) else 0
+                result = res_u
+                ov = ov_new
+                state = 3
+            elif state == 3:
+                state = 0
+    return outs

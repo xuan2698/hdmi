@@ -1,0 +1,1162 @@
+{
+  "decisions": [
+    {
+      "id": "s1/8/o_spi_clk",
+      "label": "RM",
+      "source": "TB assumed correct per baseline"
+    },
+    {
+      "id": "s1/9/o_spi_clk",
+      "label": "RM",
+      "source": "TB assumed correct per baseline"
+    },
+    {
+      "id": "s1/10/o_spi_clk",
+      "label": "RM",
+      "source": "TB assumed correct per baseline"
+    },
+    {
+      "id": "s2/6/o_spi_clk",
+      "label": "RM",
+      "source": "TB assumed correct per baseline"
+    },
+    {
+      "id": "s2/7/o_spi_clk",
+      "label": "RM",
+      "source": "TB assumed correct per baseline"
+    },
+    {
+      "id": "s3/6/o_spi_clk",
+      "label": "RM",
+      "source": "TB assumed correct per baseline"
+    },
+    {
+      "id": "s3/7/o_spi_clk",
+      "label": "RM",
+      "source": "TB assumed correct per baseline"
+    },
+    {
+      "id": "s3/12/o_spi_clk",
+      "label": "RM",
+      "source": "TB assumed correct per baseline"
+    },
+    {
+      "id": "s4/6/o_spi_clk",
+      "label": "RM",
+      "source": "TB assumed correct per baseline"
+    },
+    {
+      "id": "s4/7/o_spi_clk",
+      "label": "RM",
+      "source": "TB assumed correct per baseline"
+    },
+    {
+      "id": "s5/6/o_spi_clk",
+      "label": "RM",
+      "source": "TB assumed correct per baseline"
+    },
+    {
+      "id": "s5/7/o_spi_clk",
+      "label": "RM",
+      "source": "TB assumed correct per baseline"
+    },
+    {
+      "id": "s5/12/o_spi_clk",
+      "label": "RM",
+      "source": "TB assumed correct per baseline"
+    }
+  ],
+  "RM": "def reference(vectors):\n    state = 0\n    cs = 1\n    sclk = 0\n    sdata = 0\n    bits = 16\n    done = 0\n    shift = 0\n    rst_b = 0\n    en = 0\n    fault = 0\n    clear = 0\n    din = 0\n    prev_clk = 0\n    outs = []\n\n    for idx, row in enumerate(vectors):\n        if 'i_rst_b' in row:\n            rst_b = row['i_rst_b']\n        elif 'rst_b' in row:\n            rst_b = row['rst_b']\n        if 'i_enable' in row:\n            en = row['i_enable']\n        elif 'enable' in row:\n            en = row['enable']\n        if 'i_fault' in row:\n            fault = row['i_fault']\n        elif 'fault' in row:\n            fault = row['fault']\n        if 'i_clear' in row:\n            clear = row['i_clear']\n        elif 'clear' in row:\n            clear = row['clear']\n        if 'i_data_in' in row:\n            din = row['i_data_in']\n        elif 'data_in' in row:\n            din = row['data_in']\n\n        edge = None\n        if 'edge' in row:\n            e = row['edge']\n            if isinstance(e, str):\n                el = e.lower()\n                if 'pos' in el:\n                    edge = 'pos'\n                elif 'neg' in el:\n                    edge = 'neg'\n            else:\n                edge = 'pos' if e else 'neg'\n        elif 'i_clk' in row or 'clk' in row:\n            clk = row.get('i_clk', row.get('clk', prev_clk))\n            if clk != prev_clk:\n                edge = 'pos' if clk == 1 else 'neg'\n            else:\n                edge = 'pos' if idx % 2 == 0 else 'neg'\n            prev_clk = clk\n        else:\n            edge = 'pos' if idx % 2 == 0 else 'neg'\n\n        if rst_b == 0:\n            state = 0\n            cs = 1\n            sclk = 0\n            sdata = 0\n            bits = 16\n            done = 0\n            shift = 0\n\n        outs.append({\n            'o_spi_cs_b': cs,\n            'o_spi_clk': sclk,\n            'o_spi_data': sdata,\n            'o_bits_left': bits,\n            'o_done': done,\n            'o_fsm_state': state\n        })\n\n        if edge == 'pos':\n            if rst_b == 0:\n                state = 0\n                cs = 1\n                sclk = 0\n                sdata = 0\n                bits = 16\n                done = 0\n                shift = 0\n            else:\n                if clear == 1:\n                    state = 0\n                    cs = 1\n                    sclk = 0\n                    sdata = 0\n                    bits = 16\n                    done = 0\n                    shift = 0\n                elif state == 3:\n                    cs = 1\n                    sclk = 0\n                    sdata = 0\n                    bits = 16\n                    done = 0\n                    shift = 0\n                elif fault == 1:\n                    state = 3\n                    cs = 1\n                    sclk = 0\n                    sdata = 0\n                    bits = 16\n                    done = 1\n                    shift = 0\n                elif en == 0:\n                    state = 0\n                    cs = 1\n                    sclk = 0\n                    sdata = 0\n                    bits = 16\n                    done = 0\n                    shift = 0\n                else:\n                    if state == 0:\n                        state = 1\n                        cs = 0\n                        sclk = 0\n                        sdata = (din >> 15) & 1\n                        bits = 16\n                        done = 0\n                        shift = din & 0xFFFF\n                    elif state == 1:\n                        state = 2\n                        sclk = 1\n                    elif state == 2:\n                        sclk = 0\n                        if bits == 1:\n                            state = 0\n                            cs = 1\n                            sdata = 0\n                            bits = 16\n                            done = 1\n                            shift = 0\n                        else:\n                            bits = bits - 1\n                            sdata = (shift >> 14) & 1\n                            shift = (shift << 1) & 0xFFFF\n                            state = 1\n                            done = 0\n                    else:\n                        state = 0\n                        cs = 1\n                        sclk = 0\n                        sdata = 0\n                        bits = 16\n                        done = 0\n                        shift = 0\n\n    return outs\n",
+  "TB": [
+    {
+      "id": "s1",
+      "spec_quote": "Apply the reset is applied.",
+      "covers": [
+        "behavior",
+        "boundary",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "i_rst_b": 0,
+          "i_data_in": 0,
+          "i_enable": 0,
+          "i_fault": 0,
+          "i_clear": 0
+        },
+        {
+          "i_rst_b": 1,
+          "i_data_in": 4660,
+          "i_enable": 0,
+          "i_fault": 0,
+          "i_clear": 0
+        },
+        {
+          "i_rst_b": 1,
+          "i_data_in": 32768,
+          "i_enable": 1,
+          "i_fault": 0,
+          "i_clear": 0
+        },
+        {
+          "i_rst_b": 1,
+          "i_data_in": 0,
+          "i_enable": 1,
+          "i_fault": 0,
+          "i_clear": 0
+        },
+        {
+          "i_rst_b": 1,
+          "i_data_in": 65535,
+          "i_enable": 1,
+          "i_fault": 0,
+          "i_clear": 0
+        },
+        {
+          "i_rst_b": 1,
+          "i_data_in": 0,
+          "i_enable": 1,
+          "i_fault": 0,
+          "i_clear": 0
+        },
+        {
+          "i_rst_b": 1,
+          "i_data_in": 65535,
+          "i_enable": 1,
+          "i_fault": 0,
+          "i_clear": 0
+        }
+      ],
+      "expected": [
+        {
+          "o_spi_cs_b": 1,
+          "o_spi_clk": 0,
+          "o_spi_data": 0,
+          "o_bits_left": 16,
+          "o_done": 0,
+          "o_fsm_state": 0
+        },
+        {
+          "o_spi_cs_b": 1,
+          "o_spi_clk": 0,
+          "o_spi_data": 0,
+          "o_bits_left": 16,
+          "o_done": 0,
+          "o_fsm_state": 0
+        },
+        {
+          "o_spi_cs_b": 1,
+          "o_spi_clk": 0,
+          "o_spi_data": 0,
+          "o_bits_left": 16,
+          "o_done": 0,
+          "o_fsm_state": 0
+        },
+        {
+          "o_spi_cs_b": 1,
+          "o_spi_clk": 0,
+          "o_spi_data": 0,
+          "o_bits_left": 16,
+          "o_done": 0,
+          "o_fsm_state": 0
+        },
+        {
+          "o_spi_cs_b": 1,
+          "o_spi_clk": 0,
+          "o_spi_data": 0,
+          "o_bits_left": 16,
+          "o_done": 0,
+          "o_fsm_state": 0
+        },
+        {
+          "o_spi_cs_b": 0,
+          "o_spi_clk": 0,
+          "o_spi_data": 1,
+          "o_bits_left": 16,
+          "o_done": 0,
+          "o_fsm_state": 1
+        },
+        {
+          "o_spi_cs_b": 0,
+          "o_spi_clk": 0,
+          "o_spi_data": 1,
+          "o_bits_left": 16,
+          "o_done": 0,
+          "o_fsm_state": 1
+        },
+        {
+          "o_spi_cs_b": 0,
+          "o_spi_clk": 0,
+          "o_spi_data": 1,
+          "o_bits_left": 16,
+          "o_done": 0,
+          "o_fsm_state": 2
+        },
+        {
+          "o_spi_cs_b": 0,
+          "o_spi_clk": 0,
+          "o_spi_data": 1,
+          "o_bits_left": 16,
+          "o_done": 0,
+          "o_fsm_state": 2
+        },
+        {
+          "o_spi_cs_b": 0,
+          "o_spi_clk": 1,
+          "o_spi_data": 0,
+          "o_bits_left": 15,
+          "o_done": 0,
+          "o_fsm_state": 1
+        },
+        {
+          "o_spi_cs_b": 0,
+          "o_spi_clk": 1,
+          "o_spi_data": 0,
+          "o_bits_left": 15,
+          "o_done": 0,
+          "o_fsm_state": 1
+        },
+        {
+          "o_spi_cs_b": 0,
+          "o_spi_clk": 1,
+          "o_spi_data": 0,
+          "o_bits_left": 15,
+          "o_done": 0,
+          "o_fsm_state": 2
+        },
+        {
+          "o_spi_cs_b": 0,
+          "o_spi_clk": 1,
+          "o_spi_data": 0,
+          "o_bits_left": 15,
+          "o_done": 0,
+          "o_fsm_state": 2
+        },
+        {
+          "o_spi_cs_b": 0,
+          "o_spi_clk": 0,
+          "o_spi_data": 0,
+          "o_bits_left": 14,
+          "o_done": 0,
+          "o_fsm_state": 1
+        }
+      ]
+    },
+    {
+      "id": "s2",
+      "spec_quote": "Disable the FSM while a transmission is in progress.",
+      "covers": [
+        "behavior",
+        "priority",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "i_rst_b": 0,
+          "i_data_in": 0,
+          "i_enable": 0,
+          "i_fault": 0,
+          "i_clear": 0
+        },
+        {
+          "i_rst_b": 1,
+          "i_data_in": 1,
+          "i_enable": 1,
+          "i_fault": 0,
+          "i_clear": 0
+        },
+        {
+          "i_rst_b": 1,
+          "i_data_in": 0,
+          "i_enable": 1,
+          "i_fault": 0,
+          "i_clear": 0
+        },
+        {
+          "i_rst_b": 1,
+          "i_data_in": 0,
+          "i_enable": 0,
+          "i_fault": 0,
+          "i_clear": 0
+        },
+        {
+          "i_rst_b": 1,
+          "i_data_in": 0,
+          "i_enable": 0,
+          "i_fault": 0,
+          "i_clear": 0
+        },
+        {
+          "i_rst_b": 1,
+          "i_data_in": 32768,
+          "i_enable": 1,
+          "i_fault": 0,
+          "i_clear": 0
+        }
+      ],
+      "expected": [
+        {
+          "o_spi_cs_b": 1,
+          "o_spi_clk": 0,
+          "o_spi_data": 0,
+          "o_bits_left": 16,
+          "o_done": 0,
+          "o_fsm_state": 0
+        },
+        {
+          "o_spi_cs_b": 1,
+          "o_spi_clk": 0,
+          "o_spi_data": 0,
+          "o_bits_left": 16,
+          "o_done": 0,
+          "o_fsm_state": 0
+        },
+        {
+          "o_spi_cs_b": 1,
+          "o_spi_clk": 0,
+          "o_spi_data": 0,
+          "o_bits_left": 16,
+          "o_done": 0,
+          "o_fsm_state": 0
+        },
+        {
+          "o_spi_cs_b": 0,
+          "o_spi_clk": 0,
+          "o_spi_data": 0,
+          "o_bits_left": 16,
+          "o_done": 0,
+          "o_fsm_state": 1
+        },
+        {
+          "o_spi_cs_b": 0,
+          "o_spi_clk": 0,
+          "o_spi_data": 0,
+          "o_bits_left": 16,
+          "o_done": 0,
+          "o_fsm_state": 1
+        },
+        {
+          "o_spi_cs_b": 0,
+          "o_spi_clk": 0,
+          "o_spi_data": 0,
+          "o_bits_left": 16,
+          "o_done": 0,
+          "o_fsm_state": 2
+        },
+        {
+          "o_spi_cs_b": 0,
+          "o_spi_clk": 0,
+          "o_spi_data": 0,
+          "o_bits_left": 16,
+          "o_done": 0,
+          "o_fsm_state": 2
+        },
+        {
+          "o_spi_cs_b": 1,
+          "o_spi_clk": 0,
+          "o_spi_data": 0,
+          "o_bits_left": 16,
+          "o_done": 0,
+          "o_fsm_state": 0
+        },
+        {
+          "o_spi_cs_b": 1,
+          "o_spi_clk": 0,
+          "o_spi_data": 0,
+          "o_bits_left": 16,
+          "o_done": 0,
+          "o_fsm_state": 0
+        },
+        {
+          "o_spi_cs_b": 1,
+          "o_spi_clk": 0,
+          "o_spi_data": 0,
+          "o_bits_left": 16,
+          "o_done": 0,
+          "o_fsm_state": 0
+        },
+        {
+          "o_spi_cs_b": 1,
+          "o_spi_clk": 0,
+          "o_spi_data": 0,
+          "o_bits_left": 16,
+          "o_done": 0,
+          "o_fsm_state": 0
+        },
+        {
+          "o_spi_cs_b": 0,
+          "o_spi_clk": 0,
+          "o_spi_data": 1,
+          "o_bits_left": 16,
+          "o_done": 0,
+          "o_fsm_state": 1
+        }
+      ]
+    },
+    {
+      "id": "s3",
+      "spec_quote": "Force the FSM to clear its current operation while actively transmitting to confirm that it returns to idle without completing the remaining shifts.",
+      "covers": [
+        "behavior",
+        "priority",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "i_rst_b": 0,
+          "i_data_in": 0,
+          "i_enable": 0,
+          "i_fault": 0,
+          "i_clear": 0
+        },
+        {
+          "i_rst_b": 1,
+          "i_data_in": 61455,
+          "i_enable": 1,
+          "i_fault": 0,
+          "i_clear": 0
+        },
+        {
+          "i_rst_b": 1,
+          "i_data_in": 0,
+          "i_enable": 1,
+          "i_fault": 0,
+          "i_clear": 0
+        },
+        {
+          "i_rst_b": 1,
+          "i_data_in": 0,
+          "i_enable": 1,
+          "i_fault": 0,
+          "i_clear": 1
+        },
+        {
+          "i_rst_b": 1,
+          "i_data_in": 32769,
+          "i_enable": 1,
+          "i_fault": 0,
+          "i_clear": 0
+        },
+        {
+          "i_rst_b": 1,
+          "i_data_in": 0,
+          "i_enable": 1,
+          "i_fault": 0,
+          "i_clear": 0
+        }
+      ],
+      "expected": [
+        {
+          "o_spi_cs_b": 1,
+          "o_spi_clk": 0,
+          "o_spi_data": 0,
+          "o_bits_left": 16,
+          "o_done": 0,
+          "o_fsm_state": 0
+        },
+        {
+          "o_spi_cs_b": 1,
+          "o_spi_clk": 0,
+          "o_spi_data": 0,
+          "o_bits_left": 16,
+          "o_done": 0,
+          "o_fsm_state": 0
+        },
+        {
+          "o_spi_cs_b": 1,
+          "o_spi_clk": 0,
+          "o_spi_data": 0,
+          "o_bits_left": 16,
+          "o_done": 0,
+          "o_fsm_state": 0
+        },
+        {
+          "o_spi_cs_b": 0,
+          "o_spi_clk": 0,
+          "o_spi_data": 1,
+          "o_bits_left": 16,
+          "o_done": 0,
+          "o_fsm_state": 1
+        },
+        {
+          "o_spi_cs_b": 0,
+          "o_spi_clk": 0,
+          "o_spi_data": 1,
+          "o_bits_left": 16,
+          "o_done": 0,
+          "o_fsm_state": 1
+        },
+        {
+          "o_spi_cs_b": 0,
+          "o_spi_clk": 0,
+          "o_spi_data": 1,
+          "o_bits_left": 16,
+          "o_done": 0,
+          "o_fsm_state": 2
+        },
+        {
+          "o_spi_cs_b": 0,
+          "o_spi_clk": 0,
+          "o_spi_data": 1,
+          "o_bits_left": 16,
+          "o_done": 0,
+          "o_fsm_state": 2
+        },
+        {
+          "o_spi_cs_b": 1,
+          "o_spi_clk": 0,
+          "o_spi_data": 0,
+          "o_bits_left": 16,
+          "o_done": 0,
+          "o_fsm_state": 0
+        },
+        {
+          "o_spi_cs_b": 1,
+          "o_spi_clk": 0,
+          "o_spi_data": 0,
+          "o_bits_left": 16,
+          "o_done": 0,
+          "o_fsm_state": 0
+        },
+        {
+          "o_spi_cs_b": 0,
+          "o_spi_clk": 0,
+          "o_spi_data": 1,
+          "o_bits_left": 16,
+          "o_done": 0,
+          "o_fsm_state": 1
+        },
+        {
+          "o_spi_cs_b": 0,
+          "o_spi_clk": 0,
+          "o_spi_data": 1,
+          "o_bits_left": 16,
+          "o_done": 0,
+          "o_fsm_state": 1
+        },
+        {
+          "o_spi_cs_b": 0,
+          "o_spi_clk": 0,
+          "o_spi_data": 1,
+          "o_bits_left": 16,
+          "o_done": 0,
+          "o_fsm_state": 2
+        }
+      ]
+    },
+    {
+      "id": "s4",
+      "spec_quote": "Attempt to recover from the error by applying a reset-like condition.",
+      "covers": [
+        "behavior",
+        "priority",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "i_rst_b": 0,
+          "i_data_in": 0,
+          "i_enable": 0,
+          "i_fault": 0,
+          "i_clear": 0
+        },
+        {
+          "i_rst_b": 1,
+          "i_data_in": 43690,
+          "i_enable": 1,
+          "i_fault": 0,
+          "i_clear": 0
+        },
+        {
+          "i_rst_b": 1,
+          "i_data_in": 0,
+          "i_enable": 1,
+          "i_fault": 0,
+          "i_clear": 0
+        },
+        {
+          "i_rst_b": 1,
+          "i_data_in": 0,
+          "i_enable": 1,
+          "i_fault": 1,
+          "i_clear": 0
+        },
+        {
+          "i_rst_b": 1,
+          "i_data_in": 0,
+          "i_enable": 1,
+          "i_fault": 1,
+          "i_clear": 0
+        },
+        {
+          "i_rst_b": 1,
+          "i_data_in": 0,
+          "i_enable": 1,
+          "i_fault": 0,
+          "i_clear": 1
+        },
+        {
+          "i_rst_b": 1,
+          "i_data_in": 0,
+          "i_enable": 0,
+          "i_fault": 0,
+          "i_clear": 0
+        },
+        {
+          "i_rst_b": 0,
+          "i_data_in": 65535,
+          "i_enable": 1,
+          "i_fault": 1,
+          "i_clear": 0
+        }
+      ],
+      "expected": [
+        {
+          "o_spi_cs_b": 1,
+          "o_spi_clk": 0,
+          "o_spi_data": 0,
+          "o_bits_left": 16,
+          "o_done": 0,
+          "o_fsm_state": 0
+        },
+        {
+          "o_spi_cs_b": 1,
+          "o_spi_clk": 0,
+          "o_spi_data": 0,
+          "o_bits_left": 16,
+          "o_done": 0,
+          "o_fsm_state": 0
+        },
+        {
+          "o_spi_cs_b": 1,
+          "o_spi_clk": 0,
+          "o_spi_data": 0,
+          "o_bits_left": 16,
+          "o_done": 0,
+          "o_fsm_state": 0
+        },
+        {
+          "o_spi_cs_b": 0,
+          "o_spi_clk": 0,
+          "o_spi_data": 1,
+          "o_bits_left": 16,
+          "o_done": 0,
+          "o_fsm_state": 1
+        },
+        {
+          "o_spi_cs_b": 0,
+          "o_spi_clk": 0,
+          "o_spi_data": 1,
+          "o_bits_left": 16,
+          "o_done": 0,
+          "o_fsm_state": 1
+        },
+        {
+          "o_spi_cs_b": 0,
+          "o_spi_clk": 0,
+          "o_spi_data": 1,
+          "o_bits_left": 16,
+          "o_done": 0,
+          "o_fsm_state": 2
+        },
+        {
+          "o_spi_cs_b": 0,
+          "o_spi_clk": 0,
+          "o_spi_data": 1,
+          "o_bits_left": 16,
+          "o_done": 0,
+          "o_fsm_state": 2
+        },
+        {
+          "o_spi_cs_b": 1,
+          "o_spi_clk": 0,
+          "o_spi_data": 0,
+          "o_bits_left": 16,
+          "o_done": 1,
+          "o_fsm_state": 3
+        },
+        {
+          "o_spi_cs_b": 1,
+          "o_spi_clk": 0,
+          "o_spi_data": 0,
+          "o_bits_left": 16,
+          "o_done": 1,
+          "o_fsm_state": 3
+        },
+        {
+          "o_spi_cs_b": 1,
+          "o_spi_clk": 0,
+          "o_spi_data": 0,
+          "o_bits_left": 16,
+          "o_done": 0,
+          "o_fsm_state": 3
+        },
+        {
+          "o_spi_cs_b": 1,
+          "o_spi_clk": 0,
+          "o_spi_data": 0,
+          "o_bits_left": 16,
+          "o_done": 0,
+          "o_fsm_state": 3
+        },
+        {
+          "o_spi_cs_b": 1,
+          "o_spi_clk": 0,
+          "o_spi_data": 0,
+          "o_bits_left": 16,
+          "o_done": 0,
+          "o_fsm_state": 0
+        },
+        {
+          "o_spi_cs_b": 1,
+          "o_spi_clk": 0,
+          "o_spi_data": 0,
+          "o_bits_left": 16,
+          "o_done": 0,
+          "o_fsm_state": 0
+        },
+        {
+          "o_spi_cs_b": 1,
+          "o_spi_clk": 0,
+          "o_spi_data": 0,
+          "o_bits_left": 16,
+          "o_done": 0,
+          "o_fsm_state": 0
+        },
+        {
+          "o_spi_cs_b": 1,
+          "o_spi_clk": 0,
+          "o_spi_data": 0,
+          "o_bits_left": 16,
+          "o_done": 0,
+          "o_fsm_state": 0
+        },
+        {
+          "o_spi_cs_b": 1,
+          "o_spi_clk": 0,
+          "o_spi_data": 0,
+          "o_bits_left": 16,
+          "o_done": 0,
+          "o_fsm_state": 0
+        }
+      ]
+    },
+    {
+      "id": "s5",
+      "spec_quote": "Execute back-to-back transmissions with varying data patterns.",
+      "covers": [
+        "behavior",
+        "boundary",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "i_rst_b": 0,
+          "i_data_in": 65535,
+          "i_enable": 0,
+          "i_fault": 0,
+          "i_clear": 0
+        },
+        {
+          "i_rst_b": 1,
+          "i_data_in": 65535,
+          "i_enable": 1,
+          "i_fault": 0,
+          "i_clear": 0
+        },
+        {
+          "i_rst_b": 1,
+          "i_data_in": 0,
+          "i_enable": 1,
+          "i_fault": 0,
+          "i_clear": 0
+        },
+        {
+          "i_rst_b": 1,
+          "i_data_in": 1,
+          "i_enable": 1,
+          "i_fault": 0,
+          "i_clear": 1
+        },
+        {
+          "i_rst_b": 1,
+          "i_data_in": 1,
+          "i_enable": 1,
+          "i_fault": 0,
+          "i_clear": 0
+        },
+        {
+          "i_rst_b": 1,
+          "i_data_in": 0,
+          "i_enable": 1,
+          "i_fault": 0,
+          "i_clear": 0
+        },
+        {
+          "i_rst_b": 1,
+          "i_data_in": 0,
+          "i_enable": 1,
+          "i_fault": 0,
+          "i_clear": 1
+        },
+        {
+          "i_rst_b": 1,
+          "i_data_in": 32768,
+          "i_enable": 1,
+          "i_fault": 0,
+          "i_clear": 0
+        },
+        {
+          "i_rst_b": 1,
+          "i_data_in": 1,
+          "i_enable": 1,
+          "i_fault": 0,
+          "i_clear": 0
+        }
+      ],
+      "expected": [
+        {
+          "o_spi_cs_b": 1,
+          "o_spi_clk": 0,
+          "o_spi_data": 0,
+          "o_bits_left": 16,
+          "o_done": 0,
+          "o_fsm_state": 0
+        },
+        {
+          "o_spi_cs_b": 1,
+          "o_spi_clk": 0,
+          "o_spi_data": 0,
+          "o_bits_left": 16,
+          "o_done": 0,
+          "o_fsm_state": 0
+        },
+        {
+          "o_spi_cs_b": 1,
+          "o_spi_clk": 0,
+          "o_spi_data": 0,
+          "o_bits_left": 16,
+          "o_done": 0,
+          "o_fsm_state": 0
+        },
+        {
+          "o_spi_cs_b": 0,
+          "o_spi_clk": 0,
+          "o_spi_data": 1,
+          "o_bits_left": 16,
+          "o_done": 0,
+          "o_fsm_state": 1
+        },
+        {
+          "o_spi_cs_b": 0,
+          "o_spi_clk": 0,
+          "o_spi_data": 1,
+          "o_bits_left": 16,
+          "o_done": 0,
+          "o_fsm_state": 1
+        },
+        {
+          "o_spi_cs_b": 0,
+          "o_spi_clk": 0,
+          "o_spi_data": 1,
+          "o_bits_left": 16,
+          "o_done": 0,
+          "o_fsm_state": 2
+        },
+        {
+          "o_spi_cs_b": 0,
+          "o_spi_clk": 0,
+          "o_spi_data": 1,
+          "o_bits_left": 16,
+          "o_done": 0,
+          "o_fsm_state": 2
+        },
+        {
+          "o_spi_cs_b": 1,
+          "o_spi_clk": 0,
+          "o_spi_data": 0,
+          "o_bits_left": 16,
+          "o_done": 0,
+          "o_fsm_state": 0
+        },
+        {
+          "o_spi_cs_b": 1,
+          "o_spi_clk": 0,
+          "o_spi_data": 0,
+          "o_bits_left": 16,
+          "o_done": 0,
+          "o_fsm_state": 0
+        },
+        {
+          "o_spi_cs_b": 0,
+          "o_spi_clk": 0,
+          "o_spi_data": 0,
+          "o_bits_left": 16,
+          "o_done": 0,
+          "o_fsm_state": 1
+        },
+        {
+          "o_spi_cs_b": 0,
+          "o_spi_clk": 0,
+          "o_spi_data": 0,
+          "o_bits_left": 16,
+          "o_done": 0,
+          "o_fsm_state": 1
+        },
+        {
+          "o_spi_cs_b": 0,
+          "o_spi_clk": 0,
+          "o_spi_data": 0,
+          "o_bits_left": 16,
+          "o_done": 0,
+          "o_fsm_state": 2
+        },
+        {
+          "o_spi_cs_b": 0,
+          "o_spi_clk": 0,
+          "o_spi_data": 0,
+          "o_bits_left": 16,
+          "o_done": 0,
+          "o_fsm_state": 2
+        },
+        {
+          "o_spi_cs_b": 1,
+          "o_spi_clk": 0,
+          "o_spi_data": 0,
+          "o_bits_left": 16,
+          "o_done": 0,
+          "o_fsm_state": 0
+        },
+        {
+          "o_spi_cs_b": 1,
+          "o_spi_clk": 0,
+          "o_spi_data": 0,
+          "o_bits_left": 16,
+          "o_done": 0,
+          "o_fsm_state": 0
+        },
+        {
+          "o_spi_cs_b": 0,
+          "o_spi_clk": 0,
+          "o_spi_data": 1,
+          "o_bits_left": 16,
+          "o_done": 0,
+          "o_fsm_state": 1
+        },
+        {
+          "o_spi_cs_b": 0,
+          "o_spi_clk": 0,
+          "o_spi_data": 1,
+          "o_bits_left": 16,
+          "o_done": 0,
+          "o_fsm_state": 1
+        },
+        {
+          "o_spi_cs_b": 0,
+          "o_spi_clk": 0,
+          "o_spi_data": 1,
+          "o_bits_left": 16,
+          "o_done": 0,
+          "o_fsm_state": 2
+        }
+      ]
+    },
+    {
+      "id": "s6",
+      "spec_quote": "When asserted, FSM immediately transitions to Idle, resetting all counters and outputs regardless of the current state.",
+      "covers": [
+        "behavior",
+        "priority",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "i_rst_b": 0,
+          "i_data_in": 0,
+          "i_enable": 0,
+          "i_fault": 0,
+          "i_clear": 0
+        },
+        {
+          "i_rst_b": 1,
+          "i_data_in": 57005,
+          "i_enable": 1,
+          "i_fault": 0,
+          "i_clear": 0
+        },
+        {
+          "i_rst_b": 1,
+          "i_data_in": 0,
+          "i_enable": 1,
+          "i_fault": 1,
+          "i_clear": 1
+        },
+        {
+          "i_rst_b": 1,
+          "i_data_in": 0,
+          "i_enable": 1,
+          "i_fault": 1,
+          "i_clear": 0
+        },
+        {
+          "i_rst_b": 1,
+          "i_data_in": 0,
+          "i_enable": 0,
+          "i_fault": 1,
+          "i_clear": 0
+        },
+        {
+          "i_rst_b": 1,
+          "i_data_in": 0,
+          "i_enable": 0,
+          "i_fault": 1,
+          "i_clear": 1
+        },
+        {
+          "i_rst_b": 1,
+          "i_data_in": 0,
+          "i_enable": 0,
+          "i_fault": 0,
+          "i_clear": 0
+        },
+        {
+          "i_rst_b": 1,
+          "i_data_in": 0,
+          "i_enable": 1,
+          "i_fault": 0,
+          "i_clear": 0
+        }
+      ],
+      "expected": [
+        {
+          "o_spi_cs_b": 1,
+          "o_spi_clk": 0,
+          "o_spi_data": 0,
+          "o_bits_left": 16,
+          "o_done": 0,
+          "o_fsm_state": 0
+        },
+        {
+          "o_spi_cs_b": 1,
+          "o_spi_clk": 0,
+          "o_spi_data": 0,
+          "o_bits_left": 16,
+          "o_done": 0,
+          "o_fsm_state": 0
+        },
+        {
+          "o_spi_cs_b": 1,
+          "o_spi_clk": 0,
+          "o_spi_data": 0,
+          "o_bits_left": 16,
+          "o_done": 0,
+          "o_fsm_state": 0
+        },
+        {
+          "o_spi_cs_b": 0,
+          "o_spi_clk": 0,
+          "o_spi_data": 1,
+          "o_bits_left": 16,
+          "o_done": 0,
+          "o_fsm_state": 1
+        },
+        {
+          "o_spi_cs_b": 0,
+          "o_spi_clk": 0,
+          "o_spi_data": 1,
+          "o_bits_left": 16,
+          "o_done": 0,
+          "o_fsm_state": 1
+        },
+        {
+          "o_spi_cs_b": 1,
+          "o_spi_clk": 0,
+          "o_spi_data": 0,
+          "o_bits_left": 16,
+          "o_done": 0,
+          "o_fsm_state": 0
+        },
+        {
+          "o_spi_cs_b": 1,
+          "o_spi_clk": 0,
+          "o_spi_data": 0,
+          "o_bits_left": 16,
+          "o_done": 0,
+          "o_fsm_state": 0
+        },
+        {
+          "o_spi_cs_b": 1,
+          "o_spi_clk": 0,
+          "o_spi_data": 0,
+          "o_bits_left": 16,
+          "o_done": 1,
+          "o_fsm_state": 3
+        },
+        {
+          "o_spi_cs_b": 1,
+          "o_spi_clk": 0,
+          "o_spi_data": 0,
+          "o_bits_left": 16,
+          "o_done": 1,
+          "o_fsm_state": 3
+        },
+        {
+          "o_spi_cs_b": 1,
+          "o_spi_clk": 0,
+          "o_spi_data": 0,
+          "o_bits_left": 16,
+          "o_done": 0,
+          "o_fsm_state": 3
+        },
+        {
+          "o_spi_cs_b": 1,
+          "o_spi_clk": 0,
+          "o_spi_data": 0,
+          "o_bits_left": 16,
+          "o_done": 0,
+          "o_fsm_state": 3
+        },
+        {
+          "o_spi_cs_b": 1,
+          "o_spi_clk": 0,
+          "o_spi_data": 0,
+          "o_bits_left": 16,
+          "o_done": 0,
+          "o_fsm_state": 0
+        },
+        {
+          "o_spi_cs_b": 1,
+          "o_spi_clk": 0,
+          "o_spi_data": 0,
+          "o_bits_left": 16,
+          "o_done": 0,
+          "o_fsm_state": 0
+        },
+        {
+          "o_spi_cs_b": 1,
+          "o_spi_clk": 0,
+          "o_spi_data": 0,
+          "o_bits_left": 16,
+          "o_done": 0,
+          "o_fsm_state": 0
+        },
+        {
+          "o_spi_cs_b": 1,
+          "o_spi_clk": 0,
+          "o_spi_data": 0,
+          "o_bits_left": 16,
+          "o_done": 0,
+          "o_fsm_state": 0
+        },
+        {
+          "o_spi_cs_b": 0,
+          "o_spi_clk": 0,
+          "o_spi_data": 0,
+          "o_bits_left": 16,
+          "o_done": 0,
+          "o_fsm_state": 1
+        }
+      ]
+    }
+  ]
+}

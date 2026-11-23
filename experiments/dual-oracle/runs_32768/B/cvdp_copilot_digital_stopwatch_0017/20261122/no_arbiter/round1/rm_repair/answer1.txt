@@ -1,0 +1,88 @@
+def reference(vectors):
+    if isinstance(vectors, dict):
+        keys = list(vectors.keys())
+        n = len(vectors[keys[0]]) if keys else 0
+        rows = []
+        for i in range(n):
+            row = {}
+            for k in keys:
+                row[k] = vectors[k][i]
+            rows.append(row)
+        vectors = rows
+
+    cnt = 0
+    sec = 0
+    mins = 0
+    hour = 0
+    out = []
+
+    for i, row in enumerate(vectors):
+        reset = 0
+        start_stop = 0
+        edge = None
+        clk = None
+
+        if isinstance(row, dict):
+            reset = row.get('reset', 0)
+            start_stop = row.get('start_stop', 0)
+            if 'edge' in row:
+                edge = row['edge']
+            if 'clk' in row:
+                clk = row['clk']
+        elif isinstance(row, (list, tuple)):
+            if len(row) >= 3:
+                edge = row[0]
+                reset = row[1]
+                start_stop = row[2]
+            elif len(row) == 2:
+                reset = row[0]
+                start_stop = row[1]
+
+        is_pos = None
+        if edge is not None:
+            if isinstance(edge, str):
+                s = edge.lower()
+                if 'pos' in s or s in ('1', 'p', 'rise', 'rising'):
+                    is_pos = True
+                elif 'neg' in s or s in ('0', 'n', 'fall', 'falling'):
+                    is_pos = False
+            else:
+                if edge == 1 or edge is True:
+                    is_pos = True
+                elif edge == 0 or edge is False:
+                    is_pos = False
+
+        if is_pos is None and clk is not None:
+            if clk == 1 or clk is True:
+                is_pos = True
+            elif clk == 0 or clk is False:
+                is_pos = False
+
+        if is_pos is None:
+            is_pos = (i % 2 == 0)
+
+        if reset == 1:
+            cnt = 0
+            sec = 0
+            mins = 0
+            hour = 0
+
+        out.append({'seconds': sec, 'minutes': mins, 'hour': hour})
+
+        if is_pos and reset == 0:
+            terminal = (cnt == 3)
+
+            if terminal and start_stop == 1:
+                if sec == 59:
+                    sec = 0
+                    if mins == 59:
+                        mins = 0
+                        hour = 1
+                    else:
+                        mins += 1
+                else:
+                    sec += 1
+
+            cnt = 0 if terminal else cnt + 1
+
+    return out

@@ -1,0 +1,25 @@
+def reference(vectors):
+    o1 = o2 = o3 = 0
+    pc = 0
+    res = []
+    for r in vectors:
+        reset = r.get('reset', 0)
+        if reset:
+            o1 = o2 = o3 = 0
+        if 'edge' in r:
+            e = r['edge']
+        else:
+            c = r.get('clk', 0)
+            if c == 1 and pc == 0:
+                e = 'posedge'
+            elif c == 0 and pc == 1:
+                e = 'negedge'
+            else:
+                e = None
+            pc = c
+        res.append({'out_1': o1 & 0xFFFF, 'out_2': o2 & 0xFFFF, 'out_3': o3 & 0xFFFF})
+        if not reset and e == 'posedge':
+            o1 = r.get('in_1', 0) & 0xFFFF
+            o2 = r.get('in_2', 0) & 0xFFFF
+            o3 = r.get('in_3', 0) & 0xFFFF
+    return res

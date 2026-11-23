@@ -1,0 +1,14 @@
+[
+  {
+    "id": "pause_divider",
+    "location": "n_count = 0 if count == 3 else count + 1",
+    "spec_quote": "Start/stop is a 1 bit control signal that controls if the stopwatch is running or paused.",
+    "fix": "Only advance count/pulse when start == 1; hold them when paused so the timebase pauses with the stopwatch."
+  },
+  {
+    "id": "pulse_timing",
+    "location": "if pulse == 1 and start == 1:",
+    "spec_quote": "The clock divider within the module uses this parameter to generate a one-second pulse (`one_sec_pulse`).",
+    "fix": "Increment seconds on the same edge the divider wraps (e.g., use n_pulse or count == 3) rather than the previous cycle's pulse."
+  }
+]

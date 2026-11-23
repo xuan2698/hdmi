@@ -1,0 +1,62 @@
+def reference(vectors):
+    prev = 0
+    latched = 0
+    wcp = 0
+    pmp = 0
+    out = []
+    for i, row in enumerate(vectors):
+        if isinstance(row, dict):
+            reset = int(row.get('reset', 0)) & 1
+            data = int(row.get('data_in', 0)) & 0xFF
+            mask = int(row.get('mask', 0)) & 0xFF
+            match = int(row.get('match_pattern', 0)) & 0xFF
+            enable = int(row.get('enable', 0)) & 1
+            latch = int(row.get('latch_pattern', 0)) & 1
+            e = row.get('edge', row.get('clk', None))
+            if e is None:
+                pos = (i % 2 == 0)
+            elif isinstance(e, str):
+                s = e.lower()
+                pos = ('pos' in s) or (s in ('1', 'rise', 'rising'))
+            else:
+                pos = bool(e)
+        else:
+            reset = (int(row[0]) & 1) if len(row) > 0 else 0
+            data = (int(row[1]) & 0xFF) if len(row) > 1 else 0
+            mask = (int(row[2]) & 0xFF) if len(row) > 2 else 0
+            match = (int(row[3]) & 0xFF) if len(row) > 3 else 0
+            enable = (int(row[4]) & 1) if len(row) > 4 else 0
+            latch = (int(row[5]) & 1) if len(row) > 5 else 0
+            pos = (i % 2 == 0)
+            if len(row) > 6:
+                e = row[6]
+                if isinstance(e, str):
+                    s = e.lower()
+                    pos = ('pos' in s) or (s in ('1', 'rise', 'rising'))
+                else:
+                    pos = bool(e)
+        if reset:
+            prev = 0
+            latched = 0
+            wcp = 0
+            pmp = 0
+        out.append({
+            'word_change_pulse': wcp,
+            'pattern_match_pulse': pmp,
+            'latched_pattern': latched
+        })
+        if pos and not reset:
+            changed = ((data ^ prev) & mask) != 0
+            is_match = ((data & mask) == (latched & mask))
+            latched_next = match if latch else latched
+            if enable:
+                wcp_next = 1 if changed else 0
+                pmp_next = 1 if is_match else 0
+            else:
+                wcp_next = 0
+                pmp_next = 0
+            prev = data
+            latched = latched_next & 0xFF
+            wcp = wcp_next
+            pmp = pmp_next
+    return out

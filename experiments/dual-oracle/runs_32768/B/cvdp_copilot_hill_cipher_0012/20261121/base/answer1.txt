@@ -1,0 +1,88 @@
+```python
+def reference(vectors):
+    state = 0
+    cipher = 0
+    outs = []
+    prev_clk = None
+    idx = 0
+    for row in vectors:
+        if isinstance(row, dict):
+            reset = int(row.get('reset', 0))
+            start = int(row.get('start', 0))
+            plain = int(row.get('plaintext', 0))
+            key = int(row.get('key', 0))
+            if 'clk' in row:
+                clk = int(row['clk'])
+                posedge = (clk == 1 and prev_clk != 1)
+                if prev_clk is None and clk == 1:
+                    posedge = True
+                prev_clk = clk
+            elif 'edge' in row:
+                e = row['edge']
+                if isinstance(e, str):
+                    posedge = (e == 'posedge' or e == 'rise' or e == '1')
+                else:
+                    posedge = bool(e)
+                prev_clk = 1 if posedge else 0
+            else:
+                posedge = (idx % 2 == 0)
+                prev_clk = 1 if posedge else 0
+        else:
+            if isinstance(row, (list, tuple)) and len(row) >= 5:
+                clk = int(row[0])
+                reset = int(row[1])
+                start = int(row[2])
+                plain = int(row[3])
+                key = int(row[4])
+                posedge = (clk == 1 and prev_clk != 1)
+                if prev_clk is None and clk == 1:
+                    posedge = True
+                prev_clk = clk
+            elif isinstance(row, (list, tuple)) and len(row) == 4:
+                reset = int(row[0])
+                start = int(row[1])
+                plain = int(row[2])
+                key = int(row[3])
+                posedge = (idx % 2 == 0)
+                prev_clk = 1 if posedge else 0
+            else:
+                reset = start = plain = key = 0
+                posedge = (idx % 2 == 0)
+                prev_clk = 1 if posedge else 0
+
+        done = 1 if state == 3 else 0
+        outs.append({'ciphertext': cipher & 0x7fff, 'done': done})
+
+        if posedge:
+            if reset:
+                state = 0
+                cipher = 0
+            else:
+                if state == 0:
+                    if start:
+                        state = 1
+                elif state == 1:
+                    state = 2
+                elif state == 2:
+                    p0 = plain & 0x1f
+                    p1 = (plain >> 5) & 0x1f
+                    p2 = (plain >> 10) & 0x1f
+                    k00 = key & 0x1f
+                    k01 = (key >> 5) & 0x1f
+                    k02 = (key >> 10) & 0x1f
+                    k10 = (key >> 15) & 0x1f
+                    k11 = (key >> 20) & 0x1f
+                    k12 = (key >> 25) & 0x1f
+                    k20 = (key >> 30) & 0x1f
+                    k21 = (key >> 35) & 0x1f
+                    k22 = (key >> 40) & 0x1f
+                    c0 = (p0*k00 + p1*k01 + p2*k02) % 26
+                    c1 = (p0*k10 + p1*k11 + p2*k12) % 26
+                    c2 = (p0*k20 + p1*k21 + p2*k22) % 26
+                    cipher = (c2 << 10) | (c1 << 5) | c0
+                    state = 3
+                elif state == 3:
+                    state = 0
+        idx += 1
+    return outs
+```

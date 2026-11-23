@@ -1,0 +1,87 @@
+def reference(vectors):
+    IDLE = 0
+    LOAD = 1
+    COMPUTE = 2
+    OUTPUT = 3
+    state = IDLE
+    reg_a = 0
+    reg_b = 0
+    result = 0
+    overflow = 0
+    outputs = []
+    for idx, row in enumerate(vectors):
+        clk = None
+        if isinstance(row, dict):
+            clk = row.get('i_clk', None)
+            i_rst_n = row.get('i_rst_n', 1)
+            i_start = row.get('i_start', 0)
+            i_enable = row.get('i_enable', 0)
+            i_mode = row.get('i_mode', 0)
+            i_clear = row.get('i_clear', 0)
+            i_operand_a = row.get('i_operand_a', 0)
+            i_operand_b = row.get('i_operand_b', 0)
+        else:
+            if len(row) == 7:
+                i_rst_n, i_start, i_enable, i_mode, i_clear, i_operand_a, i_operand_b = row
+            elif len(row) == 8:
+                clk, i_rst_n, i_start, i_enable, i_mode, i_clear, i_operand_a, i_operand_b = row
+            else:
+                i_rst_n = row[0]
+                i_start = row[1] if len(row) > 1 else 0
+                i_enable = row[2] if len(row) > 2 else 0
+                i_mode = row[3] if len(row) > 3 else 0
+                i_clear = row[4] if len(row) > 4 else 0
+                i_operand_a = row[5] if len(row) > 5 else 0
+                i_operand_b = row[6] if len(row) > 6 else 0
+                if len(row) > 7:
+                    clk = row[7]
+        if clk is not None:
+            is_pos = (int(clk) == 1)
+        else:
+            is_pos = (idx % 2 == 0)
+        if i_rst_n == 0:
+            state = IDLE
+            reg_a = 0
+            reg_b = 0
+            result = 0
+            overflow = 0
+        ready = 1 if state == OUTPUT else 0
+        outputs.append({
+            'o_resultant_sum': result & 0xFF,
+            'o_overflow': overflow & 1,
+            'o_ready': ready,
+            'o_status': state & 3
+        })
+        if is_pos:
+            if i_rst_n == 0:
+                pass
+            elif i_clear:
+                state = IDLE
+                reg_a = 0
+                reg_b = 0
+                result = 0
+                overflow = 0
+            else:
+                if state == IDLE:
+                    if i_enable and i_start:
+                        state = LOAD
+                elif state == LOAD:
+                    reg_a = i_operand_a & 0xFF
+                    reg_b = i_operand_b & 0xFF
+                    state = COMPUTE
+                elif state == COMPUTE:
+                    a = reg_a if reg_a < 128 else reg_a - 256
+                    b = reg_b if reg_b < 128 else reg_b - 256
+                    if i_mode:
+                        exact = a - b
+                    else:
+                        exact = a + b
+                    if exact < -128 or exact > 127:
+                        overflow = 1
+                    else:
+                        overflow = 0
+                    result = exact & 0xFF
+                    state = OUTPUT
+                elif state == OUTPUT:
+                    state = IDLE
+    return outputs

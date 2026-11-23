@@ -1,0 +1,544 @@
+{
+  "decisions": [],
+  "RM": "def reference(vectors):\n    ram = [0] * 8192\n    addr_a_reg = 0\n    en_a_reg = 0\n    be_a_reg = 0\n    data_in_a_reg = 0\n    addr_b_reg = 0\n    en_b_reg = 0\n    be_b_reg = 0\n    data_in_b_reg = 0\n    data_out_a = 0\n    data_out_b = 0\n    result = []\n    for idx, row in enumerate(vectors):\n        result.append({\n            'data_out_a': data_out_a & 0xFFFFFFFF,\n            'data_out_b': data_out_b & 0xFFFFFFFF\n        })\n        pos = False\n        if isinstance(row, dict):\n            if 'edge' in row:\n                e = row['edge']\n                if isinstance(e, str):\n                    pos = 'pos' in e.lower() or e == '1'\n                else:\n                    pos = bool(e)\n            elif 'clk' in row:\n                c = row['clk']\n                if isinstance(c, str):\n                    if 'pos' in c.lower() or c == '1':\n                        pos = True\n                    elif 'neg' in c.lower() or c == '0':\n                        pos = False\n                    else:\n                        pos = (idx % 2 == 0)\n                else:\n                    pos = bool(c)\n            else:\n                pos = (idx % 2 == 0)\n        else:\n            pos = (idx % 2 == 0)\n        if not pos:\n            continue\n        read_a = ram[addr_a_reg]\n        read_b = ram[addr_b_reg]\n        if en_a_reg and en_b_reg and addr_a_reg == addr_b_reg:\n            a = addr_a_reg\n            old = ram[a]\n            new = old\n            for i in range(4):\n                if be_a_reg & (1 << i):\n                    mask = 0xFF << (i * 8)\n                    val = (data_in_a_reg >> (i * 8)) & 0xFF\n                    new = (new & ~mask) | (val << (i * 8))\n                elif be_b_reg & (1 << i):\n                    mask = 0xFF << (i * 8)\n                    val = (data_in_b_reg >> (i * 8)) & 0xFF\n                    new = (new & ~mask) | (val << (i * 8))\n            ram[a] = new & 0xFFFFFFFF\n        else:\n            if en_a_reg:\n                a = addr_a_reg\n                old = ram[a]\n                new = old\n                for i in range(4):\n                    if be_a_reg & (1 << i):\n                        mask = 0xFF << (i * 8)\n                        val = (data_in_a_reg >> (i * 8)) & 0xFF\n                        new = (new & ~mask) | (val << (i * 8))\n                ram[a] = new & 0xFFFFFFFF\n            if en_b_reg:\n                b = addr_b_reg\n                old = ram[b]\n                new = old\n                for i in range(4):\n                    if be_b_reg & (1 << i):\n                        mask = 0xFF << (i * 8)\n                        val = (data_in_b_reg >> (i * 8)) & 0xFF\n                        new = (new & ~mask) | (val << (i * 8))\n                ram[b] = new & 0xFFFFFFFF\n        data_out_a = read_a & 0xFFFFFFFF\n        data_out_b = read_b & 0xFFFFFFFF\n        if isinstance(row, dict):\n            addr_a_reg = row.get('addr_a', 0) & 0x1FFF\n            en_a_reg = row.get('en_a', 0) & 1\n            be_a_reg = row.get('be_a', 0) & 0xF\n            data_in_a_reg = row.get('data_in_a', 0) & 0xFFFFFFFF\n            addr_b_reg = row.get('addr_b', 0) & 0x1FFF\n            en_b_reg = row.get('en_b', 0) & 1\n            be_b_reg = row.get('be_b', 0) & 0xF\n            data_in_b_reg = row.get('data_in_b', 0) & 0xFFFFFFFF\n    return result\n",
+  "TB": [
+    {
+      "id": "s1",
+      "spec_quote": "Memory initialized to zero at startup.",
+      "covers": [
+        "behavior",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "addr_a": 0,
+          "en_a": 0,
+          "be_a": 0,
+          "data_in_a": 0,
+          "addr_b": 0,
+          "en_b": 0,
+          "be_b": 0,
+          "data_in_b": 0
+        },
+        {
+          "addr_a": 1,
+          "en_a": 0,
+          "be_a": 0,
+          "data_in_a": 0,
+          "addr_b": 2,
+          "en_b": 0,
+          "be_b": 0,
+          "data_in_b": 0
+        },
+        {
+          "addr_a": 3,
+          "en_a": 0,
+          "be_a": 0,
+          "data_in_a": 0,
+          "addr_b": 8191,
+          "en_b": 0,
+          "be_b": 0,
+          "data_in_b": 0
+        },
+        {
+          "addr_a": 0,
+          "en_a": 0,
+          "be_a": 0,
+          "data_in_a": 0,
+          "addr_b": 0,
+          "en_b": 0,
+          "be_b": 0,
+          "data_in_b": 0
+        }
+      ],
+      "expected": [
+        {
+          "data_out_a": 0,
+          "data_out_b": 0
+        },
+        {
+          "data_out_a": 0,
+          "data_out_b": 0
+        },
+        {
+          "data_out_a": 0,
+          "data_out_b": 0
+        },
+        {
+          "data_out_a": 0,
+          "data_out_b": 0
+        },
+        {
+          "data_out_a": 0,
+          "data_out_b": 0
+        },
+        {
+          "data_out_a": 0,
+          "data_out_b": 0
+        },
+        {
+          "data_out_a": 0,
+          "data_out_b": 0
+        },
+        {
+          "data_out_a": 0,
+          "data_out_b": 0
+        }
+      ]
+    },
+    {
+      "id": "s2",
+      "spec_quote": "Data outputs (`data_out_a`, `data_out_b`) reflect data from pipelined addresses, introducing one-cycle latency.",
+      "covers": [
+        "behavior"
+      ],
+      "vectors": [
+        {
+          "addr_a": 10,
+          "en_a": 1,
+          "be_a": 15,
+          "data_in_a": 287454020,
+          "addr_b": 0,
+          "en_b": 0,
+          "be_b": 0,
+          "data_in_b": 0
+        },
+        {
+          "addr_a": 10,
+          "en_a": 0,
+          "be_a": 0,
+          "data_in_a": 0,
+          "addr_b": 10,
+          "en_b": 0,
+          "be_b": 0,
+          "data_in_b": 0
+        },
+        {
+          "addr_a": 10,
+          "en_a": 0,
+          "be_a": 0,
+          "data_in_a": 0,
+          "addr_b": 10,
+          "en_b": 0,
+          "be_b": 0,
+          "data_in_b": 0
+        },
+        {
+          "addr_a": 11,
+          "en_a": 0,
+          "be_a": 0,
+          "data_in_a": 0,
+          "addr_b": 11,
+          "en_b": 0,
+          "be_b": 0,
+          "data_in_b": 0
+        },
+        {
+          "addr_a": 11,
+          "en_a": 0,
+          "be_a": 0,
+          "data_in_a": 0,
+          "addr_b": 11,
+          "en_b": 0,
+          "be_b": 0,
+          "data_in_b": 0
+        }
+      ],
+      "expected": [
+        {
+          "data_out_a": 0,
+          "data_out_b": 0
+        },
+        {
+          "data_out_a": 0,
+          "data_out_b": 0
+        },
+        {
+          "data_out_a": 0,
+          "data_out_b": 0
+        },
+        {
+          "data_out_a": 0,
+          "data_out_b": 0
+        },
+        {
+          "data_out_a": 0,
+          "data_out_b": 0
+        },
+        {
+          "data_out_a": 287454020,
+          "data_out_b": 287454020
+        },
+        {
+          "data_out_a": 287454020,
+          "data_out_b": 287454020
+        },
+        {
+          "data_out_a": 287454020,
+          "data_out_b": 287454020
+        },
+        {
+          "data_out_a": 287454020,
+          "data_out_b": 287454020
+        },
+        {
+          "data_out_a": 0,
+          "data_out_b": 0
+        }
+      ]
+    },
+    {
+      "id": "s3",
+      "spec_quote": "**Port A's byte-enable active**: byte written from Port A.",
+      "covers": [
+        "behavior",
+        "priority"
+      ],
+      "vectors": [
+        {
+          "addr_a": 20,
+          "en_a": 1,
+          "be_a": 3,
+          "data_in_a": 286331153,
+          "addr_b": 20,
+          "en_b": 1,
+          "be_b": 12,
+          "data_in_b": 572662306
+        },
+        {
+          "addr_a": 21,
+          "en_a": 1,
+          "be_a": 5,
+          "data_in_a": 286331153,
+          "addr_b": 21,
+          "en_b": 1,
+          "be_b": 15,
+          "data_in_b": 572662306
+        },
+        {
+          "addr_a": 20,
+          "en_a": 0,
+          "be_a": 0,
+          "data_in_a": 0,
+          "addr_b": 21,
+          "en_b": 0,
+          "be_b": 0,
+          "data_in_b": 0
+        },
+        {
+          "addr_a": 20,
+          "en_a": 0,
+          "be_a": 0,
+          "data_in_a": 0,
+          "addr_b": 21,
+          "en_b": 0,
+          "be_b": 0,
+          "data_in_b": 0
+        },
+        {
+          "addr_a": 20,
+          "en_a": 0,
+          "be_a": 0,
+          "data_in_a": 0,
+          "addr_b": 21,
+          "en_b": 0,
+          "be_b": 0,
+          "data_in_b": 0
+        }
+      ],
+      "expected": [
+        {
+          "data_out_a": 0,
+          "data_out_b": 0
+        },
+        {
+          "data_out_a": 0,
+          "data_out_b": 0
+        },
+        {
+          "data_out_a": 0,
+          "data_out_b": 0
+        },
+        {
+          "data_out_a": 0,
+          "data_out_b": 0
+        },
+        {
+          "data_out_a": 0,
+          "data_out_b": 0
+        },
+        {
+          "data_out_a": 0,
+          "data_out_b": 0
+        },
+        {
+          "data_out_a": 0,
+          "data_out_b": 0
+        },
+        {
+          "data_out_a": 572657937,
+          "data_out_b": 571548177
+        },
+        {
+          "data_out_a": 572657937,
+          "data_out_b": 571548177
+        },
+        {
+          "data_out_a": 572657937,
+          "data_out_b": 571548177
+        }
+      ]
+    },
+    {
+      "id": "s4",
+      "spec_quote": "Without collision, each port independently updates enabled bytes.",
+      "covers": [
+        "behavior"
+      ],
+      "vectors": [
+        {
+          "addr_a": 30,
+          "en_a": 1,
+          "be_a": 1,
+          "data_in_a": 170,
+          "addr_b": 31,
+          "en_b": 1,
+          "be_b": 8,
+          "data_in_b": 3137339392
+        },
+        {
+          "addr_a": 30,
+          "en_a": 0,
+          "be_a": 0,
+          "data_in_a": 0,
+          "addr_b": 31,
+          "en_b": 0,
+          "be_b": 0,
+          "data_in_b": 0
+        },
+        {
+          "addr_a": 30,
+          "en_a": 0,
+          "be_a": 0,
+          "data_in_a": 0,
+          "addr_b": 31,
+          "en_b": 0,
+          "be_b": 0,
+          "data_in_b": 0
+        }
+      ],
+      "expected": [
+        {
+          "data_out_a": 0,
+          "data_out_b": 0
+        },
+        {
+          "data_out_a": 0,
+          "data_out_b": 0
+        },
+        {
+          "data_out_a": 0,
+          "data_out_b": 0
+        },
+        {
+          "data_out_a": 0,
+          "data_out_b": 0
+        },
+        {
+          "data_out_a": 0,
+          "data_out_b": 0
+        },
+        {
+          "data_out_a": 170,
+          "data_out_b": 3137339392
+        }
+      ]
+    },
+    {
+      "id": "s5",
+      "spec_quote": "Number of 32-bit words in memory (default: 8192).",
+      "covers": [
+        "behavior",
+        "boundary"
+      ],
+      "vectors": [
+        {
+          "addr_a": 8191,
+          "en_a": 1,
+          "be_a": 15,
+          "data_in_a": 3735928559,
+          "addr_b": 0,
+          "en_b": 1,
+          "be_b": 15,
+          "data_in_b": 305419896
+        },
+        {
+          "addr_a": 8191,
+          "en_a": 0,
+          "be_a": 0,
+          "data_in_a": 0,
+          "addr_b": 0,
+          "en_b": 0,
+          "be_b": 0,
+          "data_in_b": 0
+        },
+        {
+          "addr_a": 8191,
+          "en_a": 0,
+          "be_a": 0,
+          "data_in_a": 0,
+          "addr_b": 0,
+          "en_b": 0,
+          "be_b": 0,
+          "data_in_b": 0
+        },
+        {
+          "addr_a": 8191,
+          "en_a": 0,
+          "be_a": 0,
+          "data_in_a": 0,
+          "addr_b": 0,
+          "en_b": 0,
+          "be_b": 0,
+          "data_in_b": 0
+        }
+      ],
+      "expected": [
+        {
+          "data_out_a": 0,
+          "data_out_b": 0
+        },
+        {
+          "data_out_a": 0,
+          "data_out_b": 0
+        },
+        {
+          "data_out_a": 0,
+          "data_out_b": 0
+        },
+        {
+          "data_out_a": 0,
+          "data_out_b": 0
+        },
+        {
+          "data_out_a": 0,
+          "data_out_b": 0
+        },
+        {
+          "data_out_a": 3735928559,
+          "data_out_b": 305419896
+        },
+        {
+          "data_out_a": 3735928559,
+          "data_out_b": 305419896
+        },
+        {
+          "data_out_a": 3735928559,
+          "data_out_b": 305419896
+        }
+      ]
+    },
+    {
+      "id": "s6",
+      "spec_quote": "if (en_a_reg && en_b_reg && (addr_a_reg == addr_b_reg))",
+      "covers": [
+        "behavior",
+        "priority"
+      ],
+      "vectors": [
+        {
+          "addr_a": 40,
+          "en_a": 0,
+          "be_a": 0,
+          "data_in_a": 0,
+          "addr_b": 40,
+          "en_b": 1,
+          "be_b": 15,
+          "data_in_b": 3405691582
+        },
+        {
+          "addr_a": 40,
+          "en_a": 1,
+          "be_a": 3,
+          "data_in_a": 4294967295,
+          "addr_b": 40,
+          "en_b": 0,
+          "be_b": 0,
+          "data_in_b": 0
+        },
+        {
+          "addr_a": 40,
+          "en_a": 0,
+          "be_a": 0,
+          "data_in_a": 0,
+          "addr_b": 40,
+          "en_b": 0,
+          "be_b": 0,
+          "data_in_b": 0
+        },
+        {
+          "addr_a": 40,
+          "en_a": 0,
+          "be_a": 0,
+          "data_in_a": 0,
+          "addr_b": 40,
+          "en_b": 0,
+          "be_b": 0,
+          "data_in_b": 0
+        },
+        {
+          "addr_a": 40,
+          "en_a": 0,
+          "be_a": 0,
+          "data_in_a": 0,
+          "addr_b": 40,
+          "en_b": 0,
+          "be_b": 0,
+          "data_in_b": 0
+        }
+      ],
+      "expected": [
+        {
+          "data_out_a": 0,
+          "data_out_b": 0
+        },
+        {
+          "data_out_a": 0,
+          "data_out_b": 0
+        },
+        {
+          "data_out_a": 0,
+          "data_out_b": 0
+        },
+        {
+          "data_out_a": 0,
+          "data_out_b": 0
+        },
+        {
+          "data_out_a": 0,
+          "data_out_b": 0
+        },
+        {
+          "data_out_a": 3405691582,
+          "data_out_b": 3405691582
+        },
+        {
+          "data_out_a": 3405691582,
+          "data_out_b": 3405691582
+        },
+        {
+          "data_out_a": 3405709311,
+          "data_out_b": 3405709311
+        },
+        {
+          "data_out_a": 3405709311,
+          "data_out_b": 3405709311
+        },
+        {
+          "data_out_a": 3405709311,
+          "data_out_b": 3405709311
+        }
+      ]
+    }
+  ]
+}

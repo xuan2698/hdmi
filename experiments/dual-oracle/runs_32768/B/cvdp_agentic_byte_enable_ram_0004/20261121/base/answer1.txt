@@ -1,0 +1,131 @@
+def reference(vectors):
+    LINES = 8192
+    MASK32 = 0xFFFFFFFF
+    MASKADDR = 0x1FFF
+    ram = [0] * LINES
+    oa = 0
+    ob = 0
+    ra = 0
+    rb = 0
+    ea = 0
+    eb = 0
+    bea = 0
+    beb = 0
+    dia = 0
+    dib = 0
+    ia_addr_a = 0
+    ia_en_a = 0
+    ia_be_a = 0
+    ia_data_in_a = 0
+    ia_addr_b = 0
+    ia_en_b = 0
+    ia_be_b = 0
+    ia_data_in_b = 0
+
+    def wr(addr, be, data):
+        word = ram[addr]
+        if be & 1:
+            word = (word & 0xFFFFFF00) | (data & 0x000000FF)
+        if be & 2:
+            word = (word & 0xFFFF00FF) | (data & 0x0000FF00)
+        if be & 4:
+            word = (word & 0xFF00FFFF) | (data & 0x00FF0000)
+        if be & 8:
+            word = (word & 0x00FFFFFF) | (data & 0xFF000000)
+        ram[addr] = word & MASK32
+
+    out = []
+    idx = 0
+    for row in vectors:
+        if isinstance(row, dict):
+            if 'addr_a' in row:
+                ia_addr_a = int(row['addr_a'])
+            if 'en_a' in row:
+                ia_en_a = int(row['en_a'])
+            if 'be_a' in row:
+                ia_be_a = int(row['be_a'])
+            if 'data_in_a' in row:
+                ia_data_in_a = int(row['data_in_a'])
+            if 'addr_b' in row:
+                ia_addr_b = int(row['addr_b'])
+            if 'en_b' in row:
+                ia_en_b = int(row['en_b'])
+            if 'be_b' in row:
+                ia_be_b = int(row['be_b'])
+            if 'data_in_b' in row:
+                ia_data_in_b = int(row['data_in_b'])
+
+        is_pos = None
+        if isinstance(row, dict) and 'edge' in row:
+            e = row['edge']
+            if isinstance(e, str):
+                s = e.lower()
+                if 'pos' in s or 'ris' in s or s == '1':
+                    is_pos = True
+                elif 'neg' in s or 'fal' in s or s == '0':
+                    is_pos = False
+                else:
+                    is_pos = True
+            else:
+                is_pos = bool(e)
+        else:
+            c = None
+            if isinstance(row, dict):
+                if 'clk' in row:
+                    c = row['clk']
+                elif 'clock' in row:
+                    c = row['clock']
+            if c is not None:
+                is_pos = (int(c) & 1) == 1
+            else:
+                is_pos = (idx % 2) == 0
+
+        out.append({
+            'data_out_a': oa & MASK32,
+            'data_out_b': ob & MASK32
+        })
+
+        if is_pos:
+            read_a = ram[ra]
+            read_b = ram[rb]
+
+            if ea and eb and ra == rb:
+                word = ram[ra]
+                if bea & 1:
+                    word = (word & 0xFFFFFF00) | (dia & 0x000000FF)
+                elif beb & 1:
+                    word = (word & 0xFFFFFF00) | (dib & 0x000000FF)
+                if bea & 2:
+                    word = (word & 0xFFFF00FF) | (dia & 0x0000FF00)
+                elif beb & 2:
+                    word = (word & 0xFFFF00FF) | (dib & 0x0000FF00)
+                if bea & 4:
+                    word = (word & 0xFF00FFFF) | (dia & 0x00FF0000)
+                elif beb & 4:
+                    word = (word & 0xFF00FFFF) | (dib & 0x00FF0000)
+                if bea & 8:
+                    word = (word & 0x00FFFFFF) | (dia & 0xFF000000)
+                elif beb & 8:
+                    word = (word & 0x00FFFFFF) | (dib & 0xFF000000)
+                ram[ra] = word & MASK32
+            else:
+                if ea:
+                    wr(ra, bea, dia)
+                if eb:
+                    wr(rb, beb, dib)
+
+            oa = read_a & MASK32
+            ob = read_b & MASK32
+
+            ra = ia_addr_a & MASKADDR
+            ea = ia_en_a & 1
+            bea = ia_be_a & 0xF
+            dia = ia_data_in_a & MASK32
+            rb = ia_addr_b & MASKADDR
+            eb = ia_en_b & 1
+            beb = ia_be_b & 0xF
+            dib = ia_data_in_b & MASK32
+
+        idx += 1
+
+    return out

@@ -1,0 +1,101 @@
+def reference(vectors):
+    MASK32 = (1 << 32) - 1
+    LINES = 8192
+    BYTES = 4
+    ram = [0] * LINES
+    cur = {}
+    addr_a_reg = 0
+    en_a_reg = 0
+    be_a_reg = 0
+    data_in_a_reg = 0
+    addr_b_reg = 0
+    en_b_reg = 0
+    be_b_reg = 0
+    data_in_b_reg = 0
+    out_a = 0
+    out_b = 0
+    res = []
+    idx = 0
+    for row in vectors:
+        for k, v in row.items():
+            cur[k] = v
+        pos = False
+        if 'edge' in row:
+            e = row['edge']
+            if isinstance(e, str):
+                s = e.lower()
+                if 'pos' in s:
+                    pos = True
+                elif 'neg' in s:
+                    pos = False
+                elif s in ('1', 'true', 'rise'):
+                    pos = True
+                elif s in ('0', 'false', 'fall'):
+                    pos = False
+                else:
+                    pos = (idx % 2 == 0)
+            else:
+                pos = bool(e)
+        elif 'clk' in row:
+            pos = (row['clk'] == 1 or row['clk'] is True)
+        elif 'CLK' in row:
+            pos = (row['CLK'] == 1 or row['CLK'] is True)
+        else:
+            pos = (idx % 2 == 0)
+
+        res.append({'data_out_a': out_a & MASK32, 'data_out_b': out_b & MASK32})
+
+        if pos:
+            next_out_a = ram[addr_a_reg]
+            next_out_b = ram[addr_b_reg]
+
+            if en_a_reg and en_b_reg and addr_a_reg == addr_b_reg:
+                addr = addr_a_reg
+                new = ram[addr]
+                for i in range(BYTES):
+                    bit = 1 << i
+                    shift = 8 * i
+                    if be_a_reg & bit:
+                        byte = (data_in_a_reg >> shift) & 0xFF
+                        new = (new & (MASK32 ^ (0xFF << shift))) | (byte << shift)
+                    elif be_b_reg & bit:
+                        byte = (data_in_b_reg >> shift) & 0xFF
+                        new = (new & (MASK32 ^ (0xFF << shift))) | (byte << shift)
+                ram[addr] = new & MASK32
+            else:
+                if en_a_reg:
+                    addr = addr_a_reg
+                    new = ram[addr]
+                    for i in range(BYTES):
+                        bit = 1 << i
+                        shift = 8 * i
+                        if be_a_reg & bit:
+                            byte = (data_in_a_reg >> shift) & 0xFF
+                            new = (new & (MASK32 ^ (0xFF << shift))) | (byte << shift)
+                    ram[addr] = new & MASK32
+                if en_b_reg:
+                    addr = addr_b_reg
+                    new = ram[addr]
+                    for i in range(BYTES):
+                        bit = 1 << i
+                        shift = 8 * i
+                        if be_b_reg & bit:
+                            byte = (data_in_b_reg >> shift) & 0xFF
+                            new = (new & (MASK32 ^ (0xFF << shift))) | (byte << shift)
+                    ram[addr] = new & MASK32
+
+            addr_a_reg = int(cur.get('addr_a', 0)) & 0x1FFF
+            en_a_reg = int(cur.get('en_a', 0)) & 1
+            be_a_reg = int(cur.get('be_a', 0)) & 0xF
+            data_in_a_reg = int(cur.get('data_in_a', 0)) & MASK32
+            addr_b_reg = int(cur.get('addr_b', 0)) & 0x1FFF
+            en_b_reg = int(cur.get('en_b', 0)) & 1
+            be_b_reg = int(cur.get('be_b', 0)) & 0xF
+            data_in_b_reg = int(cur.get('data_in_b', 0)) & MASK32
+
+            out_a = next_out_a & MASK32
+            out_b = next_out_b & MASK32
+
+        idx += 1
+
+    return res

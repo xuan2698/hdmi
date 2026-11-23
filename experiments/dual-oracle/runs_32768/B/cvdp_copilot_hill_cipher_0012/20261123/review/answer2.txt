@@ -1,0 +1,10 @@
+{
+  "issues": [
+    {
+      "id": "1",
+      "location": "posedge input reads: `reset = row.get('reset', 0)`, `if row.get('start', 0):`, and state==2 block `plaintext = row.get('plaintext', 0)`; `key = row.get('key', 0)`",
+      "spec_quote": "The negedge row includes mid changes. Update state after each edge as the spec requires and account for asynchronous input changes already applied before that edge.",
+      "fix": "Maintain current values for reset, start, plaintext, and key across rows, updating them only when the row provides new values; use these maintained values in the FSM instead of defaulting missing entries to 0."
+    }
+  ]
+}

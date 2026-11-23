@@ -1,0 +1,71 @@
+```python
+def reference(vectors):
+    sec = 0
+    minute = 0
+    hour = 0
+    cnt = 0
+    pulse = 0
+    prev_clk = 0
+    edge_idx = 0
+    out = []
+    for row in vectors:
+        if isinstance(row, dict):
+            reset = row.get('reset', 0)
+            start_stop = row.get('start_stop', 0)
+            clk_val = row.get('clk', None)
+            edge = row.get('edge', None)
+        else:
+            if len(row) == 3:
+                clk_val, reset, start_stop = row[0], row[1], row[2]
+            elif len(row) == 2:
+                reset, start_stop = row[0], row[1]
+                clk_val = None
+            else:
+                reset = row[0] if len(row) > 0 else 0
+                start_stop = row[1] if len(row) > 1 else 0
+                clk_val = None
+            edge = None
+        if edge is not None:
+            is_posedge = (edge == 'posedge' or edge == 1 or edge == '1' or edge == 'p')
+        elif clk_val is not None:
+            is_posedge = (prev_clk == 0 and clk_val == 1)
+            prev_clk = clk_val
+        else:
+            is_posedge = (edge_idx % 2 == 0)
+            edge_idx += 1
+        if reset == 1:
+            sec = 0
+            minute = 0
+            hour = 0
+            cnt = 0
+            pulse = 0
+        out.append({'seconds': sec, 'minutes': minute, 'hour': hour})
+        if is_posedge and reset == 0:
+            if start_stop == 1:
+                if cnt == 3:
+                    next_cnt = 0
+                    next_pulse = 1
+                else:
+                    next_cnt = cnt + 1
+                    next_pulse = 0
+            else:
+                next_cnt = cnt
+                next_pulse = 0
+            next_sec = sec
+            next_minute = minute
+            next_hour = hour
+            if pulse == 1:
+                if sec == 59:
+                    next_sec = 0
+                    if minute == 59:
+                        next_minute = 0
+                        next_hour = 1
+                    else:
+                        next_minute = minute + 1
+                else:
+                    next_sec = sec + 1
+            sec, minute, hour = next_sec, next_minute, next_hour
+            cnt = next_cnt
+            pulse = next_pulse
+    return out
+```

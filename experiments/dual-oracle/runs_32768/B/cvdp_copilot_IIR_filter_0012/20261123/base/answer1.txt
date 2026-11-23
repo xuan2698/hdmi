@@ -1,0 +1,58 @@
+```python
+def reference(vectors):
+    def s16(v):
+        v = v & 0xFFFF
+        return v - 0x10000 if v >= 0x8000 else v
+    y1 = y2 = y3 = 0
+    prev_clk = 0
+    res = []
+    for row in vectors:
+        reset = row.get('reset', 0)
+        in1 = s16(row.get('in_1', 0))
+        in2 = s16(row.get('in_2', 0))
+        in3 = s16(row.get('in_3', 0))
+        fsel = row.get('filter_select', 0) & 3
+        
+        is_posedge = False
+        if 'edge' in row:
+            e = row['edge']
+            if e in ('posedge', 'pos', 1, True):
+                is_posedge = True
+            elif e in ('negedge', 'neg', 0, False):
+                is_posedge = False
+            else:
+                is_posedge = str(e).lower().startswith('pos')
+        elif 'clk' in row:
+            clk = row['clk']
+            if clk == 1 and prev_clk == 0:
+                is_posedge = True
+            elif clk == 0 and prev_clk == 1:
+                is_posedge = False
+            else:
+                is_posedge = False
+            prev_clk = clk
+        
+        if reset:
+            y1 = y2 = y3 = 0
+        
+        res.append({'out_1': y1 & 0xFFFF,
+                    'out_2': y2 & 0xFFFF,
+                    'out_3': y3 & 0xFFFF})
+        
+        if not reset and is_posedge:
+            shift = fsel
+            d1 = in1 - y1
+            n1 = y1 + (d1 >> shift)
+            if n1 > 32767: n1 = 32767
+            elif n1 < -32768: n1 = -32768
+            d2 = in2 - y2
+            n2 = y2 + (d2 >> shift)
+            if n2 > 32767: n2 = 32767
+            elif n2 < -32768: n2 = -32768
+            d3 = in3 - y3
+            n3 = y3 + (d3 >> shift)
+            if n3 > 32767: n3 = 32767
+            elif n3 < -32768: n3 = -32768
+            y1, y2, y3 = n1, n2, n3
+    return res
+```

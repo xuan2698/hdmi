@@ -1,0 +1,66 @@
+def reference(vectors):
+    prev = 0
+    latched = 0
+    wcp = 0
+    pmp = 0
+    out = []
+
+    for i, r in enumerate(vectors):
+        if isinstance(r, dict):
+            get = r.get
+        else:
+            get = lambda k, d=0: d
+
+        reset = 1 if int(get('reset', 0) or 0) else 0
+        data = int(get('data_in', 0) or 0) & 255
+        mask = int(get('mask', 0) or 0) & 255
+        match_pattern = int(get('match_pattern', 0) or 0) & 255
+        enable = 1 if int(get('enable', 0) or 0) else 0
+        latch_pattern = 1 if int(get('latch_pattern', 0) or 0) else 0
+
+        e = get('edge', None)
+        if e is None:
+            e = get('clk_edge', None)
+        if e is None:
+            e = get('clk', None)
+
+        if e is None:
+            pos = (i % 2 == 0)
+        elif isinstance(e, str):
+            s = e.strip().lower()
+            if s.startswith('p') or s in ('1', 'true', 'high', 'up'):
+                pos = True
+            elif s.startswith('n') or s in ('0', 'false', 'low', 'down'):
+                pos = False
+            else:
+                pos = (i % 2 == 0)
+        else:
+            pos = (int(e) == 1)
+
+        if reset:
+            prev = 0
+            latched = 0
+            wcp = 0
+            pmp = 0
+
+        out.append({
+            'word_change_pulse': wcp & 1,
+            'pattern_match_pulse': pmp & 1,
+            'latched_pattern': latched & 255
+        })
+
+        if (not reset) and pos:
+            change = (((data ^ prev) & mask) != 0)
+            match = (((data ^ latched) & mask) == 0)
+
+            next_wcp = 1 if (enable and change) else 0
+            next_pmp = 1 if (enable and match) else 0
+            next_prev = data
+            next_latched = match_pattern if latch_pattern else latched
+
+            wcp = next_wcp
+            pmp = next_pmp
+            prev = next_prev
+            latched = next_latched
+
+    return out

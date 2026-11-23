@@ -1,0 +1,155 @@
+def reference(vectors):
+    state = 0
+    cs = 1
+    sclk = 0
+    sdata = 0
+    bits = 16
+    done = 0
+    shift = 0
+    rst_b = 0
+    en = 0
+    fault = 0
+    clear = 0
+    din = 0
+    prev_clk = 0
+    outs = []
+
+    for idx, row in enumerate(vectors):
+        if 'i_rst_b' in row:
+            rst_b = row['i_rst_b']
+        elif 'rst_b' in row:
+            rst_b = row['rst_b']
+        if 'i_enable' in row:
+            en = row['i_enable']
+        elif 'enable' in row:
+            en = row['enable']
+        if 'i_fault' in row:
+            fault = row['i_fault']
+        elif 'fault' in row:
+            fault = row['fault']
+        if 'i_clear' in row:
+            clear = row['i_clear']
+        elif 'clear' in row:
+            clear = row['clear']
+        if 'i_data_in' in row:
+            din = row['i_data_in']
+        elif 'data_in' in row:
+            din = row['data_in']
+
+        edge = None
+        if 'edge' in row:
+            e = row['edge']
+            if isinstance(e, str):
+                el = e.lower()
+                if 'pos' in el:
+                    edge = 'pos'
+                elif 'neg' in el:
+                    edge = 'neg'
+            else:
+                edge = 'pos' if e else 'neg'
+        elif 'i_clk' in row or 'clk' in row:
+            clk = row.get('i_clk', row.get('clk', prev_clk))
+            if clk != prev_clk:
+                edge = 'pos' if clk == 1 else 'neg'
+            else:
+                edge = 'pos' if idx % 2 == 0 else 'neg'
+            prev_clk = clk
+        else:
+            edge = 'pos' if idx % 2 == 0 else 'neg'
+
+        if rst_b == 0:
+            state = 0
+            cs = 1
+            sclk = 0
+            sdata = 0
+            bits = 16
+            done = 0
+            shift = 0
+
+        outs.append({
+            'o_spi_cs_b': cs,
+            'o_spi_clk': sclk,
+            'o_spi_data': sdata,
+            'o_bits_left': bits,
+            'o_done': done,
+            'o_fsm_state': state
+        })
+
+        if edge == 'pos':
+            if rst_b == 0:
+                state = 0
+                cs = 1
+                sclk = 0
+                sdata = 0
+                bits = 16
+                done = 0
+                shift = 0
+            else:
+                if clear == 1:
+                    state = 0
+                    cs = 1
+                    sclk = 0
+                    sdata = 0
+                    bits = 16
+                    done = 0
+                    shift = 0
+                elif state == 3:
+                    cs = 1
+                    sclk = 0
+                    sdata = 0
+                    bits = 16
+                    done = 0
+                    shift = 0
+                elif fault == 1:
+                    state = 3
+                    cs = 1
+                    sclk = 0
+                    sdata = 0
+                    bits = 16
+                    done = 1
+                    shift = 0
+                elif en == 0:
+                    state = 0
+                    cs = 1
+                    sclk = 0
+                    sdata = 0
+                    bits = 16
+                    done = 0
+                    shift = 0
+                else:
+                    if state == 0:
+                        state = 1
+                        cs = 0
+                        sclk = 0
+                        sdata = (din >> 15) & 1
+                        bits = 16
+                        done = 0
+                        shift = din & 0xFFFF
+                    elif state == 1:
+                        state = 2
+                        sclk = 1
+                    elif state == 2:
+                        sclk = 0
+                        if bits == 1:
+                            state = 0
+                            cs = 1
+                            sdata = 0
+                            bits = 16
+                            done = 1
+                            shift = 0
+                        else:
+                            bits = bits - 1
+                            sdata = (shift >> 14) & 1
+                            shift = (shift << 1) & 0xFFFF
+                            state = 1
+                            done = 0
+                    else:
+                        state = 0
+                        cs = 1
+                        sclk = 0
+                        sdata = 0
+                        bits = 16
+                        done = 0
+                        shift = 0
+
+    return outs

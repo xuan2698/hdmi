@@ -1,0 +1,89 @@
+def reference(vectors):
+    IDLE, LOAD, COMPUTE, OUTPUT = 0, 1, 2, 3
+    state = IDLE
+    a_reg = b_reg = res = ov = 0
+    results = []
+    prev_clk = 0
+
+    for idx, row in enumerate(vectors):
+        d = row if isinstance(row, dict) else {}
+        edge = d.get('edge')
+        if 'i_clk' in d:
+            clk = int(d.get('i_clk', 0) or 0)
+            if edge is None:
+                if idx == 0:
+                    edge = 'posedge' if clk else 'negedge'
+                elif prev_clk == 0 and clk == 1:
+                    edge = 'posedge'
+                elif prev_clk == 1 and clk == 0:
+                    edge = 'negedge'
+                else:
+                    edge = 'posedge' if idx % 2 == 0 else 'negedge'
+            prev_clk = clk
+        if edge is None:
+            edge = 'posedge' if idx % 2 == 0 else 'negedge'
+
+        s = str(edge).lower()
+        pos = ('posedge' in s) or s in ('pos', 'p', '1', 'rise')
+
+        def g(name):
+            v = d.get(name, 0)
+            try:
+                return int(v)
+            except:
+                return 0
+
+        rst_n = g('i_rst_n')
+        start = g('i_start')
+        en = g('i_enable')
+        mode = g('i_mode')
+        clear = g('i_clear')
+        a_in = g('i_operand_a') & 0xFF
+        b_in = g('i_operand_b') & 0xFF
+
+        if rst_n == 0:
+            state = IDLE
+            a_reg = b_reg = res = ov = 0
+
+        results.append({
+            'o_resultant_sum': res & 0xFF,
+            'o_overflow': ov & 1,
+            'o_ready': 1 if state == OUTPUT else 0,
+            'o_status': state & 3
+        })
+
+        if rst_n != 0 and pos:
+            if clear:
+                state = IDLE
+                a_reg = b_reg = res = ov = 0
+            elif en == 0:
+                state = IDLE
+            else:
+                if state == IDLE:
+                    if start:
+                        state = LOAD
+                elif state == LOAD:
+                    a_reg = a_in
+                    b_reg = b_in
+                    state = COMPUTE
+                elif state == COMPUTE:
+                    a = a_reg
+                    b = b_reg
+                    if mode == 0:
+                        r = (a + b) & 0xFF
+                        sa = (a >> 7) & 1
+                        sb = (b >> 7) & 1
+                        sr = (r >> 7) & 1
+                        ov = 1 if (sa == sb and sr != sa) else 0
+                    else:
+                        r = (a - b) & 0xFF
+                        sa = (a >> 7) & 1
+                        sb = (b >> 7) & 1
+                        sr = (r >> 7) & 1
+                        ov = 1 if (sa != sb and sr != sa) else 0
+                    res = r
+                    state = OUTPUT
+                elif state == OUTPUT:
+                    state = IDLE
+
+    return results

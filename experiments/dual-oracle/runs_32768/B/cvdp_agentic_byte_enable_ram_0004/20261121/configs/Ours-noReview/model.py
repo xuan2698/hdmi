@@ -1,0 +1,81 @@
+def reference(vectors):
+    LINES = 8192
+    MASK_ADDR = LINES - 1
+    MASK_DATA = 0xFFFFFFFF
+    ram = [0] * LINES
+    reg_addr_a = reg_addr_b = 0
+    reg_en_a = reg_en_b = 0
+    reg_be_a = reg_be_b = 0
+    reg_data_in_a = reg_data_in_b = 0
+    out_reg_a = out_reg_b = 0
+    res = []
+    for idx, row in enumerate(vectors):
+        def g(k, d=0):
+            if isinstance(row, dict):
+                return row.get(k, d)
+            return getattr(row, k, d)
+        res.append({'data_out_a': out_reg_a & MASK_DATA,
+                    'data_out_b': out_reg_b & MASK_DATA})
+        edge = g('edge', None)
+        if edge is None:
+            edge = g('clk', None)
+        if edge is None:
+            pos = (idx % 2 == 0)
+        else:
+            if isinstance(edge, str):
+                pos = 'pos' in edge.lower()
+            else:
+                pos = bool(edge)
+        if pos:
+            new_out_a = ram[reg_addr_a] & MASK_DATA
+            new_out_b = ram[reg_addr_b] & MASK_DATA
+            a_en = reg_en_a & 1
+            b_en = reg_en_b & 1
+            a_addr = reg_addr_a & MASK_ADDR
+            b_addr = reg_addr_b & MASK_ADDR
+            a_be = reg_be_a & 0xF
+            b_be = reg_be_b & 0xF
+            a_data = reg_data_in_a & MASK_DATA
+            b_data = reg_data_in_b & MASK_DATA
+            if a_en and b_en and a_addr == b_addr:
+                old = ram[a_addr]
+                new = old
+                for i in range(4):
+                    shift = i * 8
+                    if (a_be >> i) & 1:
+                        byte = (a_data >> shift) & 0xFF
+                        new = (new & ~(0xFF << shift)) | (byte << shift)
+                    elif (b_be >> i) & 1:
+                        byte = (b_data >> shift) & 0xFF
+                        new = (new & ~(0xFF << shift)) | (byte << shift)
+                ram[a_addr] = new & MASK_DATA
+            else:
+                if a_en:
+                    old = ram[a_addr]
+                    new = old
+                    for i in range(4):
+                        if (a_be >> i) & 1:
+                            shift = i * 8
+                            byte = (a_data >> shift) & 0xFF
+                            new = (new & ~(0xFF << shift)) | (byte << shift)
+                    ram[a_addr] = new & MASK_DATA
+                if b_en:
+                    old = ram[b_addr]
+                    new = old
+                    for i in range(4):
+                        if (b_be >> i) & 1:
+                            shift = i * 8
+                            byte = (b_data >> shift) & 0xFF
+                            new = (new & ~(0xFF << shift)) | (byte << shift)
+                    ram[b_addr] = new & MASK_DATA
+            reg_addr_a = g('addr_a', 0) & MASK_ADDR
+            reg_en_a = g('en_a', 0) & 1
+            reg_be_a = g('be_a', 0) & 0xF
+            reg_data_in_a = g('data_in_a', 0) & MASK_DATA
+            reg_addr_b = g('addr_b', 0) & MASK_ADDR
+            reg_en_b = g('en_b', 0) & 1
+            reg_be_b = g('be_b', 0) & 0xF
+            reg_data_in_b = g('data_in_b', 0) & MASK_DATA
+            out_reg_a = new_out_a
+            out_reg_b = new_out_b
+    return res

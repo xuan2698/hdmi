@@ -1,0 +1,78 @@
+def reference(vectors):
+    def to_signed(x):
+        try:
+            x = int(x)
+        except Exception:
+            x = 0
+        x &= 0xFFFF
+        return x - 0x10000 if x >= 0x8000 else x
+
+    def get(row, key, default=0):
+        if isinstance(row, dict):
+            if key in row:
+                return row[key]
+            for k, v in row.items():
+                if isinstance(k, str) and k.lower() == key.lower():
+                    return v
+        return default
+
+    def clamp(v):
+        if v > 32767:
+            return 32767
+        if v < -32768:
+            return -32768
+        return v
+
+    y0 = y1 = y2 = 0
+    res = []
+    for idx, row in enumerate(vectors):
+        edge = None
+        for ek in ('edge', 'clk', 'clock', 'clk_edge'):
+            if isinstance(row, dict):
+                if ek in row:
+                    edge = row[ek]
+                    break
+                for k in row:
+                    if isinstance(k, str) and k.lower() == ek.lower():
+                        edge = row[k]
+                        break
+                if edge is not None:
+                    break
+
+        pos = False
+        if edge is not None:
+            if isinstance(edge, str):
+                el = edge.lower()
+                if 'pos' in el or 'rise' in el or el in ('1', 'true'):
+                    pos = True
+                elif 'neg' in el or 'fall' in el or el in ('0', 'false'):
+                    pos = False
+                else:
+                    pos = (idx % 2 == 0)
+            else:
+                pos = (int(edge) != 0)
+        else:
+            pos = (idx % 2 == 0)
+
+        rst = int(get(row, 'reset', 0))
+        if rst == 1:
+            y0 = y1 = y2 = 0
+
+        res.append({
+            'out_1': y0 & 0xFFFF,
+            'out_2': y1 & 0xFFFF,
+            'out_3': y2 & 0xFFFF
+        })
+
+        if pos and rst == 0:
+            fs = int(get(row, 'filter_select', 0)) & 3
+            shift = fs
+            x0 = to_signed(get(row, 'in_1', 0))
+            x1 = to_signed(get(row, 'in_2', 0))
+            x2 = to_signed(get(row, 'in_3', 0))
+
+            y0 = clamp(y0 + ((x0 - y0) >> shift))
+            y1 = clamp(y1 + ((x1 - y1) >> shift))
+            y2 = clamp(y2 + ((x2 - y2) >> shift))
+
+    return res

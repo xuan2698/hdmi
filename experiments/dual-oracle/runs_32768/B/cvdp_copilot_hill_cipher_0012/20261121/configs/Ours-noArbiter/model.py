@@ -1,0 +1,67 @@
+def reference(vectors):
+    state = 0
+    ciphertext = 0
+    done = 0
+    sums = [0, 0, 0]
+    cur_reset = 0
+    cur_start = 0
+    cur_plaintext = 0
+    cur_key = 0
+    prev_clk = 0
+    out = []
+    for idx, v in enumerate(vectors):
+        if 'reset' in v:
+            cur_reset = v['reset'] & 1
+        if 'start' in v:
+            cur_start = v['start'] & 1
+        if 'plaintext' in v:
+            cur_plaintext = v['plaintext'] & 0x7fff
+        if 'key' in v:
+            cur_key = v['key'] & ((1 << 45) - 1)
+        if 'clk' in v:
+            clk = v['clk'] & 1
+            posedge = (prev_clk == 0 and clk == 1)
+            prev_clk = clk
+        else:
+            posedge = (idx % 2 == 0)
+        out.append({'ciphertext': ciphertext & 0x7fff, 'done': done & 1})
+        if posedge:
+            if cur_reset:
+                state = 0
+                ciphertext = 0
+                done = 0
+                sums = [0, 0, 0]
+            else:
+                if state == 0:
+                    if cur_start:
+                        state = 1
+                elif state == 1:
+                    plaintext = cur_plaintext
+                    key = cur_key
+                    p0 = plaintext & 31
+                    p1 = (plaintext >> 5) & 31
+                    p2 = (plaintext >> 10) & 31
+                    k0 = key & 31
+                    k1 = (key >> 5) & 31
+                    k2 = (key >> 10) & 31
+                    k3 = (key >> 15) & 31
+                    k4 = (key >> 20) & 31
+                    k5 = (key >> 25) & 31
+                    k6 = (key >> 30) & 31
+                    k7 = (key >> 35) & 31
+                    k8 = (key >> 40) & 31
+                    sums[0] = p0 * k0 + p1 * k1 + p2 * k2
+                    sums[1] = p0 * k3 + p1 * k4 + p2 * k5
+                    sums[2] = p0 * k6 + p1 * k7 + p2 * k8
+                    state = 2
+                elif state == 2:
+                    c0 = sums[0] % 26
+                    c1 = sums[1] % 26
+                    c2 = sums[2] % 26
+                    ciphertext = c0 | (c1 << 5) | (c2 << 10)
+                    state = 3
+                    done = 1
+                elif state == 3:
+                    done = 0
+                    state = 0
+    return out

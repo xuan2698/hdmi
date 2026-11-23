@@ -1,0 +1,499 @@
+{
+  "decisions": [
+    {
+      "id": "s1/8/out_1",
+      "label": "RM",
+      "source": "TB assumed correct per baseline"
+    },
+    {
+      "id": "s1/8/out_2",
+      "label": "RM",
+      "source": "TB assumed correct per baseline"
+    },
+    {
+      "id": "s1/8/out_3",
+      "label": "RM",
+      "source": "TB assumed correct per baseline"
+    },
+    {
+      "id": "s2/4/out_1",
+      "label": "RM",
+      "source": "TB assumed correct per baseline"
+    },
+    {
+      "id": "s2/4/out_2",
+      "label": "RM",
+      "source": "TB assumed correct per baseline"
+    },
+    {
+      "id": "s2/5/out_1",
+      "label": "RM",
+      "source": "TB assumed correct per baseline"
+    },
+    {
+      "id": "s3/4/out_1",
+      "label": "RM",
+      "source": "TB assumed correct per baseline"
+    },
+    {
+      "id": "s3/4/out_2",
+      "label": "RM",
+      "source": "TB assumed correct per baseline"
+    },
+    {
+      "id": "s3/4/out_3",
+      "label": "RM",
+      "source": "TB assumed correct per baseline"
+    },
+    {
+      "id": "s4/4/out_1",
+      "label": "RM",
+      "source": "TB assumed correct per baseline"
+    },
+    {
+      "id": "s4/4/out_2",
+      "label": "RM",
+      "source": "TB assumed correct per baseline"
+    },
+    {
+      "id": "s4/4/out_3",
+      "label": "RM",
+      "source": "TB assumed correct per baseline"
+    },
+    {
+      "id": "s5/4/out_1",
+      "label": "RM",
+      "source": "TB assumed correct per baseline"
+    },
+    {
+      "id": "s5/4/out_2",
+      "label": "RM",
+      "source": "TB assumed correct per baseline"
+    },
+    {
+      "id": "s5/4/out_3",
+      "label": "RM",
+      "source": "TB assumed correct per baseline"
+    }
+  ],
+  "RM": "def reference(vectors):\n    def s(v):\n        v = int(v) & 0xFFFF\n        return v - 0x10000 if v & 0x8000 else v\n    o1 = o2 = o3 = 0\n    res = []\n    for row in vectors:\n        rst = row.get('reset', 0)\n        if rst:\n            o1 = o2 = o3 = 0\n        res.append({\n            'out_1': o1 & 0xFFFF,\n            'out_2': o2 & 0xFFFF,\n            'out_3': o3 & 0xFFFF\n        })\n        edge = row.get('edge')\n        if edge is None:\n            pos = (row.get('clk', 0) == 1 or row.get('clk', 0) is True)\n        else:\n            pos = (edge == 'posedge' or edge == 1 or edge is True)\n        if pos and not rst:\n            sh = int(row.get('filter_select', 0)) & 3\n            i1 = s(row.get('in_1', 0))\n            i2 = s(row.get('in_2', 0))\n            i3 = s(row.get('in_3', 0))\n            o1 = o1 + ((i1 - o1) >> sh)\n            o2 = o2 + ((i2 - o2) >> sh)\n            o3 = o3 + ((i3 - o3) >> sh)\n            if o1 > 32767:\n                o1 = 32767\n            elif o1 < -32768:\n                o1 = -32768\n            if o2 > 32767:\n                o2 = 32767\n            elif o2 < -32768:\n                o2 = -32768\n            if o3 > 32767:\n                o3 = 32767\n            elif o3 < -32768:\n                o3 = -32768\n    return res\n",
+  "TB": [
+    {
+      "id": "s1",
+      "spec_quote": "Active-high Asynchronous reset signal that clears the internal states of the filter.",
+      "covers": [
+        "behavior",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "reset": 1,
+          "in_1": 0,
+          "in_2": 0,
+          "in_3": 0,
+          "filter_select": 0
+        },
+        {
+          "reset": 1,
+          "in_1": 0,
+          "in_2": 0,
+          "in_3": 0,
+          "filter_select": 0
+        },
+        {
+          "reset": 1,
+          "in_1": 0,
+          "in_2": 0,
+          "in_3": 0,
+          "filter_select": 0,
+          "mid": {
+            "reset": 0,
+            "in_1": 0,
+            "in_2": 0,
+            "in_3": 0,
+            "filter_select": 0
+          }
+        },
+        {
+          "reset": 0,
+          "in_1": 5,
+          "in_2": 65533,
+          "in_3": 10,
+          "filter_select": 0
+        }
+      ],
+      "expected": [
+        {
+          "out_1": 0,
+          "out_2": 0,
+          "out_3": 0
+        },
+        {
+          "out_1": 0,
+          "out_2": 0,
+          "out_3": 0
+        },
+        {
+          "out_1": 0,
+          "out_2": 0,
+          "out_3": 0
+        },
+        {
+          "out_1": 0,
+          "out_2": 0,
+          "out_3": 0
+        },
+        {
+          "out_1": 0,
+          "out_2": 0,
+          "out_3": 0
+        },
+        {
+          "out_1": 0,
+          "out_2": 0,
+          "out_3": 0
+        },
+        {
+          "out_1": 0,
+          "out_2": 0,
+          "out_3": 0
+        },
+        {
+          "out_1": 5,
+          "out_2": 65533,
+          "out_3": 10
+        }
+      ]
+    },
+    {
+      "id": "s2",
+      "spec_quote": "Each output should primarily depend on its respective input (`out_1` on `in_1`, `out_2` on `in_2`, etc.).",
+      "covers": [
+        "behavior",
+        "boundary",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "reset": 1,
+          "in_1": 0,
+          "in_2": 0,
+          "in_3": 0,
+          "filter_select": 0
+        },
+        {
+          "reset": 0,
+          "in_1": 32767,
+          "in_2": 32768,
+          "in_3": 0,
+          "filter_select": 0
+        },
+        {
+          "reset": 0,
+          "in_1": 32768,
+          "in_2": 32767,
+          "in_3": 65535,
+          "filter_select": 0
+        }
+      ],
+      "expected": [
+        {
+          "out_1": 0,
+          "out_2": 0,
+          "out_3": 0
+        },
+        {
+          "out_1": 0,
+          "out_2": 0,
+          "out_3": 0
+        },
+        {
+          "out_1": 0,
+          "out_2": 0,
+          "out_3": 0
+        },
+        {
+          "out_1": 32767,
+          "out_2": 32768,
+          "out_3": 0
+        },
+        {
+          "out_1": 32767,
+          "out_2": 32768,
+          "out_3": 0
+        },
+        {
+          "out_1": 32768,
+          "out_2": 32767,
+          "out_3": 65535
+        }
+      ]
+    },
+    {
+      "id": "s3",
+      "spec_quote": "- **Saturation and Stability:** The filter should handle extreme values without causing instability.",
+      "covers": [
+        "behavior",
+        "boundary",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "reset": 1,
+          "in_1": 0,
+          "in_2": 0,
+          "in_3": 0,
+          "filter_select": 0
+        },
+        {
+          "reset": 0,
+          "in_1": 20000,
+          "in_2": 45536,
+          "in_3": 10000,
+          "filter_select": 0
+        },
+        {
+          "reset": 0,
+          "in_1": 20000,
+          "in_2": 45536,
+          "in_3": 10000,
+          "filter_select": 1
+        },
+        {
+          "reset": 0,
+          "in_1": 32767,
+          "in_2": 32768,
+          "in_3": 0,
+          "filter_select": 1
+        }
+      ],
+      "expected": [
+        {
+          "out_1": 0,
+          "out_2": 0,
+          "out_3": 0
+        },
+        {
+          "out_1": 0,
+          "out_2": 0,
+          "out_3": 0
+        },
+        {
+          "out_1": 0,
+          "out_2": 0,
+          "out_3": 0
+        },
+        {
+          "out_1": 20000,
+          "out_2": 45536,
+          "out_3": 10000
+        },
+        {
+          "out_1": 20000,
+          "out_2": 45536,
+          "out_3": 10000
+        },
+        {
+          "out_1": 32767,
+          "out_2": 32768,
+          "out_3": 20000
+        },
+        {
+          "out_1": 32767,
+          "out_2": 32768,
+          "out_3": 20000
+        },
+        {
+          "out_1": 32767,
+          "out_2": 32768,
+          "out_3": 10000
+        }
+      ]
+    },
+    {
+      "id": "s4",
+      "spec_quote": "- **Coefficient Switching:** Changing `filter_select` should update the filter behavior smoothly.",
+      "covers": [
+        "behavior",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "reset": 1,
+          "in_1": 0,
+          "in_2": 0,
+          "in_3": 0,
+          "filter_select": 0
+        },
+        {
+          "reset": 0,
+          "in_1": 1000,
+          "in_2": 64536,
+          "in_3": 500,
+          "filter_select": 0
+        },
+        {
+          "reset": 0,
+          "in_1": 1500,
+          "in_2": 64036,
+          "in_3": 500,
+          "filter_select": 2
+        },
+        {
+          "reset": 0,
+          "in_1": 2000,
+          "in_2": 63536,
+          "in_3": 1000,
+          "filter_select": 3
+        },
+        {
+          "reset": 0,
+          "in_1": 100,
+          "in_2": 65436,
+          "in_3": 0,
+          "filter_select": 1
+        }
+      ],
+      "expected": [
+        {
+          "out_1": 0,
+          "out_2": 0,
+          "out_3": 0
+        },
+        {
+          "out_1": 0,
+          "out_2": 0,
+          "out_3": 0
+        },
+        {
+          "out_1": 0,
+          "out_2": 0,
+          "out_3": 0
+        },
+        {
+          "out_1": 1000,
+          "out_2": 64536,
+          "out_3": 500
+        },
+        {
+          "out_1": 1000,
+          "out_2": 64536,
+          "out_3": 500
+        },
+        {
+          "out_1": 500,
+          "out_2": 65036,
+          "out_3": 0
+        },
+        {
+          "out_1": 500,
+          "out_2": 65036,
+          "out_3": 0
+        },
+        {
+          "out_1": 1500,
+          "out_2": 64036,
+          "out_3": 500
+        },
+        {
+          "out_1": 1500,
+          "out_2": 64036,
+          "out_3": 500
+        },
+        {
+          "out_1": 2100,
+          "out_2": 63436,
+          "out_3": 1000
+        }
+      ]
+    },
+    {
+      "id": "s5",
+      "spec_quote": "- **Reset Handling:** The filter should correctly initialize all internal states upon reset.",
+      "covers": [
+        "behavior",
+        "priority",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "reset": 1,
+          "in_1": 0,
+          "in_2": 0,
+          "in_3": 0,
+          "filter_select": 0
+        },
+        {
+          "reset": 0,
+          "in_1": 1234,
+          "in_2": 59858,
+          "in_3": 100,
+          "filter_select": 0
+        },
+        {
+          "reset": 0,
+          "in_1": 1000,
+          "in_2": 64536,
+          "in_3": 0,
+          "filter_select": 1,
+          "mid": {
+            "reset": 1,
+            "in_1": 0,
+            "in_2": 0,
+            "in_3": 0,
+            "filter_select": 1
+          }
+        },
+        {
+          "reset": 1,
+          "in_1": 0,
+          "in_2": 0,
+          "in_3": 0,
+          "filter_select": 0
+        }
+      ],
+      "expected": [
+        {
+          "out_1": 0,
+          "out_2": 0,
+          "out_3": 0
+        },
+        {
+          "out_1": 0,
+          "out_2": 0,
+          "out_3": 0
+        },
+        {
+          "out_1": 0,
+          "out_2": 0,
+          "out_3": 0
+        },
+        {
+          "out_1": 1234,
+          "out_2": 59858,
+          "out_3": 100
+        },
+        {
+          "out_1": 1234,
+          "out_2": 59858,
+          "out_3": 100
+        },
+        {
+          "out_1": 0,
+          "out_2": 0,
+          "out_3": 0
+        },
+        {
+          "out_1": 0,
+          "out_2": 0,
+          "out_3": 0
+        },
+        {
+          "out_1": 0,
+          "out_2": 0,
+          "out_3": 0
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,49 @@
+def reference(vectors):
+    latched = 0
+    wp = 0
+    mp = 0
+    prev = 0
+    out_list = []
+    for idx, row in enumerate(vectors):
+        reset = int(row.get('reset', 0)) & 1
+        if reset:
+            latched = 0
+            wp = 0
+            mp = 0
+            prev = 0
+            out_list.append({'word_change_pulse': 0, 'pattern_match_pulse': 0, 'latched_pattern': 0})
+            continue
+
+        out_list.append({'word_change_pulse': wp, 'pattern_match_pulse': mp, 'latched_pattern': latched})
+
+        e = row.get('edge', None)
+        if e is None:
+            is_pos = (idx % 2 == 0)
+        else:
+            if isinstance(e, str):
+                s = e.lower()
+                is_pos = (s.startswith('pos') or s in ('p', '1'))
+            else:
+                is_pos = bool(e)
+
+        if is_pos:
+            data = int(row.get('data_in', 0)) & 0xFF
+            mask = int(row.get('mask', 0)) & 0xFF
+            match_pat = int(row.get('match_pattern', 0)) & 0xFF
+            en = int(row.get('enable', 0)) & 1
+            lp = int(row.get('latch_pattern', 0)) & 1
+
+            change = (((data ^ prev) & mask) != 0)
+            match = ((((data ^ latched) & mask) == 0))
+
+            new_wp = 1 if (en and change) else 0
+            new_mp = 1 if (en and match) else 0
+            new_latched = (match_pat & 0xFF) if lp else latched
+            new_prev = data & 0xFF
+
+            wp = new_wp
+            mp = new_mp
+            latched = new_latched
+            prev = new_prev
+
+    return out_list

@@ -1,0 +1,68 @@
+def reference(vectors):
+    if isinstance(vectors, dict):
+        keys = list(vectors.keys())
+        n = len(vectors[keys[0]]) if keys else 0
+        rows = []
+        for i in range(n):
+            rows.append({k: vectors[k][i] for k in keys})
+        vectors = rows
+    c = s = m = h = 0
+    out = []
+    for i, row in enumerate(vectors):
+        reset = 0
+        start_stop = 0
+        edge = None
+        clk = None
+        if isinstance(row, dict):
+            reset = row.get('reset', 0)
+            start_stop = row.get('start_stop', 0)
+            edge = row.get('edge', None)
+            clk = row.get('clk', None)
+        elif isinstance(row, (list, tuple)):
+            if len(row) >= 3:
+                edge = row[0]
+                reset = row[1]
+                start_stop = row[2]
+            elif len(row) == 2:
+                reset = row[0]
+                start_stop = row[1]
+        is_pos = None
+        if edge is not None:
+            if isinstance(edge, str):
+                e = edge.lower()
+                if 'pos' in e or e in ('1', 'p', 'rise', 'rising'):
+                    is_pos = True
+                elif 'neg' in e or e in ('0', 'n', 'fall', 'falling'):
+                    is_pos = False
+            else:
+                if edge == 1 or edge is True:
+                    is_pos = True
+                elif edge == 0 or edge is False:
+                    is_pos = False
+        if is_pos is None and clk is not None:
+            if clk == 1 or clk is True:
+                is_pos = True
+            elif clk == 0 or clk is False:
+                is_pos = False
+        if is_pos is None:
+            is_pos = (i % 2 == 0)
+        if reset == 1:
+            c = 0
+            s = 0
+            m = 0
+            h = 0
+        out.append({'seconds': s, 'minutes': m, 'hour': h})
+        if is_pos and reset == 0:
+            terminal = (c == 3)
+            if terminal and start_stop == 1:
+                if s == 59:
+                    s = 0
+                    if m == 59:
+                        m = 0
+                        h = 1
+                    else:
+                        m += 1
+                else:
+                    s += 1
+            c = 0 if terminal else c + 1
+    return out

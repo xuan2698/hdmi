@@ -1,0 +1,34 @@
+def reference(vectors):
+    s = m = h = d = 0
+    out = []
+    for r in vectors:
+        reset = r.get('reset', 0)
+        start = r.get('start_stop', 0)
+        e = r.get('edge', r.get('clk', 0))
+        if isinstance(e, str):
+            is_pos = e.lower().startswith('p') or e == '1'
+        else:
+            is_pos = bool(e)
+
+        if reset == 1:
+            s = m = h = 0
+            d = 0
+
+        out.append({'seconds': s, 'minutes': m, 'hour': h})
+
+        if is_pos and reset == 0 and start == 1:
+            if d == 3:
+                d = 0
+                if s == 59:
+                    s = 0
+                    if m == 59:
+                        m = 0
+                        h = 1
+                    else:
+                        m += 1
+                else:
+                    s += 1
+            else:
+                d += 1
+
+    return out

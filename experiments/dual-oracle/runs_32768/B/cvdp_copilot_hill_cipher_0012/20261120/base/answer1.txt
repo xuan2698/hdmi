@@ -1,0 +1,62 @@
+```python
+def reference(vectors):
+    state = 0
+    cipher = 0
+    result = []
+    for row in vectors:
+        result.append({
+            "ciphertext": cipher & 0x7fff,
+            "done": 1 if state == 3 else 0
+        })
+        edge = row.get("edge", None)
+        is_pos = False
+        if edge is not None:
+            if isinstance(edge, str):
+                e = edge.lower()
+                if "pos" in e or e in ("1", "rising", "rise"):
+                    is_pos = True
+                elif "neg" in e or e in ("0", "falling", "fall"):
+                    is_pos = False
+                else:
+                    try:
+                        is_pos = int(e) == 1
+                    except:
+                        is_pos = False
+            else:
+                is_pos = (edge == 1 or edge is True)
+        if is_pos:
+            reset = row.get("reset", 0)
+            if reset:
+                state = 0
+                cipher = 0
+            else:
+                start = row.get("start", 0)
+                if state == 0:
+                    if start:
+                        state = 1
+                elif state == 1:
+                    state = 2
+                elif state == 2:
+                    pt = row.get("plaintext", 0)
+                    key = row.get("key", 0)
+                    p0 = pt & 31
+                    p1 = (pt >> 5) & 31
+                    p2 = (pt >> 10) & 31
+                    k0 = key & 31
+                    k1 = (key >> 5) & 31
+                    k2 = (key >> 10) & 31
+                    k3 = (key >> 15) & 31
+                    k4 = (key >> 20) & 31
+                    k5 = (key >> 25) & 31
+                    k6 = (key >> 30) & 31
+                    k7 = (key >> 35) & 31
+                    k8 = (key >> 40) & 31
+                    c0 = (p0 * k0 + p1 * k1 + p2 * k2) % 26
+                    c1 = (p0 * k3 + p1 * k4 + p2 * k5) % 26
+                    c2 = (p0 * k6 + p1 * k7 + p2 * k8) % 26
+                    cipher = (c2 << 10) | (c1 << 5) | c0
+                    state = 3
+                elif state == 3:
+                    state = 0
+    return result
+```

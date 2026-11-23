@@ -1,0 +1,92 @@
+def reference(vectors):
+    ram = [0] * 8192
+    addr_a_reg = 0
+    en_a_reg = 0
+    be_a_reg = 0
+    data_in_a_reg = 0
+    addr_b_reg = 0
+    en_b_reg = 0
+    be_b_reg = 0
+    data_in_b_reg = 0
+    data_out_a = 0
+    data_out_b = 0
+    result = []
+    for idx, row in enumerate(vectors):
+        result.append({
+            'data_out_a': data_out_a & 0xFFFFFFFF,
+            'data_out_b': data_out_b & 0xFFFFFFFF
+        })
+        pos = False
+        if isinstance(row, dict):
+            if 'edge' in row:
+                e = row['edge']
+                if isinstance(e, str):
+                    pos = 'pos' in e.lower() or e == '1'
+                else:
+                    pos = bool(e)
+            elif 'clk' in row:
+                c = row['clk']
+                if isinstance(c, str):
+                    if 'pos' in c.lower() or c == '1':
+                        pos = True
+                    elif 'neg' in c.lower() or c == '0':
+                        pos = False
+                    else:
+                        pos = (idx % 2 == 0)
+                else:
+                    pos = bool(c)
+            else:
+                pos = (idx % 2 == 0)
+        else:
+            pos = (idx % 2 == 0)
+        if not pos:
+            continue
+        read_a = ram[addr_a_reg]
+        read_b = ram[addr_b_reg]
+        if en_a_reg and en_b_reg and addr_a_reg == addr_b_reg:
+            a = addr_a_reg
+            old = ram[a]
+            new = old
+            for i in range(4):
+                if be_a_reg & (1 << i):
+                    mask = 0xFF << (i * 8)
+                    val = (data_in_a_reg >> (i * 8)) & 0xFF
+                    new = (new & ~mask) | (val << (i * 8))
+                elif be_b_reg & (1 << i):
+                    mask = 0xFF << (i * 8)
+                    val = (data_in_b_reg >> (i * 8)) & 0xFF
+                    new = (new & ~mask) | (val << (i * 8))
+            ram[a] = new & 0xFFFFFFFF
+        else:
+            if en_a_reg:
+                a = addr_a_reg
+                old = ram[a]
+                new = old
+                for i in range(4):
+                    if be_a_reg & (1 << i):
+                        mask = 0xFF << (i * 8)
+                        val = (data_in_a_reg >> (i * 8)) & 0xFF
+                        new = (new & ~mask) | (val << (i * 8))
+                ram[a] = new & 0xFFFFFFFF
+            if en_b_reg:
+                b = addr_b_reg
+                old = ram[b]
+                new = old
+                for i in range(4):
+                    if be_b_reg & (1 << i):
+                        mask = 0xFF << (i * 8)
+                        val = (data_in_b_reg >> (i * 8)) & 0xFF
+                        new = (new & ~mask) | (val << (i * 8))
+                ram[b] = new & 0xFFFFFFFF
+        data_out_a = read_a & 0xFFFFFFFF
+        data_out_b = read_b & 0xFFFFFFFF
+        if isinstance(row, dict):
+            addr_a_reg = row.get('addr_a', 0) & 0x1FFF
+            en_a_reg = row.get('en_a', 0) & 1
+            be_a_reg = row.get('be_a', 0) & 0xF
+            data_in_a_reg = row.get('data_in_a', 0) & 0xFFFFFFFF
+            addr_b_reg = row.get('addr_b', 0) & 0x1FFF
+            en_b_reg = row.get('en_b', 0) & 1
+            be_b_reg = row.get('be_b', 0) & 0xF
+            data_in_b_reg = row.get('data_in_b', 0) & 0xFFFFFFFF
+    return result

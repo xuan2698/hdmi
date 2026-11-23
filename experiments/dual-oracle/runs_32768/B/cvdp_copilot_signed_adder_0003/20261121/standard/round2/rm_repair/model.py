@@ -1,0 +1,101 @@
+def reference(vectors):
+    st = 0
+    a_reg = b_reg = 0
+    res = 0
+    ov = 0
+    out = []
+    prev_clk = 0
+    for idx, row in enumerate(vectors):
+        if isinstance(row, dict) and 'edge' in row:
+            edge = row['edge']
+        elif isinstance(row, dict) and 'i_clk' in row:
+            clk = int(row.get('i_clk', 0) or 0)
+            if idx == 0:
+                edge = 'posedge' if clk else 'negedge'
+            else:
+                if prev_clk == 0 and clk == 1:
+                    edge = 'posedge'
+                elif prev_clk == 1 and clk == 0:
+                    edge = 'negedge'
+                else:
+                    edge = 'posedge' if idx % 2 == 0 else 'negedge'
+            prev_clk = clk
+        else:
+            edge = 'posedge' if idx % 2 == 0 else 'negedge'
+
+        if isinstance(edge, str):
+            s = edge.lower()
+            is_pos = ('posedge' in s) or s in ('pos', 'p', '1', 'rise')
+        else:
+            is_pos = bool(edge)
+
+        def g(name):
+            if isinstance(row, dict):
+                v = row.get(name, 0)
+                try:
+                    return int(v)
+                except Exception:
+                    return 0
+            return 0
+
+        rst_n = g('i_rst_n')
+        start = g('i_start')
+        enable = g('i_enable')
+        mode = g('i_mode')
+        clear = g('i_clear')
+        a_in = g('i_operand_a') & 0xFF
+        b_in = g('i_operand_b') & 0xFF
+
+        if rst_n == 0:
+            st = 0
+            a_reg = 0
+            b_reg = 0
+            res = 0
+            ov = 0
+
+        out.append({
+            'o_resultant_sum': res & 0xFF,
+            'o_overflow': ov & 1,
+            'o_ready': 1 if st == 3 else 0,
+            'o_status': st & 3
+        })
+
+        if rst_n != 0 and is_pos:
+            if clear:
+                st = 0
+                a_reg = 0
+                b_reg = 0
+                res = 0
+                ov = 0
+            elif not enable:
+                st = 0
+            else:
+                if st == 0:
+                    if start:
+                        st = 1
+                elif st == 1:
+                    a_reg = a_in
+                    b_reg = b_in
+                    st = 2
+                elif st == 2:
+                    a = a_reg
+                    b = b_reg
+                    if mode == 0:
+                        s = (a + b) & 0xFF
+                        sa = (a >> 7) & 1
+                        sb = (b >> 7) & 1
+                        sr = (s >> 7) & 1
+                        ov = 1 if (sa == sb and sr != sa) else 0
+                        res = s
+                    else:
+                        d = (a - b) & 0xFF
+                        sa = (a >> 7) & 1
+                        sb = (b >> 7) & 1
+                        sr = (d >> 7) & 1
+                        ov = 1 if (sa != sb and sr != sa) else 0
+                        res = d
+                    st = 3
+                elif st == 3:
+                    st = 0
+
+    return out

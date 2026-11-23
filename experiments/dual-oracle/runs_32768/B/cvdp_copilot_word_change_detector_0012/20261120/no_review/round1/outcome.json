@@ -1,0 +1,589 @@
+{
+  "decisions": [],
+  "RM": "def reference(vectors):\n    prev = 0\n    latched = 0\n    word = 0\n    pat = 0\n    out = []\n    for i, row in enumerate(vectors):\n        rst = int(row.get('reset', 0)) & 1\n        data = int(row.get('data_in', 0)) & 255\n        mask = int(row.get('mask', 0)) & 255\n        match = int(row.get('match_pattern', 0)) & 255\n        en = int(row.get('enable', 0)) & 1\n        lp = int(row.get('latch_pattern', 0)) & 1\n\n        edge = row.get('edge', None)\n        if edge is None:\n            if 'posedge' in row:\n                pos = bool(row['posedge'])\n            elif 'clk' in row:\n                c = row['clk']\n                if isinstance(c, str):\n                    e = c.lower()\n                    if 'pos' in e:\n                        pos = True\n                    elif 'neg' in e:\n                        pos = False\n                    else:\n                        try:\n                            pos = (int(c) & 1) == 1\n                        except:\n                            pos = (i % 2 == 0)\n                else:\n                    pos = (int(c) & 1) == 1\n            else:\n                pos = (i % 2 == 0)\n        else:\n            if isinstance(edge, str):\n                e = edge.lower()\n                if 'pos' in e:\n                    pos = True\n                elif 'neg' in e:\n                    pos = False\n                else:\n                    try:\n                        pos = (int(edge) & 1) == 1\n                    except:\n                        pos = (i % 2 == 0)\n            else:\n                pos = bool(edge)\n\n        if rst:\n            prev = 0\n            latched = 0\n            word = 0\n            pat = 0\n\n        out.append({\n            'word_change_pulse': word & 1,\n            'pattern_match_pulse': pat & 1,\n            'latched_pattern': latched & 255\n        })\n\n        if rst:\n            prev = 0\n            latched = 0\n            word = 0\n            pat = 0\n        elif pos:\n            new_latched = match if lp else latched\n            new_word = 1 if (en and (((data ^ prev) & mask) != 0)) else 0\n            new_pat = 1 if (en and (((data ^ latched) & mask) == 0)) else 0\n            word = new_word\n            pat = new_pat\n            latched = new_latched & 255\n            prev = data & 255\n\n    return out\n",
+  "TB": [
+    {
+      "id": "s1",
+      "spec_quote": "Upon assertion of reset, all outputs should be initialized to zero.",
+      "covers": [
+        "behavior",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "reset": 1,
+          "data_in": 0,
+          "mask": 255,
+          "match_pattern": 60,
+          "enable": 1,
+          "latch_pattern": 1
+        },
+        {
+          "reset": 0,
+          "data_in": 0,
+          "mask": 255,
+          "match_pattern": 60,
+          "enable": 0,
+          "latch_pattern": 0
+        },
+        {
+          "reset": 0,
+          "data_in": 255,
+          "mask": 255,
+          "match_pattern": 60,
+          "enable": 0,
+          "latch_pattern": 0
+        }
+      ],
+      "expected": [
+        {
+          "word_change_pulse": 0,
+          "pattern_match_pulse": 0,
+          "latched_pattern": 0
+        },
+        {
+          "word_change_pulse": 0,
+          "pattern_match_pulse": 0,
+          "latched_pattern": 0
+        },
+        {
+          "word_change_pulse": 0,
+          "pattern_match_pulse": 0,
+          "latched_pattern": 0
+        },
+        {
+          "word_change_pulse": 0,
+          "pattern_match_pulse": 0,
+          "latched_pattern": 0
+        },
+        {
+          "word_change_pulse": 0,
+          "pattern_match_pulse": 0,
+          "latched_pattern": 0
+        },
+        {
+          "word_change_pulse": 0,
+          "pattern_match_pulse": 0,
+          "latched_pattern": 0
+        }
+      ]
+    },
+    {
+      "id": "s2",
+      "spec_quote": "The word_change_pulse should be asserted if any masked bit in data_in differs from data_in_prev.",
+      "covers": [
+        "behavior",
+        "boundary",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "reset": 1,
+          "data_in": 0,
+          "mask": 15,
+          "match_pattern": 240,
+          "enable": 1,
+          "latch_pattern": 0
+        },
+        {
+          "reset": 0,
+          "data_in": 1,
+          "mask": 15,
+          "match_pattern": 240,
+          "enable": 1,
+          "latch_pattern": 0
+        },
+        {
+          "reset": 0,
+          "data_in": 17,
+          "mask": 15,
+          "match_pattern": 240,
+          "enable": 1,
+          "latch_pattern": 0
+        },
+        {
+          "reset": 0,
+          "data_in": 26,
+          "mask": 15,
+          "match_pattern": 240,
+          "enable": 1,
+          "latch_pattern": 0
+        },
+        {
+          "reset": 0,
+          "data_in": 42,
+          "mask": 15,
+          "match_pattern": 240,
+          "enable": 1,
+          "latch_pattern": 0
+        }
+      ],
+      "expected": [
+        {
+          "word_change_pulse": 0,
+          "pattern_match_pulse": 0,
+          "latched_pattern": 0
+        },
+        {
+          "word_change_pulse": 0,
+          "pattern_match_pulse": 0,
+          "latched_pattern": 0
+        },
+        {
+          "word_change_pulse": 0,
+          "pattern_match_pulse": 0,
+          "latched_pattern": 0
+        },
+        {
+          "word_change_pulse": 1,
+          "pattern_match_pulse": 0,
+          "latched_pattern": 0
+        },
+        {
+          "word_change_pulse": 1,
+          "pattern_match_pulse": 0,
+          "latched_pattern": 0
+        },
+        {
+          "word_change_pulse": 0,
+          "pattern_match_pulse": 0,
+          "latched_pattern": 0
+        },
+        {
+          "word_change_pulse": 0,
+          "pattern_match_pulse": 0,
+          "latched_pattern": 0
+        },
+        {
+          "word_change_pulse": 1,
+          "pattern_match_pulse": 0,
+          "latched_pattern": 0
+        },
+        {
+          "word_change_pulse": 1,
+          "pattern_match_pulse": 0,
+          "latched_pattern": 0
+        },
+        {
+          "word_change_pulse": 0,
+          "pattern_match_pulse": 0,
+          "latched_pattern": 0
+        }
+      ]
+    },
+    {
+      "id": "s3",
+      "spec_quote": "The pattern_match_pulse should be asserted if the masked bits of data_in match latched_pattern.",
+      "covers": [
+        "behavior",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "reset": 1,
+          "data_in": 0,
+          "mask": 255,
+          "match_pattern": 165,
+          "enable": 1,
+          "latch_pattern": 0
+        },
+        {
+          "reset": 0,
+          "data_in": 0,
+          "mask": 255,
+          "match_pattern": 165,
+          "enable": 0,
+          "latch_pattern": 1
+        },
+        {
+          "reset": 0,
+          "data_in": 165,
+          "mask": 255,
+          "match_pattern": 0,
+          "enable": 1,
+          "latch_pattern": 0
+        },
+        {
+          "reset": 0,
+          "data_in": 165,
+          "mask": 255,
+          "match_pattern": 0,
+          "enable": 1,
+          "latch_pattern": 0
+        },
+        {
+          "reset": 0,
+          "data_in": 90,
+          "mask": 255,
+          "match_pattern": 0,
+          "enable": 1,
+          "latch_pattern": 0
+        },
+        {
+          "reset": 0,
+          "data_in": 90,
+          "mask": 255,
+          "match_pattern": 0,
+          "enable": 1,
+          "latch_pattern": 0
+        }
+      ],
+      "expected": [
+        {
+          "word_change_pulse": 0,
+          "pattern_match_pulse": 0,
+          "latched_pattern": 0
+        },
+        {
+          "word_change_pulse": 0,
+          "pattern_match_pulse": 0,
+          "latched_pattern": 0
+        },
+        {
+          "word_change_pulse": 0,
+          "pattern_match_pulse": 0,
+          "latched_pattern": 0
+        },
+        {
+          "word_change_pulse": 0,
+          "pattern_match_pulse": 0,
+          "latched_pattern": 165
+        },
+        {
+          "word_change_pulse": 0,
+          "pattern_match_pulse": 0,
+          "latched_pattern": 165
+        },
+        {
+          "word_change_pulse": 1,
+          "pattern_match_pulse": 1,
+          "latched_pattern": 165
+        },
+        {
+          "word_change_pulse": 1,
+          "pattern_match_pulse": 1,
+          "latched_pattern": 165
+        },
+        {
+          "word_change_pulse": 0,
+          "pattern_match_pulse": 1,
+          "latched_pattern": 165
+        },
+        {
+          "word_change_pulse": 0,
+          "pattern_match_pulse": 1,
+          "latched_pattern": 165
+        },
+        {
+          "word_change_pulse": 1,
+          "pattern_match_pulse": 0,
+          "latched_pattern": 165
+        },
+        {
+          "word_change_pulse": 1,
+          "pattern_match_pulse": 0,
+          "latched_pattern": 165
+        },
+        {
+          "word_change_pulse": 0,
+          "pattern_match_pulse": 0,
+          "latched_pattern": 165
+        }
+      ]
+    },
+    {
+      "id": "s4",
+      "spec_quote": "If enable = 0, pulses should not be generated.",
+      "covers": [
+        "behavior",
+        "priority",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "reset": 1,
+          "data_in": 0,
+          "mask": 255,
+          "match_pattern": 60,
+          "enable": 1,
+          "latch_pattern": 0
+        },
+        {
+          "reset": 0,
+          "data_in": 0,
+          "mask": 255,
+          "match_pattern": 60,
+          "enable": 0,
+          "latch_pattern": 1
+        },
+        {
+          "reset": 0,
+          "data_in": 60,
+          "mask": 255,
+          "match_pattern": 255,
+          "enable": 0,
+          "latch_pattern": 0
+        },
+        {
+          "reset": 0,
+          "data_in": 60,
+          "mask": 255,
+          "match_pattern": 255,
+          "enable": 1,
+          "latch_pattern": 0
+        },
+        {
+          "reset": 0,
+          "data_in": 60,
+          "mask": 255,
+          "match_pattern": 255,
+          "enable": 1,
+          "latch_pattern": 0
+        },
+        {
+          "reset": 0,
+          "data_in": 60,
+          "mask": 255,
+          "match_pattern": 255,
+          "enable": 0,
+          "latch_pattern": 0
+        }
+      ],
+      "expected": [
+        {
+          "word_change_pulse": 0,
+          "pattern_match_pulse": 0,
+          "latched_pattern": 0
+        },
+        {
+          "word_change_pulse": 0,
+          "pattern_match_pulse": 0,
+          "latched_pattern": 0
+        },
+        {
+          "word_change_pulse": 0,
+          "pattern_match_pulse": 0,
+          "latched_pattern": 0
+        },
+        {
+          "word_change_pulse": 0,
+          "pattern_match_pulse": 0,
+          "latched_pattern": 60
+        },
+        {
+          "word_change_pulse": 0,
+          "pattern_match_pulse": 0,
+          "latched_pattern": 60
+        },
+        {
+          "word_change_pulse": 0,
+          "pattern_match_pulse": 0,
+          "latched_pattern": 60
+        },
+        {
+          "word_change_pulse": 0,
+          "pattern_match_pulse": 0,
+          "latched_pattern": 60
+        },
+        {
+          "word_change_pulse": 0,
+          "pattern_match_pulse": 1,
+          "latched_pattern": 60
+        },
+        {
+          "word_change_pulse": 0,
+          "pattern_match_pulse": 1,
+          "latched_pattern": 60
+        },
+        {
+          "word_change_pulse": 0,
+          "pattern_match_pulse": 1,
+          "latched_pattern": 60
+        },
+        {
+          "word_change_pulse": 0,
+          "pattern_match_pulse": 1,
+          "latched_pattern": 60
+        },
+        {
+          "word_change_pulse": 0,
+          "pattern_match_pulse": 0,
+          "latched_pattern": 60
+        }
+      ]
+    },
+    {
+      "id": "s5",
+      "spec_quote": "Mask signal to enable/disable change detection per bit (1 = detect changes, 0 = ignore changes)",
+      "covers": [
+        "behavior",
+        "boundary",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "reset": 1,
+          "data_in": 0,
+          "mask": 0,
+          "match_pattern": 0,
+          "enable": 1,
+          "latch_pattern": 0
+        },
+        {
+          "reset": 0,
+          "data_in": 0,
+          "mask": 0,
+          "match_pattern": 0,
+          "enable": 1,
+          "latch_pattern": 0
+        },
+        {
+          "reset": 0,
+          "data_in": 255,
+          "mask": 0,
+          "match_pattern": 0,
+          "enable": 1,
+          "latch_pattern": 0
+        },
+        {
+          "reset": 0,
+          "data_in": 170,
+          "mask": 0,
+          "match_pattern": 0,
+          "enable": 1,
+          "latch_pattern": 0
+        },
+        {
+          "reset": 0,
+          "data_in": 0,
+          "mask": 0,
+          "match_pattern": 0,
+          "enable": 1,
+          "latch_pattern": 0
+        }
+      ],
+      "expected": [
+        {
+          "word_change_pulse": 0,
+          "pattern_match_pulse": 0,
+          "latched_pattern": 0
+        },
+        {
+          "word_change_pulse": 0,
+          "pattern_match_pulse": 0,
+          "latched_pattern": 0
+        },
+        {
+          "word_change_pulse": 0,
+          "pattern_match_pulse": 0,
+          "latched_pattern": 0
+        },
+        {
+          "word_change_pulse": 0,
+          "pattern_match_pulse": 1,
+          "latched_pattern": 0
+        },
+        {
+          "word_change_pulse": 0,
+          "pattern_match_pulse": 1,
+          "latched_pattern": 0
+        },
+        {
+          "word_change_pulse": 0,
+          "pattern_match_pulse": 1,
+          "latched_pattern": 0
+        },
+        {
+          "word_change_pulse": 0,
+          "pattern_match_pulse": 1,
+          "latched_pattern": 0
+        },
+        {
+          "word_change_pulse": 0,
+          "pattern_match_pulse": 1,
+          "latched_pattern": 0
+        },
+        {
+          "word_change_pulse": 0,
+          "pattern_match_pulse": 1,
+          "latched_pattern": 0
+        },
+        {
+          "word_change_pulse": 0,
+          "pattern_match_pulse": 1,
+          "latched_pattern": 0
+        }
+      ]
+    },
+    {
+      "id": "s6",
+      "spec_quote": "Active-high asynchronous reset signal to initialize the module.",
+      "covers": [
+        "behavior",
+        "priority",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "reset": 1,
+          "data_in": 0,
+          "mask": 255,
+          "match_pattern": 170,
+          "enable": 1,
+          "latch_pattern": 0
+        },
+        {
+          "reset": 0,
+          "data_in": 0,
+          "mask": 255,
+          "match_pattern": 170,
+          "enable": 0,
+          "latch_pattern": 1
+        },
+        {
+          "reset": 0,
+          "data_in": 170,
+          "mask": 255,
+          "match_pattern": 0,
+          "enable": 1,
+          "latch_pattern": 0,
+          "mid": {
+            "reset": 1
+          }
+        }
+      ],
+      "expected": [
+        {
+          "word_change_pulse": 0,
+          "pattern_match_pulse": 0,
+          "latched_pattern": 0
+        },
+        {
+          "word_change_pulse": 0,
+          "pattern_match_pulse": 0,
+          "latched_pattern": 0
+        },
+        {
+          "word_change_pulse": 0,
+          "pattern_match_pulse": 0,
+          "latched_pattern": 0
+        },
+        {
+          "word_change_pulse": 0,
+          "pattern_match_pulse": 0,
+          "latched_pattern": 170
+        },
+        {
+          "word_change_pulse": 0,
+          "pattern_match_pulse": 0,
+          "latched_pattern": 170
+        },
+        {
+          "word_change_pulse": 0,
+          "pattern_match_pulse": 0,
+          "latched_pattern": 0
+        }
+      ]
+    }
+  ]
+}

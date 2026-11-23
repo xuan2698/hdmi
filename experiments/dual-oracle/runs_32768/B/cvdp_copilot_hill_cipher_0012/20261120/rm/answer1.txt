@@ -1,0 +1,106 @@
+def reference(vectors):
+    state = 0
+    ciphertext = 0
+    sum0 = sum1 = sum2 = 0
+    cur = {'reset': 0, 'start': 0, 'plaintext': 0, 'key': 0}
+    prev_clk = None
+    res = []
+    for i, row in enumerate(vectors):
+        if isinstance(row, dict):
+            for k, v in row.items():
+                cur[k] = v
+        edge = None
+        if isinstance(row, dict):
+            for ek in ('edge', 'Edge', 'EDGE'):
+                if ek in row:
+                    v = row[ek]
+                    if isinstance(v, str):
+                        s = v.lower()
+                        if 'pos' in s:
+                            edge = 1
+                        elif 'neg' in s:
+                            edge = 0
+                    elif isinstance(v, int):
+                        edge = 1 if v else 0
+                    break
+            if edge is None:
+                for ck in ('clk', 'clock', 'CLK'):
+                    if ck in row:
+                        v = row[ck]
+                        if isinstance(v, str):
+                            s = v.lower()
+                            if 'pos' in s:
+                                edge = 1
+                            elif 'neg' in s:
+                                edge = 0
+                        elif isinstance(v, int):
+                            if prev_clk is None:
+                                edge = 1 if i % 2 == 0 else 0
+                            else:
+                                if v == 1 and prev_clk == 0:
+                                    edge = 1
+                                elif v == 0 and prev_clk == 1:
+                                    edge = 0
+                                else:
+                                    edge = 1 if i % 2 == 0 else 0
+                        break
+        if edge is None:
+            edge = 1 if i % 2 == 0 else 0
+
+        res.append({'ciphertext': ciphertext & 0x7FFF, 'done': 1 if state == 3 else 0})
+
+        if edge == 1:
+            rst = cur.get('reset', 0) & 1
+            start = cur.get('start', 0) & 1
+            pt = cur.get('plaintext', 0) & 0x7FFF
+            ky = cur.get('key', 0) & ((1 << 45) - 1)
+            if rst:
+                state = 0
+                ciphertext = 0
+                sum0 = sum1 = sum2 = 0
+            else:
+                if state == 0:
+                    if start:
+                        state = 1
+                elif state == 1:
+                    p0 = pt & 31
+                    p1 = (pt >> 5) & 31
+                    p2 = (pt >> 10) & 31
+                    k0 = ky & 31
+                    k1 = (ky >> 5) & 31
+                    k2 = (ky >> 10) & 31
+                    k3 = (ky >> 15) & 31
+                    k4 = (ky >> 20) & 31
+                    k5 = (ky >> 25) & 31
+                    k6 = (ky >> 30) & 31
+                    k7 = (ky >> 35) & 31
+                    k8 = (ky >> 40) & 31
+                    sum0 = p0 * k0 + p1 * k1 + p2 * k2
+                    sum1 = p0 * k3 + p1 * k4 + p2 * k5
+                    sum2 = p0 * k6 + p1 * k7 + p2 * k8
+                    state = 2
+                elif state == 2:
+                    c0 = sum0 % 26
+                    c1 = sum1 % 26
+                    c2 = sum2 % 26
+                    ciphertext = c0 | (c1 << 5) | (c2 << 10)
+                    state = 3
+                elif state == 3:
+                    state = 0
+                else:
+                    state = 0
+
+        if isinstance(row, dict):
+            for ck in ('clk', 'clock', 'CLK'):
+                if ck in row:
+                    v = row[ck]
+                    if isinstance(v, int):
+                        prev_clk = v
+                    elif isinstance(v, str):
+                        s = v.lower()
+                        if 'pos' in s:
+                            prev_clk = 1
+                        elif 'neg' in s:
+                            prev_clk = 0
+                    break
+    return res

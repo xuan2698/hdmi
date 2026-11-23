@@ -1,0 +1,553 @@
+{
+  "RM": {
+    "group": "A",
+    "task": "edgecapture",
+    "seed": 20261120,
+    "source": "def reference(vectors):\n    out = 0\n    prev = 0\n    result = []\n    mask = 0xFFFFFFFF\n    for row in vectors:\n        reset = int(row['reset']) & 1\n        inp = int(row['in']) & mask\n        if reset:\n            out = 0\n        else:\n            out = (out | (prev & (~inp & mask))) & mask\n        prev = inp\n        result.append({'out': out})\n    return result\n"
+  },
+  "TB": {
+    "group": "A",
+    "task": "edgecapture",
+    "seed": 20261120,
+    "scene": {
+      "id": "s1",
+      "spec_quote": "output will remain 1 until the register is reset (active high synchronous reset).",
+      "covers": [
+        "behavior",
+        "boundary",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "reset": 1,
+          "in": 0
+        },
+        {
+          "reset": 1,
+          "in": 0
+        },
+        {
+          "reset": 0,
+          "in": 0
+        },
+        {
+          "reset": 0,
+          "in": 4294967295
+        },
+        {
+          "reset": 0,
+          "in": 4294967295
+        },
+        {
+          "reset": 0,
+          "in": 0
+        },
+        {
+          "reset": 0,
+          "in": 0
+        },
+        {
+          "reset": 1,
+          "in": 0
+        },
+        {
+          "reset": 0,
+          "in": 0
+        }
+      ],
+      "expected": [
+        {
+          "out": 0
+        },
+        {
+          "out": 0
+        },
+        {
+          "out": 0
+        },
+        {
+          "out": 0
+        },
+        {
+          "out": 0
+        },
+        {
+          "out": 4294967295
+        },
+        {
+          "out": 4294967295
+        },
+        {
+          "out": 0
+        },
+        {
+          "out": 0
+        }
+      ]
+    }
+  },
+  "disagreement": {
+    "group": "A",
+    "task": "circuit9",
+    "seed": 20261121,
+    "id": "s1/5/q",
+    "scene": "s1",
+    "sample": 5,
+    "cycle": 5,
+    "output": "q",
+    "input_history": [
+      {
+        "a": 1
+      },
+      {
+        "a": 1
+      },
+      {
+        "a": 1
+      },
+      {
+        "a": 1
+      },
+      {
+        "a": 0
+      }
+    ],
+    "RM": 5,
+    "TB": 4
+  },
+  "judgment": {
+    "group": "A",
+    "task": "circuit9",
+    "seed": 20261121,
+    "id": "s1/5/q",
+    "label": "RM",
+    "spec_quote": "45ns            1               0               4"
+  },
+  "repair": {
+    "group": "A",
+    "task": "circuit9",
+    "seed": 20261121,
+    "decisions": [
+      {
+        "id": "s1/5/q",
+        "label": "RM",
+        "spec_quote": "45ns            1               0               4"
+      },
+      {
+        "id": "s1/6/q",
+        "label": "RM",
+        "spec_quote": "55ns            1               0               5"
+      },
+      {
+        "id": "s1/7/q",
+        "label": "RM",
+        "spec_quote": "65ns            1               0               6"
+      },
+      {
+        "id": "s2/2/q",
+        "label": "RM",
+        "spec_quote": "45ns            1               0               4"
+      },
+      {
+        "id": "s2/3/q",
+        "label": "RM",
+        "spec_quote": "55ns            1               0               5"
+      },
+      {
+        "id": "s2/4/q",
+        "label": "RM",
+        "spec_quote": "65ns            1               0               6"
+      },
+      {
+        "id": "s3/6/q",
+        "label": "RM",
+        "spec_quote": "45ns            1               0               4"
+      },
+      {
+        "id": "s3/7/q",
+        "label": "RM",
+        "spec_quote": "55ns            1               0               5"
+      },
+      {
+        "id": "s3/8/q",
+        "label": "RM",
+        "spec_quote": "65ns            1               0               6"
+      },
+      {
+        "id": "s4/3/q",
+        "label": "RM",
+        "spec_quote": "45ns            1               0               4"
+      },
+      {
+        "id": "s4/4/q",
+        "label": "RM",
+        "spec_quote": "55ns            1               0               5"
+      },
+      {
+        "id": "s4/5/q",
+        "label": "RM",
+        "spec_quote": "65ns            1               0               6"
+      },
+      {
+        "id": "s5/2/q",
+        "label": "RM",
+        "spec_quote": "45ns            1               0               4"
+      },
+      {
+        "id": "s5/3/q",
+        "label": "RM",
+        "spec_quote": "55ns            1               0               5"
+      },
+      {
+        "id": "s5/4/q",
+        "label": "RM",
+        "spec_quote": "65ns            1               0               6"
+      }
+    ],
+    "RM": "def reference(vectors):\n    q = 4\n    result = []\n    for row in vectors:\n        if row[\"a\"]:\n            q = 4\n        else:\n            q = 0 if q == 6 else q + 1\n        result.append({\"q\": q})\n    return result\n",
+    "TB": [
+      {
+        "id": "s1",
+        "spec_quote": "This is a sequential circuit.",
+        "covers": [
+          "behavior",
+          "boundary",
+          "reset"
+        ],
+        "vectors": [
+          {
+            "a": 1
+          },
+          {
+            "a": 1
+          },
+          {
+            "a": 1
+          },
+          {
+            "a": 1
+          },
+          {
+            "a": 0
+          },
+          {
+            "a": 0
+          },
+          {
+            "a": 0
+          },
+          {
+            "a": 0
+          },
+          {
+            "a": 0
+          }
+        ],
+        "expected": [
+          {
+            "q": 4
+          },
+          {
+            "q": 4
+          },
+          {
+            "q": 4
+          },
+          {
+            "q": 4
+          },
+          {
+            "q": 4
+          },
+          {
+            "q": 5
+          },
+          {
+            "q": 6
+          },
+          {
+            "q": 0
+          },
+          {
+            "q": 1
+          }
+        ]
+      },
+      {
+        "id": "s2",
+        "spec_quote": "This is a sequential circuit.",
+        "covers": [
+          "behavior",
+          "boundary",
+          "reset"
+        ],
+        "vectors": [
+          {
+            "a": 1
+          },
+          {
+            "a": 0
+          },
+          {
+            "a": 0
+          },
+          {
+            "a": 0
+          },
+          {
+            "a": 0
+          },
+          {
+            "a": 0
+          },
+          {
+            "a": 0
+          },
+          {
+            "a": 0
+          },
+          {
+            "a": 0
+          }
+        ],
+        "expected": [
+          {
+            "q": 4
+          },
+          {
+            "q": 4
+          },
+          {
+            "q": 5
+          },
+          {
+            "q": 6
+          },
+          {
+            "q": 0
+          },
+          {
+            "q": 1
+          },
+          {
+            "q": 2
+          },
+          {
+            "q": 3
+          },
+          {
+            "q": 4
+          }
+        ]
+      },
+      {
+        "id": "s3",
+        "spec_quote": "This is a sequential circuit.",
+        "covers": [
+          "behavior",
+          "reset"
+        ],
+        "vectors": [
+          {
+            "a": 1
+          },
+          {
+            "a": 1
+          },
+          {
+            "a": 1
+          },
+          {
+            "a": 1
+          },
+          {
+            "a": 1
+          },
+          {
+            "a": 0
+          },
+          {
+            "a": 0
+          },
+          {
+            "a": 0
+          },
+          {
+            "a": 0
+          }
+        ],
+        "expected": [
+          {
+            "q": 4
+          },
+          {
+            "q": 4
+          },
+          {
+            "q": 4
+          },
+          {
+            "q": 4
+          },
+          {
+            "q": 4
+          },
+          {
+            "q": 4
+          },
+          {
+            "q": 5
+          },
+          {
+            "q": 6
+          },
+          {
+            "q": 0
+          }
+        ]
+      },
+      {
+        "id": "s4",
+        "spec_quote": "This is a sequential circuit.",
+        "covers": [
+          "behavior",
+          "boundary",
+          "reset"
+        ],
+        "vectors": [
+          {
+            "a": 1
+          },
+          {
+            "a": 1
+          },
+          {
+            "a": 0
+          },
+          {
+            "a": 0
+          },
+          {
+            "a": 0
+          },
+          {
+            "a": 0
+          },
+          {
+            "a": 0
+          },
+          {
+            "a": 0
+          }
+        ],
+        "expected": [
+          {
+            "q": 4
+          },
+          {
+            "q": 4
+          },
+          {
+            "q": 4
+          },
+          {
+            "q": 5
+          },
+          {
+            "q": 6
+          },
+          {
+            "q": 0
+          },
+          {
+            "q": 1
+          },
+          {
+            "q": 2
+          }
+        ]
+      },
+      {
+        "id": "s5",
+        "spec_quote": "This is a sequential circuit.",
+        "covers": [
+          "behavior",
+          "boundary"
+        ],
+        "vectors": [
+          {
+            "a": 1
+          },
+          {
+            "a": 0
+          },
+          {
+            "a": 0
+          },
+          {
+            "a": 0
+          },
+          {
+            "a": 0
+          },
+          {
+            "a": 0
+          },
+          {
+            "a": 0
+          },
+          {
+            "a": 0
+          }
+        ],
+        "expected": [
+          {
+            "q": 4
+          },
+          {
+            "q": 4
+          },
+          {
+            "q": 5
+          },
+          {
+            "q": 6
+          },
+          {
+            "q": 0
+          },
+          {
+            "q": 1
+          },
+          {
+            "q": 2
+          },
+          {
+            "q": 3
+          }
+        ]
+      }
+    ]
+  },
+  "review": {
+    "group": "A",
+    "task": "circuit9",
+    "seed": 20261122,
+    "issues": [
+      {
+        "id": "missing-prev-a-hold",
+        "location": "line 8: q = (q + 1) % 7",
+        "spec_quote": "// 45ns            1               0               4",
+        "fix": "Track previous a; when a==0, only increment if previous a was 0, else hold q. Initialize prev_a=1 to match the initial high a before the first zero."
+      }
+    ],
+    "responses": [
+      {
+        "id": "missing-prev-a-hold",
+        "decision": "accept",
+        "reason": "The waveform shows q holds at 4 on the first a=0 posedge after a was high, then increments on subsequent a=0 posedges, so tracking previous a is required.",
+        "spec_quote": "// 45ns            1               0               4"
+      }
+    ]
+  }
+}

@@ -1,0 +1,77 @@
+def reference(vectors):
+    LINES = 8192
+    MASK32 = (1 << 32) - 1
+    MASK_ADDR = LINES - 1
+    ram = [0] * LINES
+    aar = abr = 0
+    aer = ber = 0
+    abe = bbe = 0
+    adr = bdr = 0
+    results = []
+    for i, row in enumerate(vectors):
+        addr_a = row.get('addr_a', 0) & MASK_ADDR
+        en_a = row.get('en_a', 0) & 1
+        be_a = row.get('be_a', 0) & 0xF
+        data_in_a = row.get('data_in_a', 0) & MASK32
+        addr_b = row.get('addr_b', 0) & MASK_ADDR
+        en_b = row.get('en_b', 0) & 1
+        be_b = row.get('be_b', 0) & 0xF
+        data_in_b = row.get('data_in_b', 0) & MASK32
+
+        results.append({
+            'data_out_a': ram[aar] & MASK32,
+            'data_out_b': ram[abr] & MASK32
+        })
+
+        edge = row.get('edge', None)
+        if edge is None:
+            edge = row.get('clk', None)
+        if edge is None:
+            posedge = (i % 2 == 0)
+        else:
+            if isinstance(edge, str):
+                e = edge.lower()
+                posedge = e in ('posedge', 'pos', 'rising', '1', 'true')
+            else:
+                posedge = bool(edge)
+
+        if posedge:
+            if aer and ber and aar == abr:
+                for byte in range(4):
+                    bit = 1 << byte
+                    sh = 8 * byte
+                    mask = 0xFF << sh
+                    if abe & bit:
+                        val = (adr >> sh) & 0xFF
+                        ram[aar] = (ram[aar] & (MASK32 ^ mask)) | (val << sh)
+                    elif bbe & bit:
+                        val = (bdr >> sh) & 0xFF
+                        ram[aar] = (ram[aar] & (MASK32 ^ mask)) | (val << sh)
+            else:
+                if aer:
+                    for byte in range(4):
+                        bit = 1 << byte
+                        sh = 8 * byte
+                        if abe & bit:
+                            mask = 0xFF << sh
+                            val = (adr >> sh) & 0xFF
+                            ram[aar] = (ram[aar] & (MASK32 ^ mask)) | (val << sh)
+                if ber:
+                    for byte in range(4):
+                        bit = 1 << byte
+                        sh = 8 * byte
+                        if bbe & bit:
+                            mask = 0xFF << sh
+                            val = (bdr >> sh) & 0xFF
+                            ram[abr] = (ram[abr] & (MASK32 ^ mask)) | (val << sh)
+
+            aar = addr_a
+            aer = en_a
+            abe = be_a
+            adr = data_in_a
+            abr = addr_b
+            ber = en_b
+            bbe = be_b
+            bdr = data_in_b
+
+    return results

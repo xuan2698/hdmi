@@ -1,0 +1,76 @@
+def reference(vectors):
+    IDLE = 0
+    LOAD = 1
+    COMPUTE = 2
+    OUTPUT = 3
+    MASK = 0xFF
+
+    def to_signed(x):
+        x &= MASK
+        return x - 256 if x & 0x80 else x
+
+    state = IDLE
+    a_reg = 0
+    b_reg = 0
+    res_reg = 0
+    ov_reg = 0
+    out_list = []
+
+    for idx, row in enumerate(vectors):
+        rst_n = int(row.get('i_rst_n', 1))
+        clear = int(row.get('i_clear', 0))
+        enable = int(row.get('i_enable', 0))
+        start = int(row.get('i_start', 0))
+        mode = int(row.get('i_mode', 0))
+        opa = int(row.get('i_operand_a', 0)) & MASK
+        opb = int(row.get('i_operand_b', 0)) & MASK
+        clk = int(row.get('i_clk', 1 if idx % 2 == 0 else 0))
+
+        if rst_n == 0:
+            state = IDLE
+            a_reg = 0
+            b_reg = 0
+            res_reg = 0
+            ov_reg = 0
+
+        out_list.append({
+            'o_resultant_sum': res_reg & MASK,
+            'o_overflow': ov_reg & 1,
+            'o_ready': 1 if state == OUTPUT else 0,
+            'o_status': state & 3
+        })
+
+        if clk == 1:
+            if rst_n == 0:
+                pass
+            elif clear == 1:
+                state = IDLE
+                a_reg = 0
+                b_reg = 0
+                res_reg = 0
+                ov_reg = 0
+            else:
+                if state == IDLE:
+                    if enable == 1 and start == 1:
+                        state = LOAD
+                elif state == LOAD:
+                    a_reg = opa
+                    b_reg = opb
+                    state = COMPUTE
+                elif state == COMPUTE:
+                    sa = to_signed(a_reg)
+                    sb = to_signed(b_reg)
+                    if mode == 0:
+                        full_res = sa + sb
+                    else:
+                        full_res = sa - sb
+                    res_reg = full_res & MASK
+                    if full_res < -128 or full_res > 127:
+                        ov_reg = 1
+                    else:
+                        ov_reg = 0
+                    state = OUTPUT
+                elif state == OUTPUT:
+                    state = IDLE
+
+    return out_list

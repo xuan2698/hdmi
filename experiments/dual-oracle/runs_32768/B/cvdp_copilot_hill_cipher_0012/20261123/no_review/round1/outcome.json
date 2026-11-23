@@ -1,0 +1,490 @@
+{
+  "decisions": [],
+  "RM": "def reference(vectors):\n    state = 0\n    ct = 0\n    prev_clk = 0\n    res = []\n    for idx, row in enumerate(vectors):\n        if 'clk' in row:\n            clk = row['clk']\n            is_posedge = (clk == 1 and prev_clk == 0)\n            prev_clk = clk\n        elif 'edge' in row:\n            e = row['edge']\n            if isinstance(e, str):\n                is_posedge = ('pos' in e.lower() or e == '1')\n            else:\n                is_posedge = (e == 1)\n        else:\n            is_posedge = (idx % 2 == 0)\n        done = 1 if state == 3 else 0\n        res.append({'ciphertext': ct & 0x7FFF, 'done': done})\n        if is_posedge:\n            reset = row.get('reset', 0)\n            if reset:\n                state = 0\n                ct = 0\n            else:\n                if state == 0:\n                    if row.get('start', 0):\n                        state = 1\n                elif state == 1:\n                    state = 2\n                elif state == 2:\n                    plaintext = row.get('plaintext', 0)\n                    key = row.get('key', 0)\n                    p0 = (plaintext >> 10) & 0x1F\n                    p1 = (plaintext >> 5) & 0x1F\n                    p2 = plaintext & 0x1F\n                    k00 = (key >> 40) & 0x1F\n                    k01 = (key >> 35) & 0x1F\n                    k02 = (key >> 30) & 0x1F\n                    k10 = (key >> 25) & 0x1F\n                    k11 = (key >> 20) & 0x1F\n                    k12 = (key >> 15) & 0x1F\n                    k20 = (key >> 10) & 0x1F\n                    k21 = (key >> 5) & 0x1F\n                    k22 = key & 0x1F\n                    c0 = (p0*k00 + p1*k01 + p2*k02) % 26\n                    c1 = (p0*k10 + p1*k11 + p2*k12) % 26\n                    c2 = (p0*k20 + p1*k21 + p2*k22) % 26\n                    ct = (c0 << 10) | (c1 << 5) | c2\n                    state = 3\n                elif state == 3:\n                    state = 0\n    return res\n",
+  "TB": [
+    {
+      "id": "s1",
+      "spec_quote": "When `reset` is asserted, the FSM returns to `IDLE`, and internal registers are cleared.",
+      "covers": [
+        "behavior",
+        "priority",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "reset": 1,
+          "start": 1,
+          "plaintext": 0,
+          "key": 0
+        },
+        {
+          "reset": 0,
+          "start": 0,
+          "plaintext": 0,
+          "key": 0
+        },
+        {
+          "reset": 0,
+          "start": 1,
+          "plaintext": 0,
+          "key": 0
+        },
+        {
+          "reset": 0,
+          "start": 0,
+          "plaintext": 0,
+          "key": 0
+        },
+        {
+          "reset": 0,
+          "start": 0,
+          "plaintext": 0,
+          "key": 0
+        },
+        {
+          "reset": 0,
+          "start": 0,
+          "plaintext": 0,
+          "key": 0
+        }
+      ],
+      "expected": [
+        {
+          "ciphertext": 0,
+          "done": 0
+        },
+        {
+          "ciphertext": 0,
+          "done": 0
+        },
+        {
+          "ciphertext": 0,
+          "done": 0
+        },
+        {
+          "ciphertext": 0,
+          "done": 0
+        },
+        {
+          "ciphertext": 0,
+          "done": 0
+        },
+        {
+          "ciphertext": 0,
+          "done": 0
+        },
+        {
+          "ciphertext": 0,
+          "done": 0
+        },
+        {
+          "ciphertext": 0,
+          "done": 0
+        },
+        {
+          "ciphertext": 0,
+          "done": 0
+        },
+        {
+          "ciphertext": 0,
+          "done": 1
+        },
+        {
+          "ciphertext": 0,
+          "done": 1
+        },
+        {
+          "ciphertext": 0,
+          "done": 0
+        }
+      ]
+    },
+    {
+      "id": "s2",
+      "spec_quote": "Maximal or near-maximal values to ensure the modulo operations function correctly.",
+      "covers": [
+        "behavior",
+        "boundary",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "reset": 1,
+          "start": 0,
+          "plaintext": 0,
+          "key": 0
+        },
+        {
+          "reset": 0,
+          "start": 1,
+          "plaintext": 32767,
+          "key": 35184372088831
+        },
+        {
+          "reset": 0,
+          "start": 0,
+          "plaintext": 32767,
+          "key": 35184372088831
+        },
+        {
+          "reset": 0,
+          "start": 0,
+          "plaintext": 32767,
+          "key": 35184372088831
+        },
+        {
+          "reset": 0,
+          "start": 0,
+          "plaintext": 32767,
+          "key": 35184372088831
+        }
+      ],
+      "expected": [
+        {
+          "ciphertext": 0,
+          "done": 0
+        },
+        {
+          "ciphertext": 0,
+          "done": 0
+        },
+        {
+          "ciphertext": 0,
+          "done": 0
+        },
+        {
+          "ciphertext": 0,
+          "done": 0
+        },
+        {
+          "ciphertext": 0,
+          "done": 0
+        },
+        {
+          "ciphertext": 0,
+          "done": 0
+        },
+        {
+          "ciphertext": 0,
+          "done": 0
+        },
+        {
+          "ciphertext": 24311,
+          "done": 1
+        },
+        {
+          "ciphertext": 24311,
+          "done": 1
+        },
+        {
+          "ciphertext": 24311,
+          "done": 0
+        }
+      ]
+    },
+    {
+      "id": "s3",
+      "spec_quote": "`key = 45'h0000000000` (all zeros).",
+      "covers": [
+        "behavior",
+        "boundary",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "reset": 1,
+          "start": 0,
+          "plaintext": 0,
+          "key": 0
+        },
+        {
+          "reset": 0,
+          "start": 1,
+          "plaintext": 32767,
+          "key": 0
+        },
+        {
+          "reset": 0,
+          "start": 0,
+          "plaintext": 32767,
+          "key": 0
+        },
+        {
+          "reset": 0,
+          "start": 0,
+          "plaintext": 32767,
+          "key": 0
+        },
+        {
+          "reset": 0,
+          "start": 0,
+          "plaintext": 32767,
+          "key": 0
+        }
+      ],
+      "expected": [
+        {
+          "ciphertext": 0,
+          "done": 0
+        },
+        {
+          "ciphertext": 0,
+          "done": 0
+        },
+        {
+          "ciphertext": 0,
+          "done": 0
+        },
+        {
+          "ciphertext": 0,
+          "done": 0
+        },
+        {
+          "ciphertext": 0,
+          "done": 0
+        },
+        {
+          "ciphertext": 0,
+          "done": 0
+        },
+        {
+          "ciphertext": 0,
+          "done": 0
+        },
+        {
+          "ciphertext": 0,
+          "done": 1
+        },
+        {
+          "ciphertext": 0,
+          "done": 1
+        },
+        {
+          "ciphertext": 0,
+          "done": 0
+        }
+      ]
+    },
+    {
+      "id": "s4",
+      "spec_quote": "`plaintext = 15'h0000` (all zeros).",
+      "covers": [
+        "behavior",
+        "boundary",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "reset": 1,
+          "start": 0,
+          "plaintext": 0,
+          "key": 0
+        },
+        {
+          "reset": 0,
+          "start": 1,
+          "plaintext": 0,
+          "key": 35184372088831
+        },
+        {
+          "reset": 0,
+          "start": 0,
+          "plaintext": 0,
+          "key": 35184372088831
+        },
+        {
+          "reset": 0,
+          "start": 0,
+          "plaintext": 0,
+          "key": 35184372088831
+        },
+        {
+          "reset": 0,
+          "start": 0,
+          "plaintext": 0,
+          "key": 35184372088831
+        }
+      ],
+      "expected": [
+        {
+          "ciphertext": 0,
+          "done": 0
+        },
+        {
+          "ciphertext": 0,
+          "done": 0
+        },
+        {
+          "ciphertext": 0,
+          "done": 0
+        },
+        {
+          "ciphertext": 0,
+          "done": 0
+        },
+        {
+          "ciphertext": 0,
+          "done": 0
+        },
+        {
+          "ciphertext": 0,
+          "done": 0
+        },
+        {
+          "ciphertext": 0,
+          "done": 0
+        },
+        {
+          "ciphertext": 0,
+          "done": 1
+        },
+        {
+          "ciphertext": 0,
+          "done": 1
+        },
+        {
+          "ciphertext": 0,
+          "done": 0
+        }
+      ]
+    },
+    {
+      "id": "s5",
+      "spec_quote": "Sequences that check if multiple consecutive encryption requests work as intended.",
+      "covers": [
+        "behavior",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "reset": 1,
+          "start": 0,
+          "plaintext": 0,
+          "key": 0
+        },
+        {
+          "reset": 0,
+          "start": 1,
+          "plaintext": 1057,
+          "key": 1134979744801
+        },
+        {
+          "reset": 0,
+          "start": 0,
+          "plaintext": 1057,
+          "key": 1134979744801
+        },
+        {
+          "reset": 0,
+          "start": 0,
+          "plaintext": 1057,
+          "key": 1134979744801
+        },
+        {
+          "reset": 0,
+          "start": 0,
+          "plaintext": 1057,
+          "key": 1134979744801
+        },
+        {
+          "reset": 0,
+          "start": 1,
+          "plaintext": 2114,
+          "key": 2269959489602
+        },
+        {
+          "reset": 0,
+          "start": 0,
+          "plaintext": 2114,
+          "key": 2269959489602
+        },
+        {
+          "reset": 0,
+          "start": 0,
+          "plaintext": 2114,
+          "key": 2269959489602
+        },
+        {
+          "reset": 0,
+          "start": 0,
+          "plaintext": 2114,
+          "key": 2269959489602
+        }
+      ],
+      "expected": [
+        {
+          "ciphertext": 0,
+          "done": 0
+        },
+        {
+          "ciphertext": 0,
+          "done": 0
+        },
+        {
+          "ciphertext": 0,
+          "done": 0
+        },
+        {
+          "ciphertext": 0,
+          "done": 0
+        },
+        {
+          "ciphertext": 0,
+          "done": 0
+        },
+        {
+          "ciphertext": 0,
+          "done": 0
+        },
+        {
+          "ciphertext": 0,
+          "done": 0
+        },
+        {
+          "ciphertext": 3171,
+          "done": 1
+        },
+        {
+          "ciphertext": 3171,
+          "done": 1
+        },
+        {
+          "ciphertext": 3171,
+          "done": 0
+        },
+        {
+          "ciphertext": 3171,
+          "done": 0
+        },
+        {
+          "ciphertext": 3171,
+          "done": 0
+        },
+        {
+          "ciphertext": 3171,
+          "done": 0
+        },
+        {
+          "ciphertext": 3171,
+          "done": 0
+        },
+        {
+          "ciphertext": 3171,
+          "done": 0
+        },
+        {
+          "ciphertext": 12684,
+          "done": 1
+        },
+        {
+          "ciphertext": 12684,
+          "done": 1
+        },
+        {
+          "ciphertext": 12684,
+          "done": 0
+        }
+      ]
+    }
+  ]
+}

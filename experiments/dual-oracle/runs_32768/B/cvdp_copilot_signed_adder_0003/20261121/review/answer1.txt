@@ -1,0 +1,10 @@
+{
+  "issues": [
+    {
+      "id": 1,
+      "location": "state machine block: `if state == 0: ... elif state == 1: ... elif state == 2: ... elif state == 3:`",
+      "spec_quote": "If deasserted, the design will ignore i_start and revert or stay in IDLE.",
+      "fix": "Add a synchronous check for `i_enable` being low (e.g., `if not enable: state = 0` before the state transition cases) so deasserting `i_enable` forces the state machine to IDLE from any state."
+    }
+  ]
+}

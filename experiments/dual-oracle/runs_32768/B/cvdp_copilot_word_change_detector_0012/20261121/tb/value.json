@@ -1,0 +1,572 @@
+[
+  {
+    "id": "s1",
+    "spec_quote": "Upon assertion of reset, all outputs should be initialized to zero.",
+    "covers": [
+      "behavior",
+      "reset"
+    ],
+    "vectors": [
+      {
+        "reset": 1,
+        "data_in": 255,
+        "mask": 255,
+        "match_pattern": 85,
+        "enable": 1,
+        "latch_pattern": 1
+      },
+      {
+        "reset": 0,
+        "data_in": 0,
+        "mask": 0,
+        "match_pattern": 0,
+        "enable": 0,
+        "latch_pattern": 0
+      },
+      {
+        "reset": 0,
+        "data_in": 255,
+        "mask": 255,
+        "match_pattern": 0,
+        "enable": 1,
+        "latch_pattern": 0
+      }
+    ],
+    "expected": [
+      {
+        "word_change_pulse": 0,
+        "pattern_match_pulse": 0,
+        "latched_pattern": 0
+      },
+      {
+        "word_change_pulse": 0,
+        "pattern_match_pulse": 0,
+        "latched_pattern": 0
+      },
+      {
+        "word_change_pulse": 0,
+        "pattern_match_pulse": 0,
+        "latched_pattern": 0
+      },
+      {
+        "word_change_pulse": 0,
+        "pattern_match_pulse": 0,
+        "latched_pattern": 0
+      },
+      {
+        "word_change_pulse": 0,
+        "pattern_match_pulse": 0,
+        "latched_pattern": 0
+      },
+      {
+        "word_change_pulse": 1,
+        "pattern_match_pulse": 0,
+        "latched_pattern": 0
+      }
+    ]
+  },
+  {
+    "id": "s2",
+    "spec_quote": "When latch_pattern is asserted, match_pattern should be stored in latched_pattern.",
+    "covers": [
+      "behavior",
+      "reset"
+    ],
+    "vectors": [
+      {
+        "reset": 1,
+        "data_in": 0,
+        "mask": 255,
+        "match_pattern": 165,
+        "enable": 1,
+        "latch_pattern": 1
+      },
+      {
+        "reset": 0,
+        "data_in": 0,
+        "mask": 255,
+        "match_pattern": 165,
+        "enable": 0,
+        "latch_pattern": 1
+      },
+      {
+        "reset": 0,
+        "data_in": 165,
+        "mask": 255,
+        "match_pattern": 165,
+        "enable": 1,
+        "latch_pattern": 0
+      },
+      {
+        "reset": 0,
+        "data_in": 165,
+        "mask": 255,
+        "match_pattern": 165,
+        "enable": 1,
+        "latch_pattern": 0
+      },
+      {
+        "reset": 0,
+        "data_in": 0,
+        "mask": 255,
+        "match_pattern": 165,
+        "enable": 1,
+        "latch_pattern": 0
+      },
+      {
+        "reset": 0,
+        "data_in": 0,
+        "mask": 255,
+        "match_pattern": 165,
+        "enable": 1,
+        "latch_pattern": 0
+      }
+    ],
+    "expected": [
+      {
+        "word_change_pulse": 0,
+        "pattern_match_pulse": 0,
+        "latched_pattern": 0
+      },
+      {
+        "word_change_pulse": 0,
+        "pattern_match_pulse": 0,
+        "latched_pattern": 0
+      },
+      {
+        "word_change_pulse": 0,
+        "pattern_match_pulse": 0,
+        "latched_pattern": 0
+      },
+      {
+        "word_change_pulse": 0,
+        "pattern_match_pulse": 0,
+        "latched_pattern": 165
+      },
+      {
+        "word_change_pulse": 0,
+        "pattern_match_pulse": 0,
+        "latched_pattern": 165
+      },
+      {
+        "word_change_pulse": 1,
+        "pattern_match_pulse": 1,
+        "latched_pattern": 165
+      },
+      {
+        "word_change_pulse": 1,
+        "pattern_match_pulse": 1,
+        "latched_pattern": 165
+      },
+      {
+        "word_change_pulse": 0,
+        "pattern_match_pulse": 1,
+        "latched_pattern": 165
+      },
+      {
+        "word_change_pulse": 0,
+        "pattern_match_pulse": 1,
+        "latched_pattern": 165
+      },
+      {
+        "word_change_pulse": 1,
+        "pattern_match_pulse": 0,
+        "latched_pattern": 165
+      },
+      {
+        "word_change_pulse": 1,
+        "pattern_match_pulse": 0,
+        "latched_pattern": 165
+      },
+      {
+        "word_change_pulse": 0,
+        "pattern_match_pulse": 0,
+        "latched_pattern": 165
+      }
+    ]
+  },
+  {
+    "id": "s3",
+    "spec_quote": "The word_change_pulse should be asserted if any masked bit in data_in differs from data_in_prev.",
+    "covers": [
+      "behavior",
+      "boundary",
+      "reset"
+    ],
+    "vectors": [
+      {
+        "reset": 1,
+        "data_in": 0,
+        "mask": 15,
+        "match_pattern": 0,
+        "enable": 1,
+        "latch_pattern": 0
+      },
+      {
+        "reset": 0,
+        "data_in": 0,
+        "mask": 15,
+        "match_pattern": 0,
+        "enable": 1,
+        "latch_pattern": 1
+      },
+      {
+        "reset": 0,
+        "data_in": 240,
+        "mask": 15,
+        "match_pattern": 0,
+        "enable": 1,
+        "latch_pattern": 0
+      },
+      {
+        "reset": 0,
+        "data_in": 241,
+        "mask": 15,
+        "match_pattern": 0,
+        "enable": 1,
+        "latch_pattern": 0
+      },
+      {
+        "reset": 0,
+        "data_in": 241,
+        "mask": 15,
+        "match_pattern": 0,
+        "enable": 1,
+        "latch_pattern": 0
+      },
+      {
+        "reset": 0,
+        "data_in": 255,
+        "mask": 15,
+        "match_pattern": 0,
+        "enable": 1,
+        "latch_pattern": 0
+      },
+      {
+        "reset": 0,
+        "data_in": 255,
+        "mask": 15,
+        "match_pattern": 0,
+        "enable": 1,
+        "latch_pattern": 0
+      }
+    ],
+    "expected": [
+      {
+        "word_change_pulse": 0,
+        "pattern_match_pulse": 0,
+        "latched_pattern": 0
+      },
+      {
+        "word_change_pulse": 0,
+        "pattern_match_pulse": 0,
+        "latched_pattern": 0
+      },
+      {
+        "word_change_pulse": 0,
+        "pattern_match_pulse": 0,
+        "latched_pattern": 0
+      },
+      {
+        "word_change_pulse": 0,
+        "pattern_match_pulse": 1,
+        "latched_pattern": 0
+      },
+      {
+        "word_change_pulse": 0,
+        "pattern_match_pulse": 1,
+        "latched_pattern": 0
+      },
+      {
+        "word_change_pulse": 0,
+        "pattern_match_pulse": 1,
+        "latched_pattern": 0
+      },
+      {
+        "word_change_pulse": 0,
+        "pattern_match_pulse": 1,
+        "latched_pattern": 0
+      },
+      {
+        "word_change_pulse": 1,
+        "pattern_match_pulse": 0,
+        "latched_pattern": 0
+      },
+      {
+        "word_change_pulse": 1,
+        "pattern_match_pulse": 0,
+        "latched_pattern": 0
+      },
+      {
+        "word_change_pulse": 0,
+        "pattern_match_pulse": 0,
+        "latched_pattern": 0
+      },
+      {
+        "word_change_pulse": 0,
+        "pattern_match_pulse": 0,
+        "latched_pattern": 0
+      },
+      {
+        "word_change_pulse": 1,
+        "pattern_match_pulse": 0,
+        "latched_pattern": 0
+      },
+      {
+        "word_change_pulse": 1,
+        "pattern_match_pulse": 0,
+        "latched_pattern": 0
+      },
+      {
+        "word_change_pulse": 0,
+        "pattern_match_pulse": 0,
+        "latched_pattern": 0
+      }
+    ]
+  },
+  {
+    "id": "s4",
+    "spec_quote": "If enable = 0, pulses should not be generated.",
+    "covers": [
+      "behavior",
+      "priority",
+      "reset"
+    ],
+    "vectors": [
+      {
+        "reset": 1,
+        "data_in": 0,
+        "mask": 255,
+        "match_pattern": 60,
+        "enable": 1,
+        "latch_pattern": 1
+      },
+      {
+        "reset": 0,
+        "data_in": 170,
+        "mask": 255,
+        "match_pattern": 60,
+        "enable": 0,
+        "latch_pattern": 1
+      },
+      {
+        "reset": 0,
+        "data_in": 85,
+        "mask": 255,
+        "match_pattern": 60,
+        "enable": 0,
+        "latch_pattern": 0
+      },
+      {
+        "reset": 0,
+        "data_in": 60,
+        "mask": 255,
+        "match_pattern": 60,
+        "enable": 1,
+        "latch_pattern": 0
+      },
+      {
+        "reset": 0,
+        "data_in": 60,
+        "mask": 255,
+        "match_pattern": 60,
+        "enable": 1,
+        "latch_pattern": 0
+      },
+      {
+        "reset": 0,
+        "data_in": 60,
+        "mask": 255,
+        "match_pattern": 60,
+        "enable": 0,
+        "latch_pattern": 0
+      }
+    ],
+    "expected": [
+      {
+        "word_change_pulse": 0,
+        "pattern_match_pulse": 0,
+        "latched_pattern": 0
+      },
+      {
+        "word_change_pulse": 0,
+        "pattern_match_pulse": 0,
+        "latched_pattern": 0
+      },
+      {
+        "word_change_pulse": 0,
+        "pattern_match_pulse": 0,
+        "latched_pattern": 0
+      },
+      {
+        "word_change_pulse": 0,
+        "pattern_match_pulse": 0,
+        "latched_pattern": 60
+      },
+      {
+        "word_change_pulse": 0,
+        "pattern_match_pulse": 0,
+        "latched_pattern": 60
+      },
+      {
+        "word_change_pulse": 0,
+        "pattern_match_pulse": 0,
+        "latched_pattern": 60
+      },
+      {
+        "word_change_pulse": 0,
+        "pattern_match_pulse": 0,
+        "latched_pattern": 60
+      },
+      {
+        "word_change_pulse": 1,
+        "pattern_match_pulse": 1,
+        "latched_pattern": 60
+      },
+      {
+        "word_change_pulse": 1,
+        "pattern_match_pulse": 1,
+        "latched_pattern": 60
+      },
+      {
+        "word_change_pulse": 0,
+        "pattern_match_pulse": 1,
+        "latched_pattern": 60
+      },
+      {
+        "word_change_pulse": 0,
+        "pattern_match_pulse": 1,
+        "latched_pattern": 60
+      },
+      {
+        "word_change_pulse": 0,
+        "pattern_match_pulse": 0,
+        "latched_pattern": 60
+      }
+    ]
+  },
+  {
+    "id": "s5",
+    "spec_quote": "Upon assertion of reset, all outputs should be initialized to zero.",
+    "covers": [
+      "behavior",
+      "boundary",
+      "reset"
+    ],
+    "vectors": [
+      {
+        "reset": 1,
+        "data_in": 0,
+        "mask": 255,
+        "match_pattern": 255,
+        "enable": 1,
+        "latch_pattern": 1
+      },
+      {
+        "reset": 0,
+        "data_in": 0,
+        "mask": 255,
+        "match_pattern": 255,
+        "enable": 1,
+        "latch_pattern": 1
+      },
+      {
+        "reset": 0,
+        "data_in": 255,
+        "mask": 255,
+        "match_pattern": 255,
+        "enable": 1,
+        "latch_pattern": 0
+      },
+      {
+        "reset": 0,
+        "data_in": 0,
+        "mask": 255,
+        "match_pattern": 255,
+        "enable": 1,
+        "latch_pattern": 0,
+        "mid": {
+          "reset": 1
+        }
+      },
+      {
+        "reset": 1,
+        "data_in": 0,
+        "mask": 255,
+        "match_pattern": 255,
+        "enable": 1,
+        "latch_pattern": 0
+      },
+      {
+        "reset": 0,
+        "data_in": 255,
+        "mask": 0,
+        "match_pattern": 0,
+        "enable": 1,
+        "latch_pattern": 0
+      }
+    ],
+    "expected": [
+      {
+        "word_change_pulse": 0,
+        "pattern_match_pulse": 0,
+        "latched_pattern": 0
+      },
+      {
+        "word_change_pulse": 0,
+        "pattern_match_pulse": 0,
+        "latched_pattern": 0
+      },
+      {
+        "word_change_pulse": 0,
+        "pattern_match_pulse": 0,
+        "latched_pattern": 0
+      },
+      {
+        "word_change_pulse": 0,
+        "pattern_match_pulse": 1,
+        "latched_pattern": 255
+      },
+      {
+        "word_change_pulse": 0,
+        "pattern_match_pulse": 1,
+        "latched_pattern": 255
+      },
+      {
+        "word_change_pulse": 1,
+        "pattern_match_pulse": 1,
+        "latched_pattern": 255
+      },
+      {
+        "word_change_pulse": 1,
+        "pattern_match_pulse": 1,
+        "latched_pattern": 255
+      },
+      {
+        "word_change_pulse": 0,
+        "pattern_match_pulse": 0,
+        "latched_pattern": 0
+      },
+      {
+        "word_change_pulse": 0,
+        "pattern_match_pulse": 0,
+        "latched_pattern": 0
+      },
+      {
+        "word_change_pulse": 0,
+        "pattern_match_pulse": 0,
+        "latched_pattern": 0
+      },
+      {
+        "word_change_pulse": 0,
+        "pattern_match_pulse": 0,
+        "latched_pattern": 0
+      },
+      {
+        "word_change_pulse": 0,
+        "pattern_match_pulse": 1,
+        "latched_pattern": 0
+      }
+    ]
+  }
+]

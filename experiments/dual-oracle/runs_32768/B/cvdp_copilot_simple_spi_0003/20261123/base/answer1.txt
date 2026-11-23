@@ -1,0 +1,124 @@
+```python
+def reference(vectors):
+    state = 0
+    cs = 1
+    clk = 0
+    data = 0
+    bits_left = 16
+    done = 0
+    shift = 0
+    res = []
+
+    for row in vectors:
+        rst = row.get('i_rst_b', 1)
+        din = row.get('i_data_in', 0)
+        en = row.get('i_enable', 0)
+        flt = row.get('i_fault', 0)
+        clr = row.get('i_clear', 0)
+
+        edge = row.get('edge', None)
+        if edge is None:
+            edge = row.get('i_clk', None)
+
+        if isinstance(edge, str):
+            pos = edge.lower().startswith('p') or edge == '1'
+        else:
+            pos = edge == 1 or edge is True
+
+        if rst == 0:
+            state = 0
+            cs = 1
+            clk = 0
+            data = 0
+            bits_left = 16
+            done = 0
+            shift = 0
+
+        res.append({
+            'o_spi_cs_b': cs,
+            'o_spi_clk': clk,
+            'o_spi_data': data,
+            'o_bits_left': bits_left & 0x1F,
+            'o_done': done,
+            'o_fsm_state': state & 0x3
+        })
+
+        if pos and rst != 0:
+            old = state
+            n_state = state
+            n_cs = cs
+            n_clk = clk
+            n_data = data
+            n_bits = bits_left
+            n_done = done
+            n_shift = shift
+
+            if clr:
+                n_state = 0
+                n_cs = 1
+                n_clk = 0
+                n_data = 0
+                n_bits = 16
+                n_done = 0
+                n_shift = 0
+            elif old == 3:
+                n_state = 3
+                n_cs = 1
+                n_clk = 0
+                n_data = 0
+                n_bits = 16
+                n_done = 0
+                n_shift = 0
+            elif flt:
+                n_state = 3
+                n_cs = 1
+                n_clk = 0
+                n_data = 0
+                n_bits = 16
+                n_done = 1
+                n_shift = 0
+            elif not en:
+                n_state = 0
+                n_cs = 1
+                n_clk = 0
+                n_data = 0
+                n_bits = 16
+                n_done = 0
+                n_shift = 0
+            else:
+                if old == 0:
+                    n_state = 1
+                    n_cs = 1
+                    n_clk = 0
+                    n_data = 0
+                    n_bits = 16
+                    n_done = 0
+                    n_shift = din & 0xFFFF
+                elif old == 1:
+                    n_state = 2
+                    n_cs = 0
+                    n_data = (shift >> 15) & 1
+                    n_shift = (shift << 1) & 0xFFFF
+                elif old == 2:
+                    n_clk = clk ^ 1
+                    n_bits = (bits_left - 1) & 0x1F
+                    if bits_left == 1:
+                        n_state = 0
+                        n_cs = 1
+                        n_clk = 0
+                        n_data = 0
+                        n_done = 1
+                    else:
+                        n_state = 1
+                        n_done = 0
+
+            state = n_state
+            cs = n_cs
+            clk = n_clk
+            data = n_data
+            bits_left = n_bits
+            done = n_done
+            shift = n_shift
+
+    return res
+```
