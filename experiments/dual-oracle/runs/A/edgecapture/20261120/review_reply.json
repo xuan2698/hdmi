@@ -1,0 +1,4 @@
+{
+  "responses": [],
+  "source": "def reference(vectors):\n    res = []\n    prev = 0\n    out = 0\n    M = 0xFFFFFFFF\n    for row in vectors:\n        reset = row['reset']\n        cur = row['in'] & M\n        if reset:\n            out = 0\n        else:\n            out = (out | (prev & (cur ^ M))) & M\n        prev = cur\n        res.append({'out': out})\n    return res\n"
+}

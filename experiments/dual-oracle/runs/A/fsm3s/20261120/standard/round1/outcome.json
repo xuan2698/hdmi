@@ -1,0 +1,336 @@
+{
+  "decisions": [],
+  "RM": "def reference(vectors):\n    state = 0\n    result = []\n    for v in vectors:\n        reset = v.get('reset', 0)\n        inp = v.get('in', 0)\n        if reset:\n            state = 0\n        elif state == 0:\n            state = 1 if inp else 0\n        elif state == 1:\n            state = 2 if not inp else 1\n        elif state == 2:\n            state = 3 if inp else 0\n        else:\n            state = 2 if not inp else 1\n        result.append({'out': 1 if state == 3 else 0})\n    return result\n",
+  "TB": [
+    {
+      "id": "in",
+      "spec_quote": "synchronous active high reset that resets the FSM to state A",
+      "covers": [
+        "behavior",
+        "boundary",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "in": 1,
+          "reset": 1
+        },
+        {
+          "in": 0,
+          "reset": 0
+        },
+        {
+          "in": 1,
+          "reset": 0
+        },
+        {
+          "in": 0,
+          "reset": 1
+        },
+        {
+          "in": 1,
+          "reset": 0
+        },
+        {
+          "in": 1,
+          "reset": 0
+        },
+        {
+          "in": 0,
+          "reset": 0
+        },
+        {
+          "in": 0,
+          "reset": 0
+        },
+        {
+          "in": 1,
+          "reset": 0
+        },
+        {
+          "in": 0,
+          "reset": 1
+        }
+      ],
+      "expected": [
+        {
+          "out": 0
+        },
+        {
+          "out": 0
+        },
+        {
+          "out": 0
+        },
+        {
+          "out": 0
+        },
+        {
+          "out": 0
+        },
+        {
+          "out": 0
+        },
+        {
+          "out": 0
+        },
+        {
+          "out": 0
+        },
+        {
+          "out": 0
+        },
+        {
+          "out": 0
+        }
+      ]
+    },
+    {
+      "id": "in",
+      "spec_quote": "C | A, D | 0",
+      "covers": [
+        "behavior",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "in": 0,
+          "reset": 1
+        },
+        {
+          "in": 1,
+          "reset": 0
+        },
+        {
+          "in": 0,
+          "reset": 0
+        },
+        {
+          "in": 1,
+          "reset": 0
+        },
+        {
+          "in": 0,
+          "reset": 0
+        },
+        {
+          "in": 1,
+          "reset": 0
+        },
+        {
+          "in": 1,
+          "reset": 0
+        },
+        {
+          "in": 0,
+          "reset": 0
+        },
+        {
+          "in": 0,
+          "reset": 0
+        },
+        {
+          "in": 0,
+          "reset": 0
+        }
+      ],
+      "expected": [
+        {
+          "out": 0
+        },
+        {
+          "out": 0
+        },
+        {
+          "out": 0
+        },
+        {
+          "out": 1
+        },
+        {
+          "out": 0
+        },
+        {
+          "out": 1
+        },
+        {
+          "out": 0
+        },
+        {
+          "out": 0
+        },
+        {
+          "out": 0
+        },
+        {
+          "out": 0
+        }
+      ]
+    },
+    {
+      "id": "in",
+      "spec_quote": "B | C, B | 0",
+      "covers": [
+        "behavior",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "in": 0,
+          "reset": 1
+        },
+        {
+          "in": 1,
+          "reset": 0
+        },
+        {
+          "in": 1,
+          "reset": 0
+        },
+        {
+          "in": 0,
+          "reset": 0
+        },
+        {
+          "in": 0,
+          "reset": 0
+        },
+        {
+          "in": 0,
+          "reset": 0
+        },
+        {
+          "in": 1,
+          "reset": 0
+        },
+        {
+          "in": 0,
+          "reset": 0
+        },
+        {
+          "in": 1,
+          "reset": 0
+        },
+        {
+          "in": 0,
+          "reset": 0
+        }
+      ],
+      "expected": [
+        {
+          "out": 0
+        },
+        {
+          "out": 0
+        },
+        {
+          "out": 0
+        },
+        {
+          "out": 0
+        },
+        {
+          "out": 0
+        },
+        {
+          "out": 0
+        },
+        {
+          "out": 0
+        },
+        {
+          "out": 0
+        },
+        {
+          "out": 1
+        },
+        {
+          "out": 0
+        }
+      ]
+    },
+    {
+      "id": "in",
+      "spec_quote": "D | C, B | 1",
+      "covers": [
+        "behavior",
+        "boundary",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "in": 0,
+          "reset": 1
+        },
+        {
+          "in": 1,
+          "reset": 0
+        },
+        {
+          "in": 0,
+          "reset": 0
+        },
+        {
+          "in": 1,
+          "reset": 0
+        },
+        {
+          "in": 0,
+          "reset": 1
+        },
+        {
+          "in": 1,
+          "reset": 0
+        },
+        {
+          "in": 0,
+          "reset": 0
+        },
+        {
+          "in": 1,
+          "reset": 0
+        },
+        {
+          "in": 1,
+          "reset": 0
+        },
+        {
+          "in": 0,
+          "reset": 0
+        }
+      ],
+      "expected": [
+        {
+          "out": 0
+        },
+        {
+          "out": 0
+        },
+        {
+          "out": 0
+        },
+        {
+          "out": 1
+        },
+        {
+          "out": 0
+        },
+        {
+          "out": 0
+        },
+        {
+          "out": 0
+        },
+        {
+          "out": 1
+        },
+        {
+          "out": 0
+        },
+        {
+          "out": 0
+        }
+      ]
+    }
+  ]
+}

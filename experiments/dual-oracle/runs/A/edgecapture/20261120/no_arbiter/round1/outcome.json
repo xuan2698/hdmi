@@ -1,0 +1,443 @@
+{
+  "decisions": [],
+  "RM": "def reference(vectors):\n    res = []\n    prev = 0\n    out = 0\n    M = 0xFFFFFFFF\n    for row in vectors:\n        reset = row['reset']\n        cur = row['in'] & M\n        if reset:\n            out = 0\n        else:\n            out = (out | (prev & (cur ^ M))) & M\n        prev = cur\n        res.append({'out': out})\n    return res\n",
+  "TB": [
+    {
+      "id": "in",
+      "spec_quote": "For each bit in a 32-bit vector, capture when the input signal changes from 1 in one clock cycle to 0 the next.",
+      "covers": [
+        "behavior",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "reset": 1,
+          "in": 0
+        },
+        {
+          "reset": 0,
+          "in": 0
+        },
+        {
+          "reset": 0,
+          "in": 1
+        },
+        {
+          "reset": 0,
+          "in": 0
+        },
+        {
+          "reset": 0,
+          "in": 0
+        },
+        {
+          "reset": 0,
+          "in": 1
+        },
+        {
+          "reset": 0,
+          "in": 0
+        },
+        {
+          "reset": 1,
+          "in": 0
+        },
+        {
+          "reset": 0,
+          "in": 0
+        }
+      ],
+      "expected": [
+        {
+          "out": 0
+        },
+        {
+          "out": 0
+        },
+        {
+          "out": 0
+        },
+        {
+          "out": 1
+        },
+        {
+          "out": 1
+        },
+        {
+          "out": 1
+        },
+        {
+          "out": 1
+        },
+        {
+          "out": 0
+        },
+        {
+          "out": 0
+        }
+      ]
+    },
+    {
+      "id": "in",
+      "spec_quote": "the output will remain 1 until the register is reset (active high synchronous reset).",
+      "covers": [
+        "behavior",
+        "boundary",
+        "priority",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "reset": 1,
+          "in": 0
+        },
+        {
+          "reset": 0,
+          "in": 4294967295
+        },
+        {
+          "reset": 0,
+          "in": 0
+        },
+        {
+          "reset": 0,
+          "in": 4294967295
+        },
+        {
+          "reset": 0,
+          "in": 4294967295
+        },
+        {
+          "reset": 1,
+          "in": 0
+        },
+        {
+          "reset": 0,
+          "in": 0
+        },
+        {
+          "reset": 0,
+          "in": 0
+        }
+      ],
+      "expected": [
+        {
+          "out": 0
+        },
+        {
+          "out": 0
+        },
+        {
+          "out": 4294967295
+        },
+        {
+          "out": 4294967295
+        },
+        {
+          "out": 4294967295
+        },
+        {
+          "out": 0
+        },
+        {
+          "out": 0
+        },
+        {
+          "out": 0
+        }
+      ]
+    },
+    {
+      "id": "in",
+      "spec_quote": "active high synchronous reset",
+      "covers": [
+        "behavior",
+        "boundary",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "reset": 1,
+          "in": 0
+        },
+        {
+          "reset": 0,
+          "in": 0
+        },
+        {
+          "reset": 0,
+          "in": 2147483648
+        },
+        {
+          "reset": 0,
+          "in": 0
+        },
+        {
+          "reset": 0,
+          "in": 2147483648
+        },
+        {
+          "reset": 0,
+          "in": 0
+        },
+        {
+          "reset": 1,
+          "in": 0
+        },
+        {
+          "reset": 0,
+          "in": 0
+        },
+        {
+          "reset": 0,
+          "in": 2147483648
+        }
+      ],
+      "expected": [
+        {
+          "out": 0
+        },
+        {
+          "out": 0
+        },
+        {
+          "out": 0
+        },
+        {
+          "out": 2147483648
+        },
+        {
+          "out": 2147483648
+        },
+        {
+          "out": 2147483648
+        },
+        {
+          "out": 0
+        },
+        {
+          "out": 0
+        },
+        {
+          "out": 0
+        }
+      ]
+    },
+    {
+      "id": "in",
+      "spec_quote": "capture when the input signal changes from 1 in one clock cycle to 0 the next",
+      "covers": [
+        "behavior",
+        "boundary",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "reset": 1,
+          "in": 0
+        },
+        {
+          "reset": 0,
+          "in": 0
+        },
+        {
+          "reset": 0,
+          "in": 1
+        },
+        {
+          "reset": 0,
+          "in": 2
+        },
+        {
+          "reset": 0,
+          "in": 3
+        },
+        {
+          "reset": 0,
+          "in": 0
+        },
+        {
+          "reset": 0,
+          "in": 2
+        },
+        {
+          "reset": 0,
+          "in": 0
+        },
+        {
+          "reset": 1,
+          "in": 0
+        },
+        {
+          "reset": 0,
+          "in": 0
+        }
+      ],
+      "expected": [
+        {
+          "out": 0
+        },
+        {
+          "out": 0
+        },
+        {
+          "out": 0
+        },
+        {
+          "out": 1
+        },
+        {
+          "out": 1
+        },
+        {
+          "out": 3
+        },
+        {
+          "out": 3
+        },
+        {
+          "out": 3
+        },
+        {
+          "out": 0
+        },
+        {
+          "out": 0
+        }
+      ]
+    },
+    {
+      "id": "in",
+      "spec_quote": "For each bit in a 32-bit vector",
+      "covers": [
+        "behavior",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "reset": 1,
+          "in": 0
+        },
+        {
+          "reset": 0,
+          "in": 1
+        },
+        {
+          "reset": 0,
+          "in": 1,
+          "mid": {
+            "reset": 0,
+            "in": 0
+          }
+        },
+        {
+          "reset": 0,
+          "in": 1
+        },
+        {
+          "reset": 0,
+          "in": 0
+        },
+        {
+          "reset": 1,
+          "in": 0
+        },
+        {
+          "reset": 0,
+          "in": 0
+        }
+      ],
+      "expected": [
+        {
+          "out": 0
+        },
+        {
+          "out": 0
+        },
+        {
+          "out": 0
+        },
+        {
+          "out": 0
+        },
+        {
+          "out": 1
+        },
+        {
+          "out": 0
+        },
+        {
+          "out": 0
+        }
+      ]
+    },
+    {
+      "id": "in",
+      "spec_quote": "the output will remain 1 until the register is reset",
+      "covers": [
+        "behavior",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "reset": 1,
+          "in": 0
+        },
+        {
+          "reset": 0,
+          "in": 5
+        },
+        {
+          "reset": 0,
+          "in": 2
+        },
+        {
+          "reset": 0,
+          "in": 0
+        },
+        {
+          "reset": 0,
+          "in": 7
+        },
+        {
+          "reset": 0,
+          "in": 5
+        },
+        {
+          "reset": 1,
+          "in": 0
+        },
+        {
+          "reset": 0,
+          "in": 0
+        }
+      ],
+      "expected": [
+        {
+          "out": 0
+        },
+        {
+          "out": 0
+        },
+        {
+          "out": 5
+        },
+        {
+          "out": 7
+        },
+        {
+          "out": 7
+        },
+        {
+          "out": 7
+        },
+        {
+          "out": 0
+        },
+        {
+          "out": 0
+        }
+      ]
+    }
+  ]
+}
