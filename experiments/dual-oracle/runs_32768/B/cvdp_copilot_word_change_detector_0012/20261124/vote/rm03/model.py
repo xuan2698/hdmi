@@ -1,0 +1,40 @@
+def reference(vectors):
+    dp = 0
+    lp = 0
+    wc = 0
+    mp = 0
+    out = []
+    for i, row in enumerate(vectors):
+        reset = int(row.get('reset', 0)) & 1
+        if reset:
+            dp = 0
+            lp = 0
+            wc = 0
+            mp = 0
+        out.append({
+            'word_change_pulse': wc,
+            'pattern_match_pulse': mp,
+            'latched_pattern': lp & 0xFF
+        })
+        e = row.get('edge', row.get('clk', None))
+        if e is None:
+            is_pos = (i % 2 == 0)
+        elif isinstance(e, str):
+            s = e.lower()
+            is_pos = ('pos' in s) or (s == '1') or (s == 'true')
+        else:
+            is_pos = (e == 1) or (e is True)
+        if is_pos and not reset:
+            di = int(row.get('data_in', 0)) & 0xFF
+            mask = int(row.get('mask', 0)) & 0xFF
+            mpatt = int(row.get('match_pattern', 0)) & 0xFF
+            en = int(row.get('enable', 0)) & 1
+            latch = int(row.get('latch_pattern', 0)) & 1
+            nwc = 1 if (en and (((di ^ dp) & mask) != 0)) else 0
+            nmp = 1 if (en and (((di ^ lp) & mask) == 0)) else 0
+            nlp = mpatt if latch else lp
+            dp = di
+            wc = nwc
+            mp = nmp
+            lp = nlp
+    return out

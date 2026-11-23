@@ -1,0 +1,111 @@
+def reference(vectors):
+    def iv(v,d=0):
+        if isinstance(v,str):
+            try: return int(v,0)
+            except: return d
+        try: return int(v)
+        except: return d
+    def gd(row,k,d):
+        if isinstance(row,dict):
+            if k in row: return iv(row[k],d)
+            for kk in (k.lower(),k.upper(),k.replace('i_',''),k.replace('o_','')):
+                if kk in row: return iv(row[kk],d)
+            for kk in row:
+                if isinstance(row[kk],dict) and k in row[kk]: return iv(row[kk][k],d)
+        return d
+    state=0; cs=1; clk=0; data=0; bits=16; done=0; shift=0
+    out=[]
+    for idx,row in enumerate(vectors):
+        edge_val=None
+        if isinstance(row,dict):
+            for k in ('edge','Edge','EDGE','i_clk','clk','clock'):
+                if k in row:
+                    edge_val=row[k]; break
+        else:
+            try:
+                for x in row:
+                    if isinstance(x,str):
+                        s=x.lower()
+                        if 'pos' in s or 'neg' in s or 'ris' in s or 'fal' in s:
+                            edge_val=x; break
+            except: pass
+        if isinstance(row,dict):
+            rst=gd(row,'i_rst_b',1)
+            din=gd(row,'i_data_in',0)&0xffff
+            en=gd(row,'i_enable',0)&1
+            flt=gd(row,'i_fault',0)&1
+            clr=gd(row,'i_clear',0)&1
+        else:
+            vals=[]
+            try:
+                for x in row:
+                    if isinstance(x,str):
+                        s=x.lower()
+                        if 'pos' in s or 'neg' in s or 'ris' in s or 'fal' in s:
+                            continue
+                    vals.append(x)
+            except: vals=[]
+            if len(vals)>=6:
+                if edge_val is None: edge_val=vals[0]
+                rst=iv(vals[1],1); din=iv(vals[2],0)&0xffff; en=iv(vals[3],0)&1; flt=iv(vals[4],0)&1; clr=iv(vals[5],0)&1
+            elif len(vals)>=5:
+                rst=iv(vals[0],1); din=iv(vals[1],0)&0xffff; en=iv(vals[2],0)&1; flt=iv(vals[3],0)&1; clr=iv(vals[4],0)&1
+            else:
+                rst=1; din=0; en=0; flt=0; clr=0
+            if edge_val is None and len(vals)>=6:
+                edge_val=vals[0]
+        if edge_val is None:
+            is_pos=(idx%2==0)
+        else:
+            if isinstance(edge_val,str):
+                s=edge_val.lower()
+                if 'pos' in s or 'ris' in s or s in ('1','p','posedge'): is_pos=True
+                elif 'neg' in s or 'fal' in s or s in ('0','n','negedge'): is_pos=False
+                else: is_pos=(idx%2==0)
+            else:
+                try: is_pos=(iv(edge_val,0)&1)==1
+                except: is_pos=(idx%2==0)
+        if rst==0:
+            state=0; cs=1; clk=0; data=0; bits=16; done=0; shift=0
+        out.append({
+            'o_spi_cs_b': cs,
+            'o_spi_clk': clk,
+            'o_spi_data': data,
+            'o_bits_left': bits & 0x1f,
+            'o_done': done,
+            'o_fsm_state': state & 3
+        })
+        if is_pos and rst!=0:
+            if clr:
+                state=0; cs=1; clk=0; data=0; bits=16; done=0; shift=0
+            elif state==3:
+                cs=1; clk=0; data=0; bits=16; done=0
+            elif flt:
+                state=3; cs=1; clk=0; data=0; bits=16; done=1
+            elif en==0:
+                state=0; cs=1; clk=0; data=0; bits=16; done=0
+            else:
+                if state==0:
+                    cs=1; clk=0; data=0; bits=16; done=0
+                    state=1
+                    shift=din & 0xffff
+                elif state==1:
+                    cs=0
+                    data=(shift>>15)&1
+                    shift=(shift<<1)&0xffff
+                    state=2
+                    done=0
+                elif state==2:
+                    clk ^= 1
+                    ob=bits
+                    bits=(bits-1)&0x1f
+                    if ob==1:
+                        done=1
+                        cs=1
+                        state=0
+                    else:
+                        done=0
+                        state=1
+                else:
+                    cs=1; clk=0; data=0; bits=16; done=0; state=3
+    return out

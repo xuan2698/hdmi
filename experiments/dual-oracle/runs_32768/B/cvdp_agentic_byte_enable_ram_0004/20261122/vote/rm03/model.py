@@ -1,0 +1,108 @@
+def reference(vectors):
+    ram = [0] * 8192
+    addr_a_reg = 0
+    en_a_reg = 0
+    be_a_reg = 0
+    data_in_a_reg = 0
+    addr_b_reg = 0
+    en_b_reg = 0
+    be_b_reg = 0
+    data_in_b_reg = 0
+    data_out_a = 0
+    data_out_b = 0
+    outs = []
+
+    for i, row in enumerate(vectors):
+        outs.append({
+            'data_out_a': data_out_a & 0xFFFFFFFF,
+            'data_out_b': data_out_b & 0xFFFFFFFF
+        })
+
+        if 'clk' in row:
+            posedge = (row['clk'] == 1)
+        elif 'edge' in row:
+            e = row['edge']
+            if isinstance(e, str):
+                posedge = (e == 'posedge' or e == '1' or e == 'rising')
+            else:
+                posedge = (e == 1)
+        else:
+            posedge = (i % 2 == 0)
+
+        if not posedge:
+            continue
+
+        ia = row.get('addr_a', 0) & 0x1FFF
+        iea = row.get('en_a', 0) & 1
+        ibea = row.get('be_a', 0) & 0xF
+        ida = row.get('data_in_a', 0) & 0xFFFFFFFF
+        ib = row.get('addr_b', 0) & 0x1FFF
+        ieb = row.get('en_b', 0) & 1
+        ibeb = row.get('be_b', 0) & 0xF
+        idb = row.get('data_in_b', 0) & 0xFFFFFFFF
+
+        new_out_a = ram[addr_a_reg] & 0xFFFFFFFF
+        new_out_b = ram[addr_b_reg] & 0xFFFFFFFF
+
+        if en_a_reg and en_b_reg and addr_a_reg == addr_b_reg:
+            addr = addr_a_reg
+            new = ram[addr]
+
+            if be_a_reg & 1:
+                new = (new & 0xFFFFFF00) | (data_in_a_reg & 0xFF)
+            elif be_b_reg & 1:
+                new = (new & 0xFFFFFF00) | (data_in_b_reg & 0xFF)
+            if be_a_reg & 2:
+                new = (new & 0xFFFF00FF) | (data_in_a_reg & 0xFF00)
+            elif be_b_reg & 2:
+                new = (new & 0xFFFF00FF) | (data_in_b_reg & 0xFF00)
+            if be_a_reg & 4:
+                new = (new & 0xFF00FFFF) | (data_in_a_reg & 0xFF0000)
+            elif be_b_reg & 4:
+                new = (new & 0xFF00FFFF) | (data_in_b_reg & 0xFF0000)
+            if be_a_reg & 8:
+                new = (new & 0x00FFFFFF) | (data_in_a_reg & 0xFF000000)
+            elif be_b_reg & 8:
+                new = (new & 0x00FFFFFF) | (data_in_b_reg & 0xFF000000)
+
+            ram[addr] = new & 0xFFFFFFFF
+        else:
+            if en_a_reg:
+                addr = addr_a_reg
+                new = ram[addr]
+                if be_a_reg & 1:
+                    new = (new & 0xFFFFFF00) | (data_in_a_reg & 0xFF)
+                if be_a_reg & 2:
+                    new = (new & 0xFFFF00FF) | (data_in_a_reg & 0xFF00)
+                if be_a_reg & 4:
+                    new = (new & 0xFF00FFFF) | (data_in_a_reg & 0xFF0000)
+                if be_a_reg & 8:
+                    new = (new & 0x00FFFFFF) | (data_in_a_reg & 0xFF000000)
+                ram[addr] = new & 0xFFFFFFFF
+
+            if en_b_reg:
+                addr = addr_b_reg
+                new = ram[addr]
+                if be_b_reg & 1:
+                    new = (new & 0xFFFFFF00) | (data_in_b_reg & 0xFF)
+                if be_b_reg & 2:
+                    new = (new & 0xFFFF00FF) | (data_in_b_reg & 0xFF00)
+                if be_b_reg & 4:
+                    new = (new & 0xFF00FFFF) | (data_in_b_reg & 0xFF0000)
+                if be_b_reg & 8:
+                    new = (new & 0x00FFFFFF) | (data_in_b_reg & 0xFF000000)
+                ram[addr] = new & 0xFFFFFFFF
+
+        addr_a_reg = ia
+        en_a_reg = iea
+        be_a_reg = ibea
+        data_in_a_reg = ida
+        addr_b_reg = ib
+        en_b_reg = ieb
+        be_b_reg = ibeb
+        data_in_b_reg = idb
+
+        data_out_a = new_out_a
+        data_out_b = new_out_b
+
+    return outs

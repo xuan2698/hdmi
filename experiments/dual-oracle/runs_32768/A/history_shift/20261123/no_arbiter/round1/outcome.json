@@ -1,0 +1,314 @@
+{
+  "decisions": [],
+  "RM": "def reference(vectors):\n    h = 0\n    m = (1 << 32) - 1\n    out = []\n    for v in vectors:\n        if v.get('areset', 0):\n            h = 0\n        elif v.get('train_mispredicted', 0):\n            h = (((v.get('train_history', 0) & m) << 1) & m) | (v.get('train_taken', 0) & 1)\n        elif v.get('predict_valid', 0):\n            h = ((h << 1) & m) | (v.get('predict_taken', 0) & 1)\n        out.append({'predict_history': h & m})\n    return out\n",
+  "TB": [
+    {
+      "id": "s1",
+      "spec_quote": "areset is a positive edge triggered asynchronous reset that resets the history counter to zero.",
+      "covers": [
+        "behavior",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "areset": 1,
+          "predict_valid": 0,
+          "predict_taken": 0,
+          "train_mispredicted": 0,
+          "train_taken": 0,
+          "train_history": 0
+        },
+        {
+          "areset": 0,
+          "predict_valid": 1,
+          "predict_taken": 1,
+          "train_mispredicted": 0,
+          "train_taken": 0,
+          "train_history": 0
+        },
+        {
+          "areset": 0,
+          "predict_valid": 1,
+          "predict_taken": 0,
+          "train_mispredicted": 0,
+          "train_taken": 0,
+          "train_history": 0
+        }
+      ],
+      "expected": [
+        {
+          "predict_history": 0
+        },
+        {
+          "predict_history": 1
+        },
+        {
+          "predict_history": 2
+        }
+      ]
+    },
+    {
+      "id": "s2",
+      "spec_quote": "When a branch misprediction occurs (train_mispredicted = 1), load the branch history register with the history after the completion of the mispredicted branch.",
+      "covers": [
+        "behavior",
+        "boundary",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "areset": 1,
+          "predict_valid": 0,
+          "predict_taken": 0,
+          "train_mispredicted": 0,
+          "train_taken": 0,
+          "train_history": 0
+        },
+        {
+          "areset": 0,
+          "predict_valid": 0,
+          "predict_taken": 0,
+          "train_mispredicted": 1,
+          "train_taken": 0,
+          "train_history": 4294967295
+        },
+        {
+          "areset": 0,
+          "predict_valid": 1,
+          "predict_taken": 1,
+          "train_mispredicted": 0,
+          "train_taken": 0,
+          "train_history": 0
+        }
+      ],
+      "expected": [
+        {
+          "predict_history": 0
+        },
+        {
+          "predict_history": 4294967294
+        },
+        {
+          "predict_history": 4294967293
+        }
+      ]
+    },
+    {
+      "id": "s3",
+      "spec_quote": "If both a prediction and misprediction occur at the same time, the misprediction takes precedence, because the pipeline flush will also flush out the branch that is currently making a prediction.",
+      "covers": [
+        "behavior",
+        "boundary",
+        "priority",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "areset": 1,
+          "predict_valid": 0,
+          "predict_taken": 0,
+          "train_mispredicted": 0,
+          "train_taken": 0,
+          "train_history": 0
+        },
+        {
+          "areset": 0,
+          "predict_valid": 1,
+          "predict_taken": 1,
+          "train_mispredicted": 0,
+          "train_taken": 0,
+          "train_history": 0
+        },
+        {
+          "areset": 0,
+          "predict_valid": 1,
+          "predict_taken": 0,
+          "train_mispredicted": 1,
+          "train_taken": 1,
+          "train_history": 1073741824
+        }
+      ],
+      "expected": [
+        {
+          "predict_history": 0
+        },
+        {
+          "predict_history": 1
+        },
+        {
+          "predict_history": 2147483649
+        }
+      ]
+    },
+    {
+      "id": "s4",
+      "spec_quote": "This is the history before the mispredicted branch (train_history) concatenated with the actual result of the branch (train_taken).",
+      "covers": [
+        "behavior",
+        "boundary",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "areset": 1,
+          "predict_valid": 0,
+          "predict_taken": 0,
+          "train_mispredicted": 0,
+          "train_taken": 0,
+          "train_history": 0
+        },
+        {
+          "areset": 0,
+          "predict_valid": 0,
+          "predict_taken": 0,
+          "train_mispredicted": 1,
+          "train_taken": 0,
+          "train_history": 1
+        },
+        {
+          "areset": 0,
+          "predict_valid": 0,
+          "predict_taken": 0,
+          "train_mispredicted": 1,
+          "train_taken": 1,
+          "train_history": 0
+        }
+      ],
+      "expected": [
+        {
+          "predict_history": 0
+        },
+        {
+          "predict_history": 2
+        },
+        {
+          "predict_history": 1
+        }
+      ]
+    },
+    {
+      "id": "s5",
+      "spec_quote": "predict_history is the value of the branch history register.",
+      "covers": [
+        "behavior",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "areset": 1,
+          "predict_valid": 0,
+          "predict_taken": 0,
+          "train_mispredicted": 0,
+          "train_taken": 0,
+          "train_history": 0
+        },
+        {
+          "areset": 0,
+          "predict_valid": 1,
+          "predict_taken": 1,
+          "train_mispredicted": 0,
+          "train_taken": 0,
+          "train_history": 0
+        },
+        {
+          "areset": 0,
+          "predict_valid": 0,
+          "predict_taken": 0,
+          "train_mispredicted": 0,
+          "train_taken": 0,
+          "train_history": 4294967295
+        },
+        {
+          "areset": 0,
+          "predict_valid": 0,
+          "predict_taken": 0,
+          "train_mispredicted": 0,
+          "train_taken": 0,
+          "train_history": 0
+        }
+      ],
+      "expected": [
+        {
+          "predict_history": 0
+        },
+        {
+          "predict_history": 1
+        },
+        {
+          "predict_history": 1
+        },
+        {
+          "predict_history": 1
+        }
+      ]
+    },
+    {
+      "id": "s6",
+      "spec_quote": "When a branch prediction is made (predict_valid = 1), shift in predict_taken from the LSB side to update the branch history for the predicted branch.",
+      "covers": [
+        "behavior",
+        "priority",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "areset": 1,
+          "predict_valid": 1,
+          "predict_taken": 1,
+          "train_mispredicted": 1,
+          "train_taken": 1,
+          "train_history": 305419896
+        },
+        {
+          "areset": 0,
+          "predict_valid": 0,
+          "predict_taken": 0,
+          "train_mispredicted": 0,
+          "train_taken": 0,
+          "train_history": 0
+        },
+        {
+          "areset": 0,
+          "predict_valid": 1,
+          "predict_taken": 1,
+          "train_mispredicted": 0,
+          "train_taken": 0,
+          "train_history": 0
+        },
+        {
+          "areset": 0,
+          "predict_valid": 1,
+          "predict_taken": 0,
+          "train_mispredicted": 0,
+          "train_taken": 0,
+          "train_history": 0
+        },
+        {
+          "areset": 0,
+          "predict_valid": 1,
+          "predict_taken": 1,
+          "train_mispredicted": 0,
+          "train_taken": 0,
+          "train_history": 0
+        }
+      ],
+      "expected": [
+        {
+          "predict_history": 0
+        },
+        {
+          "predict_history": 0
+        },
+        {
+          "predict_history": 1
+        },
+        {
+          "predict_history": 2
+        },
+        {
+          "predict_history": 5
+        }
+      ]
+    }
+  ]
+}

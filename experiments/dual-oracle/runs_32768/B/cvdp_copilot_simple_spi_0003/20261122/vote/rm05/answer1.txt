@@ -1,0 +1,111 @@
+```python
+def reference(vectors):
+    state = 0
+    cs = 1
+    clk = 0
+    data = 0
+    bits_left = 16
+    done = 0
+    outputs = []
+    for idx, row in enumerate(vectors):
+        i_rst_b = row.get('i_rst_b', 1)
+        i_data_in = row.get('i_data_in', 0)
+        i_enable = row.get('i_enable', 0)
+        i_fault = row.get('i_fault', 0)
+        i_clear = row.get('i_clear', 0)
+        posedge = (idx % 2 == 0)
+        if i_rst_b == 0:
+            state = 0
+            cs = 1
+            clk = 0
+            data = 0
+            bits_left = 16
+            done = 0
+        outputs.append({
+            'o_spi_cs_b': cs,
+            'o_spi_clk': clk,
+            'o_spi_data': data,
+            'o_bits_left': bits_left,
+            'o_done': done,
+            'o_fsm_state': state
+        })
+        if posedge and i_rst_b == 1:
+            n_state = state
+            n_cs = cs
+            n_clk = clk
+            n_data = data
+            n_bits_left = bits_left
+            n_done = done
+            if i_clear:
+                n_state = 0
+                n_cs = 1
+                n_clk = 0
+                n_data = 0
+                n_bits_left = 16
+                n_done = 0
+            elif i_fault:
+                n_state = 3
+                n_cs = 1
+                n_clk = 0
+                n_data = 0
+                n_bits_left = 16
+                n_done = 0
+            else:
+                if state == 0:
+                    n_cs = 1
+                    n_clk = 0
+                    n_data = 0
+                    n_bits_left = 16
+                    n_done = 0
+                    if i_enable:
+                        n_cs = 0
+                        n_state = 1
+                elif state == 1:
+                    if i_enable == 0:
+                        n_cs = 1
+                        n_clk = 0
+                        n_data = 0
+                        n_bits_left = 16
+                        n_done = 0
+                        n_state = 0
+                    else:
+                        n_cs = 0
+                        bit_idx = bits_left - 1
+                        if bit_idx < 0:
+                            bit_idx = 0
+                        if bit_idx > 15:
+                            bit_idx = 15
+                        n_data = (i_data_in >> bit_idx) & 1
+                        n_state = 2
+                elif state == 2:
+                    if i_enable == 0:
+                        n_cs = 1
+                        n_clk = 0
+                        n_data = 0
+                        n_bits_left = 16
+                        n_done = 0
+                        n_state = 0
+                    else:
+                        n_clk = 1 - clk
+                        if bits_left == 1:
+                            n_done = 1
+                            n_state = 0
+                            n_bits_left = 0
+                        else:
+                            n_bits_left = bits_left - 1
+                            n_state = 1
+                elif state == 3:
+                    n_cs = 1
+                    n_clk = 0
+                    n_data = 0
+                    n_bits_left = 16
+                    n_done = 0
+                    n_state = 3
+            state = n_state
+            cs = n_cs
+            clk = n_clk
+            data = n_data
+            bits_left = n_bits_left
+            done = n_done
+    return outputs
+```

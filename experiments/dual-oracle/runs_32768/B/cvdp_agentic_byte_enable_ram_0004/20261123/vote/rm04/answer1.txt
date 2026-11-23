@@ -1,0 +1,124 @@
+```python
+def reference(vectors):
+    LINES = 8192
+    ADDR_MASK = 8191
+    ram = [0] * LINES
+
+    s1a_a = 0
+    s1a_e = 0
+    s1a_b = 0
+    s1a_d = 0
+    s1b_a = 0
+    s1b_e = 0
+    s1b_b = 0
+    s1b_d = 0
+
+    out_a = 0
+    out_b = 0
+    res = []
+    prev_clk = None
+
+    for idx, row in enumerate(vectors):
+        edge = None
+        if isinstance(row, dict):
+            if 'edge' in row:
+                v = row['edge']
+                if isinstance(v, str):
+                    lv = v.lower()
+                    if 'pos' in lv:
+                        edge = 'pos'
+                    elif 'neg' in lv:
+                        edge = 'neg'
+                else:
+                    edge = 'pos' if v else 'neg'
+            elif 'clk' in row:
+                curr = 1 if row['clk'] else 0
+                if prev_clk is None:
+                    edge = 'pos' if curr == 1 else 'neg'
+                else:
+                    if prev_clk == 0 and curr == 1:
+                        edge = 'pos'
+                    elif prev_clk == 1 and curr == 0:
+                        edge = 'neg'
+                prev_clk = curr
+            elif 'posedge' in row:
+                if row['posedge']:
+                    edge = 'pos'
+            elif 'negedge' in row:
+                if row['negedge']:
+                    edge = 'neg'
+
+        if edge is None:
+            edge = 'pos' if idx % 2 == 0 else 'neg'
+
+        res.append({'data_out_a': out_a, 'data_out_b': out_b})
+
+        if edge == 'pos':
+            if isinstance(row, dict):
+                addr_a = int(row.get('addr_a', 0)) & ADDR_MASK
+                en_a = 1 if row.get('en_a', 0) else 0
+                be_a = int(row.get('be_a', 0)) & 15
+                data_in_a = int(row.get('data_in_a', 0)) & 0xFFFFFFFF
+                addr_b = int(row.get('addr_b', 0)) & ADDR_MASK
+                en_b = 1 if row.get('en_b', 0) else 0
+                be_b = int(row.get('be_b', 0)) & 15
+                data_in_b = int(row.get('data_in_b', 0)) & 0xFFFFFFFF
+            else:
+                addr_a = int(row[0]) & ADDR_MASK
+                en_a = 1 if row[1] else 0
+                be_a = int(row[2]) & 15
+                data_in_a = int(row[3]) & 0xFFFFFFFF
+                addr_b = int(row[4]) & ADDR_MASK
+                en_b = 1 if row[5] else 0
+                be_b = int(row[6]) & 15
+                data_in_b = int(row[7]) & 0xFFFFFFFF
+
+            read_a = ram[s1a_a] if s1a_a < LINES else 0
+            read_b = ram[s1b_a] if s1b_a < LINES else 0
+
+            writes = {}
+            if s1a_e:
+                wa = s1a_a
+                if wa not in writes:
+                    writes[wa] = [None, None, None, None]
+                be = s1a_b
+                data = s1a_d
+                for i in range(4):
+                    if (be >> i) & 1:
+                        writes[wa][i] = (data >> (8 * i)) & 0xFF
+
+            if s1b_e:
+                wb = s1b_a
+                if wb not in writes:
+                    writes[wb] = [None, None, None, None]
+                be = s1b_b
+                data = s1b_d
+                for i in range(4):
+                    if (be >> i) & 1:
+                        if writes[wb][i] is None:
+                            writes[wb][i] = (data >> (8 * i)) & 0xFF
+
+            for wa, bv in writes.items():
+                if 0 <= wa < LINES:
+                    word = ram[wa]
+                    for i in range(4):
+                        val = bv[i]
+                        if val is not None:
+                            shift = 8 * i
+                            word = (word & ~(0xFF << shift)) | (val << shift)
+                    ram[wa] = word & 0xFFFFFFFF
+
+            out_a = read_a & 0xFFFFFFFF
+            out_b = read_b & 0xFFFFFFFF
+
+            s1a_a = addr_a
+            s1a_e = en_a
+            s1a_b = be_a
+            s1a_d = data_in_a
+            s1b_a = addr_b
+            s1b_e = en_b
+            s1b_b = be_b
+            s1b_d = data_in_b
+
+    return res
+```

@@ -1,0 +1,19 @@
+def reference(vectors):
+    q = 0
+    result = []
+    for row in vectors:
+        if isinstance(row, dict):
+            L = row.get('L', row.get('l', 0))
+            q_in = row.get('q_in', row.get('qin', row.get('Q_in', 0)))
+            r_in = row.get('r_in', row.get('rin', row.get('R_in', 0)))
+        else:
+            L, q_in, r_in = row[0], row[1], row[2]
+        L = int(L) & 1
+        q_in = int(q_in) & 1
+        r_in = int(r_in) & 1
+        if L:
+            q = r_in
+        else:
+            q = q_in
+        result.append({'Q': q})
+    return result

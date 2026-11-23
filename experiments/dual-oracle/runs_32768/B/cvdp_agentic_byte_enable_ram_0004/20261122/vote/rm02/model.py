@@ -1,0 +1,84 @@
+def reference(vectors):
+    ram = [0] * 8192
+    addr_a_reg = en_a_reg = be_a_reg = data_in_a_reg = 0
+    addr_b_reg = en_b_reg = be_b_reg = data_in_b_reg = 0
+    data_out_a = data_out_b = 0
+    current = {
+        'addr_a': 0, 'en_a': 0, 'be_a': 0, 'data_in_a': 0,
+        'addr_b': 0, 'en_b': 0, 'be_b': 0, 'data_in_b': 0
+    }
+    keys = list(current.keys())
+    res = []
+    def is_pos(row, idx):
+        if isinstance(row, dict):
+            if 'edge' in row:
+                v = row['edge']
+                if isinstance(v, str):
+                    return v.strip().lower().startswith('p')
+                return bool(v)
+            if 'posedge' in row:
+                v = row['posedge']
+                if isinstance(v, str):
+                    return v.strip().lower().startswith('p')
+                return bool(v)
+            if 'clk' in row:
+                v = row['clk']
+                if isinstance(v, str):
+                    return v.strip().lower() in ('1', 'true', 'posedge', 'p')
+                return bool(v)
+        return idx % 2 == 0
+    for idx, row in enumerate(vectors):
+        if isinstance(row, dict):
+            for k in keys:
+                if k in row:
+                    current[k] = row[k]
+        pos = is_pos(row, idx)
+        res.append({
+            'data_out_a': data_out_a & 0xffffffff,
+            'data_out_b': data_out_b & 0xffffffff
+        })
+        if pos:
+            new_do_a = ram[addr_a_reg]
+            new_do_b = ram[addr_b_reg]
+            if en_a_reg and en_b_reg and addr_a_reg == addr_b_reg:
+                base = addr_a_reg
+                word = ram[base]
+                for i in range(4):
+                    sh = i * 8
+                    if (be_a_reg >> i) & 1:
+                        byte = (data_in_a_reg >> sh) & 0xff
+                        word = (word & ~(0xff << sh)) | (byte << sh)
+                    elif (be_b_reg >> i) & 1:
+                        byte = (data_in_b_reg >> sh) & 0xff
+                        word = (word & ~(0xff << sh)) | (byte << sh)
+                ram[base] = word & 0xffffffff
+            else:
+                if en_a_reg:
+                    base = addr_a_reg
+                    word = ram[base]
+                    for i in range(4):
+                        sh = i * 8
+                        if (be_a_reg >> i) & 1:
+                            byte = (data_in_a_reg >> sh) & 0xff
+                            word = (word & ~(0xff << sh)) | (byte << sh)
+                    ram[base] = word & 0xffffffff
+                if en_b_reg:
+                    base = addr_b_reg
+                    word = ram[base]
+                    for i in range(4):
+                        sh = i * 8
+                        if (be_b_reg >> i) & 1:
+                            byte = (data_in_b_reg >> sh) & 0xff
+                            word = (word & ~(0xff << sh)) | (byte << sh)
+                    ram[base] = word & 0xffffffff
+            data_out_a = new_do_a & 0xffffffff
+            data_out_b = new_do_b & 0xffffffff
+            addr_a_reg = int(current['addr_a']) & 0x1fff
+            en_a_reg = int(current['en_a']) & 1
+            be_a_reg = int(current['be_a']) & 0xf
+            data_in_a_reg = int(current['data_in_a']) & 0xffffffff
+            addr_b_reg = int(current['addr_b']) & 0x1fff
+            en_b_reg = int(current['en_b']) & 1
+            be_b_reg = int(current['be_b']) & 0xf
+            data_in_b_reg = int(current['data_in_b']) & 0xffffffff
+    return res

@@ -1,0 +1,13 @@
+def reference(vectors):
+    mask = (1 << 32) - 1
+    hist = 0
+    result = []
+    for row in vectors:
+        if row['areset']:
+            hist = 0
+        elif row['train_mispredicted']:
+            hist = (((row['train_history'] & mask) << 1) | (row['train_taken'] & 1)) & mask
+        elif row['predict_valid']:
+            hist = ((hist << 1) | (row['predict_taken'] & 1)) & mask
+        result.append({'predict_history': hist & mask})
+    return result

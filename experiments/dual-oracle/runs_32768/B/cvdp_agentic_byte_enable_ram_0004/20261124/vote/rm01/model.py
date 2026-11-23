@@ -1,0 +1,81 @@
+def reference(vectors):
+    LINES = 8192
+    ram = [0] * LINES
+    addr_a_reg = 0
+    en_a_reg = 0
+    be_a_reg = 0
+    data_in_a_reg = 0
+    addr_b_reg = 0
+    en_b_reg = 0
+    be_b_reg = 0
+    data_in_b_reg = 0
+    result = []
+    for i, row in enumerate(vectors):
+        if 'edge' in row:
+            e = row['edge']
+            if isinstance(e, str):
+                is_pos = e.lower().startswith('pos') or e.lower() == '1'
+            else:
+                is_pos = bool(e)
+        elif 'clk' in row:
+            is_pos = bool(row['clk'])
+        else:
+            is_pos = (i % 2 == 0)
+        
+        out_a = ram[addr_a_reg] if 0 <= addr_a_reg < LINES else 0
+        out_b = ram[addr_b_reg] if 0 <= addr_b_reg < LINES else 0
+        result.append({'data_out_a': out_a, 'data_out_b': out_b})
+        
+        if is_pos:
+            addr_a = row.get('addr_a', 0) & 0x1FFF
+            en_a = row.get('en_a', 0) & 1
+            be_a = row.get('be_a', 0) & 0xF
+            data_in_a = row.get('data_in_a', 0) & 0xFFFFFFFF
+            addr_b = row.get('addr_b', 0) & 0x1FFF
+            en_b = row.get('en_b', 0) & 1
+            be_b = row.get('be_b', 0) & 0xF
+            data_in_b = row.get('data_in_b', 0) & 0xFFFFFFFF
+            
+            if en_a_reg and en_b_reg and addr_a_reg == addr_b_reg:
+                addr = addr_a_reg
+                old = ram[addr]
+                new = old
+                for i in range(4):
+                    b_a = (be_a_reg >> i) & 1
+                    b_b = (be_b_reg >> i) & 1
+                    if b_a:
+                        byte_val = (data_in_a_reg >> (8 * i)) & 0xFF
+                        new = (new & ~(0xFF << (8 * i))) | (byte_val << (8 * i))
+                    elif b_b:
+                        byte_val = (data_in_b_reg >> (8 * i)) & 0xFF
+                        new = (new & ~(0xFF << (8 * i))) | (byte_val << (8 * i))
+                ram[addr] = new & 0xFFFFFFFF
+            else:
+                if en_a_reg:
+                    addr = addr_a_reg
+                    old = ram[addr]
+                    new = old
+                    for i in range(4):
+                        if (be_a_reg >> i) & 1:
+                            byte_val = (data_in_a_reg >> (8 * i)) & 0xFF
+                            new = (new & ~(0xFF << (8 * i))) | (byte_val << (8 * i))
+                    ram[addr] = new & 0xFFFFFFFF
+                if en_b_reg:
+                    addr = addr_b_reg
+                    old = ram[addr]
+                    new = old
+                    for i in range(4):
+                        if (be_b_reg >> i) & 1:
+                            byte_val = (data_in_b_reg >> (8 * i)) & 0xFF
+                            new = (new & ~(0xFF << (8 * i))) | (byte_val << (8 * i))
+                    ram[addr] = new & 0xFFFFFFFF
+            
+            addr_a_reg = addr_a
+            en_a_reg = en_a
+            be_a_reg = be_a
+            data_in_a_reg = data_in_a
+            addr_b_reg = addr_b
+            en_b_reg = en_b
+            be_b_reg = be_b
+            data_in_b_reg = data_in_b
+    return result

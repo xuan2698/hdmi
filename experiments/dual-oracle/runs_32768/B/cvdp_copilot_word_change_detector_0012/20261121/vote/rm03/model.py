@@ -1,0 +1,85 @@
+def reference(vectors):
+    W = 8
+    M = (1 << W) - 1
+    prev = 0
+    latched = 0
+    wcp = 0
+    pmp = 0
+    out = []
+    for ri, row in enumerate(vectors):
+        if isinstance(row, dict):
+            if 'edge' in row:
+                edge = row['edge']
+            elif 'clk' in row:
+                edge = row['clk']
+            else:
+                edge = 1 if ri % 2 == 0 else 0
+            reset = row.get('reset', 0)
+            data = row.get('data_in', row.get('data', 0))
+            mask = row.get('mask', 0)
+            match = row.get('match_pattern', row.get('pattern', 0))
+            enable = row.get('enable', 0)
+            latch = row.get('latch_pattern', row.get('latch', 0))
+        else:
+            seq = list(row)
+            edge = None
+            ei = -1
+            for i, x in enumerate(seq):
+                if isinstance(x, str):
+                    s = x.lower()
+                    if s in ('posedge', 'pos', 'positive', 'p', 'negedge', 'neg', 'negative', 'n'):
+                        edge = x
+                        ei = i
+                        break
+            if edge is not None:
+                vals = seq[:ei] + seq[ei + 1:]
+            else:
+                if len(seq) >= 7:
+                    expected = 1 if ri % 2 == 0 else 0
+                    first = seq[0]
+                    last = seq[-1]
+                    def isnum01(x):
+                        return x in (0, 1, False, True)
+                    first_ok = isnum01(first) and int(first) == expected
+                    last_ok = isnum01(last) and int(last) == expected
+                    if last_ok and not first_ok:
+                        edge = last
+                        vals = seq[:-1]
+                    else:
+                        edge = first
+                        vals = seq[1:]
+                else:
+                    edge = 1 if ri % 2 == 0 else 0
+                    vals = seq
+            reset = vals[0] if len(vals) > 0 else 0
+            data = vals[1] if len(vals) > 1 else 0
+            mask = vals[2] if len(vals) > 2 else 0
+            match = vals[3] if len(vals) > 3 else 0
+            enable = vals[4] if len(vals) > 4 else 0
+            latch = vals[5] if len(vals) > 5 else 0
+        if isinstance(edge, str):
+            es = edge.lower()
+            is_pos = es in ('posedge', 'pos', 'positive', 'p', '1', 'up')
+        else:
+            is_pos = (edge == 1 or edge is True or str(edge) == '1')
+        reset = int(reset) & 1
+        data = int(data) & M
+        mask = int(mask) & M
+        match = int(match) & M
+        enable = int(enable) & 1
+        latch = int(latch) & 1
+        if reset:
+            prev = 0
+            latched = 0
+            wcp = 0
+            pmp = 0
+        out.append({'word_change_pulse': wcp, 'pattern_match_pulse': pmp, 'latched_pattern': latched & M})
+        if is_pos and not reset:
+            nwcp = 1 if (enable and (((data ^ prev) & mask) != 0)) else 0
+            npmp = 1 if (enable and (((data ^ latched) & mask) == 0)) else 0
+            if latch:
+                latched = match & M
+            prev = data
+            wcp = nwcp
+            pmp = npmp
+    return out

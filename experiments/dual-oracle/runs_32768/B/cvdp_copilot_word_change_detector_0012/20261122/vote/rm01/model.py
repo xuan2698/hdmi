@@ -1,0 +1,66 @@
+def reference(vectors):
+    W = 8
+    full_mask = (1 << W) - 1
+    latched_pattern = 0
+    data_in_prev = 0
+    word_change_pulse = 0
+    pattern_match_pulse = 0
+    outputs = []
+    prev_clk = None
+
+    for i, row in enumerate(vectors):
+        if 'edge' in row:
+            edge = row['edge']
+            if isinstance(edge, str):
+                edge_l = edge.lower()
+                posedge = edge_l in ('pos', 'posedge', 'positive', 'rise', 'rising', '1')
+            else:
+                posedge = (edge == 1 or edge is True)
+        else:
+            clk = row.get('clk', None)
+            if clk is None:
+                posedge = (i % 2 == 0)
+            else:
+                if prev_clk is None:
+                    posedge = (clk == 1)
+                else:
+                    posedge = (prev_clk == 0 and clk == 1)
+                prev_clk = clk
+
+        rst = row.get('reset', 0)
+        if rst:
+            latched_pattern = 0
+            data_in_prev = 0
+            word_change_pulse = 0
+            pattern_match_pulse = 0
+
+        outputs.append({
+            'word_change_pulse': word_change_pulse,
+            'pattern_match_pulse': pattern_match_pulse,
+            'latched_pattern': latched_pattern & full_mask
+        })
+
+        if posedge:
+            if rst:
+                latched_pattern = 0
+                data_in_prev = 0
+                word_change_pulse = 0
+                pattern_match_pulse = 0
+            else:
+                data_in = row.get('data_in', 0) & full_mask
+                mask = row.get('mask', full_mask) & full_mask
+                match_pattern = row.get('match_pattern', 0) & full_mask
+                enable = row.get('enable', 0)
+                latch_pattern = row.get('latch_pattern', 0)
+
+                changed = ((data_in ^ data_in_prev) & mask) != 0
+                word_change_next = 1 if enable and changed else 0
+                pattern_match_next = 1 if enable and ((data_in & mask) == (latched_pattern & mask)) else 0
+
+                if latch_pattern:
+                    latched_pattern = match_pattern
+                data_in_prev = data_in
+                word_change_pulse = word_change_next
+                pattern_match_pulse = pattern_match_next
+
+    return outputs

@@ -1,0 +1,74 @@
+```python
+def reference(vectors):
+    state = 0
+    ciphertext_reg = 0
+    pt_cap = 0
+    key_cap = 0
+    cur_reset = 0
+    cur_start = 0
+    cur_plaintext = 0
+    cur_key = 0
+    output = []
+
+    for row in vectors:
+        if 'reset' in row:
+            cur_reset = int(row['reset']) & 1
+        if 'start' in row:
+            cur_start = int(row['start']) & 1
+        if 'plaintext' in row:
+            cur_plaintext = int(row['plaintext']) & 0x7fff
+        if 'key' in row:
+            cur_key = int(row['key']) & ((1 << 45) - 1)
+
+        e = row.get('edge', None)
+        if e is None:
+            e = row.get('clk', 0)
+
+        if type(e) == str:
+            el = e.lower()
+            is_pos = el.startswith('p') or el == '1'
+        else:
+            is_pos = (e == 1)
+
+        done = 1 if state == 3 else 0
+        output.append({'ciphertext': ciphertext_reg & 0x7fff, 'done': done})
+
+        if is_pos:
+            if cur_reset:
+                state = 0
+                ciphertext_reg = 0
+                pt_cap = 0
+                key_cap = 0
+            else:
+                if state == 0:
+                    if cur_start:
+                        state = 1
+                        pt_cap = cur_plaintext
+                        key_cap = cur_key
+                elif state == 1:
+                    state = 2
+                elif state == 2:
+                    p = pt_cap
+                    k = key_cap
+                    p0 = p & 31
+                    p1 = (p >> 5) & 31
+                    p2 = (p >> 10) & 31
+                    k0 = k & 31
+                    k1 = (k >> 5) & 31
+                    k2 = (k >> 10) & 31
+                    k3 = (k >> 15) & 31
+                    k4 = (k >> 20) & 31
+                    k5 = (k >> 25) & 31
+                    k6 = (k >> 30) & 31
+                    k7 = (k >> 35) & 31
+                    k8 = (k >> 40) & 31
+                    c0 = (p0 * k0 + p1 * k1 + p2 * k2) % 26
+                    c1 = (p0 * k3 + p1 * k4 + p2 * k5) % 26
+                    c2 = (p0 * k6 + p1 * k7 + p2 * k8) % 26
+                    ciphertext_reg = (c0 | (c1 << 5) | (c2 << 10)) & 0x7fff
+                    state = 3
+                elif state == 3:
+                    state = 0
+
+    return output
+```

@@ -1,0 +1,149 @@
+def reference(vectors):
+    state = 0
+    data_reg = 0
+    bits_left = 16
+    cs = 1
+    clk = 0
+    spi_data = 0
+    done = 0
+    out = []
+    for row in vectors:
+        if isinstance(row, dict):
+            edge_val = row.get('edge', None)
+            if edge_val is None and 'i_clk' in row:
+                edge_val = row['i_clk']
+            rst = row.get('i_rst_b', 1)
+            data_in = row.get('i_data_in', 0)
+            enable = row.get('i_enable', 1)
+            fault = row.get('i_fault', 0)
+            clear = row.get('i_clear', 0)
+        else:
+            edge_val = row[0] if len(row) > 0 else None
+            rst = row[1] if len(row) > 1 else 1
+            data_in = row[2] if len(row) > 2 else 0
+            enable = row[3] if len(row) > 3 else 1
+            fault = row[4] if len(row) > 4 else 0
+            clear = row[5] if len(row) > 5 else 0
+
+        is_pos = False
+        if isinstance(edge_val, str):
+            e = edge_val.lower()
+            if 'pos' in e:
+                is_pos = True
+            elif 'neg' in e:
+                is_pos = False
+        else:
+            if edge_val == 1 or edge_val is True:
+                is_pos = True
+            elif edge_val == 0 or edge_val is False:
+                is_pos = False
+            else:
+                is_pos = (edge_val == 1)
+
+        rst = int(rst) & 1
+        data_in = int(data_in) & 0xFFFF
+        enable = int(enable) & 1
+        fault = int(fault) & 1
+        clear = int(clear) & 1
+
+        if rst == 0:
+            state = 0
+            data_reg = 0
+            bits_left = 16
+            cs = 1
+            clk = 0
+            spi_data = 0
+            done = 0
+
+        out.append({
+            'o_spi_cs_b': cs & 1,
+            'o_spi_clk': clk & 1,
+            'o_spi_data': spi_data & 1,
+            'o_bits_left': bits_left & 0x1F,
+            'o_done': done & 1,
+            'o_fsm_state': state & 3
+        })
+
+        if is_pos and rst == 1:
+            n_state = state
+            n_data_reg = data_reg
+            n_bits_left = bits_left
+            n_cs = cs
+            n_clk = clk
+            n_spi_data = spi_data
+            n_done = done
+
+            if fault == 1:
+                if state != 3:
+                    n_done = 1
+                else:
+                    n_done = 0
+                n_state = 3
+                n_cs = 1
+                n_clk = 0
+                n_spi_data = 0
+                n_bits_left = 16
+                n_data_reg = 0
+            elif clear == 1:
+                n_state = 0
+                n_cs = 1
+                n_clk = 0
+                n_spi_data = 0
+                n_bits_left = 16
+                n_done = 0
+                n_data_reg = 0
+            elif enable == 0:
+                n_state = 0
+                n_cs = 1
+                n_clk = 0
+                n_spi_data = 0
+                n_bits_left = 16
+                n_done = 0
+                n_data_reg = 0
+            else:
+                if state == 0:
+                    n_cs = 1
+                    n_clk = 0
+                    n_spi_data = 0
+                    n_bits_left = 16
+                    n_done = 0
+                    n_state = 1
+                    n_data_reg = data_in
+                elif state == 1:
+                    n_cs = 0
+                    n_clk = 0
+                    n_spi_data = (data_reg >> 15) & 1
+                    n_state = 2
+                elif state == 2:
+                    n_cs = 0
+                    n_clk = 1 if clk == 0 else 0
+                    n_data_reg = (data_reg << 1) & 0xFFFF
+                    if bits_left > 0:
+                        n_bits_left = bits_left - 1
+                    else:
+                        n_bits_left = 0
+                    if bits_left == 1:
+                        n_done = 1
+                        n_state = 0
+                    else:
+                        n_done = 0
+                        n_state = 1
+                elif state == 3:
+                    n_cs = 1
+                    n_clk = 0
+                    n_spi_data = 0
+                    n_bits_left = 16
+                    n_done = 0
+                    n_state = 3
+                else:
+                    n_state = 0
+
+            state = n_state
+            data_reg = n_data_reg
+            bits_left = n_bits_left
+            cs = n_cs
+            clk = n_clk
+            spi_data = n_spi_data
+            done = n_done
+
+    return out

@@ -1,0 +1,175 @@
+{
+  "decisions": [],
+  "RM": "def reference(vectors):\n    q = 0\n    result = []\n    for row in vectors:\n        if isinstance(row, dict):\n            L = row.get('L', row.get('l', 0))\n            q_in = row.get('q_in', row.get('qin', row.get('Q_in', 0)))\n            r_in = row.get('r_in', row.get('rin', row.get('R_in', 0)))\n        else:\n            L, q_in, r_in = row[0], row[1], row[2]\n        L = int(L) & 1\n        q_in = int(q_in) & 1\n        r_in = int(r_in) & 1\n        if L:\n            q = r_in\n        else:\n            q = q_in\n        result.append({'Q': q})\n    return result\n",
+  "TB": [
+    {
+      "id": "s1",
+      "spec_quote": "end else begin",
+      "covers": [
+        "behavior",
+        "boundary"
+      ],
+      "vectors": [
+        {
+          "L": 1,
+          "q_in": 0,
+          "r_in": 0
+        },
+        {
+          "L": 0,
+          "q_in": 1,
+          "r_in": 0
+        },
+        {
+          "L": 0,
+          "q_in": 0,
+          "r_in": 1
+        }
+      ],
+      "expected": [
+        {
+          "Q": 0
+        },
+        {
+          "Q": 1
+        },
+        {
+          "Q": 0
+        }
+      ]
+    },
+    {
+      "id": "s2",
+      "spec_quote": "if (L) begin",
+      "covers": [
+        "behavior",
+        "boundary",
+        "priority"
+      ],
+      "vectors": [
+        {
+          "L": 1,
+          "q_in": 0,
+          "r_in": 1
+        },
+        {
+          "L": 1,
+          "q_in": 1,
+          "r_in": 0
+        },
+        {
+          "L": 0,
+          "q_in": 1,
+          "r_in": 0
+        }
+      ],
+      "expected": [
+        {
+          "Q": 1
+        },
+        {
+          "Q": 0
+        },
+        {
+          "Q": 1
+        }
+      ]
+    },
+    {
+      "id": "s3",
+      "spec_quote": "q <= r;",
+      "covers": [
+        "behavior",
+        "boundary",
+        "priority"
+      ],
+      "vectors": [
+        {
+          "L": 1,
+          "q_in": 1,
+          "r_in": 1
+        },
+        {
+          "L": 1,
+          "q_in": 0,
+          "r_in": 0
+        },
+        {
+          "L": 0,
+          "q_in": 1,
+          "r_in": 1
+        },
+        {
+          "L": 0,
+          "q_in": 0,
+          "r_in": 0
+        }
+      ],
+      "expected": [
+        {
+          "Q": 1
+        },
+        {
+          "Q": 0
+        },
+        {
+          "Q": 1
+        },
+        {
+          "Q": 0
+        }
+      ]
+    },
+    {
+      "id": "s4",
+      "spec_quote": "always @(posedge clk) begin",
+      "covers": [
+        "behavior"
+      ],
+      "vectors": [
+        {
+          "L": 1,
+          "q_in": 0,
+          "r_in": 1
+        },
+        {
+          "L": 0,
+          "q_in": 0,
+          "r_in": 1
+        },
+        {
+          "L": 0,
+          "q_in": 1,
+          "r_in": 0
+        },
+        {
+          "L": 0,
+          "q_in": 1,
+          "r_in": 1
+        },
+        {
+          "L": 0,
+          "q_in": 0,
+          "r_in": 1
+        }
+      ],
+      "expected": [
+        {
+          "Q": 1
+        },
+        {
+          "Q": 0
+        },
+        {
+          "Q": 1
+        },
+        {
+          "Q": 1
+        },
+        {
+          "Q": 0
+        }
+      ]
+    }
+  ]
+}

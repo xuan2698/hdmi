@@ -1,0 +1,14 @@
+def reference(vectors):
+    x=y=0;r=[]
+    for v in vectors:
+        if'x'in v:x=v['x']&1
+        if'y'in v:y=v['y']&7
+        a=(y>>2)&1;b=(y>>1)&1;c=y&1
+        Y0=((x&(1-a)&(1-c))|((1-x)&(a|c)))&1
+        z=(a|(b&c))&1
+        r.append({'Y0':Y0,'z':z})
+        if'mid'in v:
+            m=v['mid']
+            if'x'in m:x=m['x']&1
+            if'y'in m:y=m['y']&7
+    return r

@@ -1,0 +1,114 @@
+```python
+def reference(vectors):
+    state = 0
+    cs = 1
+    sclk = 0
+    data = 0
+    bits_left = 16
+    done = 0
+    shift = 0
+    prev_clk = 0
+    results = []
+
+    for idx, row in enumerate(vectors):
+        rst_b = row.get('i_rst_b', 1)
+        en = row.get('i_enable', 0)
+        fault = row.get('i_fault', 0)
+        clear = row.get('i_clear', 0)
+        din = row.get('i_data_in', 0) & 0xFFFF
+
+        if rst_b == 0:
+            state = 0
+            cs = 1
+            sclk = 0
+            data = 0
+            bits_left = 16
+            done = 0
+            shift = 0
+
+        if 'edge' in row:
+            e = row['edge']
+            if isinstance(e, str):
+                posedge = ('pos' in e.lower())
+            else:
+                posedge = bool(e)
+        elif 'i_clk' in row:
+            c = row['i_clk']
+            posedge = (prev_clk == 0 and c == 1)
+            if idx == 0 and c == 1:
+                posedge = True
+            prev_clk = c
+        else:
+            posedge = (idx % 2 == 0)
+
+        results.append({
+            'o_spi_cs_b': cs & 1,
+            'o_spi_clk': sclk & 1,
+            'o_spi_data': data & 1,
+            'o_bits_left': bits_left & 0x1F,
+            'o_done': done & 1,
+            'o_fsm_state': state & 3
+        })
+
+        if posedge and rst_b != 0:
+            if clear:
+                state = 0
+                cs = 1
+                sclk = 0
+                data = 0
+                bits_left = 16
+                done = 0
+                shift = 0
+            elif fault:
+                if state != 3:
+                    done = 1
+                else:
+                    done = 0
+                state = 3
+                cs = 1
+                sclk = 0
+                data = 0
+                bits_left = 10
+            elif state == 3:
+                state = 3
+                cs = 1
+                sclk = 0
+                data = 0
+                bits_left = 10
+                done = 0
+            elif en == 0:
+                state = 0
+                cs = 1
+                sclk = 0
+                data = 0
+                bits_left = 16
+                done = 0
+                shift = 0
+            else:
+                if state == 0:
+                    cs = 1
+                    sclk = 0
+                    data = 0
+                    bits_left = 16
+                    done = 0
+                    shift = din
+                    state = 1
+                elif state == 1:
+                    cs = 0
+                    data = (shift >> 15) & 1
+                    shift = (shift << 1) & 0xFFFF
+                    done = 0
+                    state = 2
+                elif state == 2:
+                    old_bl = bits_left
+                    sclk = 1 - sclk
+                    bits_left = (bits_left - 1) & 0x1F
+                    if old_bl == 1:
+                        done = 1
+                        state = 0
+                    else:
+                        done = 0
+                        state = 1
+
+    return results
+```

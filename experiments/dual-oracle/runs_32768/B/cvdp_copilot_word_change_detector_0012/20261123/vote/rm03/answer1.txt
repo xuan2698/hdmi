@@ -1,0 +1,58 @@
+def reference(vectors):
+    qw = 0
+    qm = 0
+    ql = 0
+    dp = 0
+    out = []
+    alt_pos = True
+    for row in vectors:
+        reset = int(row.get('reset', 0))
+        data = int(row.get('data_in', 0))
+        mask = int(row.get('mask', 0))
+        pat = int(row.get('match_pattern', 0))
+        en = int(row.get('enable', 0))
+        lp = int(row.get('latch_pattern', 0))
+
+        if 'edge' in row and row['edge'] is not None:
+            e = row['edge']
+            if isinstance(e, str):
+                pos = e.strip().lower() in ('posedge', 'pos', '1', 'rise')
+            else:
+                pos = bool(e)
+        elif 'clk' in row:
+            c = row['clk']
+            if isinstance(c, str):
+                pos = c.strip().lower() in ('1', 'posedge', 'pos', 'rise')
+            else:
+                pos = bool(c)
+        else:
+            pos = alt_pos
+
+        if reset:
+            qw = 0
+            qm = 0
+            ql = 0
+            dp = 0
+            out.append({
+                'word_change_pulse': 0,
+                'pattern_match_pulse': 0,
+                'latched_pattern': 0
+            })
+        else:
+            out.append({
+                'word_change_pulse': int(qw),
+                'pattern_match_pulse': int(qm),
+                'latched_pattern': int(ql)
+            })
+            if pos:
+                nw = 1 if (en and (((data ^ dp) & mask) != 0)) else 0
+                nm = 1 if (en and (((data ^ ql) & mask) == 0)) else 0
+                nl = pat if lp else ql
+                qw = nw
+                qm = nm
+                ql = nl
+                dp = data
+
+        alt_pos = not alt_pos
+
+    return out

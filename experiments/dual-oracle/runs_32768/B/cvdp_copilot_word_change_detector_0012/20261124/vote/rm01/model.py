@@ -1,0 +1,58 @@
+def reference(vectors):
+    W = 8
+    M = (1 << W) - 1
+    dp = 0
+    lp = 0
+    wcp = 0
+    pmp = 0
+    out = []
+    for i, row in enumerate(vectors):
+        reset = int(row.get('reset', 0)) & 1
+        data = int(row.get('data_in', 0)) & M
+        mask = int(row.get('mask', 0)) & M
+        mp = int(row.get('match_pattern', 0)) & M
+        en = int(row.get('enable', 0)) & 1
+        lt = int(row.get('latch_pattern', 0)) & 1
+        e = row.get('edge', None)
+        if e is None:
+            e = row.get('clk', None)
+        if isinstance(e, str):
+            el = e.lower()
+            if 'pos' in el or el in ('1', 'p', 'rise', 'rising'):
+                pe = True
+            elif 'neg' in el or el in ('0', 'n', 'fall', 'falling'):
+                pe = False
+            else:
+                pe = (i % 2 == 0)
+        elif e is None:
+            pe = (i % 2 == 0)
+        else:
+            pe = bool(int(e))
+        if reset:
+            dp = 0
+            lp = 0
+            wcp = 0
+            pmp = 0
+            ow = 0
+            op = 0
+            ol = 0
+        else:
+            ow = wcp
+            op = pmp
+            ol = lp
+            if pe:
+                change = ((data ^ dp) & mask) != 0
+                match = ((data & mask) == (lp & mask))
+                nw = 1 if (en and change) else 0
+                np = 1 if (en and match) else 0
+                nl = mp if lt else lp
+                dp = data
+                wcp = nw
+                pmp = np
+                lp = nl & M
+        out.append({
+            'word_change_pulse': ow,
+            'pattern_match_pulse': op,
+            'latched_pattern': ol
+        })
+    return out

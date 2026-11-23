@@ -1,0 +1,18 @@
+def reference(vectors):
+    state = 0
+    result = []
+    for row in vectors:
+        if row['reset']:
+            state = 0
+        else:
+            data = row['data']
+            if state == 0:
+                state = 1 if data else 0
+            elif state == 1:
+                state = 2 if data else 0
+            elif state == 2:
+                state = 2 if data else 3
+            elif state == 3:
+                state = 4 if data else 0
+        result.append({'start_shifting': 1 if state == 4 else 0})
+    return result

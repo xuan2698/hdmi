@@ -1,0 +1,11 @@
+{
+  "responses": [
+    {
+      "id": "missing-prev-a-hold",
+      "decision": "accept",
+      "reason": "The waveform shows q holds at 4 on the first a=0 posedge after a was high, then increments on subsequent a=0 posedges, so tracking previous a is required.",
+      "spec_quote": "// 45ns            1               0               4"
+    }
+  ],
+  "source": "def reference(vectors):\n    q = 0\n    prev_a = 1\n    out = []\n    for v in vectors:\n        a = v['a'] & 1\n        if a:\n            q = 4\n        else:\n            if prev_a == 0:\n                q = (q + 1) % 7\n        prev_a = a\n        out.append({'q': q})\n    return out\n"
+}

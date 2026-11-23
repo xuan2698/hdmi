@@ -1,0 +1,78 @@
+def reference(vectors):
+    IDLE, TX, CT, ERR = 0, 1, 2, 3
+    cs, clk, data, bits, done, state, shift = 1, 0, 0, 16, 0, IDLE, 0
+    out = []
+    for row in vectors:
+        def get(name, default):
+            if isinstance(row, dict):
+                return row.get(name, default)
+            return getattr(row, name, default)
+
+        edge = get('edge', None)
+        rst_b = get('i_rst_b', 1)
+        en = get('i_enable', 0)
+        fault = get('i_fault', 0)
+        clear = get('i_clear', 0)
+        din = get('i_data_in', 0)
+
+        is_pos = False
+        if isinstance(edge, str):
+            e = edge.lower()
+            is_pos = ('pos' in e) or (e in ('1', 'p'))
+        elif isinstance(edge, (int, bool)):
+            is_pos = bool(edge)
+        else:
+            is_pos = bool(get('i_clk', 0))
+
+        if rst_b == 0:
+            cs, clk, data, bits, done, state, shift = 1, 0, 0, 16, 0, IDLE, 0
+
+        out.append({
+            'o_spi_cs_b': cs & 1,
+            'o_spi_clk': clk & 1,
+            'o_spi_data': data & 1,
+            'o_bits_left': bits & 31,
+            'o_done': done & 1,
+            'o_fsm_state': state & 3
+        })
+
+        if rst_b == 0:
+            continue
+
+        if is_pos:
+            ncs, nclk, ndata, nbits, ndone, nstate, nshift = cs, clk, data, bits, done, state, shift
+
+            if clear:
+                ncs, nclk, ndata, nbits, ndone, nstate = 1, 0, 0, 16, 0, IDLE
+            elif fault:
+                ncs, nclk, ndata, nbits, nstate = 1, 0, 0, 16, ERR
+                ndone = 1 if state != ERR else 0
+            elif state == ERR:
+                ncs, nclk, ndata, nbits, ndone, nstate = 1, 0, 0, 16, 0, ERR
+            elif not en:
+                ncs, nclk, ndata, nbits, ndone, nstate = 1, 0, 0, 16, 0, IDLE
+            else:
+                if state == IDLE:
+                    ncs, nclk, ndata, nbits, ndone = 1, 0, 0, 16, 0
+                    nshift = din & 0xffff
+                    ncs = 0
+                    nstate = TX
+                elif state == TX:
+                    ncs = 0
+                    ndata = (nshift >> 15) & 1
+                    nshift = (nshift << 1) & 0xffff
+                    nstate = CT
+                elif state == CT:
+                    nclk = (~clk) & 1
+                    nbits = bits - 1
+                    if bits == 1:
+                        ndone = 1
+                        ncs, nclk, ndata, nbits = 1, 0, 0, 16
+                        nstate = IDLE
+                    else:
+                        ndone = 0
+                        nstate = TX
+
+            cs, clk, data, bits, done, state, shift = ncs, nclk, ndata, nbits, ndone, nstate, nshift
+
+    return out

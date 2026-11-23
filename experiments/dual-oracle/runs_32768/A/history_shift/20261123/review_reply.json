@@ -1,0 +1,4 @@
+{
+  "responses": [],
+  "source": "def reference(vectors):\n    h = 0\n    m = (1 << 32) - 1\n    out = []\n    for v in vectors:\n        if v.get('areset', 0):\n            h = 0\n        elif v.get('train_mispredicted', 0):\n            h = (((v.get('train_history', 0) & m) << 1) & m) | (v.get('train_taken', 0) & 1)\n        elif v.get('predict_valid', 0):\n            h = ((h << 1) & m) | (v.get('predict_taken', 0) & 1)\n        out.append({'predict_history': h & m})\n    return out\n"
+}

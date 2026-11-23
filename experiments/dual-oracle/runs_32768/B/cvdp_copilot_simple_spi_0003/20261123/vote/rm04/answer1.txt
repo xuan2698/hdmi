@@ -1,0 +1,151 @@
+def reference(vectors):
+    st = 0
+    cs = 1
+    clk = 0
+    data = 0
+    bits = 16
+    done = 0
+    shift = 0
+    prev_rst = 1
+    out = []
+    for idx, row in enumerate(vectors):
+        if isinstance(row, dict):
+            edge_raw = row.get('edge', row.get('i_clk', None))
+            i_rst_b = int(row.get('i_rst_b', 1))
+            i_data_in = int(row.get('i_data_in', 0)) & 0xFFFF
+            i_enable = int(row.get('i_enable', 0))
+            i_fault = int(row.get('i_fault', 0))
+            i_clear = int(row.get('i_clear', 0))
+        else:
+            if len(row) == 6:
+                edge_raw = row[0]
+                i_rst_b = int(row[1])
+                i_data_in = int(row[2]) & 0xFFFF
+                i_enable = int(row[3])
+                i_fault = int(row[4])
+                i_clear = int(row[5])
+            elif len(row) == 5:
+                edge_raw = 1 if idx % 2 == 0 else 0
+                i_rst_b = int(row[0])
+                i_data_in = int(row[1]) & 0xFFFF
+                i_enable = int(row[2])
+                i_fault = int(row[3])
+                i_clear = int(row[4])
+            elif len(row) == 7:
+                edge_raw = row[0]
+                i_rst_b = int(row[1])
+                i_data_in = int(row[2]) & 0xFFFF
+                i_enable = int(row[3])
+                i_fault = int(row[4])
+                i_clear = int(row[5])
+            else:
+                edge_raw = row[0]
+                vals = list(row[1:]) + [0, 0, 0, 0, 0]
+                i_rst_b = int(vals[0])
+                i_data_in = int(vals[1]) & 0xFFFF
+                i_enable = int(vals[2])
+                i_fault = int(vals[3])
+                i_clear = int(vals[4])
+        if isinstance(edge_raw, str):
+            et = 1 if edge_raw.lower().startswith('p') else 0
+        elif edge_raw is None:
+            et = 1 if idx % 2 == 0 else 0
+        else:
+            et = 1 if int(edge_raw) == 1 else 0
+        out.append({
+            'o_spi_cs_b': cs,
+            'o_spi_clk': clk,
+            'o_spi_data': data,
+            'o_bits_left': bits,
+            'o_done': done,
+            'o_fsm_state': st
+        })
+        if et == 0:
+            if i_rst_b == 0 and prev_rst != 0:
+                st = 0
+                cs = 1
+                clk = 0
+                data = 0
+                bits = 16
+                done = 0
+                shift = 0
+        else:
+            if i_rst_b == 0:
+                st = 0
+                cs = 1
+                clk = 0
+                data = 0
+                bits = 16
+                done = 0
+                shift = 0
+            else:
+                nst = st
+                ncs = cs
+                nclk = clk
+                ndata = data
+                nbits = bits
+                ndone = 0
+                nshift = shift
+                if i_clear:
+                    nst = 0
+                    ncs = 1
+                    nclk = 0
+                    ndata = 0
+                    nbits = 16
+                    ndone = 0
+                elif i_fault:
+                    ndone = 1 if st != 3 else 0
+                    nst = 3
+                    ncs = 1
+                    nclk = 0
+                    ndata = 0
+                    nbits = 16
+                elif (not i_enable) and st != 3:
+                    nst = 0
+                    ncs = 1
+                    nclk = 0
+                    ndata = 0
+                    nbits = 16
+                    ndone = 0
+                else:
+                    if st == 0:
+                        ncs = 1
+                        nclk = 0
+                        ndata = 0
+                        nbits = 16
+                        ndone = 0
+                        if i_enable:
+                            nshift = i_data_in
+                            nst = 1
+                        else:
+                            nst = 0
+                    elif st == 1:
+                        ncs = 0
+                        ndata = (nshift >> 15) & 1
+                        nshift = (nshift << 1) & 0xFFFF
+                        nst = 2
+                    elif st == 2:
+                        nclk = 1 - nclk
+                        nbits = nbits - 1
+                        if bits == 1:
+                            ndone = 1
+                            nst = 0
+                        else:
+                            ndone = 0
+                            nst = 1
+                    elif st == 3:
+                        ncs = 1
+                        nclk = 0
+                        ndata = 0
+                        nbits = 16
+                        ndone = 0
+                        nst = 3
+                st = nst
+                cs = ncs
+                clk = nclk
+                data = ndata
+                bits = nbits
+                done = ndone
+                shift = nshift
+        prev_rst = i_rst_b
+    return out

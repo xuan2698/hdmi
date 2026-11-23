@@ -1,0 +1,84 @@
+def reference(vectors):
+    LINES = 8192
+    ram = [0] * LINES
+    addr_a_reg = 0
+    en_a_reg = 0
+    be_a_reg = 0
+    data_in_a_reg = 0
+    addr_b_reg = 0
+    en_b_reg = 0
+    be_b_reg = 0
+    data_in_b_reg = 0
+    data_out_a = 0
+    data_out_b = 0
+    result = []
+
+    for idx, row in enumerate(vectors):
+        if 'edge' in row:
+            e = row['edge']
+            if isinstance(e, str):
+                is_pos = 'pos' in e.lower()
+            else:
+                is_pos = bool(e)
+        elif 'clk' in row:
+            is_pos = bool(row['clk'])
+        else:
+            is_pos = (idx % 2 == 0)
+
+        addr_a = int(row.get('addr_a', 0)) & 0x1FFF
+        en_a = int(row.get('en_a', 0)) & 1
+        be_a = int(row.get('be_a', 0)) & 0xF
+        data_in_a = int(row.get('data_in_a', 0)) & 0xFFFFFFFF
+        addr_b = int(row.get('addr_b', 0)) & 0x1FFF
+        en_b = int(row.get('en_b', 0)) & 1
+        be_b = int(row.get('be_b', 0)) & 0xF
+        data_in_b = int(row.get('data_in_b', 0)) & 0xFFFFFFFF
+
+        if is_pos:
+            result.append({'data_out_a': data_out_a, 'data_out_b': data_out_b})
+
+            new_data_out_a = ram[addr_a_reg]
+            new_data_out_b = ram[addr_b_reg]
+
+            if en_a_reg and en_b_reg and addr_a_reg == addr_b_reg:
+                ad = addr_a_reg
+                word = ram[ad]
+                for i in range(4):
+                    mask = 0xFF << (8 * i)
+                    if (be_a_reg >> i) & 1:
+                        word = (word & ~mask) | (((data_in_a_reg >> (8 * i)) & 0xFF) << (8 * i))
+                    elif (be_b_reg >> i) & 1:
+                        word = (word & ~mask) | (((data_in_b_reg >> (8 * i)) & 0xFF) << (8 * i))
+                ram[ad] = word & 0xFFFFFFFF
+            else:
+                if en_a_reg:
+                    ad = addr_a_reg
+                    word = ram[ad]
+                    for i in range(4):
+                        if (be_a_reg >> i) & 1:
+                            mask = 0xFF << (8 * i)
+                            word = (word & ~mask) | (((data_in_a_reg >> (8 * i)) & 0xFF) << (8 * i))
+                    ram[ad] = word & 0xFFFFFFFF
+                if en_b_reg:
+                    ad = addr_b_reg
+                    word = ram[ad]
+                    for i in range(4):
+                        if (be_b_reg >> i) & 1:
+                            mask = 0xFF << (8 * i)
+                            word = (word & ~mask) | (((data_in_b_reg >> (8 * i)) & 0xFF) << (8 * i))
+                    ram[ad] = word & 0xFFFFFFFF
+
+            addr_a_reg = addr_a
+            en_a_reg = en_a
+            be_a_reg = be_a
+            data_in_a_reg = data_in_a
+            addr_b_reg = addr_b
+            en_b_reg = en_b
+            be_b_reg = be_b
+            data_in_b_reg = data_in_b
+            data_out_a = new_data_out_a
+            data_out_b = new_data_out_b
+        else:
+            result.append({'data_out_a': data_out_a, 'data_out_b': data_out_b})
+
+    return result

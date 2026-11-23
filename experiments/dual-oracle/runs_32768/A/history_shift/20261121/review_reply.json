@@ -1,0 +1,4 @@
+{
+  "responses": [],
+  "source": "def reference(vectors):\n    h = 0\n    m = 0xFFFFFFFF\n    out = []\n    for v in vectors:\n        if v['areset']:\n            h = 0\n        elif v['train_mispredicted']:\n            h = ((v['train_history'] << 1) | v['train_taken']) & m\n        elif v['predict_valid']:\n            h = ((h << 1) | v['predict_taken']) & m\n        out.append({'predict_history': h})\n    return out\n"
+}

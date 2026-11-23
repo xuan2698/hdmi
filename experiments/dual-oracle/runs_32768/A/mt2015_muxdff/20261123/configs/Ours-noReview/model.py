@@ -1,0 +1,8 @@
+def reference(vectors):
+    out = []
+    for v in vectors:
+        L = v["L"] & 1
+        q_in = v["q_in"] & 1
+        r_in = v["r_in"] & 1
+        out.append({"Q": r_in if L else q_in})
+    return out

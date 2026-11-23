@@ -1,0 +1,122 @@
+def reference(vectors):
+    state = 0          # 0: Idle, 1: Transmit, 2: Clock Toggle, 3: Error
+    cs_b = 1
+    spi_clk = 0
+    spi_data = 0
+    bits_left = 16
+    done = 0
+    shift_reg = 0
+
+    outputs = []
+
+    for i, row in enumerate(vectors):
+        rst = row.get('i_rst_b', 1)
+        data_in = row.get('i_data_in', 0) & 0xFFFF
+        enable = row.get('i_enable', 0)
+        fault = row.get('i_fault', 0)
+        clear = row.get('i_clear', 0)
+
+        # Asynchronous reset (active low)
+        if rst == 0:
+            state = 0
+            cs_b = 1
+            spi_clk = 0
+            spi_data = 0
+            bits_left = 16
+            done = 0
+            shift_reg = 0
+            outputs.append({
+                'o_spi_cs_b': cs_b,
+                'o_spi_clk': spi_clk,
+                'o_spi_data': spi_data,
+                'o_bits_left': bits_left,
+                'o_done': done,
+                'o_fsm_state': state
+            })
+            continue
+
+        # Output current register values before any synchronous update
+        outputs.append({
+            'o_spi_cs_b': cs_b,
+            'o_spi_clk': spi_clk,
+            'o_spi_data': spi_data,
+            'o_bits_left': bits_left,
+            'o_done': done,
+            'o_fsm_state': state
+        })
+
+        # Synchronous updates occur on posedge (even row indices)
+        if i % 2 == 0:
+            if state == 3:  # Error state
+                if clear == 1:
+                    state = 0
+                    cs_b = 1
+                    spi_clk = 0
+                    spi_data = 0
+                    bits_left = 16
+                    done = 0
+                    shift_reg = 0
+                else:
+                    state = 3
+                    cs_b = 1
+                    spi_clk = 0
+                    spi_data = 0
+                    bits_left = 16
+                    done = 0
+                    shift_reg = 0
+            else:
+                if clear == 1:
+                    state = 0
+                    cs_b = 1
+                    spi_clk = 0
+                    spi_data = 0
+                    bits_left = 16
+                    done = 0
+                    shift_reg = 0
+                elif fault == 1:
+                    state = 3
+                    cs_b = 1
+                    spi_clk = 0
+                    spi_data = 0
+                    bits_left = 16
+                    done = 1
+                    shift_reg = 0
+                elif enable == 0:
+                    state = 0
+                    cs_b = 1
+                    spi_clk = 0
+                    spi_data = 0
+                    bits_left = 16
+                    done = 0
+                    shift_reg = 0
+                else:
+                    if state == 0:  # Idle
+                        state = 1
+                        cs_b = 0
+                        shift_reg = data_in
+                        bits_left = 16
+                        spi_data = 0
+                        spi_clk = 0
+                        done = 0
+                    elif state == 1:  # Transmit
+                        spi_data = (shift_reg >> 15) & 1
+                        state = 2
+                        done = 0
+                    elif state == 2:  # Clock Toggle
+                        spi_clk = 1 - spi_clk
+                        if bits_left > 1:
+                            bits_left = bits_left - 1
+                            shift_reg = (shift_reg << 1) & 0xFFFF
+                            state = 1
+                            done = 0
+                            cs_b = 0
+                        else:
+                            bits_left = 16
+                            state = 0
+                            done = 1
+                            cs_b = 1
+                            spi_clk = 0
+                            spi_data = 0
+                            shift_reg = 0
+
+    return outputs

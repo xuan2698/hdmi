@@ -1,0 +1,56 @@
+def reference(vectors):
+    latched = 0
+    prev = 0
+    wcp = 0
+    pmp = 0
+    out = []
+    next_pos = True
+
+    for row in vectors:
+        if not isinstance(row, dict):
+            row = {}
+
+        if 'edge' in row:
+            e = row['edge']
+        elif 'clk' in row:
+            e = row['clk']
+        else:
+            e = 1 if next_pos else 0
+            next_pos = not next_pos
+
+        if isinstance(e, str):
+            is_pos = e.lower().startswith('pos')
+        else:
+            is_pos = bool(e)
+
+        reset = int(row.get('reset', 0)) & 1
+        data = int(row.get('data_in', 0)) & 0xFF
+        mask = int(row.get('mask', 0)) & 0xFF
+        mp = int(row.get('match_pattern', 0)) & 0xFF
+        en = int(row.get('enable', 0)) & 1
+        le = int(row.get('latch_pattern', 0)) & 1
+
+        if reset:
+            latched = 0
+            prev = 0
+            wcp = 0
+            pmp = 0
+
+        out.append({
+            'word_change_pulse': wcp,
+            'pattern_match_pulse': pmp,
+            'latched_pattern': latched
+        })
+
+        if is_pos and not reset:
+            new_wcp = 1 if (en and (((data ^ prev) & mask) != 0)) else 0
+            new_pmp = 1 if (en and (((data ^ latched) & mask) == 0)) else 0
+            new_latched = mp if le else latched
+            new_prev = data
+
+            wcp = new_wcp
+            pmp = new_pmp
+            latched = new_latched
+            prev = new_prev
+
+    return out

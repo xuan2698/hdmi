@@ -1,0 +1,14 @@
+def reference(vectors):
+    Q=0
+    s={'L':0,'q_in':0,'r_in':0}
+    o=[]
+    for v in vectors:
+        for k in s:
+            if k in v:
+                s[k]=v[k]&1
+        Q=(s['r_in'] if s['L'] else s['q_in'])&1
+        o.append({'Q':Q})
+        for k,x in v.get('mid',{}).items():
+            if k in s:
+                s[k]=x&1
+    return o

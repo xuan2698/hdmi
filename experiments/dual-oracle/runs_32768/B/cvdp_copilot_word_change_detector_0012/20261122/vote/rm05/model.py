@@ -1,0 +1,41 @@
+def reference(vectors):
+    W = 8
+    M = (1 << W) - 1
+    wc = pm = lp = prev = 0
+    out = []
+    for i, r in enumerate(vectors):
+        reset = r.get('reset', 0)
+        data = r.get('data_in', 0) & M
+        mask = r.get('mask', 0) & M
+        match = r.get('match_pattern', 0) & M
+        en = r.get('enable', 0)
+        latch = r.get('latch_pattern', 0)
+        if 'edge' in r:
+            e = r['edge']
+            if isinstance(e, str):
+                es = e.lower()
+                if 'pos' in es or 'rise' in es or es in ('1', 'p', 'up'):
+                    pos = True
+                elif 'neg' in es or 'fall' in es or es in ('0', 'n', 'down'):
+                    pos = False
+                else:
+                    pos = (i % 2 == 0)
+            else:
+                pos = bool(e)
+        elif 'posedge' in r:
+            pos = bool(r['posedge'])
+        elif 'clk' in r:
+            pos = bool(r['clk'])
+        else:
+            pos = (i % 2 == 0)
+        if reset:
+            wc = pm = lp = prev = 0
+            out.append({'word_change_pulse': wc, 'pattern_match_pulse': pm, 'latched_pattern': lp})
+            continue
+        out.append({'word_change_pulse': wc, 'pattern_match_pulse': pm, 'latched_pattern': lp})
+        if pos:
+            nxt_wc = 1 if en and (((data ^ prev) & mask) != 0) else 0
+            nxt_pm = 1 if en and (((data & mask) == (lp & mask))) else 0
+            nxt_lp = match if latch else lp
+            wc, pm, lp, prev = nxt_wc, nxt_pm, nxt_lp & M, data
+    return out

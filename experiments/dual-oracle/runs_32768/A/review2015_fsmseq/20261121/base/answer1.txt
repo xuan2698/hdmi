@@ -1,0 +1,26 @@
+def reference(vectors):
+    state = 0
+    cur = {'reset': 0, 'data': 0}
+    out = []
+    for row in vectors:
+        for k in ('reset', 'data'):
+            if k in row:
+                cur[k] = row[k]
+        if cur['reset']:
+            state = 0
+        else:
+            d = cur['data']
+            if state == 0:
+                state = 1 if d else 0
+            elif state == 1:
+                state = 2 if d else 0
+            elif state == 2:
+                state = 2 if d else 3
+            elif state == 3:
+                state = 4 if d else 0
+        out.append({'start_shifting': 1 if state == 4 else 0})
+        if 'mid' in row:
+            for k, v in row['mid'].items():
+                if k in ('reset', 'data'):
+                    cur[k] = v
+    return out

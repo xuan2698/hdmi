@@ -1,0 +1,118 @@
+def reference(vectors):
+    W = 8
+    ALL = (1 << W) - 1
+    latched_pattern = 0
+    data_in_prev = 0
+    word_change_pulse = 0
+    pattern_match_pulse = 0
+    prev_clk = None
+    edge_counter = 0
+    out = []
+
+    def _raw_get(row, name, default=0):
+        if isinstance(row, dict):
+            return row.get(name, default)
+        try:
+            return row[name]
+        except Exception:
+            try:
+                return getattr(row, name)
+            except Exception:
+                return default
+
+    def _get(row, name, default=0):
+        try:
+            return int(_raw_get(row, name, default))
+        except Exception:
+            return default
+
+    def _has(row, name):
+        if isinstance(row, dict):
+            return name in row
+        try:
+            return name in row
+        except Exception:
+            return hasattr(row, name)
+
+    def _edge_bool(e):
+        if isinstance(e, str):
+            s = e.lower()
+            if 'pos' in s or 'rise' in s or s in ('1', 'true', 'high'):
+                return True
+            if 'neg' in s or 'fall' in s or s in ('0', 'false', 'low'):
+                return False
+            return None
+        if e is True:
+            return True
+        if e is False:
+            return False
+        try:
+            return (int(e) & 1) == 1
+        except Exception:
+            return None
+
+    for row in vectors:
+        reset = _get(row, 'reset', 0) & 1
+        data_in = _get(row, 'data_in', 0) & ALL
+        mask = _get(row, 'mask', 0) & ALL
+        match_pattern = _get(row, 'match_pattern', 0) & ALL
+        enable = _get(row, 'enable', 0) & 1
+        latch_pattern = _get(row, 'latch_pattern', 0) & 1
+
+        pos = None
+        for key in ('edge', 'clk_edge', 'edge_type', 'clkedge'):
+            if _has(row, key):
+                pos = _edge_bool(_raw_get(row, key, 0))
+                if pos is not None:
+                    break
+        if pos is None and _has(row, 'posedge'):
+            pos = bool(_get(row, 'posedge', 0) & 1)
+
+        clk_val = None
+        if _has(row, 'clk'):
+            clk_val = _get(row, 'clk', 0) & 1
+        if pos is None and clk_val is not None:
+            if prev_clk is None:
+                pos = (clk_val == 1)
+            else:
+                pos = (prev_clk == 0 and clk_val == 1)
+        if pos is None:
+            pos = (edge_counter % 2 == 0)
+        if clk_val is not None:
+            prev_clk = clk_val
+        edge_counter += 1
+
+        if reset:
+            latched_pattern = 0
+            data_in_prev = 0
+            word_change_pulse = 0
+            pattern_match_pulse = 0
+            out_w = 0
+            out_p = 0
+            out_l = 0
+        else:
+            out_w = word_change_pulse
+            out_p = pattern_match_pulse
+            out_l = latched_pattern
+            if pos:
+                change = (((data_in ^ data_in_prev) & mask) != 0)
+                match = ((((data_in ^ latched_pattern) & mask) == 0))
+                if enable:
+                    nxt_w = 1 if change else 0
+                    nxt_p = 1 if match else 0
+                else:
+                    nxt_w = 0
+                    nxt_p = 0
+                nxt_l = match_pattern if latch_pattern else latched_pattern
+                word_change_pulse = nxt_w
+                pattern_match_pulse = nxt_p
+                latched_pattern = nxt_l & ALL
+                data_in_prev = data_in
+
+        out.append({
+            'word_change_pulse': out_w & 1,
+            'pattern_match_pulse': out_p & 1,
+            'latched_pattern': out_l & ALL
+        })
+
+    return out

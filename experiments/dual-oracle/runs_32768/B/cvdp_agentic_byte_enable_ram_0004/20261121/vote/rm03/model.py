@@ -1,0 +1,98 @@
+def reference(vectors):
+    M = 0xffffffff
+    AM = (1 << 13) - 1
+    ram = [0] * 8192
+    ar = br = 0
+    aen = ben = 0
+    abe = bbe = 0
+    ad = bd = 0
+    oa = ob = 0
+    res = []
+    prev_clk = 0
+
+    for row in vectors:
+        e = row.get('edge', row.get('clk_edge', None))
+        if e is None:
+            c = int(row.get('clk', 0)) & 1
+            isp = (prev_clk == 0 and c == 1)
+            prev_clk = c
+        else:
+            if isinstance(e, str):
+                s = e.lower()
+                isp = s.startswith('pos') or s == '1' or s.startswith('rise')
+            else:
+                isp = bool(e)
+
+        res.append({'data_out_a': oa & M, 'data_out_b': ob & M})
+
+        if not isp:
+            continue
+
+        ma = int(row['addr_a']) & AM
+        naen = int(row['en_a']) & 1
+        nabe = int(row['be_a']) & 15
+        nad = int(row['data_in_a']) & M
+
+        mb = int(row['addr_b']) & AM
+        nben = int(row['en_b']) & 1
+        nbbe = int(row['be_b']) & 15
+        nbd = int(row['data_in_b']) & M
+
+        noa = ram[ar] & M
+        nob = ram[br] & M
+
+        if aen and ben and ar == br:
+            base = ram[ar]
+            if abe & 1:
+                base = (base & 0xffffff00) | (ad & 0xff)
+            elif bbe & 1:
+                base = (base & 0xffffff00) | (bd & 0xff)
+            if abe & 2:
+                base = (base & 0xffff00ff) | (ad & 0xff00)
+            elif bbe & 2:
+                base = (base & 0xffff00ff) | (bd & 0xff00)
+            if abe & 4:
+                base = (base & 0xff00ffff) | (ad & 0xff0000)
+            elif bbe & 4:
+                base = (base & 0xff00ffff) | (bd & 0xff0000)
+            if abe & 8:
+                base = (base & 0x00ffffff) | (ad & 0xff000000)
+            elif bbe & 8:
+                base = (base & 0x00ffffff) | (bd & 0xff000000)
+            ram[ar] = base & M
+        else:
+            if aen:
+                base = ram[ar]
+                if abe & 1:
+                    base = (base & 0xffffff00) | (ad & 0xff)
+                if abe & 2:
+                    base = (base & 0xffff00ff) | (ad & 0xff00)
+                if abe & 4:
+                    base = (base & 0xff00ffff) | (ad & 0xff0000)
+                if abe & 8:
+                    base = (base & 0x00ffffff) | (ad & 0xff000000)
+                ram[ar] = base & M
+            if ben:
+                base = ram[br]
+                if bbe & 1:
+                    base = (base & 0xffffff00) | (bd & 0xff)
+                if bbe & 2:
+                    base = (base & 0xffff00ff) | (bd & 0xff00)
+                if bbe & 4:
+                    base = (base & 0xff00ffff) | (bd & 0xff0000)
+                if bbe & 8:
+                    base = (base & 0x00ffffff) | (bd & 0xff000000)
+                ram[br] = base & M
+
+        ar = ma
+        br = mb
+        aen = naen
+        ben = nben
+        abe = nabe
+        bbe = nbbe
+        ad = nad
+        bd = nbd
+        oa = noa
+        ob = nob
+
+    return res

@@ -1,0 +1,83 @@
+def reference(vectors):
+    def getv(row, key, default=0):
+        if isinstance(row, dict):
+            v = row.get(key, default)
+            if v is None:
+                return default
+            return int(v)
+        return default
+
+    data_in_prev = 0
+    latched_pattern = 0
+    word_change_pulse = 0
+    pattern_match_pulse = 0
+    outputs = []
+
+    for i, row in enumerate(vectors):
+        if isinstance(row, dict) and 'edge' in row:
+            e = row['edge']
+            if isinstance(e, str):
+                s = e.lower()
+                if 'pos' in s or s == '1':
+                    is_pos = True
+                elif 'neg' in s or s == '0':
+                    is_pos = False
+                else:
+                    is_pos = (i % 2 == 0)
+            else:
+                is_pos = (int(e) != 0)
+        elif isinstance(row, dict) and 'clk' in row:
+            is_pos = (int(row['clk']) == 1)
+        else:
+            is_pos = (i % 2 == 0)
+
+        reset = getv(row, 'reset', 0)
+        data_in = getv(row, 'data_in', 0)
+        mask = getv(row, 'mask', 0)
+        match_pattern = getv(row, 'match_pattern', 0)
+        enable = getv(row, 'enable', 0)
+        latch_pattern = getv(row, 'latch_pattern', 0)
+
+        if reset:
+            data_in_prev = 0
+            latched_pattern = 0
+            word_change_pulse = 0
+            pattern_match_pulse = 0
+            out_word = 0
+            out_match = 0
+            out_lat = 0
+        else:
+            if is_pos:
+                out_word = word_change_pulse
+                out_match = pattern_match_pulse
+                out_lat = latched_pattern
+
+                next_data_in_prev = data_in & 0xFF
+                if latch_pattern:
+                    next_latched = match_pattern & 0xFF
+                else:
+                    next_latched = latched_pattern
+
+                if enable:
+                    next_word = 1 if (((data_in ^ data_in_prev) & mask) != 0) else 0
+                    next_match = 1 if (((data_in ^ latched_pattern) & mask) == 0) else 0
+                else:
+                    next_word = 0
+                    next_match = 0
+
+                data_in_prev = next_data_in_prev
+                latched_pattern = next_latched
+                word_change_pulse = next_word
+                pattern_match_pulse = next_match
+            else:
+                out_word = word_change_pulse
+                out_match = pattern_match_pulse
+                out_lat = latched_pattern
+
+        outputs.append({
+            'word_change_pulse': out_word & 1,
+            'pattern_match_pulse': out_match & 1,
+            'latched_pattern': out_lat & 0xFF
+        })
+
+    return outputs

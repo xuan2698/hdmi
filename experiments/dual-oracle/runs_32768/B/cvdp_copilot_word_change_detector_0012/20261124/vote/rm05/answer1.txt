@@ -1,0 +1,56 @@
+```python
+def reference(vectors):
+    data_in_prev = 0
+    latched_pattern = 0
+    word_change_pulse = 0
+    pattern_match_pulse = 0
+    out = []
+    for row in vectors:
+        reset = row.get('reset', 0)
+        reset = int(reset) & 1
+        if reset:
+            data_in_prev = 0
+            latched_pattern = 0
+            word_change_pulse = 0
+            pattern_match_pulse = 0
+            out.append({
+                'word_change_pulse': 0,
+                'pattern_match_pulse': 0,
+                'latched_pattern': 0
+            })
+            continue
+        edge = row.get('edge', row.get('clk', row.get('clk_edge', None)))
+        is_posedge = False
+        if isinstance(edge, str):
+            if 'pos' in edge.lower():
+                is_posedge = True
+        elif isinstance(edge, (int, bool)):
+            if edge == 1:
+                is_posedge = True
+        out.append({
+            'word_change_pulse': int(word_change_pulse),
+            'pattern_match_pulse': int(pattern_match_pulse),
+            'latched_pattern': int(latched_pattern) & 0xFF
+        })
+        if is_posedge:
+            data_in = int(row.get('data_in', 0)) & 0xFF
+            mask = int(row.get('mask', 0)) & 0xFF
+            match_pattern = int(row.get('match_pattern', 0)) & 0xFF
+            enable = int(row.get('enable', 0)) & 1
+            latch_pattern = int(row.get('latch_pattern', 0)) & 1
+            next_word_change = 0
+            next_pattern_match = 0
+            if enable:
+                if ((data_in ^ data_in_prev) & mask) != 0:
+                    next_word_change = 1
+                if ((data_in & mask) == (latched_pattern & mask)):
+                    next_pattern_match = 1
+            next_latched = latched_pattern
+            if latch_pattern:
+                next_latched = match_pattern
+            word_change_pulse = next_word_change
+            pattern_match_pulse = next_pattern_match
+            latched_pattern = next_latched
+            data_in_prev = data_in
+    return out
+```

@@ -1,0 +1,127 @@
+def reference(vectors):
+    if isinstance(vectors, dict):
+        has_list = False
+        for v in vectors.values():
+            if isinstance(v, (list, tuple)):
+                has_list = True
+                break
+        if has_list:
+            keys = list(vectors.keys())
+            n = 0
+            for v in vectors.values():
+                if isinstance(v, (list, tuple)) and len(v) > n:
+                    n = len(v)
+            tmp = []
+            for i in range(n):
+                row = {}
+                for k in keys:
+                    v = vectors[k]
+                    if isinstance(v, (list, tuple)):
+                        row[k] = v[i] if i < len(v) else 0
+                    else:
+                        row[k] = v
+                tmp.append(row)
+            vectors = tmp
+        else:
+            vectors = [vectors]
+
+    latched_pattern = 0
+    data_in_prev = 0
+    word_change_pulse = 0
+    pattern_match_pulse = 0
+    outputs = []
+
+    for i, row in enumerate(vectors):
+        if isinstance(row, dict):
+            d = row
+            ev = None
+            for k in ('edge', 'clk_edge', 'ev', 'event'):
+                if k in d:
+                    ev = d[k]
+                    break
+            if ev is None:
+                if 'clk' in d:
+                    clk_val = d['clk']
+                    if isinstance(clk_val, str):
+                        ev = clk_val
+                    elif clk_val in (0, 1, False, True):
+                        ev = 'posedge' if clk_val in (1, True, '1') else 'negedge'
+                if ev is None:
+                    ev = 'posedge' if i % 2 == 0 else 'negedge'
+            edge = None
+            if isinstance(ev, str):
+                e = ev.lower()
+                if 'pos' in e or e == 'p' or e == '1':
+                    edge = 'posedge'
+                elif 'neg' in e or e == 'n' or e == '0':
+                    edge = 'negedge'
+            if edge is None:
+                if isinstance(ev, bool):
+                    edge = 'posedge' if ev else 'negedge'
+                elif isinstance(ev, int):
+                    edge = 'posedge' if ev != 0 else 'negedge'
+                else:
+                    edge = 'posedge' if i % 2 == 0 else 'negedge'
+            reset = int(d.get('reset', 0))
+            data_in = int(d.get('data_in', 0)) & 0xFF
+            mask = int(d.get('mask', 0)) & 0xFF
+            match_pattern = int(d.get('match_pattern', 0)) & 0xFF
+            enable = int(d.get('enable', 0))
+            latch_pattern = int(d.get('latch_pattern', 0))
+        elif isinstance(row, (list, tuple)):
+            ev = None
+            ev_idx = None
+            for j, val in enumerate(row):
+                if isinstance(val, str) and ('pos' in val.lower() or 'neg' in val.lower()):
+                    ev = val
+                    ev_idx = j
+                    break
+            if ev is not None:
+                vals = [v for j, v in enumerate(row) if j != ev_idx]
+            else:
+                vals = list(row)
+                ev = 'posedge' if i % 2 == 0 else 'negedge'
+            while len(vals) < 6:
+                vals.append(0)
+            reset = int(vals[0])
+            data_in = int(vals[1]) & 0xFF
+            mask = int(vals[2]) & 0xFF
+            match_pattern = int(vals[3]) & 0xFF
+            enable = int(vals[4])
+            latch_pattern = int(vals[5])
+            edge = 'posedge' if (isinstance(ev, str) and ('pos' in ev.lower())) else 'negedge'
+        else:
+            reset = data_in = mask = match_pattern = enable = latch_pattern = 0
+            edge = 'posedge' if i % 2 == 0 else 'negedge'
+
+        if reset:
+            latched_pattern = 0
+            data_in_prev = 0
+            word_change_pulse = 0
+            pattern_match_pulse = 0
+
+        outputs.append({
+            'word_change_pulse': int(word_change_pulse & 1),
+            'pattern_match_pulse': int(pattern_match_pulse & 1),
+            'latched_pattern': int(latched_pattern & 0xFF)
+        })
+
+        if edge == 'posedge' and not reset:
+            change = ((data_in ^ data_in_prev) & mask & 0xFF) != 0
+            match = ((data_in & mask) & 0xFF) == ((latched_pattern & mask) & 0xFF)
+            if enable:
+                next_word = 1 if change else 0
+                next_match = 1 if match else 0
+            else:
+                next_word = 0
+                next_match = 0
+            if latch_pattern:
+                next_latched = match_pattern & 0xFF
+            else:
+                next_latched = latched_pattern
+            word_change_pulse = next_word
+            pattern_match_pulse = next_match
+            latched_pattern = next_latched
+            data_in_prev = data_in & 0xFF
+
+    return outputs

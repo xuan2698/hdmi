@@ -1,0 +1,24 @@
+def reference(vectors):
+    h = 0
+    inp = {'areset': 0, 'predict_valid': 0, 'predict_taken': 0, 'train_mispredicted': 0, 'train_taken': 0, 'train_history': 0}
+    out = []
+    mask = 0xffffffff
+    for row in vectors:
+        for k, v in row.items():
+            if k != 'mid':
+                inp[k] = v
+        if inp['areset']:
+            h = 0
+        elif inp['train_mispredicted']:
+            h = ((inp['train_history'] << 1) | (inp['train_taken'] & 1)) & mask
+        elif inp['predict_valid']:
+            h = ((h << 1) | (inp['predict_taken'] & 1)) & mask
+        else:
+            h = h & mask
+        out.append({'predict_history': h & mask})
+        if 'mid' in row:
+            for k, v in row['mid'].items():
+                inp[k] = v
+            if inp['areset']:
+                h = 0
+    return out

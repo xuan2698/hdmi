@@ -1,0 +1,29 @@
+def reference(vectors):
+    st = 0
+    found = 0
+    outs = []
+    for row in vectors:
+        if isinstance(row, dict):
+            rst = row.get("reset", 0)
+            bit = row.get("data", 0)
+        else:
+            rst = row[0]
+            bit = row[1]
+        if rst:
+            st = 0
+            found = 0
+        elif not found:
+            if st == 0:
+                st = 1 if bit else 0
+            elif st == 1:
+                st = 2 if bit else 0
+            elif st == 2:
+                st = 2 if bit else 3
+            elif st == 3:
+                if bit:
+                    st = 4
+                    found = 1
+                else:
+                    st = 0
+        outs.append({"start_shifting": found})
+    return outs

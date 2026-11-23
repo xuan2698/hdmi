@@ -1,0 +1,123 @@
+```python
+def reference(vectors):
+    LINES = 8192
+    MASK32 = 0xFFFFFFFF
+    ADDR_MASK = LINES - 1
+
+    mem = [0] * LINES
+    addr_a_reg = en_a_reg = be_a_reg = data_in_a_reg = 0
+    addr_b_reg = en_b_reg = be_b_reg = data_in_b_reg = 0
+    data_out_a = data_out_b = 0
+
+    def getv(d, name, default=0):
+        if name in d:
+            return d[name]
+        low = name.lower()
+        for k, v in d.items():
+            if isinstance(k, str) and k.lower() == low:
+                return v
+        return default
+
+    def parse_edge(v):
+        if isinstance(v, str):
+            s = v.lower()
+            if "pos" in s or "rise" in s or s in ("1", "true", "high", "up"):
+                return True
+            if "neg" in s or "fall" in s or s in ("0", "false", "low", "down"):
+                return False
+            try:
+                return int(s) == 1
+            except Exception:
+                return False
+        try:
+            return int(v) == 1
+        except Exception:
+            return bool(v)
+
+    outs = []
+
+    for i, row in enumerate(vectors):
+        posedge = None
+
+        for k, v in row.items():
+            if isinstance(k, str) and k.lower() == "edge":
+                posedge = parse_edge(v)
+                break
+
+        if posedge is None:
+            for k, v in row.items():
+                if isinstance(k, str) and k.lower() in ("clk", "clock"):
+                    posedge = parse_edge(v)
+                    break
+
+        if posedge is None:
+            posedge = (i % 2 == 0)
+
+        outs.append({
+            "data_out_a": data_out_a & MASK32,
+            "data_out_b": data_out_b & MASK32,
+        })
+
+        if not posedge:
+            continue
+
+        new_out_a = mem[addr_a_reg & ADDR_MASK] & MASK32
+        new_out_b = mem[addr_b_reg & ADDR_MASK] & MASK32
+
+        enA = en_a_reg & 1
+        enB = en_b_reg & 1
+        aA = addr_a_reg & ADDR_MASK
+        aB = addr_b_reg & ADDR_MASK
+        beA = be_a_reg & 0xF
+        beB = be_b_reg & 0xF
+        dA = data_in_a_reg & MASK32
+        dB = data_in_b_reg & MASK32
+
+        if enA and enB and aA == aB:
+            v = mem[aA]
+            for j in range(4):
+                sh = 8 * j
+                bm = 0xFF << sh
+                if (beA >> j) & 1:
+                    b = (dA >> sh) & 0xFF
+                    v = (v & ~bm) | (b << sh)
+                elif (beB >> j) & 1:
+                    b = (dB >> sh) & 0xFF
+                    v = (v & ~bm) | (b << sh)
+            mem[aA] = v & MASK32
+        else:
+            if enA:
+                v = mem[aA]
+                for j in range(4):
+                    if (beA >> j) & 1:
+                        sh = 8 * j
+                        bm = 0xFF << sh
+                        b = (dA >> sh) & 0xFF
+                        v = (v & ~bm) | (b << sh)
+                mem[aA] = v & MASK32
+
+            if enB:
+                v = mem[aB]
+                for j in range(4):
+                    if (beB >> j) & 1:
+                        sh = 8 * j
+                        bm = 0xFF << sh
+                        b = (dB >> sh) & 0xFF
+                        v = (v & ~bm) | (b << sh)
+                mem[aB] = v & MASK32
+
+        addr_a_reg = int(getv(row, "addr_a", 0)) & ADDR_MASK
+        en_a_reg = int(getv(row, "en_a", 0)) & 1
+        be_a_reg = int(getv(row, "be_a", 0)) & 0xF
+        data_in_a_reg = int(getv(row, "data_in_a", 0)) & MASK32
+
+        addr_b_reg = int(getv(row, "addr_b", 0)) & ADDR_MASK
+        en_b_reg = int(getv(row, "en_b", 0)) & 1
+        be_b_reg = int(getv(row, "be_b", 0)) & 0xF
+        data_in_b_reg = int(getv(row, "data_in_b", 0)) & MASK32
+
+        data_out_a = new_out_a
+        data_out_b = new_out_b
+
+    return outs
+```

@@ -1,0 +1,18 @@
+def reference(vectors):
+    s={'x':0,'y':0}
+    out=[]
+    for row in vectors:
+        for k,v in row.items():
+            if k!='mid' and k in s:
+                s[k]=v
+        x=s['x']&1
+        y=s['y']&7
+        y2=(y>>2)&1
+        y1=(y>>1)&1
+        y0=y&1
+        out.append({'Y0':(x^(y2|y0))&1,'z':(y2|(y1&y0))&1})
+        if 'mid' in row:
+            for k,v in row['mid'].items():
+                if k in s:
+                    s[k]=v
+    return out

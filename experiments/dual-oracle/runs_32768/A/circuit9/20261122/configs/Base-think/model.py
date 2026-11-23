@@ -1,0 +1,25 @@
+def reference(vectors):
+    q=0
+    pa=0
+    pc=0
+    cur={}
+    out=[]
+    for r in vectors:
+        for k,v in r.items():
+            if k!='mid':
+                cur[k]=v
+        c=cur.get('clk',0)
+        a=cur.get('a',0)
+        if pc==0 and c==1:
+            if a==1:
+                q=4
+            elif pa==0:
+                q=(q+1)%7
+            pa=a
+        out.append({'q':q})
+        m=r.get('mid')
+        if m:
+            for k,v in m.items():
+                cur[k]=v
+        pc=c
+    return out

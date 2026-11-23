@@ -1,0 +1,67 @@
+def reference(vectors):
+    latched = 0
+    prev = 0
+    wcp = 0
+    pmp = 0
+    out = []
+    prev_clk = None
+
+    for i, row in enumerate(vectors):
+        reset = int(row.get('reset', 0))
+        if reset:
+            latched = 0
+            prev = 0
+            wcp = 0
+            pmp = 0
+
+        ev = row.get('edge', None)
+        if ev is not None:
+            if isinstance(ev, str):
+                e = ev.lower()
+                is_pos = e in ('posedge', 'pos', 'rise', 'rising', '1')
+            elif isinstance(ev, int):
+                if ev == 1:
+                    is_pos = True
+                elif ev == 0 or ev == -1:
+                    is_pos = False
+                else:
+                    is_pos = ev > 0
+            else:
+                is_pos = bool(ev)
+        else:
+            clkv = row.get('clk', None)
+            if clkv is not None:
+                clkv = int(clkv)
+                if prev_clk is None:
+                    is_pos = bool(clkv)
+                else:
+                    is_pos = (prev_clk == 0 and clkv == 1)
+                prev_clk = clkv
+            else:
+                is_pos = (i % 2 == 0)
+
+        out.append({
+            'word_change_pulse': int(wcp) & 1,
+            'pattern_match_pulse': int(pmp) & 1,
+            'latched_pattern': int(latched) & 255
+        })
+
+        if reset or not is_pos:
+            continue
+
+        data = int(row.get('data_in', 0)) & 255
+        mask = int(row.get('mask', 0)) & 255
+        match_pattern = int(row.get('match_pattern', 0)) & 255
+        enable = int(row.get('enable', 0)) & 1
+        latch_pattern = int(row.get('latch_pattern', 0)) & 1
+
+        new_latched = (match_pattern & 255) if latch_pattern else latched
+        change = bool(enable and (((data ^ prev) & mask) != 0))
+        match = bool(enable and (((data ^ latched) & mask) == 0))
+
+        prev = data
+        wcp = 1 if change else 0
+        pmp = 1 if match else 0
+        latched = new_latched
+
+    return out

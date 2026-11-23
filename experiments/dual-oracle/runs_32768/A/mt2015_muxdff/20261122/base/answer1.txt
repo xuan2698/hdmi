@@ -1,0 +1,19 @@
+def reference(vectors):
+    q = 0
+    cur = {'L': 0, 'q_in': 0, 'r_in': 0}
+    out = []
+    for row in vectors:
+        for k in ('L', 'q_in', 'r_in'):
+            if k in row:
+                cur[k] = int(row[k]) & 1
+        L = cur['L']
+        qi = cur['q_in']
+        ri = cur['r_in']
+        q = ri if L else qi
+        out.append({'Q': q & 1})
+        if 'mid' in row:
+            m = row['mid']
+            for k in ('L', 'q_in', 'r_in'):
+                if k in m:
+                    cur[k] = int(m[k]) & 1
+    return out
