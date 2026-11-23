@@ -1,0 +1,7 @@
+def reference(vectors):
+    q = 0
+    out = []
+    for v in vectors:
+        q = v['r_in'] if v['L'] else v['q_in']
+        out.append({'Q': q})
+    return out

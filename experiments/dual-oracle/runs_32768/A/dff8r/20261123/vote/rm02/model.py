@@ -1,0 +1,2 @@
+def reference(vectors):
+    return [{'q': 0 if row['reset'] else row['d']} for row in vectors]

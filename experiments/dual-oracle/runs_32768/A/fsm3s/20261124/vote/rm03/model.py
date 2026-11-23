@@ -1,0 +1,17 @@
+def reference(vectors):
+    state = 0
+    out_rows = []
+    nxt = ((0, 1), (2, 1), (0, 3), (2, 1))
+    for row in vectors:
+        if isinstance(row, dict):
+            rst = row.get('reset', 0)
+            inp = row.get('in', 0)
+        else:
+            inp = row[0]
+            rst = row[1] if len(row) > 1 else 0
+        if rst:
+            state = 0
+        else:
+            state = nxt[state][inp & 1]
+        out_rows.append({'out': 1 if state == 3 else 0})
+    return out_rows

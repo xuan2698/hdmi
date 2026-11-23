@@ -1,0 +1,80 @@
+def reference(vectors):
+    WL, WR, FL, FR, DL, DR, SP = range(7)
+    state = WL
+    fall_count = 0
+    result = []
+
+    for row in vectors:
+        areset = row["areset"]
+        bump_left = row["bump_left"]
+        bump_right = row["bump_right"]
+        ground = row["ground"]
+        dig = row["dig"]
+
+        if areset:
+            state = WL
+            fall_count = 0
+        else:
+            if state == WL:
+                if ground == 0:
+                    state = FL
+                    fall_count = 1
+                elif dig == 1:
+                    state = DL
+                elif bump_left == 1:
+                    state = WR
+                else:
+                    state = WL
+            elif state == WR:
+                if ground == 0:
+                    state = FR
+                    fall_count = 1
+                elif dig == 1:
+                    state = DR
+                elif bump_right == 1:
+                    state = WL
+                else:
+                    state = WR
+            elif state == DL:
+                if ground == 0:
+                    state = FL
+                    fall_count = 1
+                else:
+                    state = DL
+            elif state == DR:
+                if ground == 0:
+                    state = FR
+                    fall_count = 1
+                else:
+                    state = DR
+            elif state == FL:
+                if ground == 0:
+                    state = FL
+                    fall_count += 1
+                else:
+                    if fall_count > 20:
+                        state = SP
+                    else:
+                        state = WL
+                    fall_count = 0
+            elif state == FR:
+                if ground == 0:
+                    state = FR
+                    fall_count += 1
+                else:
+                    if fall_count > 20:
+                        state = SP
+                    else:
+                        state = WR
+                    fall_count = 0
+            elif state == SP:
+                state = SP
+
+        result.append({
+            "walk_left": 1 if state == WL else 0,
+            "walk_right": 1 if state == WR else 0,
+            "aaah": 1 if state == FL or state == FR else 0,
+            "digging": 1 if state == DL or state == DR else 0
+        })
+
+    return result

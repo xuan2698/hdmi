@@ -1,0 +1,16 @@
+def reference(vectors):
+    q = 0
+    result = []
+    for row in vectors:
+        if hasattr(row, "get"):
+            reset = row.get("reset", 0)
+        elif isinstance(row, (list, tuple)):
+            reset = row[0] if len(row) > 0 else 0
+        else:
+            reset = row
+        if reset:
+            q = 0
+        else:
+            q = (q + 1) % 10
+        result.append({"q": q})
+    return result

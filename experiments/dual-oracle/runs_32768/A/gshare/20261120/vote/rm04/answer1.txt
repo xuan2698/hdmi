@@ -1,0 +1,52 @@
+```python
+def reference(vectors):
+    pht = [0] * 128
+    ghr = 0
+    outputs = []
+
+    for vin in vectors:
+        areset = vin.get('areset', 0)
+        predict_valid = vin.get('predict_valid', 0)
+        predict_pc = vin.get('predict_pc', 0)
+        train_valid = vin.get('train_valid', 0)
+        train_taken = vin.get('train_taken', 0)
+        train_mispredicted = vin.get('train_mispredicted', 0)
+        train_history = vin.get('train_history', 0)
+        train_pc = vin.get('train_pc', 0)
+
+        if areset:
+            pht = [0] * 128
+            ghr = 0
+
+        idx_pred = (predict_pc ^ ghr) & 0x7f
+        pred_taken = (pht[idx_pred] >> 1) & 1
+        pred_history = ghr
+
+        outputs.append({
+            'predict_taken': pred_taken,
+            'predict_history': pred_history
+        })
+
+        if not areset:
+            next_ghr = ghr
+
+            if train_valid:
+                idx_train = (train_pc ^ train_history) & 0x7f
+                cnt = pht[idx_train]
+                if train_taken:
+                    if cnt < 3:
+                        cnt += 1
+                else:
+                    if cnt > 0:
+                        cnt -= 1
+                pht[idx_train] = cnt
+
+            if train_valid and train_mispredicted:
+                next_ghr = ((train_history << 1) | (train_taken & 1)) & 0x7f
+            elif predict_valid:
+                next_ghr = ((ghr << 1) | pred_taken) & 0x7f
+
+            ghr = next_ghr
+
+    return outputs
+```

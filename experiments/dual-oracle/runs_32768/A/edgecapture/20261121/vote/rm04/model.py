@@ -1,0 +1,14 @@
+def reference(vectors):
+    out = 0
+    prev = 0
+    result = []
+    for row in vectors:
+        reset = row['reset'] & 1
+        inp = row['in'] & 0xFFFFFFFF
+        if reset:
+            out = 0
+        else:
+            out = (out | (prev & (~inp & 0xFFFFFFFF))) & 0xFFFFFFFF
+        prev = inp
+        result.append({'out': out})
+    return result

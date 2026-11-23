@@ -1,0 +1,44 @@
+def reference(vectors):
+    hh = 0x12
+    mm = 0x00
+    ss = 0x00
+    pm = 0
+    out = []
+
+    for row in vectors:
+        reset = row['reset']
+        ena = row['ena']
+
+        if reset:
+            hh = 0x12
+            mm = 0x00
+            ss = 0x00
+            pm = 0
+        elif ena:
+            if ss == 0x59:
+                ss = 0x00
+                if mm == 0x59:
+                    mm = 0x00
+                    if hh == 0x12:
+                        hh = 0x01
+                    elif hh == 0x11:
+                        hh = 0x12
+                        pm ^= 1
+                    elif (hh & 0x0F) == 0x09:
+                        hh = ((hh >> 4) + 1) << 4
+                    else:
+                        hh += 1
+                else:
+                    if (mm & 0x0F) == 0x09:
+                        mm = ((mm >> 4) + 1) << 4
+                    else:
+                        mm += 1
+            else:
+                if (ss & 0x0F) == 0x09:
+                    ss = ((ss >> 4) + 1) << 4
+                else:
+                    ss += 1
+
+        out.append({'pm': pm, 'hh': hh, 'mm': mm, 'ss': ss})
+
+    return out

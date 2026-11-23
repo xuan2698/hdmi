@@ -1,0 +1,13 @@
+def reference(vectors):
+    d = r = q = 0
+    out = []
+    for v in vectors:
+        if 'd' in v: d = v['d'] & 1
+        if 'r' in v: r = v['r'] & 1
+        q = 0 if (r & 1) else (d & 1)
+        out.append({'q': q})
+        if 'mid' in v:
+            m = v['mid']
+            if 'd' in m: d = m['d'] & 1
+            if 'r' in m: r = m['r'] & 1
+    return out

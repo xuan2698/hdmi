@@ -1,0 +1,22 @@
+def reference(vectors):
+    if isinstance(vectors, dict):
+        keys = list(vectors)
+        n = len(vectors[keys[0]]) if keys else 0
+        rows = ({k: vectors[k][i] for k in keys} for i in range(n))
+    else:
+        rows = vectors
+    s = 0
+    out = []
+    for row in rows:
+        areset = row.get('areset', 0)
+        x = row.get('x', 0)
+        if areset:
+            s = 0
+        else:
+            if s == 0:
+                s = 1 if x else 0
+            else:
+                s = 3 if x else 2
+        z = 1 if s == 1 or s == 2 else 0
+        out.append({'z': z})
+    return out

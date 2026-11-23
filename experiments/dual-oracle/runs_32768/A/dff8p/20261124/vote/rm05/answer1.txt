@@ -1,0 +1,16 @@
+```python
+def reference(vectors):
+    q = 0
+    prev_clk = 0
+    out = []
+    for row in vectors:
+        if 'clk' in row:
+            clk = row['clk']
+            if prev_clk == 1 and clk == 0:
+                q = 0x34 if row['reset'] else row['d']
+            prev_clk = clk
+        else:
+            q = 0x34 if row['reset'] else row['d']
+        out.append({'q': q})
+    return out
+```

@@ -1,0 +1,51 @@
+def reference(vectors):
+    pm = 0
+    h = 12
+    m = 0
+    s = 0
+    prev_clk = 0
+    out = []
+
+    def bcd(x):
+        return ((x // 10) << 4) | (x % 10)
+
+    for row in vectors:
+        if 'clk' in row:
+            clk = int(row.get('clk', 0))
+            edge = (clk == 1 and prev_clk == 0)
+            prev_clk = clk
+        else:
+            edge = True
+
+        reset = int(row.get('reset', 0))
+        ena = int(row.get('ena', 0))
+
+        if edge:
+            if reset:
+                pm = 0
+                h = 12
+                m = 0
+                s = 0
+            elif ena:
+                s += 1
+                if s == 60:
+                    s = 0
+                    m += 1
+                    if m == 60:
+                        m = 0
+                        if h == 11:
+                            pm ^= 1
+                            h = 12
+                        elif h == 12:
+                            h = 1
+                        else:
+                            h += 1
+
+        out.append({
+            'pm': pm,
+            'hh': bcd(h),
+            'mm': bcd(m),
+            'ss': bcd(s)
+        })
+
+    return out

@@ -1,0 +1,12 @@
+def reference(vectors):
+    result = []
+    for row in vectors:
+        x = int(row['x']) & 1
+        y = int(row['y']) & 7
+        a = (y >> 2) & 1
+        b = (y >> 1) & 1
+        c = y & 1
+        Y0 = x ^ (a | c)
+        z = a | (b & c)
+        result.append({'Y0': Y0 & 1, 'z': z & 1})
+    return result

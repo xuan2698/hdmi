@@ -1,0 +1,10 @@
+def reference(vectors):
+    q = 0
+    out = []
+    for row in vectors:
+        if row["reset"]:
+            q = 0
+        else:
+            q = (q + 1) % 10
+        out.append({"q": q})
+    return out

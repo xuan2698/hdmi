@@ -1,0 +1,16 @@
+def reference(vectors):
+    state = 0  # A
+    result = []
+    for v in vectors:
+        if v.get('reset', 0):
+            state = 0
+        elif state == 0:  # A
+            state = 0 if v.get('in', 0) == 0 else 1
+        elif state == 1:  # B
+            state = 2 if v.get('in', 0) == 0 else 1
+        elif state == 2:  # C
+            state = 0 if v.get('in', 0) == 0 else 3
+        else:  # D
+            state = 2 if v.get('in', 0) == 0 else 1
+        result.append({'out': 1 if state == 3 else 0})
+    return result

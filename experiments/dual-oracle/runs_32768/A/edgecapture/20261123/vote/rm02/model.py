@@ -1,0 +1,20 @@
+def reference(vectors):
+    state = 0
+    prev_in = 0
+    result = []
+    for row in vectors:
+        if isinstance(row, dict):
+            reset = row.get('reset', 0)
+            current_in = row.get('in', 0)
+        else:
+            reset = row[0]
+            current_in = row[1]
+        reset = 1 if reset else 0
+        current_in = int(current_in) & 0xffffffff
+        if reset:
+            state = 0
+        else:
+            state = (state | (prev_in & (~current_in & 0xffffffff))) & 0xffffffff
+        prev_in = current_in
+        result.append({'out': state & 0xffffffff})
+    return result

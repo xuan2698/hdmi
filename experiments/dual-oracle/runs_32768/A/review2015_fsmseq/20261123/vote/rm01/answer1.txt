@@ -1,0 +1,23 @@
+def reference(vectors):
+    st = 0
+    start = 0
+    out = []
+    for row in vectors:
+        rst = row.get('reset', 0) if isinstance(row, dict) else row[0]
+        d = row.get('data', 0) if isinstance(row, dict) else row[1]
+        if rst:
+            st = 0
+            start = 0
+        elif not start:
+            if st == 0:
+                st = 1 if d else 0
+            elif st == 1:
+                st = 2 if d else 0
+            elif st == 2:
+                st = 2 if d else 3
+            else:
+                if d:
+                    start = 1
+                st = 0
+        out.append({'start_shifting': start})
+    return out

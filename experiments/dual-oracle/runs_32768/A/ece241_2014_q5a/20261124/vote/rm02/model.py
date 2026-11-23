@@ -1,0 +1,17 @@
+def reference(vectors):
+    copy = 1
+    out = []
+    for row in vectors:
+        if row.get('areset', 0):
+            copy = 1
+            z = 0
+        else:
+            x = row.get('x', 0) & 1
+            if copy:
+                z = x
+                if x:
+                    copy = 0
+            else:
+                z = 1 - x
+        out.append({'z': z})
+    return out

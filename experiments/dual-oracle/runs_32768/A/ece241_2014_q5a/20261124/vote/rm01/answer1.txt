@@ -1,0 +1,18 @@
+def reference(vectors):
+    state = 0  # 0: no 1 seen, z=0; 1: seen, z=1; 2: seen, z=0
+    out = []
+    for row in vectors:
+        areset = row['areset']
+        x = row['x']
+        if areset:
+            state = 0
+        else:
+            if state == 0:
+                state = 1 if x else 0
+            elif state == 1:
+                state = 2 if x else 1
+            else:
+                state = 2 if x else 1
+        z = 0 if state in (0, 2) else 1
+        out.append({'z': z})
+    return out

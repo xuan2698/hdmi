@@ -1,0 +1,71 @@
+```python
+def reference(vectors):
+    WALK_L, WALK_R, FALL_L, FALL_R, DIG_L, DIG_R, DEAD = range(7)
+    st = WALK_L
+    cnt = 0
+    out = []
+    for row in vectors:
+        if isinstance(row, dict):
+            areset = row['areset']
+            bump_left = row['bump_left']
+            bump_right = row['bump_right']
+            ground = row['ground']
+            dig = row['dig']
+        else:
+            areset, bump_left, bump_right, ground, dig = row[:5]
+
+        if areset:
+            st = WALK_L
+            cnt = 0
+        else:
+            if st == WALK_L:
+                if ground == 0:
+                    st = FALL_L
+                    cnt = 0
+                elif dig == 1:
+                    st = DIG_L
+                elif bump_left == 1:
+                    st = WALK_R
+            elif st == WALK_R:
+                if ground == 0:
+                    st = FALL_R
+                    cnt = 0
+                elif dig == 1:
+                    st = DIG_R
+                elif bump_right == 1:
+                    st = WALK_L
+            elif st == FALL_L:
+                if ground == 1:
+                    if cnt >= 20:
+                        st = DEAD
+                    else:
+                        st = WALK_L
+                    cnt = 0
+                else:
+                    cnt += 1
+            elif st == FALL_R:
+                if ground == 1:
+                    if cnt >= 20:
+                        st = DEAD
+                    else:
+                        st = WALK_R
+                    cnt = 0
+                else:
+                    cnt += 1
+            elif st == DIG_L:
+                if ground == 0:
+                    st = FALL_L
+                    cnt = 0
+            elif st == DIG_R:
+                if ground == 0:
+                    st = FALL_R
+                    cnt = 0
+
+        out.append({
+            'walk_left': 1 if st == WALK_L else 0,
+            'walk_right': 1 if st == WALK_R else 0,
+            'aaah': 1 if st == FALL_L or st == FALL_R else 0,
+            'digging': 1 if st == DIG_L or st == DIG_R else 0,
+        })
+    return out
+```

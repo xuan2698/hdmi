@@ -1,0 +1,17 @@
+def reference(vectors):
+    s = 0
+    prev_clk = 0
+    prev_a = 0
+    out = []
+    for v in vectors:
+        clk = v['clk']
+        a = v['a']
+        if prev_clk == 0 and clk == 1:
+            if prev_a:
+                s = 4
+            else:
+                s = (s + 1) % 7
+        out.append({'q': s})
+        prev_clk = clk
+        prev_a = a
+    return out

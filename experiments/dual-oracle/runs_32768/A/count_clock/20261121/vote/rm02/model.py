@@ -1,0 +1,50 @@
+def reference(vectors):
+    ss_t, ss_o = 0, 0
+    mm_t, mm_o = 0, 0
+    hh_t, hh_o = 1, 2
+    pm = 0
+    out = []
+    for v in vectors:
+        if isinstance(v, dict):
+            reset = v.get('reset', 0)
+            ena = v.get('ena', 0)
+        else:
+            reset = v[0]
+            ena = v[1]
+        if reset:
+            ss_t = ss_o = mm_t = mm_o = 0
+            hh_t, hh_o = 1, 2
+            pm = 0
+        elif ena:
+            if ss_o < 9:
+                ss_o += 1
+            else:
+                ss_o = 0
+                if ss_t < 5:
+                    ss_t += 1
+                else:
+                    ss_t = 0
+                    if mm_o < 9:
+                        mm_o += 1
+                    else:
+                        mm_o = 0
+                        if mm_t < 5:
+                            mm_t += 1
+                        else:
+                            mm_t = 0
+                            h = hh_t * 10 + hh_o
+                            if h == 12:
+                                hh_t, hh_o = 0, 1
+                            elif h == 11:
+                                hh_t, hh_o = 1, 2
+                                pm ^= 1
+                            else:
+                                h += 1
+                                hh_t, hh_o = h // 10, h % 10
+        out.append({
+            'pm': pm,
+            'hh': (hh_t << 4) | hh_o,
+            'mm': (mm_t << 4) | mm_o,
+            'ss': (ss_t << 4) | ss_o
+        })
+    return out

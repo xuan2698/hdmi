@@ -1,0 +1,25 @@
+def reference(vectors):
+    h = 0
+    mask = (1 << 32) - 1
+    result = []
+    for v in vectors:
+        if isinstance(v, dict):
+            areset = v.get('areset', 0)
+            predict_valid = v.get('predict_valid', 0)
+            predict_taken = v.get('predict_taken', 0)
+            train_mispredicted = v.get('train_mispredicted', 0)
+            train_taken = v.get('train_taken', 0)
+            train_history = v.get('train_history', 0)
+        else:
+            areset, predict_valid, predict_taken, train_mispredicted, train_taken, train_history = (list(v) + [0] * 6)[:6]
+
+        if areset:
+            h = 0
+        elif train_mispredicted:
+            h = (((train_history & mask) << 1) | (train_taken & 1)) & mask
+        elif predict_valid:
+            h = ((h << 1) | (predict_taken & 1)) & mask
+
+        result.append({'predict_history': h & mask})
+
+    return result

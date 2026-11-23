@@ -1,0 +1,17 @@
+def reference(vectors):
+    st = 0
+    out = []
+    for v in vectors:
+        a = v.get('areset', 0)
+        x = v.get('x', 0)
+        if a:
+            st = 0
+        else:
+            if st == 0:
+                st = 1 if x else 0
+            elif st == 1:
+                st = 2 if x else 1
+            else:
+                st = 2 if x else 1
+        out.append({'z': 1 if st == 1 else 0})
+    return out

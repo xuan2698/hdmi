@@ -1,0 +1,23 @@
+```python
+def reference(vectors):
+    state = 0  # 0: no 1 seen (out 0), 1: seen 1 out 1, 2: seen 1 out 0
+    prev_clk = 0
+    out = []
+    for row in vectors:
+        clk = row['clk']
+        areset = row['areset']
+        x = row['x']
+        if areset:
+            state = 0
+        elif prev_clk == 0 and clk == 1:
+            if state == 0:
+                state = 1 if x else 0
+            elif state == 1:
+                state = 2 if x else 1
+            else:
+                state = 2 if x else 1
+        z = 1 if state == 1 else 0
+        out.append({'z': z})
+        prev_clk = clk
+    return out
+```

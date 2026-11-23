@@ -1,0 +1,14 @@
+def reference(vectors):
+    state = 0
+    mask = (1 << 32) - 1
+    result = []
+    for row in vectors:
+        if row.get('areset', 0):
+            state = 0
+        else:
+            if row.get('train_mispredicted', 0):
+                state = (((row.get('train_history', 0) & mask) << 1) | row.get('train_taken', 0)) & mask
+            elif row.get('predict_valid', 0):
+                state = ((state << 1) | row.get('predict_taken', 0)) & mask
+        result.append({'predict_history': state & mask})
+    return result

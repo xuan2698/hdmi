@@ -1,0 +1,19 @@
+def reference(vectors):
+    state = 0  # A=0, B=1, C=2, D=3
+    out = []
+    for row in vectors:
+        reset = row["reset"]
+        inp = row["in"]
+        if reset:
+            state = 0
+        else:
+            if state == 0:
+                state = 1 if inp else 0
+            elif state == 1:
+                state = 2 if not inp else 1
+            elif state == 2:
+                state = 3 if inp else 0
+            else:
+                state = 2 if not inp else 1
+        out.append({"out": 1 if state == 3 else 0})
+    return out

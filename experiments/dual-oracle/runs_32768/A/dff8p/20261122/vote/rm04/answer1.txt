@@ -1,0 +1,10 @@
+def reference(vectors):
+    q = 0
+    result = []
+    for v in vectors:
+        if v['reset'] & 1:
+            q = 0x34
+        else:
+            q = v['d'] & 0xFF
+        result.append({'q': q})
+    return result

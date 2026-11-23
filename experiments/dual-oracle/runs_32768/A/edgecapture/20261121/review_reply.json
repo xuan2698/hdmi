@@ -1,0 +1,4 @@
+{
+  "responses": [],
+  "source": "def reference(vectors):\n    sticky = 0\n    prev = 0\n    result = []\n    for row in vectors:\n        reset = row[\"reset\"] & 1\n        inp = row[\"in\"] & 0xFFFFFFFF\n        if reset:\n            sticky = 0\n        else:\n            sticky = (sticky | (prev & (~inp))) & 0xFFFFFFFF\n        prev = inp\n        result.append({\"out\": sticky})\n    return result\n"
+}

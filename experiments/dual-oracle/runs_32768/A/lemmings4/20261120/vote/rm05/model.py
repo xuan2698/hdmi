@@ -1,0 +1,56 @@
+def reference(vectors):
+    mode = 'WALK'
+    direction = 0
+    fall_count = 0
+    result = []
+    for row in vectors:
+        areset = row.get('areset', 0)
+        bump_left = row.get('bump_left', 0)
+        bump_right = row.get('bump_right', 0)
+        ground = row.get('ground', 1)
+        dig = row.get('dig', 0)
+        if areset:
+            mode = 'WALK'
+            direction = 0
+            fall_count = 0
+        else:
+            if mode == 'WALK':
+                if ground == 0:
+                    mode = 'FALL'
+                    fall_count = 1
+                else:
+                    if dig:
+                        mode = 'DIG'
+                    else:
+                        if bump_left and bump_right:
+                            direction = 1 - direction
+                        elif bump_left:
+                            direction = 1
+                        elif bump_right:
+                            direction = 0
+            elif mode == 'FALL':
+                if ground == 1:
+                    if fall_count > 20:
+                        mode = 'SPLAT'
+                        fall_count = 0
+                    else:
+                        mode = 'WALK'
+                        fall_count = 0
+                else:
+                    fall_count += 1
+            elif mode == 'DIG':
+                if ground == 0:
+                    mode = 'FALL'
+                    fall_count = 1
+        out = {'walk_left': 0, 'walk_right': 0, 'aaah': 0, 'digging': 0}
+        if mode == 'WALK':
+            if direction == 0:
+                out['walk_left'] = 1
+            else:
+                out['walk_right'] = 1
+        elif mode == 'FALL':
+            out['aaah'] = 1
+        elif mode == 'DIG':
+            out['digging'] = 1
+        result.append(out)
+    return result

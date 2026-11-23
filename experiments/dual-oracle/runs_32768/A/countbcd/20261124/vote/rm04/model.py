@@ -1,0 +1,41 @@
+def reference(vectors):
+    q = 0
+    out = []
+    for v in vectors:
+        reset = v['reset'] if isinstance(v, dict) else v
+        if reset:
+            q = 0
+        else:
+            d0 = q & 0xF
+            d1 = (q >> 4) & 0xF
+            d2 = (q >> 8) & 0xF
+            d3 = (q >> 12) & 0xF
+            if d0 == 9:
+                d0 = 0
+                if d1 == 9:
+                    d1 = 0
+                    if d2 == 9:
+                        d2 = 0
+                        if d3 == 9:
+                            d3 = 0
+                        else:
+                            d3 += 1
+                    else:
+                        d2 += 1
+                else:
+                    d1 += 1
+            else:
+                d0 += 1
+            q = (d3 << 12) | (d2 << 8) | (d1 << 4) | d0
+        ones = q & 0xF
+        tens = (q >> 4) & 0xF
+        hundreds = (q >> 8) & 0xF
+        ena = 0
+        if ones == 9:
+            ena |= 1
+            if tens == 9:
+                ena |= 2
+                if hundreds == 9:
+                    ena |= 4
+        out.append({'q': q, 'ena': ena})
+    return out

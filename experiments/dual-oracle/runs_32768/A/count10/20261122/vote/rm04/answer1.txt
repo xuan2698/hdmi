@@ -1,0 +1,11 @@
+def reference(vectors):
+    s = 0
+    out = []
+    for v in vectors:
+        reset = v.get('reset', 0) if isinstance(v, dict) else v[0]
+        if reset:
+            s = 0
+        else:
+            s = 0 if s == 9 else s + 1
+        out.append({'q': s})
+    return out

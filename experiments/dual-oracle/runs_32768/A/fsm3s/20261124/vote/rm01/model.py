@@ -1,0 +1,17 @@
+def reference(vectors):
+    s = 0
+    result = []
+    for v in vectors:
+        if v.get('reset', 0):
+            s = 0
+        elif s == 0:
+            if v.get('in', 0):
+                s = 1
+        elif s == 1:
+            s = 1 if v.get('in', 0) else 2
+        elif s == 2:
+            s = 3 if v.get('in', 0) else 0
+        else:
+            s = 1 if v.get('in', 0) else 2
+        result.append({'out': 1 if s == 3 else 0})
+    return result

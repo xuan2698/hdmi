@@ -1,0 +1,56 @@
+def reference(vectors):
+    def output(st):
+        return {
+            'walk_left': 1 if st == 'WL' else 0,
+            'walk_right': 1 if st == 'WR' else 0,
+            'aaah': 1 if st == 'FL' or st == 'FR' else 0,
+            'digging': 1 if st == 'DL' or st == 'DR' else 0,
+        }
+
+    st = 'WL'
+    fall_count = 0
+    result = []
+
+    for r in vectors:
+        if r['areset']:
+            st = 'WL'
+            fall_count = 0
+        else:
+            ground = r['ground']
+            dig = r['dig']
+            bump_left = r['bump_left']
+            bump_right = r['bump_right']
+
+            if st == 'SP':
+                pass
+            elif st == 'WL' or st == 'WR':
+                if ground == 0:
+                    st = 'FL' if st == 'WL' else 'FR'
+                    fall_count = 1
+                elif dig == 1:
+                    st = 'DL' if st == 'WL' else 'DR'
+                    fall_count = 0
+                else:
+                    if st == 'WL':
+                        if bump_left:
+                            st = 'WR'
+                    else:
+                        if bump_right:
+                            st = 'WL'
+            elif st == 'FL' or st == 'FR':
+                if ground == 1:
+                    if fall_count > 20:
+                        st = 'SP'
+                    else:
+                        st = 'WL' if st == 'FL' else 'WR'
+                    fall_count = 0
+                else:
+                    fall_count += 1
+            elif st == 'DL' or st == 'DR':
+                if ground == 0:
+                    st = 'FL' if st == 'DL' else 'FR'
+                    fall_count = 1
+
+        result.append(output(st))
+
+    return result

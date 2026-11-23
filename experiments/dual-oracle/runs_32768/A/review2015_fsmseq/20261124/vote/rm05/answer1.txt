@@ -1,0 +1,23 @@
+def reference(vectors):
+    st = 0
+    out = []
+    for row in vectors:
+        r = row["reset"]
+        d = row["data"]
+        if r:
+            st = 0
+            y = 0
+        else:
+            if st == 0:
+                st = 1 if d else 0
+            elif st == 1:
+                st = 2 if d else 0
+            elif st == 2:
+                st = 3 if d == 0 else 2
+            elif st == 3:
+                st = 4 if d else 0
+            elif st == 4:
+                st = 4
+            y = 1 if st == 4 else 0
+        out.append({"start_shifting": y})
+    return out

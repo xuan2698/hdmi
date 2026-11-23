@@ -1,0 +1,81 @@
+def reference(vectors):
+    st = 0
+    fall_count = 0
+    result = []
+
+    for row in vectors:
+        areset = row.get('areset', 0)
+        bump_left = row.get('bump_left', 0)
+        bump_right = row.get('bump_right', 0)
+        ground = row.get('ground', 1)
+        dig = row.get('dig', 0)
+
+        if areset:
+            st = 0
+            fall_count = 0
+        else:
+            if st == 0:          # walk left
+                if ground == 0:
+                    st = 4       # fall left
+                    fall_count = 1
+                elif dig:
+                    st = 2       # dig left
+                    fall_count = 0
+                else:
+                    if bump_left:
+                        st = 1   # walk right
+                    fall_count = 0
+            elif st == 1:        # walk right
+                if ground == 0:
+                    st = 5       # fall right
+                    fall_count = 1
+                elif dig:
+                    st = 3       # dig right
+                    fall_count = 0
+                else:
+                    if bump_right:
+                        st = 0   # walk left
+                    fall_count = 0
+            elif st == 2:        # dig left
+                if ground == 0:
+                    st = 4       # fall left
+                    fall_count = 1
+            elif st == 3:        # dig right
+                if ground == 0:
+                    st = 5       # fall right
+                    fall_count = 1
+            elif st == 4:        # fall left
+                if ground == 0:
+                    fall_count += 1
+                else:
+                    if fall_count > 20:
+                        st = 6   # splattered
+                    else:
+                        st = 0
+                        fall_count = 0
+            elif st == 5:        # fall right
+                if ground == 0:
+                    fall_count += 1
+                else:
+                    if fall_count > 20:
+                        st = 6   # splattered
+                    else:
+                        st = 1
+                        fall_count = 0
+            else:                # splattered
+                st = 6
+
+        if st == 0:
+            out = {'walk_left': 1, 'walk_right': 0, 'aaah': 0, 'digging': 0}
+        elif st == 1:
+            out = {'walk_left': 0, 'walk_right': 1, 'aaah': 0, 'digging': 0}
+        elif st == 2 or st == 3:
+            out = {'walk_left': 0, 'walk_right': 0, 'aaah': 0, 'digging': 1}
+        elif st == 4 or st == 5:
+            out = {'walk_left': 0, 'walk_right': 0, 'aaah': 1, 'digging': 0}
+        else:
+            out = {'walk_left': 0, 'walk_right': 0, 'aaah': 0, 'digging': 0}
+
+        result.append(out)
+
+    return result

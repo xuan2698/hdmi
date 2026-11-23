@@ -1,0 +1,25 @@
+```python
+def reference(vectors):
+    state = 0  # 0=start, 1=seen 1, 2=seen 11, 3=seen 110, 4=found
+    outputs = []
+
+    for row in vectors:
+        reset = int(row["reset"])
+        data = int(row["data"])
+
+        if reset:
+            state = 0
+        elif state != 4:
+            if state == 0:
+                state = 1 if data == 1 else 0
+            elif state == 1:
+                state = 2 if data == 1 else 0
+            elif state == 2:
+                state = 3 if data == 0 else 2
+            elif state == 3:
+                state = 4 if data == 1 else 0
+
+        outputs.append({"start_shifting": int(state == 4)})
+
+    return outputs
+```

@@ -1,0 +1,21 @@
+```python
+def reference(vectors):
+    if not vectors:
+        return []
+    q = 0
+    en = vectors[0]['a']
+    prev_clk = 0
+    out = []
+    for v in vectors:
+        clk = v['clk']
+        a = v['a']
+        if clk == 1 and prev_clk == 0:
+            if en == 1:
+                q = 4
+            else:
+                q = (q + 1) % 7
+            en = a
+        out.append({'q': q})
+        prev_clk = clk
+    return out
+```

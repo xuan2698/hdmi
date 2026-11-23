@@ -1,0 +1,21 @@
+def reference(vectors):
+    out = 0
+    prev = 0
+    mask = (1 << 32) - 1
+    result = []
+    for row in vectors:
+        if isinstance(row, dict):
+            rst = row.get('reset', 0)
+            inv = row.get('in', 0)
+        else:
+            rst = row[0]
+            inv = row[1]
+        rst = 1 if (rst & 1) else 0
+        inv = inv & mask
+        if rst:
+            out = 0
+        else:
+            out = (out | (prev & (mask ^ inv))) & mask
+        prev = inv
+        result.append({'out': out & mask})
+    return result

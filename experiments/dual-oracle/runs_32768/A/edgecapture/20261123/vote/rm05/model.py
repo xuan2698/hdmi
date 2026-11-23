@@ -1,0 +1,14 @@
+def reference(vectors):
+    o = 0
+    p = 0
+    r = []
+    for v in vectors:
+        rst = v['reset']
+        i = v['in'] & 0xFFFFFFFF
+        if rst:
+            o = 0
+        else:
+            o = (o | (p & (~i & 0xFFFFFFFF))) & 0xFFFFFFFF
+        p = i
+        r.append({'out': o})
+    return r

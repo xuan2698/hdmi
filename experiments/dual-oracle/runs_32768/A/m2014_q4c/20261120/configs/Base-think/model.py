@@ -1,0 +1,15 @@
+def reference(vectors):
+    q=0
+    d=0
+    r=0
+    res=[]
+    for row in vectors:
+        d=row.get('d', d)&1
+        r=row.get('r', r)&1
+        if r: q=0
+        else: q=d
+        res.append({'q':q&1})
+        mid=row.get('mid', {})
+        if 'd' in mid: d=mid['d']&1
+        if 'r' in mid: r=mid['r']&1
+    return res

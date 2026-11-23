@@ -1,0 +1,15 @@
+def reference(vectors):
+    q=0
+    d=0
+    r=0
+    out=[]
+    for row in vectors:
+        if 'd' in row: d=row['d']
+        if 'r' in row: r=row['r']
+        q=0 if r else d
+        out.append({'q':q})
+        mid=row.get('mid')
+        if isinstance(mid,dict):
+            if 'd' in mid: d=mid['d']
+            if 'r' in mid: r=mid['r']
+    return out

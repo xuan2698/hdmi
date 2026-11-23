@@ -1,0 +1,44 @@
+def reference(vectors):
+    hist = 0
+    pht = [0] * 128
+    out = []
+    for v in vectors:
+        if isinstance(v, dict):
+            areset = v['areset']
+            predict_valid = v['predict_valid']
+            predict_pc = v['predict_pc']
+            train_valid = v['train_valid']
+            train_taken = v['train_taken']
+            train_mispredicted = v['train_mispredicted']
+            train_history = v['train_history']
+            train_pc = v['train_pc']
+        else:
+            areset, predict_valid, predict_pc, train_valid, train_taken, train_mispredicted, train_history, train_pc = v
+
+        if areset:
+            hist = 0
+            pht = [0] * 128
+            out.append({'predict_taken': 0, 'predict_history': 0})
+            continue
+
+        idx_pred = (predict_pc ^ hist) & 0x7F
+        pred_taken = (pht[idx_pred] >> 1) & 1
+        out.append({'predict_taken': pred_taken, 'predict_history': hist})
+
+        if train_valid:
+            idx_train = (train_pc ^ train_history) & 0x7F
+            c = pht[idx_train]
+            if train_taken:
+                if c < 3:
+                    c += 1
+            else:
+                if c > 0:
+                    c -= 1
+            pht[idx_train] = c
+
+        if train_valid and train_mispredicted:
+            hist = ((train_history << 1) | train_taken) & 0x7F
+        elif predict_valid:
+            hist = ((hist << 1) | pred_taken) & 0x7F
+
+    return out

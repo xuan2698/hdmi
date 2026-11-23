@@ -1,0 +1,13 @@
+def reference(vectors):
+    q = 0
+    out = []
+    for row in vectors:
+        if isinstance(row, dict):
+            d = row.get('d', 0)
+            reset = row.get('reset', 0)
+        else:
+            d = row[0] if len(row) > 0 else 0
+            reset = row[1] if len(row) > 1 else 0
+        q = 0 if (int(reset) & 1) else (int(d) & 0xff)
+        out.append({'q': q})
+    return out

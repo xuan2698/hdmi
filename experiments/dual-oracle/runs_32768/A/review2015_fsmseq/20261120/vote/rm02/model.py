@@ -1,0 +1,39 @@
+def reference(vectors):
+    state = 0
+    out = 0
+    result = []
+    for row in vectors:
+        if isinstance(row, dict):
+            reset = row.get("reset", 0)
+            data = row.get("data", 0)
+        else:
+            reset = row[0]
+            data = row[1]
+
+        if reset:
+            state = 0
+            out = 0
+        elif not out:
+            if data == 1:
+                if state == 0:
+                    state = 1
+                elif state == 1:
+                    state = 2
+                elif state == 2:
+                    state = 2
+                elif state == 3:
+                    state = 4
+                    out = 1
+            else:
+                if state == 0:
+                    state = 0
+                elif state == 1:
+                    state = 0
+                elif state == 2:
+                    state = 3
+                elif state == 3:
+                    state = 0
+
+        result.append({"start_shifting": out})
+
+    return result

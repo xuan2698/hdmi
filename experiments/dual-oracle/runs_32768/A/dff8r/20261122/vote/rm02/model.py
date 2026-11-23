@@ -1,0 +1,14 @@
+def reference(vectors):
+    q = 0
+    prev_clk = 0
+    out = []
+    for row in vectors:
+        clk = row.get('clk', 0)
+        if prev_clk == 0 and clk == 1:
+            if row.get('reset', 0):
+                q = 0
+            else:
+                q = row.get('d', 0) & 255
+        out.append({'q': q & 255})
+        prev_clk = clk
+    return out

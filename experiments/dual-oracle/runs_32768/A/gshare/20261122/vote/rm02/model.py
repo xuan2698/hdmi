@@ -1,0 +1,51 @@
+def reference(vectors):
+    hr = 0
+    pht = [0] * 128
+    out = []
+    for row in vectors:
+        areset = row.get('areset', 0) & 1
+        predict_valid = row.get('predict_valid', 0) & 1
+        predict_pc = row.get('predict_pc', 0) & 0x7F
+        train_valid = row.get('train_valid', 0) & 1
+        train_taken = row.get('train_taken', 0) & 1
+        train_mispredicted = row.get('train_mispredicted', 0) & 1
+        train_history = row.get('train_history', 0) & 0x7F
+        train_pc = row.get('train_pc', 0) & 0x7F
+
+        if areset:
+            hr = 0
+            pht = [0] * 128
+
+        idx = (predict_pc ^ hr) & 0x7F
+        c = pht[idx]
+        predict_taken = 1 if (c & 2) else 0
+        predict_history = hr & 0x7F
+
+        out.append({'predict_taken': predict_taken, 'predict_history': predict_history})
+
+        if areset:
+            continue
+
+        new_hr = hr
+        new_pht = pht[:]
+
+        if train_valid:
+            tidx = (train_pc ^ train_history) & 0x7F
+            tc = pht[tidx]
+            if train_taken:
+                if tc < 3:
+                    tc += 1
+            else:
+                if tc > 0:
+                    tc -= 1
+            new_pht[tidx] = tc
+
+        if train_valid and train_mispredicted:
+            new_hr = ((train_history << 1) & 0x7F) | train_taken
+        elif predict_valid:
+            new_hr = ((hr << 1) & 0x7F) | predict_taken
+
+        hr = new_hr
+        pht = new_pht
+
+    return out

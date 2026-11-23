@@ -1,0 +1,78 @@
+def reference(vectors):
+    s = 0
+    c = 0
+    out = []
+    for r in vectors:
+        a = r['areset']
+        bl = r['bump_left']
+        br = r['bump_right']
+        g = r['ground']
+        d = r['dig']
+        if a:
+            s = 0
+            c = 0
+        elif s == 0:
+            if g == 0:
+                s = 2
+                c = 1
+            elif d == 1:
+                s = 4
+                c = 0
+            elif bl == 1:
+                s = 1
+                c = 0
+        elif s == 1:
+            if g == 0:
+                s = 3
+                c = 1
+            elif d == 1:
+                s = 5
+                c = 0
+            elif br == 1:
+                s = 0
+                c = 0
+        elif s == 2:
+            if g == 1:
+                if c > 20:
+                    s = 6
+                    c = 0
+                else:
+                    s = 0
+                    c = 0
+            else:
+                c += 1
+        elif s == 3:
+            if g == 1:
+                if c > 20:
+                    s = 6
+                    c = 0
+                else:
+                    s = 1
+                    c = 0
+            else:
+                c += 1
+        elif s == 4:
+            if g == 0:
+                s = 2
+                c = 1
+        elif s == 5:
+            if g == 0:
+                s = 3
+                c = 1
+
+        o = {
+            'walk_left': 0,
+            'walk_right': 0,
+            'aaah': 0,
+            'digging': 0
+        }
+        if s == 0:
+            o['walk_left'] = 1
+        elif s == 1:
+            o['walk_right'] = 1
+        elif s == 2 or s == 3:
+            o['aaah'] = 1
+        elif s == 4 or s == 5:
+            o['digging'] = 1
+        out.append(o)
+    return out

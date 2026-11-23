@@ -1,0 +1,17 @@
+def reference(vectors):
+    state = 0
+    result = []
+    for row in vectors:
+        areset = row.get('areset', 0) if isinstance(row, dict) else row[0]
+        x = row.get('x', 0) if isinstance(row, dict) else row[1]
+        if areset:
+            state = 0
+        else:
+            if state == 0:
+                state = 1 if x else 0
+            elif state == 1:
+                state = 2 if x else 1
+            else:
+                state = 2 if x else 1
+        result.append({'z': 1 if state == 1 else 0})
+    return result

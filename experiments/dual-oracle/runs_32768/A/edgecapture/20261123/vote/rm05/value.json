@@ -1,0 +1,1 @@
+"def reference(vectors):\n    o = 0\n    p = 0\n    r = []\n    for v in vectors:\n        rst = v['reset']\n        i = v['in'] & 0xFFFFFFFF\n        if rst:\n            o = 0\n        else:\n            o = (o | (p & (~i & 0xFFFFFFFF))) & 0xFFFFFFFF\n        p = i\n        r.append({'out': o})\n    return r\n"

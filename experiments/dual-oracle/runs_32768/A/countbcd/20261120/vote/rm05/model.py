@@ -1,0 +1,39 @@
+def reference(vectors):
+    q = 0
+    out = []
+    for row in vectors:
+        reset = row.get("reset", 0)
+        if reset:
+            q = 0
+        else:
+            o = q & 0xF
+            t = (q >> 4) & 0xF
+            h = (q >> 8) & 0xF
+            th = (q >> 12) & 0xF
+
+            o += 1
+            if o == 10:
+                o = 0
+                t += 1
+                if t == 10:
+                    t = 0
+                    h += 1
+                    if h == 10:
+                        h = 0
+                        th += 1
+                        if th == 10:
+                            th = 0
+
+            q = (th << 12) | (h << 8) | (t << 4) | o
+
+        o = q & 0xF
+        t = (q >> 4) & 0xF
+        h = (q >> 8) & 0xF
+
+        e0 = 1 if o == 9 else 0
+        e1 = 1 if (o == 9 and t == 9) else 0
+        e2 = 1 if (o == 9 and t == 9 and h == 9) else 0
+
+        out.append({"q": q, "ena": e0 | (e1 << 1) | (e2 << 2)})
+
+    return out

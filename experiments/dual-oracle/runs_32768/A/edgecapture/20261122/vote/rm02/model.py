@@ -1,0 +1,15 @@
+def reference(vectors):
+    o = 0
+    p = 0
+    m = 0xFFFFFFFF
+    res = []
+    for v in vectors:
+        rst = v.get('reset', 0)
+        x = v.get('in', 0) & m
+        if rst & 1:
+            o = 0
+        else:
+            o = (o | (p & (x ^ m))) & m
+        p = x
+        res.append({'out': o})
+    return res

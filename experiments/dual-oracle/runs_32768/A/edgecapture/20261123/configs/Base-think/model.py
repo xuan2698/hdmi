@@ -1,0 +1,24 @@
+def reference(vectors):
+    p=0
+    o=0
+    r=0
+    i=0
+    a=[]
+    for row in vectors:
+        if "reset" in row:
+            r=row["reset"]&1
+        if "in" in row:
+            i=row["in"]&0xffffffff
+        if r:
+            o=0
+        else:
+            o=(o|(p&(~i)))&0xffffffff
+        p=i
+        a.append({"out":o&0xffffffff})
+        m=row.get("mid")
+        if m:
+            if "reset" in m:
+                r=m["reset"]&1
+            if "in" in m:
+                i=m["in"]&0xffffffff
+    return a

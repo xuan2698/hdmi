@@ -1,0 +1,78 @@
+def reference(vectors):
+    state = "WL"
+    fc = 0
+    result = []
+    for r in vectors:
+        if isinstance(r, dict):
+            areset = r.get("areset", 0)
+            bump_left = r.get("bump_left", 0)
+            bump_right = r.get("bump_right", 0)
+            ground = r.get("ground", 0)
+            dig = r.get("dig", 0)
+        else:
+            areset = r[0] if len(r) > 0 else 0
+            bump_left = r[1] if len(r) > 1 else 0
+            bump_right = r[2] if len(r) > 2 else 0
+            ground = r[3] if len(r) > 3 else 0
+            dig = r[4] if len(r) > 4 else 0
+
+        if areset:
+            state = "WL"
+            fc = 0
+        else:
+            if state == "WL":
+                if ground == 0:
+                    state = "FL"
+                    fc = 1
+                elif dig:
+                    state = "DL"
+                elif bump_left:
+                    state = "WR"
+            elif state == "WR":
+                if ground == 0:
+                    state = "FR"
+                    fc = 1
+                elif dig:
+                    state = "DR"
+                elif bump_right:
+                    state = "WL"
+            elif state == "DL":
+                if ground == 0:
+                    state = "FL"
+                    fc = 1
+            elif state == "DR":
+                if ground == 0:
+                    state = "FR"
+                    fc = 1
+            elif state == "FL":
+                if ground == 0:
+                    fc += 1
+                else:
+                    if fc > 20:
+                        state = "SPLAT"
+                        fc = 0
+                    else:
+                        state = "WL"
+                        fc = 0
+            elif state == "FR":
+                if ground == 0:
+                    fc += 1
+                else:
+                    if fc > 20:
+                        state = "SPLAT"
+                        fc = 0
+                    else:
+                        state = "WR"
+                        fc = 0
+
+        out = {"walk_left": 0, "walk_right": 0, "aaah": 0, "digging": 0}
+        if state == "WL":
+            out["walk_left"] = 1
+        elif state == "WR":
+            out["walk_right"] = 1
+        elif state == "FL" or state == "FR":
+            out["aaah"] = 1
+        elif state == "DL" or state == "DR":
+            out["digging"] = 1
+        result.append(out)
+    return result

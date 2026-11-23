@@ -1,0 +1,41 @@
+def reference(vectors):
+    pht = [0] * 128
+    history = 0
+    out = []
+    for v in vectors:
+        if v['areset']:
+            history = 0
+            pht = [0] * 128
+            out.append({'predict_taken': 0, 'predict_history': 0})
+            continue
+
+        pvalid = v['predict_valid']
+        ppc = v['predict_pc'] & 0x7F
+        tvalid = v['train_valid']
+        ttaken = v['train_taken'] & 1
+        tmisp = v['train_mispredicted'] & 1
+        thist = v['train_history'] & 0x7F
+        tpc = v['train_pc'] & 0x7F
+
+        idx = (ppc ^ history) & 0x7F
+        pval = pht[idx]
+        ptaken = (pval >> 1) & 1
+        phist = history
+        out.append({'predict_taken': ptaken, 'predict_history': phist})
+
+        if tvalid:
+            tidx = (tpc ^ thist) & 0x7F
+            old = pht[tidx]
+            if ttaken:
+                if old < 3:
+                    pht[tidx] = old + 1
+            else:
+                if old > 0:
+                    pht[tidx] = old - 1
+
+        if tvalid and tmisp:
+            history = ((thist << 1) | ttaken) & 0x7F
+        elif pvalid:
+            history = ((history << 1) | ptaken) & 0x7F
+
+    return out

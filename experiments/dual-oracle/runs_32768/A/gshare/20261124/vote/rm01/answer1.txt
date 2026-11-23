@@ -1,0 +1,54 @@
+```python
+def reference(vectors):
+    history = 0
+    pht = [0] * 128
+    pred_taken_out = 0
+    pred_history_out = 0
+    results = []
+
+    for row in vectors:
+        areset = row.get('areset', 0)
+        if areset:
+            history = 0
+            pht = [0] * 128
+            pred_taken_out = 0
+            pred_history_out = 0
+            results.append({'predict_taken': 0, 'predict_history': 0})
+            continue
+
+        predict_valid = row.get('predict_valid', 0)
+        predict_pc = row.get('predict_pc', 0) & 0x7F
+        train_valid = row.get('train_valid', 0)
+        train_taken = row.get('train_taken', 0) & 1
+        train_mispredicted = row.get('train_mispredicted', 0) & 1
+        train_history = row.get('train_history', 0) & 0x7F
+        train_pc = row.get('train_pc', 0) & 0x7F
+
+        pred_taken = 0
+        if predict_valid:
+            pred_index = (predict_pc ^ history) & 0x7F
+            pred_counter = pht[pred_index]
+            pred_taken = (pred_counter >> 1) & 1
+            pred_taken_out = pred_taken
+            pred_history_out = history
+
+        if train_valid:
+            train_index = (train_pc ^ train_history) & 0x7F
+            cnt = pht[train_index]
+            if train_taken:
+                if cnt < 3:
+                    cnt += 1
+            else:
+                if cnt > 0:
+                    cnt -= 1
+            pht[train_index] = cnt
+
+        if train_valid and train_mispredicted:
+            history = ((train_history << 1) | train_taken) & 0x7F
+        elif predict_valid:
+            history = ((history << 1) | pred_taken) & 0x7F
+
+        results.append({'predict_taken': pred_taken_out, 'predict_history': pred_history_out})
+
+    return results
+```

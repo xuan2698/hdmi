@@ -1,0 +1,25 @@
+def reference(vectors):
+    q = 0
+    prev = 0
+    out = []
+    for row in vectors:
+        if isinstance(row, dict):
+            has_clk = 'clk' in row
+            clk = row.get('clk', 0)
+            d = row.get('d', 0)
+            reset = row.get('reset', 0)
+        else:
+            if len(row) == 3:
+                has_clk = True
+                clk, d, reset = row
+            else:
+                has_clk = False
+                d, reset = row
+        if has_clk:
+            if clk == 1 and prev == 0:
+                q = 0 if reset else (d & 255)
+            prev = clk & 1
+        else:
+            q = 0 if reset else (d & 255)
+        out.append({'q': q})
+    return out

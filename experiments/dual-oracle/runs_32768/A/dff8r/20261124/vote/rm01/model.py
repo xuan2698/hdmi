@@ -1,0 +1,6 @@
+def reference(vectors):
+    out = []
+    for r in vectors:
+        q = 0 if r['reset'] else (r['d'] & 0xFF)
+        out.append({'q': q})
+    return out

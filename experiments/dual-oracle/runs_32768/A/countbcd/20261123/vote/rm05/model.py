@@ -1,0 +1,36 @@
+def reference(vectors):
+    q = 0
+    out = []
+    for v in vectors:
+        if v["reset"]:
+            q = 0
+        else:
+            d0 = q & 0xF
+            d1 = (q >> 4) & 0xF
+            d2 = (q >> 8) & 0xF
+            d3 = (q >> 12) & 0xF
+            d0 += 1
+            if d0 == 10:
+                d0 = 0
+                d1 += 1
+                if d1 == 10:
+                    d1 = 0
+                    d2 += 1
+                    if d2 == 10:
+                        d2 = 0
+                        d3 = (d3 + 1) % 10
+            q = (d3 << 12) | (d2 << 8) | (d1 << 4) | d0
+
+        d0 = q & 0xF
+        d1 = (q >> 4) & 0xF
+        d2 = (q >> 8) & 0xF
+        ena = 0
+        if d0 == 9:
+            ena |= 1
+        if d0 == 9 and d1 == 9:
+            ena |= 2
+        if d0 == 9 and d1 == 9 and d2 == 9:
+            ena |= 4
+
+        out.append({"ena": ena, "q": q})
+    return out

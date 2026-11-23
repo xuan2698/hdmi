@@ -1,0 +1,1 @@
+"def reference(vectors):\n    prev = 0\n    out = 0\n    result = []\n    for row in vectors:\n        reset = row.get(\"reset\", 0)\n        cur = row.get(\"in\", 0) & 0xFFFFFFFF\n        if reset:\n            out = 0\n        else:\n            out = (out | (prev & (~cur))) & 0xFFFFFFFF\n        prev = cur\n        result.append({\"out\": out})\n    return result\n"

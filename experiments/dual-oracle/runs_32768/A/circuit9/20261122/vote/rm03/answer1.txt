@@ -1,0 +1,14 @@
+def reference(vectors):
+    q = 4
+    res = []
+    for v in vectors:
+        if isinstance(v, dict):
+            a = v['a']
+        else:
+            a = v if isinstance(v, int) else v[0]
+        if a:
+            q = 4
+        else:
+            q = (q + 1) % 7
+        res.append({'q': q})
+    return res

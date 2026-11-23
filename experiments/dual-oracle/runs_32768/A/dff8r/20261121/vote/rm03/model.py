@@ -1,0 +1,11 @@
+def reference(vectors):
+    out = []
+    for v in vectors:
+        if isinstance(v, dict):
+            r = v.get('reset', 0)
+            d = v.get('d', 0)
+        else:
+            d, r = v[0], v[1]
+        q = 0 if r else d
+        out.append({'q': q & 0xFF})
+    return out

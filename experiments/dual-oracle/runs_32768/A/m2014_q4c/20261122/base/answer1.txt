@@ -1,0 +1,23 @@
+def reference(vectors):
+    q = 0
+    d = 0
+    r = 0
+    out = []
+    for row in vectors:
+        for k, v in row.items():
+            if k == 'mid':
+                continue
+            if k == 'd':
+                d = v
+            elif k == 'r':
+                r = v
+        q = 0 if r else d
+        out.append({'q': q & 1})
+        mid = row.get('mid')
+        if isinstance(mid, dict):
+            for k, v in mid.items():
+                if k == 'd':
+                    d = v
+                elif k == 'r':
+                    r = v
+    return out

@@ -1,0 +1,18 @@
+def reference(vectors):
+    out = []
+    for v in vectors:
+        x = int(v['x']) & 1
+        y = int(v['y']) & 7
+        y2 = (y >> 2) & 1
+        y1 = (y >> 1) & 1
+        y0 = y & 1
+
+        if x == 0:
+            Y0 = y2 | y0
+        else:
+            Y0 = 1 if (y2 == 0 and y0 == 0) else 0
+
+        z = 1 if (y2 == 1 or (y1 == 1 and y0 == 1)) else 0
+
+        out.append({'Y0': Y0, 'z': z})
+    return out

@@ -1,0 +1,26 @@
+def reference(vectors):
+    t = 0
+    out = []
+    for v in vectors:
+        if isinstance(v, dict):
+            reset = v.get('reset', 0)
+            ena = v.get('ena', 0)
+        else:
+            reset = v[0]
+            ena = v[1]
+        if reset:
+            t = 0
+        elif ena:
+            t = (t + 1) % 86400
+        x = t % 43200
+        h = x // 3600
+        if h == 0:
+            h = 12
+        m = (x % 3600) // 60
+        s = x % 60
+        hh = ((h // 10) << 4) | (h % 10)
+        mm = ((m // 10) << 4) | (m % 10)
+        ss = ((s // 10) << 4) | (s % 10)
+        pm = 1 if t >= 43200 else 0
+        out.append({'pm': pm, 'hh': hh, 'mm': mm, 'ss': ss})
+    return out

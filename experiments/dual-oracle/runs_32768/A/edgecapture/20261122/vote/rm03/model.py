@@ -1,0 +1,15 @@
+def reference(vectors):
+    m = 0xFFFFFFFF
+    prev = 0
+    out = 0
+    result = []
+    for row in vectors:
+        reset = row["reset"] & 1
+        inp = row["in"] & m
+        if reset:
+            out = 0
+        else:
+            out = (out | (prev & (~inp & m))) & m
+        prev = inp
+        result.append({"out": out})
+    return result

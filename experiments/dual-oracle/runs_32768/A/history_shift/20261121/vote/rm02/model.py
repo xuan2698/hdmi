@@ -1,0 +1,12 @@
+def reference(vectors):
+    h = 0
+    out = []
+    for r in vectors:
+        if r.get('areset', 0):
+            h = 0
+        elif r.get('train_mispredicted', 0):
+            h = (((r.get('train_history', 0) & 0xffffffff) << 1) | (r.get('train_taken', 0) & 1)) & 0xffffffff
+        elif r.get('predict_valid', 0):
+            h = ((h << 1) | (r.get('predict_taken', 0) & 1)) & 0xffffffff
+        out.append({'predict_history': h})
+    return out

@@ -1,0 +1,32 @@
+def reference(vectors):
+    state = 0  # 0: no first 1 seen, z=0; 1: after first 1, z=1; 2: after first 1, z=0
+    out = []
+    for row in vectors:
+        if row['areset']:
+            state = 0
+            z = 0
+        else:
+            x = row['x']
+            if state == 0:
+                if x == 0:
+                    state = 0
+                    z = 0
+                else:
+                    state = 1
+                    z = 1
+            elif state == 1:
+                if x == 0:
+                    state = 1
+                    z = 1
+                else:
+                    state = 2
+                    z = 0
+            else:
+                if x == 0:
+                    state = 1
+                    z = 1
+                else:
+                    state = 2
+                    z = 0
+        out.append({'z': z})
+    return out

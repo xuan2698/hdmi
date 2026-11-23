@@ -1,0 +1,55 @@
+def reference(vectors):
+    mode = 'walk'
+    direction = 'L'
+    fall_count = 0
+    result = []
+    for row in vectors:
+        if isinstance(row, dict):
+            areset = row.get('areset', 0)
+            bump_left = row.get('bump_left', 0)
+            bump_right = row.get('bump_right', 0)
+            ground = row.get('ground', 1)
+            dig = row.get('dig', 0)
+        else:
+            areset, bump_left, bump_right, ground, dig = row
+        if areset:
+            mode = 'walk'
+            direction = 'L'
+            fall_count = 0
+        else:
+            if mode == 'walk':
+                if ground == 0:
+                    mode = 'fall'
+                    fall_count = 1
+                elif dig == 1:
+                    mode = 'dig'
+                else:
+                    if (direction == 'L' and bump_left == 1) or (direction == 'R' and bump_right == 1):
+                        direction = 'R' if direction == 'L' else 'L'
+            elif mode == 'dig':
+                if ground == 0:
+                    mode = 'fall'
+                    fall_count = 1
+            elif mode == 'fall':
+                if ground == 0:
+                    fall_count += 1
+                else:
+                    if fall_count > 20:
+                        mode = 'splat'
+                    else:
+                        mode = 'walk'
+                    fall_count = 0
+            elif mode == 'splat':
+                pass
+        walk_left = walk_right = aaah = digging = 0
+        if mode == 'walk':
+            if direction == 'L':
+                walk_left = 1
+            else:
+                walk_right = 1
+        elif mode == 'fall':
+            aaah = 1
+        elif mode == 'dig':
+            digging = 1
+        result.append({'walk_left': walk_left, 'walk_right': walk_right, 'aaah': aaah, 'digging': digging})
+    return result

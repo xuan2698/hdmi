@@ -1,0 +1,48 @@
+def reference(vectors):
+    pht = [0] * 128
+    hist = 0
+    out = []
+    prev_clk = 0
+    has_clk = False
+    for v in vectors:
+        if 'clk' in v:
+            has_clk = True
+            break
+    for v in vectors:
+        areset = v.get('areset', 0) & 1
+        if areset:
+            hist = 0
+            pht = [0] * 128
+        pc = v.get('predict_pc', 0) & 127
+        idx = (pc ^ hist) & 127
+        predict_taken = 1 if pht[idx] >= 2 else 0
+        out.append({'predict_taken': predict_taken, 'predict_history': hist})
+        if has_clk:
+            clk = v.get('clk', 0) & 1
+            rising = (clk == 1 and prev_clk == 0)
+            prev_clk = clk
+            do_update = rising and (not areset)
+        else:
+            do_update = not areset
+        if do_update:
+            train_valid = v.get('train_valid', 0) & 1
+            predict_valid = v.get('predict_valid', 0) & 1
+            train_mispredicted = v.get('train_mispredicted', 0) & 1
+            if train_valid:
+                th = v.get('train_history', 0) & 127
+                tpc = v.get('train_pc', 0) & 127
+                tt = v.get('train_taken', 0) & 1
+                t_idx = (tpc ^ th) & 127
+                if tt:
+                    if pht[t_idx] < 3:
+                        pht[t_idx] += 1
+                else:
+                    if pht[t_idx] > 0:
+                        pht[t_idx] -= 1
+            if train_valid and train_mispredicted:
+                th = v.get('train_history', 0) & 127
+                tt = v.get('train_taken', 0) & 1
+                hist = ((th << 1) | tt) & 127
+            elif predict_valid:
+                hist = ((hist << 1) | predict_taken) & 127
+    return out

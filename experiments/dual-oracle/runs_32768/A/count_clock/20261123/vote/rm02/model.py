@@ -1,0 +1,25 @@
+def reference(vectors):
+    total = 0
+    pm = 0
+    out = []
+    for row in vectors:
+        reset = row.get('reset', 0) if isinstance(row, dict) else row[0]
+        ena = row.get('ena', 0) if isinstance(row, dict) else row[1]
+        if reset:
+            total = 0
+            pm = 0
+        elif ena:
+            total += 1
+            if total == 43200:
+                total = 0
+                pm ^= 1
+        h = (total // 3600) % 12
+        if h == 0:
+            h = 12
+        m = (total // 60) % 60
+        s = total % 60
+        hh = ((h // 10) << 4) | (h % 10)
+        mm = ((m // 10) << 4) | (m % 10)
+        ss = ((s // 10) << 4) | (s % 10)
+        out.append({'pm': pm, 'hh': hh, 'mm': mm, 'ss': ss})
+    return out

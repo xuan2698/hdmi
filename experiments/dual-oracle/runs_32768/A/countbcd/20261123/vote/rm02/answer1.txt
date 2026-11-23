@@ -1,0 +1,28 @@
+def reference(vectors):
+    q = 0
+    out = []
+    for row in vectors:
+        reset = row.get('reset', 0) if isinstance(row, dict) else row[0]
+        if reset:
+            q = 0
+        else:
+            n = (((q >> 12) & 0xF) * 1000 +
+                 ((q >> 8) & 0xF) * 100 +
+                 ((q >> 4) & 0xF) * 10 +
+                 (q & 0xF))
+            n = (n + 1) % 10000
+            th = n // 1000
+            hu = (n // 100) % 10
+            te = (n // 10) % 10
+            on = n % 10
+            q = (th << 12) | (hu << 8) | (te << 4) | on
+
+        on = q & 0xF
+        te = (q >> 4) & 0xF
+        hu = (q >> 8) & 0xF
+        e1 = 1 if on == 9 else 0
+        e2 = 1 if (te == 9 and on == 9) else 0
+        e3 = 1 if (hu == 9 and te == 9 and on == 9) else 0
+        ena = e1 | (e2 << 1) | (e3 << 2)
+        out.append({'ena': ena, 'q': q})
+    return out

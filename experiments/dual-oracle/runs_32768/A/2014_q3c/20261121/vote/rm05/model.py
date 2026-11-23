@@ -1,0 +1,34 @@
+def reference(vectors):
+    out = []
+    for v in vectors:
+        if isinstance(v, dict):
+            x = v.get('x', 0)
+            y = v.get('y', 0)
+        elif hasattr(v, 'x') and hasattr(v, 'y'):
+            x = v.x
+            y = v.y
+        else:
+            x = v[0]
+            y = v[1]
+        x = int(x) & 1
+        y = int(y) & 7
+        if y == 0:
+            Y0 = x
+            z = 0
+        elif y == 1:
+            Y0 = 0 if x else 1
+            z = 0
+        elif y == 2:
+            Y0 = x
+            z = 0
+        elif y == 3:
+            Y0 = 0 if x else 1
+            z = 1
+        elif y == 4:
+            Y0 = 0 if x else 1
+            z = 1
+        else:
+            Y0 = 0
+            z = 0
+        out.append({'Y0': Y0, 'z': z})
+    return out

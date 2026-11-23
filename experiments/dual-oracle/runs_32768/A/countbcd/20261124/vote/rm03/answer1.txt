@@ -1,0 +1,24 @@
+def reference(vectors):
+    d0 = d1 = d2 = d3 = 0
+    out = []
+    for row in vectors:
+        r = row['reset'] if isinstance(row, dict) else row
+        if r:
+            d0 = d1 = d2 = d3 = 0
+        else:
+            d0 += 1
+            if d0 == 10:
+                d0 = 0
+                d1 += 1
+                if d1 == 10:
+                    d1 = 0
+                    d2 += 1
+                    if d2 == 10:
+                        d2 = 0
+                        d3 += 1
+                        if d3 == 10:
+                            d3 = 0
+        ena = (1 if d0 == 9 else 0) | (2 if d0 == 9 and d1 == 9 else 0) | (4 if d0 == 9 and d1 == 9 and d2 == 9 else 0)
+        q = (d3 << 12) | (d2 << 8) | (d1 << 4) | d0
+        out.append({'ena': ena, 'q': q})
+    return out

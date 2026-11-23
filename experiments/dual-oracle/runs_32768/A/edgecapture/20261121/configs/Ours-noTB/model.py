@@ -1,0 +1,14 @@
+def reference(vectors):
+    sticky = 0
+    prev = 0
+    result = []
+    for row in vectors:
+        reset = row["reset"] & 1
+        inp = row["in"] & 0xFFFFFFFF
+        if reset:
+            sticky = 0
+        else:
+            sticky = (sticky | (prev & (~inp))) & 0xFFFFFFFF
+        prev = inp
+        result.append({"out": sticky})
+    return result

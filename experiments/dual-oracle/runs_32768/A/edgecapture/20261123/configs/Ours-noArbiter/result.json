@@ -1,0 +1,217 @@
+{
+  "group": "A",
+  "task": "edgecapture",
+  "seed": 20261123,
+  "config": "Ours-noArbiter",
+  "status": "ready",
+  "model": "runs_32768/A/edgecapture/20261123/configs/Ours-noArbiter/model.py",
+  "scenes": [
+    {
+      "id": "s1",
+      "spec_quote": "active high synchronous reset",
+      "covers": [
+        "behavior",
+        "boundary",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "reset": 1,
+          "in": 0
+        },
+        {
+          "reset": 0,
+          "in": 4294967295
+        },
+        {
+          "reset": 0,
+          "in": 0
+        },
+        {
+          "reset": 1,
+          "in": 0
+        },
+        {
+          "reset": 0,
+          "in": 0
+        }
+      ],
+      "expected": [
+        {
+          "out": 0
+        },
+        {
+          "out": 0
+        },
+        {
+          "out": 4294967295
+        },
+        {
+          "out": 0
+        },
+        {
+          "out": 0
+        }
+      ]
+    },
+    {
+      "id": "s2",
+      "spec_quote": "output will remain 1 until the register is reset",
+      "covers": [
+        "behavior",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "reset": 1,
+          "in": 0
+        },
+        {
+          "reset": 0,
+          "in": 2
+        },
+        {
+          "reset": 0,
+          "in": 0
+        },
+        {
+          "reset": 0,
+          "in": 4
+        },
+        {
+          "reset": 0,
+          "in": 0
+        },
+        {
+          "reset": 0,
+          "in": 0
+        }
+      ],
+      "expected": [
+        {
+          "out": 0
+        },
+        {
+          "out": 0
+        },
+        {
+          "out": 2
+        },
+        {
+          "out": 2
+        },
+        {
+          "out": 6
+        },
+        {
+          "out": 6
+        }
+      ]
+    },
+    {
+      "id": "s3",
+      "spec_quote": "32-bit vector",
+      "covers": [
+        "behavior",
+        "boundary",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "reset": 1,
+          "in": 0
+        },
+        {
+          "reset": 0,
+          "in": 2147483648
+        },
+        {
+          "reset": 0,
+          "in": 1
+        },
+        {
+          "reset": 0,
+          "in": 0
+        },
+        {
+          "reset": 0,
+          "in": 0
+        }
+      ],
+      "expected": [
+        {
+          "out": 0
+        },
+        {
+          "out": 0
+        },
+        {
+          "out": 2147483648
+        },
+        {
+          "out": 2147483649
+        },
+        {
+          "out": 2147483649
+        }
+      ]
+    },
+    {
+      "id": "s4",
+      "spec_quote": "active high synchronous reset",
+      "covers": [
+        "behavior",
+        "priority",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "reset": 1,
+          "in": 0
+        },
+        {
+          "reset": 0,
+          "in": 4294967295
+        },
+        {
+          "reset": 1,
+          "in": 0
+        },
+        {
+          "reset": 0,
+          "in": 4294967295
+        },
+        {
+          "reset": 0,
+          "in": 0
+        }
+      ],
+      "expected": [
+        {
+          "out": 0
+        },
+        {
+          "out": 0
+        },
+        {
+          "out": 0
+        },
+        {
+          "out": 0
+        },
+        {
+          "out": 4294967295
+        }
+      ]
+    }
+  ],
+  "usage": {
+    "calls": 3,
+    "attempts": 3,
+    "tokens": 19260,
+    "go_usd": 0.013249980000000001,
+    "charged_usd": 0
+  },
+  "route": "no_arbiter",
+  "last_round": 1
+}

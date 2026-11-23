@@ -1,0 +1,24 @@
+def reference(vectors):
+    q = 0x34
+    prev = None
+    out = []
+    for v in vectors:
+        if isinstance(v, dict):
+            d = v.get('d', 0)
+            r = v.get('reset', 0)
+            has_clk = 'clk' in v
+            c = v.get('clk', 0)
+        else:
+            d = v[0] if len(v) > 0 else 0
+            r = v[1] if len(v) > 1 else 0
+            has_clk = len(v) > 2
+            c = v[2] if has_clk else 0
+        if has_clk:
+            edge = (c == 0) if prev is None else (prev == 1 and c == 0)
+            if edge:
+                q = 0x34 if r else (d & 0xFF)
+            prev = c
+        else:
+            q = 0x34 if r else (d & 0xFF)
+        out.append({'q': q & 0xFF})
+    return out

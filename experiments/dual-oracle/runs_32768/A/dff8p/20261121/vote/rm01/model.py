@@ -1,0 +1,12 @@
+def reference(vectors):
+    q = 0x34
+    out = []
+    for row in vectors:
+        d = row['d'] & 0xFF
+        reset = row['reset'] & 1
+        if reset:
+            q = 0x34
+        else:
+            q = d
+        out.append({'q': q})
+    return out

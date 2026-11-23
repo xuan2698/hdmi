@@ -1,0 +1,16 @@
+def reference(vectors):
+    q = 0
+    out = []
+    for row in vectors:
+        if isinstance(row, dict):
+            d = row['d']
+            r = row['r']
+        else:
+            d = row[0]
+            r = row[1]
+        if r:
+            q = 0
+        else:
+            q = d & 1
+        out.append({'q': q})
+    return out

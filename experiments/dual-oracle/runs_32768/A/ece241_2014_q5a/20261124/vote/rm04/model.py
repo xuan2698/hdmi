@@ -1,0 +1,23 @@
+def reference(vectors):
+    state = 0
+    out = []
+    for row in vectors:
+        if isinstance(row, dict):
+            areset = row["areset"]
+            x = row["x"]
+        else:
+            areset = row[0]
+            x = row[1]
+        if areset:
+            state = 0
+        elif state == 0:
+            if x:
+                state = 1
+        elif state == 1:
+            if x:
+                state = 2
+        else:
+            if not x:
+                state = 1
+        out.append({"z": 0 if state in (0, 2) else 1})
+    return out

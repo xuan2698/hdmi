@@ -1,0 +1,15 @@
+def reference(vectors):
+    q = 0
+    pa = 0
+    out = []
+    for v in vectors:
+        a = v.get('a', 0)
+        clk = v.get('clk', 1)
+        if clk == 1:
+            if a == 1:
+                q = 4
+            elif pa == 0:
+                q = (q + 1) % 7
+            pa = a
+        out.append({'q': q})
+    return out

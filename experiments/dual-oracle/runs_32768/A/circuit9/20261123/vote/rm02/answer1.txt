@@ -1,0 +1,11 @@
+def reference(vectors):
+    q = 0
+    out = []
+    for v in vectors:
+        a = v.get('a', 0)
+        if a:
+            q = 4
+        else:
+            q = (q + 1) % 7
+        out.append({'q': q})
+    return out

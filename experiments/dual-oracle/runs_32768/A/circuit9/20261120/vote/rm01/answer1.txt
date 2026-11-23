@@ -1,0 +1,19 @@
+```python
+def reference(vectors):
+    q = 0
+    prev_clk = 0
+    out = []
+    for row in vectors:
+        clk = row['clk']
+        a = row['a']
+        if clk == 1 and prev_clk == 0:
+            if a:
+                q = 4
+            elif q == 6:
+                q = 0
+            else:
+                q += 1
+        prev_clk = clk
+        out.append({'q': q})
+    return out
+```

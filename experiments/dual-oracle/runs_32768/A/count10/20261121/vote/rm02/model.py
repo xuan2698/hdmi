@@ -1,0 +1,18 @@
+def reference(vectors):
+    q = 0
+    result = []
+    for row in vectors:
+        if isinstance(row, dict):
+            reset = row.get("reset", 0)
+        elif isinstance(row, (list, tuple)):
+            reset = row[0] if row else 0
+        else:
+            reset = row
+        if reset:
+            q = 0
+        else:
+            q += 1
+            if q == 10:
+                q = 0
+        result.append({"q": q})
+    return result

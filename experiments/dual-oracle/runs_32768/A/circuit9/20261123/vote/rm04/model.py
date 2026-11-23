@@ -1,0 +1,16 @@
+def reference(vectors):
+    q = 4
+    out = []
+    for row in vectors:
+        if isinstance(row, dict):
+            a = row['a']
+        elif isinstance(row, (list, tuple)):
+            a = row[0]
+        else:
+            a = row
+        if a:
+            q = 4
+        else:
+            q = 0 if q == 6 else q + 1
+        out.append({'q': q})
+    return out

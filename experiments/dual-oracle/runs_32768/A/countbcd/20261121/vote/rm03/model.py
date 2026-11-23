@@ -1,0 +1,35 @@
+def reference(vectors):
+    q = 0
+    out = []
+    for row in vectors:
+        reset = row.get('reset', 0)
+        if reset:
+            q = 0
+        else:
+            ones = q & 15
+            tens = (q >> 4) & 15
+            hundreds = (q >> 8) & 15
+            thousands = (q >> 12) & 15
+            ones += 1
+            if ones == 10:
+                ones = 0
+                tens += 1
+                if tens == 10:
+                    tens = 0
+                    hundreds += 1
+                    if hundreds == 10:
+                        hundreds = 0
+                        thousands += 1
+                        if thousands == 10:
+                            thousands = 0
+            q = (thousands << 12) | (hundreds << 8) | (tens << 4) | ones
+
+        ones = q & 15
+        tens = (q >> 4) & 15
+        hundreds = (q >> 8) & 15
+        ena1 = 1 if ones == 9 else 0
+        ena2 = 1 if (ones == 9 and tens == 9) else 0
+        ena3 = 1 if (ones == 9 and tens == 9 and hundreds == 9) else 0
+        ena = (ena3 << 2) | (ena2 << 1) | ena1
+        out.append({'ena': ena, 'q': q})
+    return out

@@ -1,0 +1,16 @@
+def reference(vectors):
+    state = 0  # 0: no 1 seen, last 0; 1: no 1 seen, last 1; 2: 1 seen, last 0; 3: 1 seen, last 1
+    result = []
+    for row in vectors:
+        areset = row.get('areset', 0) & 1
+        x = row.get('x', 0) & 1
+        if areset:
+            state = 0
+        else:
+            if state == 0:
+                state = 1 if x else 0
+            else:
+                state = 3 if x else 2
+        z = 1 if (state == 1 or state == 2) else 0
+        result.append({'z': z})
+    return result

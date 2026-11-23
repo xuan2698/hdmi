@@ -1,0 +1,16 @@
+def reference(vectors):
+    state = 'A'
+    transitions = {
+        'A': ('A', 'B'),
+        'B': ('C', 'B'),
+        'C': ('A', 'D'),
+        'D': ('C', 'B'),
+    }
+    result = []
+    for row in vectors:
+        if row.get('reset', 0):
+            state = 'A'
+        else:
+            state = transitions[state][row['in']]
+        result.append({'out': 1 if state == 'D' else 0})
+    return result

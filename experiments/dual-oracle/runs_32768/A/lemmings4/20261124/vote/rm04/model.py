@@ -1,0 +1,71 @@
+def reference(vectors):
+    state = 'L'
+    cnt = 0
+    out = []
+    for v in vectors:
+        areset = v['areset']
+        bump_left = v['bump_left']
+        bump_right = v['bump_right']
+        ground = v['ground']
+        dig = v['dig']
+
+        if areset:
+            state = 'L'
+            cnt = 0
+        else:
+            if state == 'L':
+                if not ground:
+                    state = 'FL'
+                    cnt = 0
+                elif dig:
+                    state = 'DL'
+                elif bump_left:
+                    state = 'R'
+            elif state == 'R':
+                if not ground:
+                    state = 'FR'
+                    cnt = 0
+                elif dig:
+                    state = 'DR'
+                elif bump_right:
+                    state = 'L'
+            elif state == 'FL':
+                if ground:
+                    if cnt >= 20:
+                        state = 'S'
+                        cnt = 0
+                    else:
+                        state = 'L'
+                        cnt = 0
+                elif cnt < 20:
+                    cnt += 1
+            elif state == 'FR':
+                if ground:
+                    if cnt >= 20:
+                        state = 'S'
+                        cnt = 0
+                    else:
+                        state = 'R'
+                        cnt = 0
+                elif cnt < 20:
+                    cnt += 1
+            elif state == 'DL':
+                if not ground:
+                    state = 'FL'
+                    cnt = 0
+            elif state == 'DR':
+                if not ground:
+                    state = 'FR'
+                    cnt = 0
+
+        o = {'walk_left': 0, 'walk_right': 0, 'aaah': 0, 'digging': 0}
+        if state == 'L':
+            o['walk_left'] = 1
+        elif state == 'R':
+            o['walk_right'] = 1
+        elif state == 'FL' or state == 'FR':
+            o['aaah'] = 1
+        elif state == 'DL' or state == 'DR':
+            o['digging'] = 1
+        out.append(o)
+    return out

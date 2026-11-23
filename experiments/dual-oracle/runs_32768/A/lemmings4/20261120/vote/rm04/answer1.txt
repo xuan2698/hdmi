@@ -1,0 +1,89 @@
+def reference(vectors):
+    state = 0
+    fall_count = 0
+    result = []
+    for row in vectors:
+        if isinstance(row, dict):
+            areset = row.get('areset', 0)
+            bump_left = row.get('bump_left', 0)
+            bump_right = row.get('bump_right', 0)
+            ground = row.get('ground', 0)
+            dig = row.get('dig', 0)
+        else:
+            areset, bump_left, bump_right, ground, dig = row[0], row[1], row[2], row[3], row[4]
+
+        if areset:
+            state = 0
+            fall_count = 0
+        else:
+            next_state = state
+            next_fall = 0
+
+            if state == 0:
+                if ground == 0:
+                    next_state = 2
+                    next_fall = 1
+                elif dig:
+                    next_state = 4
+                elif bump_left:
+                    next_state = 1
+                else:
+                    next_state = 0
+
+            elif state == 1:
+                if ground == 0:
+                    next_state = 3
+                    next_fall = 1
+                elif dig:
+                    next_state = 5
+                elif bump_right:
+                    next_state = 0
+                else:
+                    next_state = 1
+
+            elif state == 2:
+                if ground == 0:
+                    next_state = 2
+                    next_fall = fall_count + 1
+                elif fall_count > 20:
+                    next_state = 6
+                else:
+                    next_state = 0
+
+            elif state == 3:
+                if ground == 0:
+                    next_state = 3
+                    next_fall = fall_count + 1
+                elif fall_count > 20:
+                    next_state = 6
+                else:
+                    next_state = 1
+
+            elif state == 4:
+                if ground == 0:
+                    next_state = 2
+                    next_fall = 1
+                else:
+                    next_state = 4
+
+            elif state == 5:
+                if ground == 0:
+                    next_state = 3
+                    next_fall = 1
+                else:
+                    next_state = 5
+
+            else:
+                next_state = 6
+
+            state = next_state
+            fall_count = next_fall
+
+        result.append({
+            'walk_left': 1 if state == 0 else 0,
+            'walk_right': 1 if state == 1 else 0,
+            'aaah': 1 if state == 2 or state == 3 else 0,
+            'digging': 1 if state == 4 or state == 5 else 0
+        })
+
+    return result

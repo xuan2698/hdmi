@@ -1,0 +1,13 @@
+def reference(vectors):
+    Q = 0
+    out = []
+    for v in vectors:
+        if isinstance(v, dict):
+            L = v['L']
+            q_in = v['q_in']
+            r_in = v['r_in']
+        else:
+            L, q_in, r_in = v
+        Q = r_in if L else q_in
+        out.append({'Q': Q & 1})
+    return out

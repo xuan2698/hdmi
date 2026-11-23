@@ -1,0 +1,20 @@
+def reference(vectors):
+    seen = False
+    out = []
+    for row in vectors:
+        areset = row.get('areset', 0)
+        x = row.get('x', 0)
+        if areset:
+            seen = False
+            z = 0
+        else:
+            if not seen:
+                if x:
+                    z = 1
+                    seen = True
+                else:
+                    z = 0
+            else:
+                z = 1 - x
+        out.append({'z': z})
+    return out

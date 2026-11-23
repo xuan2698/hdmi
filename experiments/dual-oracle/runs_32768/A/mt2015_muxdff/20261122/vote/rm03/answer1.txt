@@ -1,0 +1,5 @@
+def reference(vectors):
+    result = []
+    for row in vectors:
+        result.append({'Q': row['r_in'] if row['L'] else row['q_in']})
+    return result

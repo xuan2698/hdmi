@@ -1,0 +1,42 @@
+def reference(vectors):
+    hour = 12
+    minute = 0
+    second = 0
+    pm = 0
+    result = []
+
+    for row in vectors:
+        if isinstance(row, dict):
+            rst = row.get("reset", 0)
+            ena = row.get("ena", 0)
+        else:
+            rst = row[0]
+            ena = row[1]
+
+        if rst:
+            hour = 12
+            minute = 0
+            second = 0
+            pm = 0
+        elif ena:
+            second += 1
+            if second == 60:
+                second = 0
+                minute += 1
+                if minute == 60:
+                    minute = 0
+                    if hour == 11:
+                        hour = 12
+                        pm ^= 1
+                    elif hour == 12:
+                        hour = 1
+                    else:
+                        hour += 1
+
+        hh = ((hour // 10) << 4) | (hour % 10)
+        mm = ((minute // 10) << 4) | (minute % 10)
+        ss = ((second // 10) << 4) | (second % 10)
+
+        result.append({"pm": pm, "hh": hh, "mm": mm, "ss": ss})
+
+    return result

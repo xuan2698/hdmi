@@ -1,0 +1,209 @@
+{
+  "decisions": [],
+  "RM": "def reference(vectors):\n    q = 0\n    result = []\n    for row in vectors:\n        r = row.get('r', 0)\n        d = row.get('d', 0)\n        q = 0 if r else (d & 1)\n        result.append({'q': q})\n    return result\n",
+  "TB": [
+    {
+      "id": "s1",
+      "spec_quote": "active high synchronous reset (reset output to 0)",
+      "covers": [
+        "behavior",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "d": 1,
+          "r": 1
+        },
+        {
+          "d": 0,
+          "r": 1
+        },
+        {
+          "d": 0,
+          "r": 0
+        },
+        {
+          "d": 1,
+          "r": 0
+        },
+        {
+          "d": 1,
+          "r": 0
+        }
+      ],
+      "expected": [
+        {
+          "q": 0
+        },
+        {
+          "q": 0
+        },
+        {
+          "q": 0
+        },
+        {
+          "q": 1
+        },
+        {
+          "q": 1
+        }
+      ]
+    },
+    {
+      "id": "s2",
+      "spec_quote": "reset output to 0",
+      "covers": [
+        "behavior",
+        "priority",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "d": 0,
+          "r": 1
+        },
+        {
+          "d": 1,
+          "r": 0
+        },
+        {
+          "d": 1,
+          "r": 1
+        },
+        {
+          "d": 1,
+          "r": 0
+        },
+        {
+          "d": 1,
+          "r": 1
+        }
+      ],
+      "expected": [
+        {
+          "q": 0
+        },
+        {
+          "q": 1
+        },
+        {
+          "q": 0
+        },
+        {
+          "q": 1
+        },
+        {
+          "q": 0
+        }
+      ]
+    },
+    {
+      "id": "s3",
+      "spec_quote": "Implement a simple D flip flop",
+      "covers": [
+        "behavior",
+        "boundary"
+      ],
+      "vectors": [
+        {
+          "d": 0,
+          "r": 1
+        },
+        {
+          "d": 0,
+          "r": 0
+        },
+        {
+          "d": 1,
+          "r": 0
+        },
+        {
+          "d": 1,
+          "r": 0
+        },
+        {
+          "d": 0,
+          "r": 0
+        },
+        {
+          "d": 0,
+          "r": 0
+        }
+      ],
+      "expected": [
+        {
+          "q": 0
+        },
+        {
+          "q": 0
+        },
+        {
+          "q": 1
+        },
+        {
+          "q": 1
+        },
+        {
+          "q": 0
+        },
+        {
+          "q": 0
+        }
+      ]
+    },
+    {
+      "id": "s4",
+      "spec_quote": "synchronous reset",
+      "covers": [
+        "behavior",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "d": 1,
+          "r": 1
+        },
+        {
+          "d": 0,
+          "r": 0
+        },
+        {
+          "d": 1,
+          "r": 0
+        },
+        {
+          "d": 0,
+          "r": 1
+        },
+        {
+          "d": 1,
+          "r": 1
+        },
+        {
+          "d": 1,
+          "r": 0
+        }
+      ],
+      "expected": [
+        {
+          "q": 0
+        },
+        {
+          "q": 0
+        },
+        {
+          "q": 1
+        },
+        {
+          "q": 0
+        },
+        {
+          "q": 0
+        },
+        {
+          "q": 1
+        }
+      ]
+    }
+  ]
+}

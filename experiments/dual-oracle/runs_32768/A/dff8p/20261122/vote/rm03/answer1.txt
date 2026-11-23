@@ -1,0 +1,2 @@
+def reference(vectors):
+    return [{'q': 0x34 if r['reset'] else (r['d'] & 0xFF)} for r in vectors]

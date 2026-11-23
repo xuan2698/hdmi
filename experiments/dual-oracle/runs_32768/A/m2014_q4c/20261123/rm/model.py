@@ -1,0 +1,9 @@
+def reference(vectors):
+    q = 0
+    result = []
+    for row in vectors:
+        d = row['d'] & 1
+        r = row['r'] & 1
+        q = 0 if r else d
+        result.append({'q': q})
+    return result

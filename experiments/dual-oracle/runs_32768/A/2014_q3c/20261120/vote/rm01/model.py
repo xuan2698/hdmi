@@ -1,0 +1,9 @@
+def reference(vectors):
+    y0_tbl = ((0, 1), (1, 0), (0, 1), (1, 0), (1, 0), (0, 0), (0, 0), (0, 0))
+    z_tbl = (0, 0, 0, 1, 1, 0, 0, 0)
+    result = []
+    for row in vectors:
+        y = row['y']
+        x = row['x']
+        result.append({'Y0': y0_tbl[y][x], 'z': z_tbl[y]})
+    return result
