@@ -1,0 +1,49 @@
+def reference(vectors):
+    state = 1
+    prev_clk = 0
+    res = []
+    for i, v in enumerate(vectors):
+        rst = v.get('rst', 0) & 1
+        data_in = v.get('data_in', 0) & 0xF
+        has = v.get('has_data_to_send', 0) & 1
+
+        if 'edge' in v:
+            e = v['edge']
+            posedge = (e == 'posedge' or e == 'pos' or e == 1 or e == '1' or e is True)
+        elif 'clk' in v:
+            clk = v['clk'] & 1
+            posedge = (clk == 1 and prev_clk == 0)
+            prev_clk = clk
+        else:
+            posedge = (i % 2 == 0)
+
+        if rst:
+            state = 1
+
+        if rst:
+            tr = 1
+            to = 0
+            do = 0
+        else:
+            tr = state & 0xF
+            if state in (1, 2, 4, 8):
+                nxt = ((state << 1) | (state >> 3)) & 0xF
+                to = nxt
+                do = data_in if has else 0
+            else:
+                to = 0
+                do = 0
+
+        res.append({
+            'data_out': do & 0xF,
+            'token_received': tr & 0xF,
+            'token': to & 0xF
+        })
+
+        if posedge and not rst:
+            if state in (1, 2, 4, 8):
+                state = ((state << 1) | (state >> 3)) & 0xF
+            else:
+                state = 1
+
+    return res

@@ -1,0 +1,101 @@
+def reference(vectors):
+    M = (1 << 8) - 1
+    IDLE, LOAD, COMPUTE, OUTPUT = 0, 1, 2, 3
+
+    st = IDLE
+    a_reg = 0
+    b_reg = 0
+    res = 0
+    ov = 0
+    prev_clk = 0
+    out = []
+
+    for idx, row in enumerate(vectors):
+        def g(name, default=0):
+            if isinstance(row, dict):
+                return row.get(name, default)
+            if isinstance(row, (list, tuple)):
+                if len(row) >= 8:
+                    mp = {
+                        'i_clk': 0, 'i_rst_n': 1, 'i_start': 2, 'i_enable': 3,
+                        'i_mode': 4, 'i_clear': 5, 'i_operand_a': 6, 'i_operand_b': 7
+                    }
+                else:
+                    mp = {
+                        'i_rst_n': 0, 'i_start': 1, 'i_enable': 2,
+                        'i_mode': 3, 'i_clear': 4, 'i_operand_a': 5, 'i_operand_b': 6
+                    }
+                pos = mp.get(name)
+                if pos is not None and pos < len(row):
+                    return row[pos]
+            return default
+
+        rst = g('i_rst_n', 1)
+
+        if rst == 0:
+            st = IDLE
+            a_reg = 0
+            b_reg = 0
+            res = 0
+            ov = 0
+
+        is_pos = None
+        if isinstance(row, dict) and 'edge' in row:
+            e = row['edge']
+            if isinstance(e, str):
+                is_pos = ('pos' in e.lower())
+            else:
+                is_pos = (e == 1)
+        else:
+            clk = g('i_clk', None)
+            if clk is not None:
+                is_pos = (clk == 1 and prev_clk == 0)
+                prev_clk = clk
+            else:
+                is_pos = (idx % 2 == 0)
+                prev_clk = 1 if is_pos else 0
+
+        out.append({
+            'o_resultant_sum': res & M,
+            'o_overflow': ov & 1,
+            'o_ready': 1 if st == OUTPUT else 0,
+            'o_status': st & 3
+        })
+
+        if is_pos:
+            if rst == 0:
+                st = IDLE
+                a_reg = 0
+                b_reg = 0
+                res = 0
+                ov = 0
+            elif g('i_clear', 0) == 1:
+                st = IDLE
+                a_reg = 0
+                b_reg = 0
+                res = 0
+                ov = 0
+            else:
+                if st == IDLE:
+                    if g('i_enable', 0) == 1 and g('i_start', 0) == 1:
+                        st = LOAD
+                    else:
+                        st = IDLE
+                elif st == LOAD:
+                    a_reg = g('i_operand_a', 0) & M
+                    b_reg = g('i_operand_b', 0) & M
+                    st = COMPUTE
+                elif st == COMPUTE:
+                    a = a_reg - 256 if (a_reg & 0x80) else a_reg
+                    b = b_reg - 256 if (b_reg & 0x80) else b_reg
+                    if g('i_mode', 0) == 1:
+                        full = a - b
+                    else:
+                        full = a + b
+                    res = full & M
+                    ov = 1 if (full < -128 or full > 127) else 0
+                    st = OUTPUT
+                elif st == OUTPUT:
+                    st = IDLE
+
+    return out

@@ -1,0 +1,80 @@
+def reference(vectors):
+    st = 0
+    res = 0
+    ov = 0
+    a_lat = 0
+    b_lat = 0
+    outs = []
+
+    for idx, v in enumerate(vectors):
+        def get(name, default=0):
+            if isinstance(v, dict):
+                return v.get(name, default)
+            return default
+
+        rst = get('i_rst_n', 1)
+        if rst == 0:
+            st = 0
+            res = 0
+            ov = 0
+            a_lat = 0
+            b_lat = 0
+
+        pos = None
+        if isinstance(v, dict):
+            edge_val = None
+            for key in ('edge', 'i_edge', 'clk_edge', 'i_clk', 'clk'):
+                if key in v:
+                    edge_val = v[key]
+                    break
+            if edge_val is not None:
+                if isinstance(edge_val, str):
+                    s = edge_val.lower()
+                    if s in ('posedge', 'pos', 'rise', 'rising', 'p', '1'):
+                        pos = True
+                    elif s in ('negedge', 'neg', 'fall', 'falling', 'n', '0'):
+                        pos = False
+                    else:
+                        pos = ('pos' in s) or ('rise' in s) or s.startswith('p')
+                else:
+                    pos = int(edge_val) == 1
+        if pos is None:
+            pos = (idx % 2 == 0)
+
+        ready = 1 if st == 3 else 0
+        outs.append({
+            'o_resultant_sum': res & 0xff,
+            'o_overflow': ov & 1,
+            'o_ready': ready,
+            'o_status': st & 3
+        })
+
+        if pos and rst != 0:
+            if get('i_clear', 0):
+                st = 0
+                res = 0
+                ov = 0
+                a_lat = 0
+                b_lat = 0
+            elif get('i_enable', 0) == 0:
+                st = 0
+            else:
+                if st == 0:
+                    if get('i_start', 0):
+                        st = 1
+                elif st == 1:
+                    a_lat = get('i_operand_a', 0) & 0xff
+                    b_lat = get('i_operand_b', 0) & 0xff
+                    st = 2
+                elif st == 2:
+                    a_s = a_lat - 256 if (a_lat & 0x80) else a_lat
+                    b_s = b_lat - 256 if (b_lat & 0x80) else b_lat
+                    mode = get('i_mode', 0) & 1
+                    raw = a_s + b_s if mode == 0 else a_s - b_s
+                    ov = 1 if raw < -128 or raw > 127 else 0
+                    res = raw & 0xff
+                    st = 3
+                elif st == 3:
+                    st = 0
+
+    return outs

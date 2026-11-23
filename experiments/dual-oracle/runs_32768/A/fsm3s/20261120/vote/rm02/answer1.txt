@@ -1,0 +1,26 @@
+def reference(vectors):
+    s = 0
+    prev_clk = 0
+    use_clk = any('clk' in r for r in vectors)
+    result = []
+    for r in vectors:
+        edge = True
+        if use_clk:
+            clk = r.get('clk', 0) & 1
+            edge = (prev_clk == 0 and clk == 1)
+            prev_clk = clk
+        if edge:
+            if r.get('reset', 0) & 1:
+                s = 0
+            else:
+                x = r.get('in', 0) & 1
+                if s == 0:
+                    s = 1 if x else 0
+                elif s == 1:
+                    s = 1 if x else 2
+                elif s == 2:
+                    s = 3 if x else 0
+                else:
+                    s = 1 if x else 2
+        result.append({'out': 1 if s == 3 else 0})
+    return result

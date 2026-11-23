@@ -1,0 +1,18 @@
+def reference(vectors):
+    q = 0
+    out = []
+    prev_clk = 0
+    for row in vectors:
+        if 'clk' in row:
+            clk = row['clk'] & 1
+            edge = prev_clk == 0 and clk == 1
+            prev_clk = clk
+        else:
+            edge = True
+        if edge:
+            if row.get('reset', 0):
+                q = 0
+            else:
+                q = row['d'] & 0xFF
+        out.append({'q': q})
+    return out

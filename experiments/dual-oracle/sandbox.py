@@ -4,8 +4,8 @@ import json
 import subprocess
 from functools import cache
 from pathlib import Path
+from tempfile import NamedTemporaryFile
 
-from pilot2_generate import atomic
 from simulate import COMMAND_ENV, RunError, validate_rows
 
 HERE = Path(__file__).resolve().parent
@@ -20,7 +20,10 @@ def worker_path():
         raise ValueError("The inherited sandbox implementation changed")
     worker = worker.replace(original, '"set", "sorted", "sum", "tuple", "zip", "str", "isinstance")')
     output = HERE / ".work/checker_worker.py"
-    atomic(output, worker)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    with NamedTemporaryFile(mode="w", encoding="utf-8", dir=output.parent, delete=False) as temporary:
+        temporary.write(worker)
+    Path(temporary.name).replace(output)
     return output
 
 

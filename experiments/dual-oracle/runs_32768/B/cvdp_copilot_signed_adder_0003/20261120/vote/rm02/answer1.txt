@@ -1,0 +1,86 @@
+```python
+def reference(vectors):
+    state = 0  # 0:IDLE, 1:LOAD, 2:COMPUTE, 3:OUTPUT
+    opa = 0
+    opb = 0
+    result = 0
+    overflow = 0
+    out = []
+    for idx, row in enumerate(vectors):
+        rst_n = row.get('i_rst_n', 1)
+        if rst_n == 0:
+            state = 0
+            opa = 0
+            opb = 0
+            result = 0
+            overflow = 0
+
+        out.append({
+            'o_resultant_sum': result & 0xFF,
+            'o_overflow': overflow & 1,
+            'o_ready': 1 if state == 3 else 0,
+            'o_status': state & 3
+        })
+
+        is_posedge = False
+        found = False
+        if 'edge' in row:
+            found = True
+            e = row['edge']
+            if isinstance(e, str):
+                if e.lower() in ('posedge', 'pos', '1'):
+                    is_posedge = True
+                elif e.lower() in ('negedge', 'neg', '0'):
+                    is_posedge = False
+            else:
+                if e == 1:
+                    is_posedge = True
+        elif 'i_clk' in row:
+            found = True
+            if row['i_clk'] == 1:
+                is_posedge = True
+        elif 'clk' in row:
+            found = True
+            if row['clk'] == 1:
+                is_posedge = True
+        if not found:
+            is_posedge = (idx % 2 == 0)
+
+        if is_posedge and rst_n != 0:
+            i_clear = row.get('i_clear', 0)
+            i_enable = row.get('i_enable', 0)
+            i_start = row.get('i_start', 0)
+            i_mode = row.get('i_mode', 0)
+            i_a = row.get('i_operand_a', 0) & 0xFF
+            i_b = row.get('i_operand_b', 0) & 0xFF
+
+            if i_clear:
+                state = 0
+                result = 0
+                overflow = 0
+            elif not i_enable:
+                state = 0
+            else:
+                if state == 0:
+                    if i_start:
+                        state = 1
+                elif state == 1:
+                    opa = i_a
+                    opb = i_b
+                    state = 2
+                elif state == 2:
+                    a = opa
+                    b = opb
+                    if i_mode == 0:
+                        res = (a + b) & 0xFF
+                        ov = 1 if (((a & 0x80) == (b & 0x80)) and ((res & 0x80) != (a & 0x80))) else 0
+                    else:
+                        res = (a - b) & 0xFF
+                        ov = 1 if (((a & 0x80) != (b & 0x80)) and ((res & 0x80) != (a & 0x80))) else 0
+                    result = res
+                    overflow = ov
+                    state = 3
+                elif state == 3:
+                    state = 0
+    return out
+```

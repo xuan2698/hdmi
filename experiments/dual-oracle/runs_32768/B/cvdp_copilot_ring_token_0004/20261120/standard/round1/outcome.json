@@ -1,0 +1,712 @@
+{
+  "decisions": [
+    {
+      "id": "s1_reset_priority/5/data_out",
+      "label": "RM",
+      "spec_quote": "When a node holds the token and `has_data_to_send` is HIGH, `data_out` reflects `data_in`."
+    },
+    {
+      "id": "s1_reset_priority/5/token",
+      "label": "RM",
+      "spec_quote": "representing the token being passed to the next node"
+    },
+    {
+      "id": "s1_reset_priority/6/token",
+      "label": "RM",
+      "spec_quote": "representing the token being passed to the next node"
+    },
+    {
+      "id": "s2_token_cycle_idle/3/token",
+      "label": "RM",
+      "spec_quote": "representing the token being passed to the next node"
+    },
+    {
+      "id": "s2_token_cycle_idle/4/token",
+      "label": "RM",
+      "spec_quote": "representing the token being passed to the next node"
+    },
+    {
+      "id": "s2_token_cycle_idle/5/token",
+      "label": "RM",
+      "spec_quote": "representing the token being passed to the next node"
+    },
+    {
+      "id": "s3_data_boundaries/3/data_out",
+      "label": "RM",
+      "spec_quote": "When a node holds the token and `has_data_to_send` is HIGH, `data_out` reflects `data_in`."
+    },
+    {
+      "id": "s3_data_boundaries/3/token",
+      "label": "RM",
+      "spec_quote": "representing the token being passed to the next node"
+    },
+    {
+      "id": "s3_data_boundaries/4/token",
+      "label": "RM",
+      "spec_quote": "representing the token being passed to the next node"
+    },
+    {
+      "id": "s4_idle_no_data/3/token",
+      "label": "RM",
+      "spec_quote": "representing the token being passed to the next node"
+    },
+    {
+      "id": "s4_idle_no_data/4/token",
+      "label": "RM",
+      "spec_quote": "representing the token being passed to the next node"
+    },
+    {
+      "id": "s4_idle_no_data/5/token",
+      "label": "RM",
+      "spec_quote": "representing the token being passed to the next node"
+    },
+    {
+      "id": "s5_reset_async_recovery/3/token",
+      "label": "RM",
+      "spec_quote": "representing the token being passed to the next node"
+    },
+    {
+      "id": "s5_reset_async_recovery/4/token",
+      "label": "RM",
+      "spec_quote": "representing the token being passed to the next node"
+    },
+    {
+      "id": "s5_reset_async_recovery/5/token",
+      "label": "RM",
+      "spec_quote": "representing the token being passed to the next node"
+    },
+    {
+      "id": "s6_consecutive_transmissions/3/data_out",
+      "label": "RM",
+      "spec_quote": "When a node holds the token and `has_data_to_send` is HIGH, `data_out` reflects `data_in`."
+    },
+    {
+      "id": "s6_consecutive_transmissions/3/token",
+      "label": "RM",
+      "spec_quote": "representing the token being passed to the next node"
+    },
+    {
+      "id": "s6_consecutive_transmissions/4/token",
+      "label": "RM",
+      "spec_quote": "representing the token being passed to the next node"
+    }
+  ],
+  "RM": "def reference(vectors):\n    state=1\n    token=0\n    data_out=0\n    res=[]\n    prev_clk=0\n    for i,v in enumerate(vectors):\n        rst=v.get('rst',0)\n        data_in=v.get('data_in',0)&0xF\n        has=v.get('has_data_to_send',0)&1\n        if 'clk' in v:\n            clk=v['clk']&1\n            posedge=(clk==1 and prev_clk==0)\n            prev_clk=clk\n        elif 'edge' in v:\n            e=v['edge']\n            posedge=(e=='posedge' or e=='pos' or e==1)\n        else:\n            posedge=(i%2==0)\n        if rst:\n            state=1\n            token=0\n            data_out=0\n        res.append({\n            'data_out':data_out&0xF,\n            'token_received':state&0xF,\n            'token':token&0xF\n        })\n        if posedge and not rst:\n            if state in (1,2,4,8):\n                next_state=((state<<1)|(state>>3))&0xF\n                next_token=state\n                next_data_out=data_in if has else 0\n            else:\n                next_state=1\n                next_token=0\n                next_data_out=0\n            state=next_state\n            token=next_token\n            data_out=next_data_out\n    return res\n",
+  "TB": [
+    {
+      "id": "s1_reset_priority",
+      "spec_quote": "When `rst` is asserted HIGH, the FSM resets to `NODE0`, `token_received` is set to `4'b0001`, and other outputs are cleared.",
+      "covers": [
+        "behavior",
+        "priority",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "rst": 1,
+          "data_in": 15,
+          "has_data_to_send": 1
+        },
+        {
+          "rst": 1,
+          "data_in": 0,
+          "has_data_to_send": 0
+        },
+        {
+          "rst": 0,
+          "data_in": 15,
+          "has_data_to_send": 1
+        },
+        {
+          "rst": 0,
+          "data_in": 9,
+          "has_data_to_send": 1
+        },
+        {
+          "rst": 0,
+          "data_in": 5,
+          "has_data_to_send": 0
+        },
+        {
+          "rst": 1,
+          "data_in": 5,
+          "has_data_to_send": 1
+        },
+        {
+          "rst": 0,
+          "data_in": 2,
+          "has_data_to_send": 1
+        }
+      ],
+      "expected": [
+        {
+          "data_out": 0,
+          "token_received": 1,
+          "token": 0
+        },
+        {
+          "data_out": 0,
+          "token_received": 1,
+          "token": 0
+        },
+        {
+          "data_out": 0,
+          "token_received": 1,
+          "token": 0
+        },
+        {
+          "data_out": 0,
+          "token_received": 1,
+          "token": 0
+        },
+        {
+          "data_out": 15,
+          "token_received": 1,
+          "token": 2
+        },
+        {
+          "data_out": 15,
+          "token_received": 2,
+          "token": 4
+        },
+        {
+          "data_out": 9,
+          "token_received": 2,
+          "token": 4
+        },
+        {
+          "data_out": 9,
+          "token_received": 4,
+          "token": 8
+        },
+        {
+          "data_out": 0,
+          "token_received": 4,
+          "token": 8
+        },
+        {
+          "data_out": 0,
+          "token_received": 8,
+          "token": 1
+        },
+        {
+          "data_out": 0,
+          "token_received": 1,
+          "token": 0
+        },
+        {
+          "data_out": 0,
+          "token_received": 1,
+          "token": 0
+        },
+        {
+          "data_out": 2,
+          "token_received": 1,
+          "token": 2
+        },
+        {
+          "data_out": 2,
+          "token_received": 2,
+          "token": 4
+        }
+      ]
+    },
+    {
+      "id": "s2_token_cycle_idle",
+      "spec_quote": "The FSM cycles through the four nodes, passing the token sequentially.",
+      "covers": [
+        "behavior",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "rst": 1,
+          "data_in": 0,
+          "has_data_to_send": 0
+        },
+        {
+          "rst": 0,
+          "data_in": 0,
+          "has_data_to_send": 0
+        },
+        {
+          "rst": 0,
+          "data_in": 0,
+          "has_data_to_send": 0
+        },
+        {
+          "rst": 0,
+          "data_in": 0,
+          "has_data_to_send": 0
+        },
+        {
+          "rst": 0,
+          "data_in": 0,
+          "has_data_to_send": 0
+        },
+        {
+          "rst": 0,
+          "data_in": 0,
+          "has_data_to_send": 0
+        }
+      ],
+      "expected": [
+        {
+          "data_out": 0,
+          "token_received": 1,
+          "token": 0
+        },
+        {
+          "data_out": 0,
+          "token_received": 1,
+          "token": 0
+        },
+        {
+          "data_out": 0,
+          "token_received": 1,
+          "token": 2
+        },
+        {
+          "data_out": 0,
+          "token_received": 2,
+          "token": 4
+        },
+        {
+          "data_out": 0,
+          "token_received": 2,
+          "token": 4
+        },
+        {
+          "data_out": 0,
+          "token_received": 4,
+          "token": 8
+        },
+        {
+          "data_out": 0,
+          "token_received": 4,
+          "token": 8
+        },
+        {
+          "data_out": 0,
+          "token_received": 8,
+          "token": 1
+        },
+        {
+          "data_out": 0,
+          "token_received": 8,
+          "token": 1
+        },
+        {
+          "data_out": 0,
+          "token_received": 1,
+          "token": 2
+        },
+        {
+          "data_out": 0,
+          "token_received": 1,
+          "token": 2
+        },
+        {
+          "data_out": 0,
+          "token_received": 2,
+          "token": 4
+        }
+      ]
+    },
+    {
+      "id": "s3_data_boundaries",
+      "spec_quote": "When a node holds the token and `has_data_to_send` is HIGH, `data_out` reflects `data_in`.",
+      "covers": [
+        "behavior",
+        "boundary",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "rst": 1,
+          "data_in": 0,
+          "has_data_to_send": 0
+        },
+        {
+          "rst": 0,
+          "data_in": 15,
+          "has_data_to_send": 1
+        },
+        {
+          "rst": 0,
+          "data_in": 0,
+          "has_data_to_send": 1
+        },
+        {
+          "rst": 0,
+          "data_in": 15,
+          "has_data_to_send": 0
+        },
+        {
+          "rst": 0,
+          "data_in": 1,
+          "has_data_to_send": 1
+        },
+        {
+          "rst": 0,
+          "data_in": 15,
+          "has_data_to_send": 1
+        }
+      ],
+      "expected": [
+        {
+          "data_out": 0,
+          "token_received": 1,
+          "token": 0
+        },
+        {
+          "data_out": 0,
+          "token_received": 1,
+          "token": 0
+        },
+        {
+          "data_out": 15,
+          "token_received": 1,
+          "token": 2
+        },
+        {
+          "data_out": 15,
+          "token_received": 2,
+          "token": 4
+        },
+        {
+          "data_out": 0,
+          "token_received": 2,
+          "token": 4
+        },
+        {
+          "data_out": 0,
+          "token_received": 4,
+          "token": 8
+        },
+        {
+          "data_out": 0,
+          "token_received": 4,
+          "token": 8
+        },
+        {
+          "data_out": 0,
+          "token_received": 8,
+          "token": 1
+        },
+        {
+          "data_out": 1,
+          "token_received": 8,
+          "token": 1
+        },
+        {
+          "data_out": 1,
+          "token_received": 1,
+          "token": 2
+        },
+        {
+          "data_out": 15,
+          "token_received": 1,
+          "token": 2
+        },
+        {
+          "data_out": 15,
+          "token_received": 2,
+          "token": 4
+        }
+      ]
+    },
+    {
+      "id": "s4_idle_no_data",
+      "spec_quote": "If no node is ready to send, `data_out` remains `4'b0000`.",
+      "covers": [
+        "behavior",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "rst": 1,
+          "data_in": 15,
+          "has_data_to_send": 0
+        },
+        {
+          "rst": 0,
+          "data_in": 15,
+          "has_data_to_send": 0
+        },
+        {
+          "rst": 0,
+          "data_in": 9,
+          "has_data_to_send": 0
+        },
+        {
+          "rst": 0,
+          "data_in": 0,
+          "has_data_to_send": 0
+        },
+        {
+          "rst": 0,
+          "data_in": 15,
+          "has_data_to_send": 0
+        }
+      ],
+      "expected": [
+        {
+          "data_out": 0,
+          "token_received": 1,
+          "token": 0
+        },
+        {
+          "data_out": 0,
+          "token_received": 1,
+          "token": 0
+        },
+        {
+          "data_out": 0,
+          "token_received": 1,
+          "token": 2
+        },
+        {
+          "data_out": 0,
+          "token_received": 2,
+          "token": 4
+        },
+        {
+          "data_out": 0,
+          "token_received": 2,
+          "token": 4
+        },
+        {
+          "data_out": 0,
+          "token_received": 4,
+          "token": 8
+        },
+        {
+          "data_out": 0,
+          "token_received": 4,
+          "token": 8
+        },
+        {
+          "data_out": 0,
+          "token_received": 8,
+          "token": 1
+        },
+        {
+          "data_out": 0,
+          "token_received": 8,
+          "token": 1
+        },
+        {
+          "data_out": 0,
+          "token_received": 1,
+          "token": 2
+        }
+      ]
+    },
+    {
+      "id": "s5_reset_async_recovery",
+      "spec_quote": "`rst`: Asynchronous active-high reset signal that initializes the FSM.",
+      "covers": [
+        "behavior",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "rst": 1,
+          "data_in": 0,
+          "has_data_to_send": 0
+        },
+        {
+          "rst": 0,
+          "data_in": 0,
+          "has_data_to_send": 0
+        },
+        {
+          "rst": 0,
+          "data_in": 0,
+          "has_data_to_send": 0
+        },
+        {
+          "rst": 1,
+          "data_in": 15,
+          "has_data_to_send": 1
+        },
+        {
+          "rst": 0,
+          "data_in": 15,
+          "has_data_to_send": 1
+        }
+      ],
+      "expected": [
+        {
+          "data_out": 0,
+          "token_received": 1,
+          "token": 0
+        },
+        {
+          "data_out": 0,
+          "token_received": 1,
+          "token": 0
+        },
+        {
+          "data_out": 0,
+          "token_received": 1,
+          "token": 2
+        },
+        {
+          "data_out": 0,
+          "token_received": 2,
+          "token": 4
+        },
+        {
+          "data_out": 0,
+          "token_received": 2,
+          "token": 4
+        },
+        {
+          "data_out": 0,
+          "token_received": 4,
+          "token": 8
+        },
+        {
+          "data_out": 0,
+          "token_received": 1,
+          "token": 0
+        },
+        {
+          "data_out": 0,
+          "token_received": 1,
+          "token": 0
+        },
+        {
+          "data_out": 15,
+          "token_received": 1,
+          "token": 2
+        },
+        {
+          "data_out": 15,
+          "token_received": 2,
+          "token": 4
+        }
+      ]
+    },
+    {
+      "id": "s6_consecutive_transmissions",
+      "spec_quote": "Multiple data transmissions in consecutive cycles.",
+      "covers": [
+        "behavior",
+        "boundary",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "rst": 1,
+          "data_in": 0,
+          "has_data_to_send": 0
+        },
+        {
+          "rst": 0,
+          "data_in": 10,
+          "has_data_to_send": 1
+        },
+        {
+          "rst": 0,
+          "data_in": 12,
+          "has_data_to_send": 1
+        },
+        {
+          "rst": 0,
+          "data_in": 3,
+          "has_data_to_send": 1
+        },
+        {
+          "rst": 0,
+          "data_in": 1,
+          "has_data_to_send": 1
+        },
+        {
+          "rst": 0,
+          "data_in": 0,
+          "has_data_to_send": 1
+        },
+        {
+          "rst": 0,
+          "data_in": 15,
+          "has_data_to_send": 1
+        }
+      ],
+      "expected": [
+        {
+          "data_out": 0,
+          "token_received": 1,
+          "token": 0
+        },
+        {
+          "data_out": 0,
+          "token_received": 1,
+          "token": 0
+        },
+        {
+          "data_out": 10,
+          "token_received": 1,
+          "token": 2
+        },
+        {
+          "data_out": 10,
+          "token_received": 2,
+          "token": 4
+        },
+        {
+          "data_out": 12,
+          "token_received": 2,
+          "token": 4
+        },
+        {
+          "data_out": 12,
+          "token_received": 4,
+          "token": 8
+        },
+        {
+          "data_out": 3,
+          "token_received": 4,
+          "token": 8
+        },
+        {
+          "data_out": 3,
+          "token_received": 8,
+          "token": 1
+        },
+        {
+          "data_out": 1,
+          "token_received": 8,
+          "token": 1
+        },
+        {
+          "data_out": 1,
+          "token_received": 1,
+          "token": 2
+        },
+        {
+          "data_out": 0,
+          "token_received": 1,
+          "token": 2
+        },
+        {
+          "data_out": 0,
+          "token_received": 2,
+          "token": 4
+        },
+        {
+          "data_out": 15,
+          "token_received": 2,
+          "token": 4
+        },
+        {
+          "data_out": 15,
+          "token_received": 4,
+          "token": 8
+        }
+      ]
+    }
+  ]
+}

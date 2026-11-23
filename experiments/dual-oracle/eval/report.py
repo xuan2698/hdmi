@@ -74,25 +74,34 @@ def gather(cases, phase):
     return runs, scenes, judges, stages
 
 
-def generation_paths(phase):
-    rows = []
+def phase_artifacts(phase):
+    limit = load(REPORTS / f"{phase}_generation.json")["N"]
     for group, task, seed in roster(phase):
         home = case_path(group, task, seed)
         for log in sorted(home.rglob("calls.jsonl")):
             path = log.parent
-            records = ledger(path)
-            if not records:
+            relative = path.relative_to(home)
+            if relative.parts[0] == "vote" and int(relative.name.removeprefix("rm")) > limit:
                 continue
-            if any(r.get("max_tokens") != TOKEN_PLAN["max_tokens"] or r.get("model_requested") != PLAN["model"]
-                   or r.get("thinking") != PLAN["thought"] for r in records):
-                raise ValueError(f"Mixed inference settings in {path.relative_to(RUNS)}")
-            status = load(path / "status.json") if (path / "status.json").is_file() else None
-            rows.append({"group": group, "task": task, "seed": seed, "path": path.relative_to(home).as_posix(),
-                         "status": "unfinished" if status is None else ("ready" if status["ok"] else "failed"),
-                         "last_error": "; ".join(status["errors"][-1:]) if status else None,
-                         "truncated_transports": sum(r.get("truncated", False) for r in records),
-                         "transport_failures": sum(r["status"] != "received" for r in records),
-                         **usage([path])})
+            yield group, task, seed, path, relative
+
+
+def generation_paths(phase):
+    rows = []
+    for group, task, seed, path, relative in phase_artifacts(phase):
+        records = ledger(path)
+        if not records:
+            continue
+        if any(r.get("max_tokens") != TOKEN_PLAN["max_tokens"] or r.get("model_requested") != PLAN["model"]
+               or r.get("thinking") != PLAN["thought"] for r in records):
+            raise ValueError(f"Mixed inference settings in {path.relative_to(RUNS)}")
+        status = load(path / "status.json") if (path / "status.json").is_file() else None
+        rows.append({"group": group, "task": task, "seed": seed, "path": relative.as_posix(),
+                     "status": "unfinished" if status is None else ("ready" if status["ok"] else "failed"),
+                     "last_error": "; ".join(status["errors"][-1:]) if status else None,
+                     "truncated_transports": sum(r.get("truncated", False) for r in records),
+                     "transport_failures": sum(r["status"] != "received" for r in records),
+                     **usage([path])})
     csv_file(phase, "generation_paths", rows)
     counts = {key: sum(r["status"] == key for r in rows) for key in ("ready", "failed", "unfinished")}
     counts["terminal"] = counts["ready"] + counts["failed"]
@@ -330,7 +339,7 @@ def table(header,rows):
 
 def render(phase,summary,pairs,diag,judgments,stages,samples,paths,by_task):
     gen=load(REPORTS/f"{phase}_generation.json")
-    bill=usage(p.parent for p in RUNS.rglob("calls.jsonl"))
+    bill=usage(path for _, _, _, path, _ in phase_artifacts(phase))
     vote = f"Vote-think 使用 {gen['N']} 个独立成员。" if gen["N"] else "Vote-think 的 N 未完成标定。"
     stop = f"{gen['stopped']} 个配置因停止规则封存。" if gen.get("stopped") else ""
     text=["# Dual-oracle "+("五题试运行" if phase=="pilot" else "全量结果"),

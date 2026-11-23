@@ -1,0 +1,242 @@
+{
+  "decisions": [],
+  "RM": "def reference(vectors):\n    s = 0\n    result = []\n    for r in vectors:\n        if r.get('reset', 0):\n            s = 0\n        else:\n            i = r.get('in', 0)\n            if s == 0:\n                s = 1 if i else 0\n            elif s == 1:\n                s = 2 if not i else 1\n            elif s == 2:\n                s = 3 if i else 0\n            else:\n                s = 2 if not i else 1\n        result.append({'out': 1 if s == 3 else 0})\n    return result\n",
+  "TB": [
+    {
+      "id": "s1",
+      "spec_quote": "// A | A, B | 0",
+      "covers": [
+        "behavior",
+        "boundary",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "in": 0,
+          "reset": 1
+        },
+        {
+          "in": 0,
+          "reset": 0
+        },
+        {
+          "in": 1,
+          "reset": 0
+        },
+        {
+          "in": 1,
+          "reset": 0
+        },
+        {
+          "in": 0,
+          "reset": 0
+        }
+      ],
+      "expected": [
+        {
+          "out": 0
+        },
+        {
+          "out": 0
+        },
+        {
+          "out": 0
+        },
+        {
+          "out": 0
+        },
+        {
+          "out": 0
+        }
+      ]
+    },
+    {
+      "id": "s2",
+      "spec_quote": "// B | C, B | 0\n// C | A, D | 0\n// D | C, B | 1",
+      "covers": [
+        "behavior",
+        "boundary",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "in": 0,
+          "reset": 1
+        },
+        {
+          "in": 1,
+          "reset": 0
+        },
+        {
+          "in": 0,
+          "reset": 0
+        },
+        {
+          "in": 0,
+          "reset": 0
+        },
+        {
+          "in": 1,
+          "reset": 0
+        },
+        {
+          "in": 0,
+          "reset": 0
+        },
+        {
+          "in": 1,
+          "reset": 0
+        },
+        {
+          "in": 0,
+          "reset": 0
+        },
+        {
+          "in": 1,
+          "reset": 0
+        },
+        {
+          "in": 1,
+          "reset": 0
+        }
+      ],
+      "expected": [
+        {
+          "out": 0
+        },
+        {
+          "out": 0
+        },
+        {
+          "out": 0
+        },
+        {
+          "out": 0
+        },
+        {
+          "out": 0
+        },
+        {
+          "out": 0
+        },
+        {
+          "out": 1
+        },
+        {
+          "out": 0
+        },
+        {
+          "out": 1
+        },
+        {
+          "out": 0
+        }
+      ]
+    },
+    {
+      "id": "s3",
+      "spec_quote": "Include a synchronous active high reset that resets the FSM to state A.",
+      "covers": [
+        "behavior",
+        "boundary",
+        "priority",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "in": 0,
+          "reset": 1
+        },
+        {
+          "in": 1,
+          "reset": 0
+        },
+        {
+          "in": 0,
+          "reset": 0
+        },
+        {
+          "in": 1,
+          "reset": 0
+        },
+        {
+          "in": 1,
+          "reset": 1
+        },
+        {
+          "in": 0,
+          "reset": 0
+        },
+        {
+          "in": 1,
+          "reset": 0
+        }
+      ],
+      "expected": [
+        {
+          "out": 0
+        },
+        {
+          "out": 0
+        },
+        {
+          "out": 0
+        },
+        {
+          "out": 1
+        },
+        {
+          "out": 0
+        },
+        {
+          "out": 0
+        },
+        {
+          "out": 0
+        }
+      ]
+    },
+    {
+      "id": "s4",
+      "spec_quote": "Include a synchronous active high reset that resets the FSM to state A.",
+      "covers": [
+        "behavior",
+        "boundary",
+        "priority",
+        "reset"
+      ],
+      "vectors": [
+        {
+          "in": 0,
+          "reset": 1
+        },
+        {
+          "in": 1,
+          "reset": 0
+        },
+        {
+          "in": 0,
+          "reset": 1
+        },
+        {
+          "in": 1,
+          "reset": 0
+        }
+      ],
+      "expected": [
+        {
+          "out": 0
+        },
+        {
+          "out": 0
+        },
+        {
+          "out": 0
+        },
+        {
+          "out": 0
+        }
+      ]
+    }
+  ]
+}

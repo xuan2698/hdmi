@@ -1,0 +1,21 @@
+def reference(vectors):
+    nxt=((0,1),(2,1),(0,3),(2,1))
+    out=(0,0,0,1)
+    state=0
+    inp={'in':0,'reset':0}
+    res=[]
+    for row in vectors:
+        for k in ('in','reset'):
+            if k in row:
+                inp[k]=row[k]
+        if inp['reset']:
+            state=0
+        else:
+            state=nxt[state][inp['in']]
+        res.append({'out':out[state]})
+        m=row.get('mid')
+        if isinstance(m,dict):
+            for k in ('in','reset'):
+                if k in m:
+                    inp[k]=m[k]
+    return res

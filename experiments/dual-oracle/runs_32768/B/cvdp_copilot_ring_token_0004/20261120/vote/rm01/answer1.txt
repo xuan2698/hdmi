@@ -1,0 +1,46 @@
+def reference(vectors):
+    state = 0
+    res = []
+    for idx, row in enumerate(vectors):
+        if isinstance(row, dict):
+            rst = int(row.get('rst', 0)) & 1
+            data_in = int(row.get('data_in', 0)) & 0xF
+            has = int(row.get('has_data_to_send', 0)) & 1
+            if 'edge' in row:
+                e = row['edge']
+                if isinstance(e, str):
+                    posedge = 1 if 'pos' in e.lower() else 0
+                else:
+                    posedge = 1 if int(e) != 0 else 0
+            elif 'clk' in row:
+                posedge = 1 if int(row['clk']) & 1 else 0
+            else:
+                posedge = 1 if idx % 2 == 0 else 0
+        else:
+            try:
+                rst = int(row[0]) & 1
+                data_in = int(row[1]) & 0xF
+                has = int(row[2]) & 1
+            except Exception:
+                rst = 0
+                data_in = 0
+                has = 0
+            posedge = 1 if idx % 2 == 0 else 0
+        if rst:
+            state = 0
+        if rst:
+            token_received = 1
+            token = 0
+            data_out = 0
+        else:
+            token_received = 1 << state
+            token = 1 << ((state + 1) & 3)
+            data_out = data_in if has else 0
+        res.append({
+            'data_out': data_out,
+            'token_received': token_received,
+            'token': token
+        })
+        if posedge and not rst:
+            state = (state + 1) & 3
+    return res

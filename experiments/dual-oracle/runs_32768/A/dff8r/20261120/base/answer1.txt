@@ -1,0 +1,21 @@
+def reference(vectors):
+    q = 0
+    d = 0
+    reset = 0
+    out = []
+    for row in vectors:
+        if 'd' in row:
+            d = row['d']
+        if 'reset' in row:
+            reset = row['reset']
+        if reset & 1:
+            q = 0
+        else:
+            q = d & 0xFF
+        out.append({'q': q})
+        mid = row.get('mid', {})
+        if 'd' in mid:
+            d = mid['d']
+        if 'reset' in mid:
+            reset = mid['reset']
+    return out

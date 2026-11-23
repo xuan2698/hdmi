@@ -1,0 +1,15 @@
+def reference(vectors):
+    out = 0
+    prev = 0
+    result = []
+    mask = 0xFFFFFFFF
+    for row in vectors:
+        reset = int(row['reset']) & 1
+        inp = int(row['in']) & mask
+        if reset:
+            out = 0
+        else:
+            out = (out | (prev & (~inp & mask))) & mask
+        prev = inp
+        result.append({'out': out})
+    return result
