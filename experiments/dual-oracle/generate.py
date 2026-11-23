@@ -7,7 +7,7 @@ import re
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from api import ArtifactError, checkpoint, code, relaxed_json, usage
-from data import (PLAN, ROOT, archived_base, atomic, case_path, checker_inputs, check_rows,
+from data import (PLAN, REPORTS, ROOT, TOKEN_PLAN, archived, atomic, case_path, checker_inputs, check_rows,
                   interface, load, original_base_prompt, roster, save, vectors,
                   verify_protocol)
 
@@ -355,10 +355,6 @@ class Cell:
     def base(self):
         try:
             if self.group == "A":
-                source, historic = archived_base(self.task, self.seed)
-                if source is not None:
-                    self.validate_model(source)
-                    return self.output("Base-think", source, historical_usage=historic, reused=True)
                 source = self.model(self.home / "base", original_base_prompt(self.task, self.seed), archived_prompt=True)
             else:
                 source = self.model(self.home / "base", self.context + INITIAL)
@@ -481,51 +477,57 @@ def calibrate(cells):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("phase", choices=("initial", "pilot", "full"))
+    parser.add_argument("phase", choices=("initial", "pilot", "calibrate", "full"))
     parser.add_argument("--workers", type=int, default=12)
     args = parser.parse_args()
     verify_protocol()
     if load(ROOT / "reports/cvdp_self_replay.json")["status"] != "passed":
         raise SystemExit("The CVDP self-replay gate must pass first")
-    phase = "pilot" if args.phase == "initial" else args.phase
-    gate_path = ROOT / "reports/pilot_gate.json"
-    if phase == "pilot" and gate_path.is_file() and load(gate_path)["status"] == "failed_after_3_repairs":
-        raise SystemExit("The stopped pilot is sealed. Its available artifacts can be evaluated offline.")
+    phase = "pilot" if args.phase in ("initial", "calibrate") else args.phase
+    gate_path = REPORTS / "pilot_gate.json"
+    passing = gate_path.is_file() and load(gate_path)["status"] == "passed"
+    if args.phase == "calibrate":
+        if not passing:
+            raise SystemExit("Vote budget calibration requires a passing pilot")
+        n, _, budget = calibrate([Cell(*row) for row in roster("pilot")])
+        save(REPORTS / "pilot_vote_budget.json", budget)
+        print("Budget-matched Vote-think N", n, flush=True)
+        return
+    if phase == "pilot" and gate_path.is_file():
+        raise SystemExit("The amended pilot is sealed. Use its archived artifacts for analysis.")
     if phase == "full":
-        if not gate_path.is_file() or load(gate_path)["status"] != "passed":
+        if not passing:
             raise SystemExit("Pilot generation gate did not pass")
-        amendment = load(ROOT / "amendment.json")
+        amendment_file = REPORTS / "amendment.json"
         from data import REPO
-        import subprocess
-        committed = subprocess.check_output(["git", "show", f"HEAD:{(ROOT / 'amendment.json').relative_to(REPO)}"], cwd=REPO)
-        if committed != (ROOT / "amendment.json").read_bytes():
+        if archived("HEAD", amendment_file.relative_to(REPO)) != amendment_file.read_bytes():
             raise SystemExit("Commit Amendment before full generation")
-        prereg = ROOT / "PREREG.md"
-        if (f"Vote-think 的 N = {amendment['N']}。" not in prereg.read_text() or
-                subprocess.check_output(["git", "show", f"HEAD:{prereg.relative_to(REPO)}"], cwd=REPO)
-                != prereg.read_bytes()):
-            raise SystemExit("The N selection must be stated in the committed PREREG.md Amendment")
+        n = load(amendment_file)["N"]
+        if f"Vote-think 的 N = {n}。" not in (ROOT / "PREREG.md").read_text():
+            raise SystemExit("Record the selected N in the committed preregistration")
+    else:
+        n = TOKEN_PLAN["pilot_vote_members"]
+
     cells = [Cell(*row) for row in roster(phase)]
     with ThreadPoolExecutor(max_workers=args.workers) as jobs:
-        list(jobs.map(lambda cell: cell.start() if args.phase == "initial" else cell.run(), cells))
-    if args.phase == "initial":
-        return
-    if phase == "pilot":
-        n, acquired, budget = calibrate(cells)
-        save(ROOT / "reports/pilot_vote_budget.json", budget)
-    else:
-        n = amendment["N"]
-        acquired = {c: [None] * n for c in cells}
+        if args.phase == "initial":
+            list(jobs.map(Cell.start, cells))
+            return
+        configured = [jobs.submit(Cell.run, cell) for cell in cells]
+        acquired = {cell: [None] * n for cell in cells}
         vote_members(cells, 1, n, acquired)
+        for result in configured:
+            result.result()
     for cell in cells:
         cell.vote(n, acquired[cell])
     rows = [load(c.home / "configs" / arm / "result.json") for c in cells for arm in PLAN["configs"]]
     failures = sum(r["status"] != "ready" for r in rows)
-    save(ROOT / "reports" / f"{phase}_generation.json",
+    save(REPORTS / f"{phase}_generation.json",
          {"cases": len(cells), "configs": len(rows), "failures": failures, "N": n})
     if phase == "pilot":
-        save(ROOT / "reports/pilot_gate.json", {"status": "passed" if failures / len(rows) <= PLAN["max_pilot_generation_failure"]
-             else "repair_required", "failures": failures, "planned": len(rows), "N": n})
+        rate = failures / len(rows)
+        save(gate_path, {"status": "passed" if rate <= PLAN["max_pilot_generation_failure"] else "failed",
+                         "failures": failures, "planned": len(rows), "N": n, "config_failure_rate": rate})
     print(phase, len(rows), "configs", failures, "unusable", flush=True)
 
 

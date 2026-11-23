@@ -23,6 +23,10 @@ from sandbox import check_rows
 
 PREREG = "bd908835da383229dace363008f2ba74aa2192c4"
 PLAN = load(ROOT / "protocol.json")
+TOKEN_PLAN = load(ROOT / "output_limit.json")
+RUNS = ROOT / "runs_32768"
+REPORTS = ROOT / "reports" / "32768"
+EVALUATION = ROOT / "eval" / "32768"
 
 
 def archived(commit, path):
@@ -36,6 +40,9 @@ def verify_protocol():
         raise ValueError("Original preregistration changed")
     if (ROOT / "protocol.json").read_bytes() != archived(PREREG, prefix / "protocol.json"):
         raise ValueError("Frozen protocol changed")
+    for filename in ("PREREG.md", "output_limit.json"):
+        if (ROOT / filename).read_bytes() != archived("HEAD", prefix / filename):
+            raise ValueError("Commit the token-limit amendment before generating")
     if setup()["model"] != PLAN["model"] or setup()["repeat_seeds"] != PLAN["seeds"]:
         raise ValueError("Model or v3 seed registry changed")
 
@@ -114,7 +121,7 @@ def interface(group, name):
 
 
 def case_path(group, task, seed):
-    return ROOT / "runs" / group / task / str(seed)
+    return RUNS / group / task / str(seed)
 
 
 def vectors(group, task, seed, ports):

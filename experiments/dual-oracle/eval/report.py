@@ -13,10 +13,9 @@ import numpy as np
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 from api import usage
-from data import PLAN, case_path, interface, load, roster, save
+from data import EVALUATION, PLAN, REPORTS, RUNS, case_path, interface, load, roster, save
 from pilot3_report import exact_signed_rank
 
-REPORTS = ROOT / "reports"
 CONTRASTS = ("Base-think", "Vote-think", "Ours-noTB", "Ours-noArbiter")
 DIAG_FIELDS = ("compared_cycles", "compared_samples", "known_samples", "disagreement_cycles",
                "disagreement_samples", "TB_wrong_samples", "RM_wrong_samples", "common_mode_samples")
@@ -254,13 +253,13 @@ def table(header,rows):
 
 def render(phase,summary,pairs,diag,judgments,stages,samples):
     gen=load(REPORTS/f"{phase}_generation.json")
-    bill=usage(p.parent for d in (ROOT/"runs",REPORTS/"repair_archive") for p in d.rglob("calls.jsonl"))
+    bill=usage(p.parent for p in RUNS.rglob("calls.jsonl"))
     vote = f"Vote-think 使用 {gen['N']} 个独立成员。" if gen["N"] else "Vote-think 的 N 未完成标定。"
     stop = f"{gen['stopped']} 个配置因停止规则封存。" if gen.get("stopped") else ""
     text=["# Dual-oracle "+("五题试运行" if phase=="pilot" else "全量结果"),
           f"计划 {gen['configs']} 个配置，{gen['failures']} 个生成失败。"+stop+vote+
           "CVDP golden 自回放在 50 份冻结输入上通过。",
-          "[预注册](../PREREG.md) · [逐次结果]("+phase+"_by_run.csv) · [逐题结果]("+phase+"_by_task.csv)",
+          "[预注册](../../PREREG.md) · [逐次结果]("+phase+"_by_run.csv) · [逐题结果]("+phase+"_by_task.csv)",
           "## 主指标和追加场景评测",
           "误报率基于可评分检查器。生成失败保留在 H 的计划分母并计零检出。所有单元均在门槛处封存的配置显示为空。"
           "部分封存时 H 为已观测的计划分母下界。追加评测沿同一场景输入顺序接到 A0 之后。",
@@ -305,7 +304,7 @@ if __name__=="__main__":
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument("phase",choices=("pilot","full"))
     phase=p.parse_args().phase
-    cases=[load(ROOT/"eval"/phase/g/t/f"{s}.json") for g,t,s in roster(phase)]
+    cases=[load(EVALUATION/phase/g/t/f"{s}.json") for g,t,s in roster(phase)]
     rows,scenes,judges,stages=gather(cases,phase)
     task,summary=summaries(rows,phase)
     pairs=paired(task,phase)

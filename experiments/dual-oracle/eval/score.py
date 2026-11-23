@@ -11,7 +11,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
-from data import PLAN, case_path, checker_inputs, check_rows, interface, load, roster, save, vectors
+from data import EVALUATION, PLAN, REPORTS, case_path, checker_inputs, check_rows, interface, load, roster, save, vectors
 from api import relaxed_json
 from pilot2_sim import VectorReplay
 from pilot3_evaluation import archive, upstream
@@ -261,7 +261,7 @@ class Evaluation:
                   "fixed_cycles": len(self.fixed), "stages": stages, "outcomes": results}
         if scenes is not None:
             result["scene_id_collision"] = len({r["id"] for r in scenes}) != len(scenes)
-        save(ROOT / "eval" / phase / self.group / self.task / f"{self.seed}.json", result)
+        save(EVALUATION / phase / self.group / self.task / f"{self.seed}.json", result)
         print(self.group, self.task, self.seed, "evaluated", flush=True)
 
 
@@ -271,7 +271,7 @@ def main():
     p.add_argument("dataset", type=Path)
     p.add_argument("--workers", type=int, default=5)
     args = p.parse_args()
-    generation = load(ROOT / "reports" / f"{args.phase}_generation.json")
+    generation = load(REPORTS / f"{args.phase}_generation.json")
     cases = roster(args.phase)
     if generation["configs"] != len(cases) * len(PLAN["configs"]):
         raise SystemExit("Freeze the generation matrix before scoring H")

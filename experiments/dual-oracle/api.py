@@ -10,7 +10,7 @@ import threading
 import tokenize
 from io import StringIO
 
-from data import PLAN, atomic, load, save, setup
+from data import PLAN, TOKEN_PLAN, atomic, load, save, setup
 import llm
 
 llm.api_key = lambda: os.environ.get("OPENCODE_GO_API_KEY", "").strip()
@@ -77,7 +77,7 @@ def request(path, prompt):
         with SEM:
             if STOP.is_set():
                 raise AccessError("The provider rejected the frozen model")
-            reply = llm.call_llm(plan["model"], prompt, plan["temperature"], plan["max_tokens"])
+            reply = llm.call_llm(plan["model"], prompt, plan["temperature"], TOKEN_PLAN["max_tokens"])
             native = NATIVE.get()
     except llm.LLMError as error:
         history = ledger(path)
