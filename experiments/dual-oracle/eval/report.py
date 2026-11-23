@@ -374,7 +374,7 @@ def render(phase,summary,pairs,diag,judgments,stages,samples,paths,by_task):
              pct(r["repair_success"])) for r in judgments]),
           table(("组","RM 阶段","可评分","误报率"),[(r["group"],r["stage"],r["scored"],pct(r["FPR"])) for r in stages]),
           "## 用量和案例",
-          f"收据去重后共 {bill['calls']:,} 次逻辑调用、{bill['attempts']:,} 次传输、{bill['tokens']:,} token，"
+          f"本阶段配置使用的收据去重后共 {bill['calls']:,} 次逻辑调用、{bill['attempts']:,} 次传输、{bill['tokens']:,} token，"
           f"Go 用量 USD {bill['go_usd']:.6f}，额外扣费 USD {bill['charged_usd']:.6f}。"
           "历史 Base-think 用量在原始结果中单列。共享节点在配置归属用量中可重复出现。",
           f"可归档完整 Ours 单元 {samples['complete']} 个，共模错误场景 {samples['common']} 个，"
@@ -387,6 +387,17 @@ def render(phase,summary,pairs,diag,judgments,stages,samples,paths,by_task):
                         "碰撞路径上的 TB 定点修正不计成功率。原始生成产物保持归档。")
     else:
         common, scored = by_task
+        calibration = load(REPORTS / "pilot_vote_budget.json")
+        method_tokens = {
+            arm: sum(row["tokens"] for row in summary if row["mode"] == "primary" and row["config"] == arm)
+            / gen["cases"] for arm in ("Ours", "Vote-think")
+        }
+        text.append(
+            f"正式 N={gen['N']}。五题标定中 Ours 平均 {calibration['target']:,.1f} token，"
+            f"同一 N 的投票平均 {calibration['mean_tokens']:,.1f}。全量 Ours 平均 "
+            f"{method_tokens['Ours']:,.1f}，全量 Vote-think 平均 {method_tokens['Vote-think']:,.1f}。"
+            "[标定候选](pilot_vote_budget.json)"
+        )
         totals = {(x["group"], x["task"]): x for x in common if x["config"] == "Ours" and x["stage"] == "final"}
         judge = {(x["group"], x["task"]): x for x in scored if x["config"] == "Ours" and x["label"] == "all"}
         task_list = sorted({(group, task) for group, task, _ in roster("full")})

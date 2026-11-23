@@ -1,0 +1,36 @@
+def reference(vectors):
+    state = 0
+    res = []
+    for i, row in enumerate(vectors):
+        rst = row.get('rst', 0)
+        data_in = row.get('data_in', 0)
+        has = row.get('has_data_to_send', 0)
+        edge = row.get('edge')
+        if edge is None:
+            clk = row.get('clk')
+            if clk is not None:
+                pos = (clk == 1)
+            else:
+                pos = (i % 2 == 0)
+        else:
+            if isinstance(edge, str):
+                pos = edge.lower().startswith('p')
+            else:
+                pos = (edge == 1)
+        if rst:
+            state = 0
+            data_out = 0
+            token_received = 1
+            token = 0
+        else:
+            data_out = data_in if has else 0
+            token_received = 1 << state
+            token = 1 << ((state + 1) % 4)
+        res.append({
+            'data_out': data_out & 0xF,
+            'token_received': token_received & 0xF,
+            'token': token & 0xF
+        })
+        if pos and not rst:
+            state = (state + 1) % 4
+    return res

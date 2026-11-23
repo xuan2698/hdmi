@@ -1,0 +1,89 @@
+def reference(vectors):
+    state = 0
+    opa = 0
+    opb = 0
+    res = 0
+    ov = 0
+    outs = []
+    for i, row in enumerate(vectors):
+        def g(k, d=0):
+            try:
+                return row.get(k, d)
+            except AttributeError:
+                return d
+
+        pos = (i % 2 == 0)
+        if isinstance(row, dict):
+            if 'edge' in row:
+                e = row['edge']
+                if isinstance(e, str):
+                    pos = e.lower() in ('posedge', 'p', '1', 'rise', 'rising')
+                else:
+                    pos = bool(e)
+            elif 'i_clk' in row:
+                pos = bool(row['i_clk'])
+
+        rst = g('i_rst_n', 1)
+        if rst == 0:
+            state = 0
+            opa = 0
+            opb = 0
+            res = 0
+            ov = 0
+
+        outs.append({
+            'o_resultant_sum': res & 0xFF,
+            'o_overflow': ov & 1,
+            'o_ready': 1 if state == 3 else 0,
+            'o_status': state & 3
+        })
+
+        if pos:
+            if rst == 0:
+                state = 0
+                opa = 0
+                opb = 0
+                res = 0
+                ov = 0
+            else:
+                if g('i_clear', 0):
+                    state = 0
+                    opa = 0
+                    opb = 0
+                    res = 0
+                    ov = 0
+                else:
+                    if state == 0:
+                        if g('i_enable', 0) and g('i_start', 0):
+                            state = 1
+                    elif state == 1:
+                        opa = g('i_operand_a', 0) & 0xFF
+                        opb = g('i_operand_b', 0) & 0xFF
+                        state = 2
+                    elif state == 2:
+                        a = opa
+                        b = opb
+                        a_s = a - 256 if (a & 0x80) else a
+                        b_s = b - 256 if (b & 0x80) else b
+                        mode = g('i_mode', 0) & 1
+                        if mode == 0:
+                            full = a_s + b_s
+                        else:
+                            full = a_s - b_s
+                        rr = full & 0xFF
+                        rr_s = rr - 256 if (rr & 0x80) else rr
+                        sa = 1 if a_s < 0 else 0
+                        sb = 1 if b_s < 0 else 0
+                        sr = 1 if rr_s < 0 else 0
+                        if mode == 0:
+                            o = 1 if (sa == sb and sr != sa) else 0
+                        else:
+                            o = 1 if (sa != sb and sr != sa) else 0
+                        res = rr
+                        ov = o
+                        state = 3
+                    elif state == 3:
+                        state = 0
+                    else:
+                        state = 0
+    return outs

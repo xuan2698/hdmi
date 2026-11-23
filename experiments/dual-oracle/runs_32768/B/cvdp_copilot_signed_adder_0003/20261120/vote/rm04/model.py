@@ -1,0 +1,75 @@
+def reference(vectors):
+    state = 0
+    result_reg = 0
+    overflow_reg = 0
+    a_reg = 0
+    b_reg = 0
+    outputs = []
+    for idx, row in enumerate(vectors):
+        rst_n = row.get('i_rst_n', 1)
+        start = row.get('i_start', 0)
+        enable = row.get('i_enable', 0)
+        mode = row.get('i_mode', 0)
+        clear = row.get('i_clear', 0)
+        op_a = row.get('i_operand_a', 0) & 0xFF
+        op_b = row.get('i_operand_b', 0) & 0xFF
+
+        if rst_n == 0:
+            state = 0
+            result_reg = 0
+            overflow_reg = 0
+            a_reg = 0
+            b_reg = 0
+
+        outputs.append({
+            'o_resultant_sum': result_reg & 0xFF,
+            'o_overflow': overflow_reg & 1,
+            'o_ready': 1 if state == 3 else 0,
+            'o_status': state & 3
+        })
+
+        if 'edge' in row:
+            e = row['edge']
+            if e == 'posedge' or e == 1 or e == '1':
+                is_posedge = True
+            elif e == 'negedge' or e == 0 or e == '0':
+                is_posedge = False
+            else:
+                is_posedge = (idx % 2 == 0)
+        else:
+            is_posedge = (idx % 2 == 0)
+
+        if is_posedge:
+            if rst_n == 0:
+                pass
+            elif clear == 1:
+                state = 0
+                result_reg = 0
+                overflow_reg = 0
+            elif enable == 0:
+                state = 0
+            else:
+                if state == 0:
+                    if start == 1:
+                        state = 1
+                elif state == 1:
+                    a_reg = op_a
+                    b_reg = op_b
+                    state = 2
+                elif state == 2:
+                    a_s = a_reg if a_reg < 128 else a_reg - 256
+                    b_s = b_reg if b_reg < 128 else b_reg - 256
+                    if mode == 0:
+                        res = a_s + b_s
+                    else:
+                        res = a_s - b_s
+                    if res < -128 or res > 127:
+                        ovf = 1
+                    else:
+                        ovf = 0
+                    result_reg = res & 0xFF
+                    overflow_reg = ovf
+                    state = 3
+                elif state == 3:
+                    state = 0
+    return outputs
