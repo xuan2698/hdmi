@@ -4,10 +4,14 @@ from collections import Counter
 from math import floor
 
 from api import usage
-from data import PLAN, ROOT, case_path, load, roster, save
+from data import PLAN, ROOT, load, roster, save
 
 ARM_ROUTES = {"Ours": "standard", "Ours-R1": "standard",
               "Ours-noReview": "no_review", "Ours-noArbiter": "no_arbiter"}
+
+
+def case_path(group, task, seed):
+    return ROOT / "runs" / group / task / str(seed)
 
 
 def seal_failed():

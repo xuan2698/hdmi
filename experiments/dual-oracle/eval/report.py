@@ -12,8 +12,8 @@ import numpy as np
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
-from api import usage
-from data import EVALUATION, PLAN, REPORTS, RUNS, case_path, interface, load, roster, save
+from api import ledger, usage
+from data import EVALUATION, PLAN, REPORTS, RUNS, TOKEN_PLAN, case_path, interface, load, roster, save
 from pilot3_report import exact_signed_rank
 
 CONTRASTS = ("Base-think", "Vote-think", "Ours-noTB", "Ours-noArbiter")
@@ -72,6 +72,83 @@ def gather(cases, phase):
                        ("judgments", judges), ("rm_stages", stages)):
         csv_file(phase, name, rows)
     return runs, scenes, judges, stages
+
+
+def generation_paths(phase):
+    rows = []
+    for group, task, seed in roster(phase):
+        home = case_path(group, task, seed)
+        for log in sorted(home.rglob("calls.jsonl")):
+            path = log.parent
+            records = ledger(path)
+            if not records:
+                continue
+            if any(r.get("max_tokens") != TOKEN_PLAN["max_tokens"] or r.get("model_requested") != PLAN["model"]
+                   or r.get("thinking") != PLAN["thought"] for r in records):
+                raise ValueError(f"Mixed inference settings in {path.relative_to(RUNS)}")
+            status = load(path / "status.json") if (path / "status.json").is_file() else None
+            rows.append({"group": group, "task": task, "seed": seed, "path": path.relative_to(home).as_posix(),
+                         "status": "unfinished" if status is None else ("ready" if status["ok"] else "failed"),
+                         "last_error": "; ".join(status["errors"][-1:]) if status else None,
+                         "truncated_transports": sum(r.get("truncated", False) for r in records),
+                         "transport_failures": sum(r["status"] != "received" for r in records),
+                         **usage([path])})
+    csv_file(phase, "generation_paths", rows)
+    counts = {key: sum(r["status"] == key for r in rows) for key in ("ready", "failed", "unfinished")}
+    counts["terminal"] = counts["ready"] + counts["failed"]
+    counts["failure_rate"] = proportion(counts["failed"], counts["terminal"])
+    return counts
+
+
+def by_task_diagnostics(phase, scenes, judgments):
+    scene_groups, judgment_groups, points = defaultdict(list), defaultdict(list), defaultdict(dict)
+    for row in scenes:
+        key = (row["group"], row["task"], row["config"], row["stage"])
+        scene_groups[key].append(row)
+    for row in judgments:
+        if not row["spec_quote"]:
+            continue
+        fields = ("group", "task", "config")
+        key = tuple(row[f] for f in fields)
+        judgment_groups[key].append(row)
+        point = (*key, row["seed"], row["scene"], row["sample"], row["output"], row["input_history"])
+        if row["round"] in points[point]:
+            raise ValueError(f"Repeated adjudication in the same round: {point[:-1]}")
+        points[point][row["round"]] = row
+    common, scored, repeat, flips = [], [], defaultdict(list), []
+    for key, rows in scene_groups.items():
+        group, task, config, stage = key
+        known = sum(r.get("known_samples", 0) for r in rows)
+        wrong = sum(r.get("common_mode_samples", 0) for r in rows)
+        common.append({"group": group, "task": task, "config": config, "stage": stage,
+                       "known_samples": known, "common_mode_samples": wrong, "rate": proportion(wrong, known)})
+    for point, both in points.items():
+        if set(both) != {1, 2}:
+            continue
+        before, after = both[1], both[2]
+        changed = before["verdict"] != after["verdict"]
+        repeat[point[:3]].append(changed)
+        if changed:
+            flips.append({"group": point[0], "task": point[1], "config": point[2], "seed": point[3],
+                          "scene": point[4], "sample": point[5], "output": point[6], "input_history": point[7],
+                          "round1": before["verdict"], "round2": after["verdict"],
+                          "candidate_values_changed": (before["RM"], before["TB"]) != (after["RM"], after["TB"]),
+                          "round1_correct": before["correct"], "round2_correct": after["correct"]})
+    for key, rows in judgment_groups.items():
+        labels = ("all", "RM", "TB", "ambiguous")
+        for label in labels:
+            chosen = [r for r in rows if label == "all" or r["verdict"] == label]
+            valid = [r["correct"] for r in chosen if r["correct"] is not None]
+            scored.append({"group": key[0], "task": key[1], "config": key[2], "label": label,
+                           "judged": len(chosen), "scored": len(valid), "correct": sum(valid),
+                           "accuracy": proportion(sum(valid), len(valid)),
+                           "judged_both_rounds": len(repeat[key]) if label == "all" else None,
+                           "flips": sum(repeat[key]) if label == "all" else None})
+    csv_file(phase, "common_mode_by_task", common)
+    csv_file(phase, "judgment_by_task", scored)
+    csv_file(phase, "judgment_flips", flips)
+    save(REPORTS / f"{phase}_judgment_flips.json", flips)
+    return common, scored
 
 
 def summaries(runs, phase):
@@ -251,14 +328,18 @@ def table(header,rows):
                       *["| "+" | ".join(map(str,row))+" |" for row in rows]])
 
 
-def render(phase,summary,pairs,diag,judgments,stages,samples):
+def render(phase,summary,pairs,diag,judgments,stages,samples,paths,by_task):
     gen=load(REPORTS/f"{phase}_generation.json")
     bill=usage(p.parent for p in RUNS.rglob("calls.jsonl"))
     vote = f"Vote-think 使用 {gen['N']} 个独立成员。" if gen["N"] else "Vote-think 的 N 未完成标定。"
     stop = f"{gen['stopped']} 个配置因停止规则封存。" if gen.get("stopped") else ""
     text=["# Dual-oracle "+("五题试运行" if phase=="pilot" else "全量结果"),
-          f"计划 {gen['configs']} 个配置，{gen['failures']} 个生成失败。"+stop+vote+
+          f"计划 {gen['configs']} 个配置，{gen['failures']} 个生成失败"
+          f"（{gen['failures']/gen['configs']:.2%}，门槛用此口径）。"+stop+vote+
           "CVDP golden 自回放在 50 份冻结输入上通过。",
+          f"独立生成路径有 {paths['failed']}/{paths['terminal']} 条失败（{pct(paths['failure_rate'])}），"
+          f"另有 {paths['unfinished']} 条未达终态。按独立产物目录统计，重试只计一路。"
+          f"[逐路径数据]({phase}_generation_paths.csv) · [接口核对](../TOKEN_LIMIT.md)",
           "[预注册](../../PREREG.md) · [逐次结果]("+phase+"_by_run.csv) · [逐题结果]("+phase+"_by_task.csv)",
           "## 主指标和追加场景评测",
           "误报率基于可评分检查器。生成失败保留在 H 的计划分母并计零检出。所有单元均在门槛处封存的配置显示为空。"
@@ -296,6 +377,18 @@ def render(phase,summary,pairs,diag,judgments,stages,samples):
             text.append("停止前的场景归档发现了 ID 碰撞。配对按输入历史和原 TB 值追溯，不能唯一定位的点单列。"
                         "碰撞路径上的 TB 定点修正不计成功率。原始生成产物保持归档。")
     else:
+        common, scored = by_task
+        totals = {(x["group"], x["task"]): x for x in common if x["config"] == "Ours" and x["stage"] == "final"}
+        judge = {(x["group"], x["task"]): x for x in scored if x["config"] == "Ours" and x["label"] == "all"}
+        task_list = sorted({(group, task) for group, task, _ in roster("full")})
+        text += ["## 逐题共模错误和裁决翻转",
+                 table(("组","题","共模错误/已知采样","裁决正确/可评分","翻转/两轮均裁决"),[
+                   (g,t,f'{m.get("common_mode_samples",0)}/{m.get("known_samples",0)}',
+                    f'{j.get("correct",0)}/{j.get("scored",0)}',
+                    f'{j.get("flips",0)}/{j.get("judged_both_rounds",0)}')
+                   for g,t in task_list for m,j in [(totals.get((g,t),{}),judge.get((g,t),{}))]]),
+                 f"[逐题共模 CSV]({phase}_common_mode_by_task.csv) · [逐题裁决 CSV]({phase}_judgment_by_task.csv) · "
+                 f"[翻转明细]({phase}_judgment_flips.json)"]
         text.append("[完整案例](ten_cases.json) · [共模错误案例](common_mode_examples.json) · [裁决错误案例](arbiter_error_examples.json)")
     (REPORTS/("PILOT.md" if phase=="pilot" else "REPORT.md")).write_text("\n\n".join(text)+"\n")
 
@@ -310,6 +403,8 @@ if __name__=="__main__":
     pairs=paired(task,phase)
     diag,verdict,stage=diagnostics(scenes,judges,stages,phase)
     samples=examples(cases,phase)
-    render(phase,summary,pairs,diag,verdict,stage,samples)
+    paths=generation_paths(phase)
+    per_task=by_task_diagnostics(phase,scenes,judges)
+    render(phase,summary,pairs,diag,verdict,stage,samples,paths,per_task)
     save(REPORTS/f"{phase}_analysis.json",{"summary":summary,"diagnostics":diag,"judgments":verdict,
-                                           "stages":stage,"samples":samples})
+                                           "stages":stage,"samples":samples,"generation_paths":paths})
