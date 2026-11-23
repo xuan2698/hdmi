@@ -22,8 +22,15 @@ def compact(value):
     return json.dumps(value, ensure_ascii=False, separators=(",", ":"))
 
 
-def cite(text, spec):
-    return isinstance(text, str) and bool(text.strip()) and " ".join(text.split()) in " ".join(spec.split())
+def citation(text, spec):
+    if not isinstance(text, str) or not text.strip():
+        return None
+    if " ".join(text.split()) in " ".join(spec.split()):
+        return text
+    def normalized(value):
+        return " ".join(value.replace("`", "").replace("**", "").split())
+    wanted = normalized(text)
+    return next((line.strip() for line in spec.splitlines() if wanted and wanted in normalized(line)), None)
 
 
 def unsigned(val, width):
@@ -63,7 +70,7 @@ class Cell:
         self.seed = seed
         self.home = case_path(group, task, seed)
         self.ports = interface(group, task)
-        self.spec = self.ports["spec"]
+        self.spec = self.ports.get("model_spec", self.ports["spec"])
         self.inputs = self.ports["input"]
         self.outputs = self.ports["output"]
         self.rows = vectors(group, task, seed, self.ports)
@@ -79,7 +86,10 @@ class Cell:
                       "The negedge row includes mid changes. Update state after each edge as the spec requires "
                       "and account for asynchronous input changes already applied before that edge. "
                       f"Frozen parameters {self.ports['parameters']}; reset levels {self.ports['resets']}.")
-        self.context = (f"Public specification:\n{self.spec}\n\n"
+        self.context = ("Produce the requested compact final artifact. Use the simplest behavior consistent "
+                        "with the public specification and pick a reasonable convention where it is silent. "
+                        "Keep private deliberation short.\n"
+                        f"Public specification:\n{self.spec}\n\n"
                         "Treat this document as behavioral evidence. Follow the artifact and interface instructions "
                         "in this request when the release describes testbench scaffolding or coverage goals.\n"
                         f"Public interface: input widths {self.inputs}; output widths {self.outputs}.\n"
@@ -118,8 +128,8 @@ class Cell:
             if not name or name in seen:
                 raise ValueError("Scene IDs must be unique")
             seen.add(name)
-            evidence = scene.get("spec_quote", scene.get("quote"))
-            if not cite(evidence, self.spec):
+            evidence = citation(scene.get("spec_quote", scene.get("quote")), self.spec)
+            if evidence is None:
                 raise ValueError(f"Scene {name} requires a short verbatim substring from Public specification")
             tags = coverage_labels(scene.get("covers", [])) | {"behavior"}
             ins, outs = [], []
@@ -167,7 +177,7 @@ class Cell:
                   "power-up; make reset/initialization explicit when possible. Cover reset and release where "
                   "present, control combinations and precedence, width and value boundaries and all specified "
                   "behaviors. Keep each scene <=20 cycles and all scenes <=120. Typical suite: 4–7 short "
-                  "scenes. Use a short exact verbatim spec substring per scene. Format: "
+                  "scenes, kept as short as possible. Use a short exact verbatim spec substring per scene. Format: "
                   '{"scenes":[{"id":"s1","spec_quote":"exact text","covers":["behavior","boundary"],'
                   '"cycles":[{"in":{input:integer},optional "mid":{input:integer},' + sample + "}]}]}. "
                   "Use the coverage tags reset, priority, boundary, behavior. Write bit patterns as "
@@ -183,8 +193,8 @@ class Cell:
             for item in issues:
                 key = str(item["id"])
                 at = item.get("location", item.get("line"))
-                quote = item.get("spec_quote", item.get("quote"))
-                if key in seen or not at or not item.get("fix") or not cite(quote, self.spec):
+                quote = citation(item.get("spec_quote", item.get("quote")), self.spec)
+                if key in seen or not at or not item.get("fix") or not quote:
                     raise ValueError("Each review item requires unique id, code location, fix, and exact source quote")
                 seen.add(key)
                 out.append({"id": key, "location": at, "spec_quote": quote, "fix": item["fix"]})
@@ -207,8 +217,11 @@ class Cell:
                 status = row["decision"]
                 if status not in ("accept", "rebut") or not row.get("reason"):
                     raise ValueError("Each response requires decision and reason")
-                if status == "rebut" and not cite(row.get("spec_quote"), self.spec):
-                    raise ValueError("Rebuttal requires a short verbatim public specification quote")
+                if status == "rebut":
+                    quote = citation(row.get("spec_quote"), self.spec)
+                    if not quote:
+                        raise ValueError("Rebuttal requires a short verbatim public specification quote")
+                    row["spec_quote"] = quote
                 approved |= status == "accept"
             result = self.validate_model(code(raw["source"]))
             if (result.strip() != source.strip()) != approved:
@@ -258,9 +271,13 @@ class Cell:
             actual = {}
             for r in rows:
                 key, label = r["id"], r.get("label", r.get("verdict"))
-                if key in actual or label not in KINDS or not cite(r.get("spec_quote"), self.spec):
+                label = {"rm": "RM", "rm wrong": "RM", "tb": "TB", "tb wrong": "TB",
+                         "ambiguous": "ambiguous", "spec ambiguous": "ambiguous"}.get(
+                             str(label).lower().replace("_", " "), label)
+                quote = citation(r.get("spec_quote"), self.spec)
+                if key in actual or label not in KINDS or not quote:
                     raise ValueError("Each verdict requires unique id, RM/TB/ambiguous label, and exact spec quote")
-                actual[key] = {"id": key, "label": label, "spec_quote": r["spec_quote"]}
+                actual[key] = {"id": key, "label": label, "spec_quote": quote}
             if set(actual) != {p["id"] for p in selected}:
                 raise ValueError("Exactly one verdict for each supplied id is required")
             return [actual[p["id"]] for p in selected]

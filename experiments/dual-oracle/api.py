@@ -150,6 +150,10 @@ def checkpoint(folder, prompt, decoder, validator=lambda x: x, *, concise=True):
     errors = []
     metas = []
     folder.mkdir(parents=True, exist_ok=True)
+    previous_attempts = {}
+    for receipt in ledger(folder):
+        previous_attempts[receipt["session"]] = receipt
+    archived = list(previous_attempts.values())
     for idx in range(PLAN["format_repairs"] + 1):
         rawfile = folder / f"answer{idx + 1}.txt"
         sent = prompt
@@ -161,7 +165,15 @@ def checkpoint(folder, prompt, decoder, validator=lambda x: x, *, concise=True):
                 sent += "\nUse minimal deliberation and compact final output."
         try:
             if not rawfile.exists():
-                raw, meta = request(folder, sent)
+                if idx < len(archived):
+                    receipt = archived[idx]
+                    raw = receipt.get("response") or ""
+                    if not raw or receipt.get("will_retry") or receipt.get("status") != "received":
+                        raise ArtifactError(f"Earlier request ended without an artifact ({receipt['status']})")
+                    meta = {"actual_model": receipt.get("model_actual"), "thinking_bytes": None,
+                            "finish_reason": receipt.get("finish_reason"), "recovered_from_receipt": True}
+                else:
+                    raw, meta = request(folder, sent)
                 atomic(rawfile, raw)
                 save(rawfile.with_suffix(".meta.json"), meta)
             metas.append(load(rawfile.with_suffix(".meta.json")))

@@ -16,9 +16,10 @@ V2 = REPO / "stimulus-v2"
 sys.path.insert(0, str(AUTO))
 
 from pilot2_generate import atomic, load, save
-from pilot3_generate import check_rows, driver_rows
+from pilot3_generate import driver_rows
 from pilot3_inputs import public, setup, tasks
 from simulate import validate_rows
+from sandbox import check_rows
 
 PREREG = "bd908835da383229dace363008f2ba74aa2192c4"
 PLAN = load(ROOT / "protocol.json")
@@ -37,6 +38,25 @@ def verify_protocol():
         raise ValueError("Frozen protocol changed")
     if setup()["model"] != PLAN["model"] or setup()["repeat_seeds"] != PLAN["seeds"]:
         raise ValueError("Model or v3 seed registry changed")
+
+
+def behavioral_excerpt(text):
+    """Preserve published wording while skipping task-wrapper sections."""
+    mark = re.compile(r"(?m)^##\s+([^\n]+)$")
+    blocks = list(mark.finditer(text))
+    selected = []
+    description = any("description" in block[1].lower() for block in blocks)
+    for index, block in enumerate(blocks):
+        title = re.sub(r"[*_#]", "", block[1]).strip().lower()
+        if ("module interface" in title and description) or not re.search(
+                r"description|design under test|input and output|module interface|functionality|behavior|behaviour",
+                title):
+            continue
+        end = blocks[index + 1].start() if index + 1 < len(blocks) else len(text)
+        selected.append(text[block.start():end].strip())
+    explicit_behavior = any(re.search(r"functionality|behavior|behaviour", part.splitlines()[0], re.I)
+                            for part in selected)
+    return "\n\n".join(selected) if explicit_behavior and len(selected) >= 2 else text
 
 
 def extract_public(dataset):
@@ -61,6 +81,7 @@ def extract_public(dataset):
         records[name] = {
             "spec": prose,
             "spec_source": source,
+            "model_spec": behavioral_excerpt(prose) if source == "instruction" else prose,
             **selected[name],
             "parameters": split["parameters"][name],
         }
