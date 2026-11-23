@@ -1,0 +1,133 @@
+```python
+def reference(vectors):
+    def get_val(row, key, default=0):
+        if isinstance(row, dict):
+            return row.get(key, default)
+        if isinstance(row, (list, tuple)):
+            if len(row) == 5:
+                keys = ['i_rst_b', 'i_data_in', 'i_enable', 'i_fault', 'i_clear']
+            elif len(row) == 6:
+                keys = ['i_clk', 'i_rst_b', 'i_data_in', 'i_enable', 'i_fault', 'i_clear']
+            else:
+                return default
+            if key in keys:
+                return row[keys.index(key)]
+            return default
+        return default
+
+    state = 0
+    cs_b = 1
+    spi_clk = 0
+    spi_data = 0
+    bits_left = 16
+    done = 0
+    data_reg = 0
+
+    out = []
+    for idx, row in enumerate(vectors):
+        rst_b = get_val(row, 'i_rst_b', 1)
+        data_in = get_val(row, 'i_data_in', 0) & 0xFFFF
+        enable = get_val(row, 'i_enable', 0) & 1
+        fault = get_val(row, 'i_fault', 0) & 1
+        clear = get_val(row, 'i_clear', 0) & 1
+        is_posedge = (idx % 2 == 0)
+
+        if rst_b == 0:
+            state = 0
+            cs_b = 1
+            spi_clk = 0
+            spi_data = 0
+            bits_left = 16
+            done = 0
+            data_reg = 0
+
+        out.append({
+            'o_spi_cs_b': cs_b & 1,
+            'o_spi_clk': spi_clk & 1,
+            'o_spi_data': spi_data & 1,
+            'o_bits_left': bits_left & 0x1F,
+            'o_done': done & 1,
+            'o_fsm_state': state & 3
+        })
+
+        if is_posedge and rst_b != 0:
+            if clear:
+                state = 0
+                cs_b = 1
+                spi_clk = 0
+                spi_data = 0
+                bits_left = 16
+                done = 0
+                data_reg = 0
+            elif not enable:
+                state = 0
+                cs_b = 1
+                spi_clk = 0
+                spi_data = 0
+                bits_left = 16
+                done = 0
+                data_reg = 0
+            elif fault:
+                if state != 3:
+                    state = 3
+                    cs_b = 1
+                    spi_clk = 0
+                    spi_data = 0
+                    bits_left = 16
+                    done = 1
+                    data_reg = 0
+                else:
+                    state = 3
+                    cs_b = 1
+                    spi_clk = 0
+                    spi_data = 0
+                    bits_left = 16
+                    done = 0
+                    data_reg = 0
+            else:
+                if state == 0:
+                    cs_b = 1
+                    spi_clk = 0
+                    spi_data = 0
+                    bits_left = 16
+                    done = 0
+                    if enable:
+                        state = 1
+                        data_reg = data_in
+                elif state == 1:
+                    cs_b = 0
+                    spi_data = (data_reg >> 15) & 1
+                    state = 2
+                    done = 0
+                elif state == 2:
+                    spi_clk = 1 - spi_clk
+                    if bits_left == 1:
+                        done = 1
+                        bits_left = 16
+                        cs_b = 1
+                        spi_clk = 0
+                        spi_data = 0
+                        state = 0
+                        data_reg = 0
+                    else:
+                        bits_left = bits_left - 1
+                        data_reg = (data_reg << 1) & 0xFFFF
+                        state = 1
+                        done = 0
+                elif state == 3:
+                    cs_b = 1
+                    spi_clk = 0
+                    spi_data = 0
+                    bits_left = 16
+                    done = 0
+                    data_reg = 0
+                else:
+                    state = 0
+                    cs_b = 1
+                    spi_clk = 0
+                    spi_data = 0
+                    bits_left = 16
+                    done = 0
+                    data_reg = 0
+    return out
+```

@@ -1,0 +1,68 @@
+def reference(vectors):
+    N=8
+    enc_data=0; enc_valid=0; dec_data=0; dec_valid=0
+    res=[]; prev_clk=None
+    for idx,row in enumerate(vectors):
+        get = (lambda k,d=0: row.get(k,d)) if isinstance(row,dict) else (lambda k,d=0: d)
+        pos=None
+        if isinstance(row,dict):
+            if 'edge' in row:
+                e=row['edge']
+                if isinstance(e,str):
+                    s=e.lower()
+                    pos=('pos' in s or s in ('1','rise','rising','p'))
+                else:
+                    pos=bool(e)
+            elif 'posedge' in row:
+                pos=bool(row['posedge'])
+        clk_val=None
+        if isinstance(row,dict):
+            if 'clk_in' in row: clk_val=int(row['clk_in'])
+            elif 'clk' in row: clk_val=int(row['clk'])
+            elif 'clock' in row: clk_val=int(row['clock'])
+        if pos is None:
+            if clk_val is not None:
+                if prev_clk is None:
+                    pos=(clk_val==1)
+                else:
+                    pos=(prev_clk==0 and clk_val==1)
+            else:
+                pos=(idx%2==0)
+        if clk_val is not None:
+            prev_clk=clk_val
+
+        rst=int(get('rst_in',0))
+        if rst:
+            enc_data=0; enc_valid=0; dec_data=0; dec_valid=0
+        res.append({
+            'enc_valid_out': enc_valid,
+            'enc_data_out': enc_data & ((1<<(2*N))-1),
+            'dec_valid_out': dec_valid,
+            'dec_data_out': dec_data & ((1<<N)-1)
+        })
+
+        if pos and not rst:
+            ev=int(get('enc_valid_in',0)) & 1
+            ed=int(get('enc_data_in',0)) & ((1<<N)-1)
+            enc_valid=ev
+            if ev:
+                m=0
+                for i in range(N):
+                    if (ed>>i)&1:
+                        m |= 1 << (2*i)
+                    else:
+                        m |= 2 << (2*i)
+                enc_data=m
+
+            dv=int(get('dec_valid_in',0)) & 1
+            dd=int(get('dec_data_in',0)) & ((1<<(2*N))-1)
+            dec_valid=dv
+            if dv:
+                d=0
+                for i in range(N):
+                    pair=(dd>>(2*i))&3
+                    if pair==1:
+                        d |= 1<<i
+                dec_data=d
+
+    return res

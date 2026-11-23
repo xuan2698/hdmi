@@ -1,0 +1,68 @@
+def reference(vectors):
+    enc_data_reg = 0
+    enc_valid_reg = 0
+    dec_data_reg = 0
+    dec_valid_reg = 0
+    out = []
+    prev_clk = None
+
+    for idx, row in enumerate(vectors):
+        rst = int(row.get('rst_in', 0)) & 1
+        enc_v = int(row.get('enc_valid_in', 0)) & 1
+        enc_d = int(row.get('enc_data_in', 0)) & 0xFF
+        dec_v = int(row.get('dec_valid_in', 0)) & 1
+        dec_d = int(row.get('dec_data_in', 0)) & 0xFFFF
+
+        if 'edge' in row:
+            edge = row['edge']
+            if isinstance(edge, str):
+                posedge = ('pos' in edge.lower())
+            else:
+                posedge = bool(edge)
+        elif 'clk_in' in row:
+            clk = row['clk_in']
+            if prev_clk is None:
+                posedge = bool(clk)
+            else:
+                posedge = (prev_clk == 0 and clk == 1)
+            prev_clk = clk
+        else:
+            posedge = (idx % 2 == 0)
+
+        if rst:
+            out.append({
+                'enc_valid_out': 0,
+                'enc_data_out': 0,
+                'dec_valid_out': 0,
+                'dec_data_out': 0
+            })
+            enc_data_reg = 0
+            enc_valid_reg = 0
+            dec_data_reg = 0
+            dec_valid_reg = 0
+        else:
+            out.append({
+                'enc_valid_out': enc_valid_reg,
+                'enc_data_out': enc_data_reg,
+                'dec_valid_out': dec_valid_reg,
+                'dec_data_out': dec_data_reg
+            })
+
+            if posedge:
+                next_enc_data = 0
+                for i in range(8):
+                    bit = (enc_d >> i) & 1
+                    next_enc_data |= (1 if bit else 2) << (2 * i)
+
+                next_dec_data = 0
+                for i in range(8):
+                    pair = (dec_d >> (2 * i)) & 3
+                    if pair == 1:
+                        next_dec_data |= 1 << i
+
+                enc_data_reg = next_enc_data & 0xFFFF
+                enc_valid_reg = enc_v
+                dec_data_reg = next_dec_data & 0xFF
+                dec_valid_reg = dec_v
+
+    return out

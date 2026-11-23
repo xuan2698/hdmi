@@ -1,0 +1,48 @@
+```python
+def reference(vectors):
+    o1 = o2 = o3 = 0
+    res = []
+    prev_clk = None
+    for i, v in enumerate(vectors):
+        if isinstance(v, dict):
+            rst = v.get('reset', 0)
+            fsel = v.get('filter_select', 0)
+            in1 = v.get('in_1', 0)
+            in2 = v.get('in_2', 0)
+            in3 = v.get('in_3', 0)
+            edge = v.get('edge', None)
+            clk = v.get('clk', None)
+        else:
+            rst = fsel = in1 = in2 = in3 = 0
+            edge = None
+            clk = None
+        if edge is None and clk is not None:
+            if prev_clk is not None:
+                if clk == 1 and prev_clk == 0:
+                    edge = 'posedge'
+                elif clk == 0 and prev_clk == 1:
+                    edge = 'negedge'
+            prev_clk = clk
+        if edge is None:
+            edge = 'posedge' if i % 2 == 0 else 'negedge'
+        def s16(x):
+            x = x & 0xFFFF
+            return x - 0x10000 if x >= 0x8000 else x
+        a1, a2, a3 = s16(in1), s16(in2), s16(in3)
+        if rst == 1:
+            o1 = o2 = o3 = 0
+        res.append({'out_1': o1 & 0xFFFF, 'out_2': o2 & 0xFFFF, 'out_3': o3 & 0xFFFF})
+        if edge == 'posedge' or edge == 1 or edge is True:
+            if rst != 1:
+                sh = fsel & 3
+                o1 = o1 + ((a1 - o1) >> sh)
+                if o1 > 32767: o1 = 32767
+                elif o1 < -32768: o1 = -32768
+                o2 = o2 + ((a2 - o2) >> sh)
+                if o2 > 32767: o2 = 32767
+                elif o2 < -32768: o2 = -32768
+                o3 = o3 + ((a3 - o3) >> sh)
+                if o3 > 32767: o3 = 32767
+                elif o3 < -32768: o3 = -32768
+    return res
+```

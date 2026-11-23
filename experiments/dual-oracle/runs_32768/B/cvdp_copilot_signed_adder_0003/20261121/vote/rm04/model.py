@@ -1,0 +1,93 @@
+def reference(vectors):
+    state = 0
+    a_reg = 0
+    b_reg = 0
+    o_resultant_sum = 0
+    o_overflow = 0
+    outputs = []
+    for idx, row in enumerate(vectors):
+        if isinstance(row, dict):
+            i_rst_n = row.get('i_rst_n', 1)
+            i_start = row.get('i_start', 0)
+            i_enable = row.get('i_enable', 0)
+            i_mode = row.get('i_mode', 0)
+            i_clear = row.get('i_clear', 0)
+            i_operand_a = row.get('i_operand_a', 0)
+            i_operand_b = row.get('i_operand_b', 0)
+            if 'edge' in row:
+                edge_val = row['edge']
+            elif 'i_clk' in row:
+                edge_val = row['i_clk']
+            else:
+                edge_val = 1 if idx % 2 == 0 else 0
+        else:
+            i_rst_n = 1
+            i_start = 0
+            i_enable = 0
+            i_mode = 0
+            i_clear = 0
+            i_operand_a = 0
+            i_operand_b = 0
+            edge_val = 1 if idx % 2 == 0 else 0
+
+        if isinstance(edge_val, str):
+            s = edge_val.lower()
+            if 'pos' in s or 'rise' in s or s == '1':
+                is_posedge = True
+            else:
+                is_posedge = False
+        else:
+            is_posedge = bool(edge_val)
+
+        if i_rst_n == 0:
+            state = 0
+            a_reg = 0
+            b_reg = 0
+            o_resultant_sum = 0
+            o_overflow = 0
+
+        o_status = state
+        o_ready = 1 if state == 3 else 0
+        outputs.append({
+            'o_resultant_sum': o_resultant_sum & 0xFF,
+            'o_overflow': o_overflow & 1,
+            'o_ready': o_ready,
+            'o_status': o_status
+        })
+
+        if is_posedge and i_rst_n == 1:
+            if i_clear == 1:
+                state = 0
+                a_reg = 0
+                b_reg = 0
+                o_resultant_sum = 0
+                o_overflow = 0
+            else:
+                if state == 0:
+                    if i_enable == 1 and i_start == 1:
+                        state = 1
+                elif state == 1:
+                    a_reg = i_operand_a & 0xFF
+                    b_reg = i_operand_b & 0xFF
+                    state = 2
+                elif state == 2:
+                    if i_mode == 0:
+                        full = a_reg + b_reg
+                        result = full & 0xFF
+                        a_sign = (a_reg >> 7) & 1
+                        b_sign = (b_reg >> 7) & 1
+                        r_sign = (result >> 7) & 1
+                        ovf = 1 if (a_sign == b_sign and a_sign != r_sign) else 0
+                    else:
+                        full = a_reg - b_reg
+                        result = full & 0xFF
+                        a_sign = (a_reg >> 7) & 1
+                        b_sign = (b_reg >> 7) & 1
+                        r_sign = (result >> 7) & 1
+                        ovf = 1 if (a_sign != b_sign and a_sign != r_sign) else 0
+                    o_resultant_sum = result
+                    o_overflow = ovf
+                    state = 3
+                elif state == 3:
+                    state = 0
+    return outputs

@@ -1,0 +1,68 @@
+```python
+def reference(vectors):
+    sec = 0
+    minute = 0
+    hour = 0
+    count = 0
+    pulse = 0
+    results = []
+    prev_clk = None
+    edge_index = 0
+    for row in vectors:
+        reset = row.get('reset', 0)
+        start_stop = row.get('start_stop', 0)
+        if reset == 1:
+            sec = 0
+            minute = 0
+            hour = 0
+            count = 0
+            pulse = 0
+        is_posedge = False
+        if 'edge' in row:
+            e = row['edge']
+            if isinstance(e, str):
+                is_posedge = 'pos' in e.lower()
+            else:
+                is_posedge = (e == 1)
+        elif 'clk' in row:
+            clk = row['clk']
+            if prev_clk is None:
+                is_posedge = True
+            else:
+                is_posedge = (prev_clk == 0 and clk == 1)
+            prev_clk = clk
+        else:
+            is_posedge = (edge_index % 2 == 0)
+        edge_index += 1
+        results.append({'seconds': sec, 'minutes': minute, 'hour': hour})
+        if is_posedge and reset == 0:
+            if start_stop:
+                if count == 4 - 1:
+                    next_count = 0
+                    next_pulse = 1
+                else:
+                    next_count = count + 1
+                    next_pulse = 0
+            else:
+                next_count = count
+                next_pulse = 0
+            next_sec = sec
+            next_minute = minute
+            next_hour = hour
+            if pulse == 1:
+                if sec == 59:
+                    next_sec = 0
+                    if minute == 59:
+                        next_minute = 0
+                        next_hour = 1 - hour
+                    else:
+                        next_minute = minute + 1
+                else:
+                    next_sec = sec + 1
+            count = next_count
+            pulse = next_pulse
+            sec = next_sec
+            minute = next_minute
+            hour = next_hour
+    return results
+```

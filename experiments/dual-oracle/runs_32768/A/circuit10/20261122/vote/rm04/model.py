@@ -1,0 +1,11 @@
+def reference(vectors):
+    state = 0
+    result = []
+    for v in vectors:
+        a = v['a']
+        b = v['b']
+        if a == b:
+            state = a
+        q = (a ^ b ^ state) & 1
+        result.append({'q': q, 'state': state})
+    return result

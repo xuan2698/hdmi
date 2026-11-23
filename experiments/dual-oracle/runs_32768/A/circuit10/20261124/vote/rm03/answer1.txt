@@ -1,0 +1,22 @@
+def reference(vectors):
+    state = 0
+    out = []
+    prev_clk = 0
+    prev_a = 0
+    prev_b = 0
+    first = True
+    for row in vectors:
+        clk = int(row['clk'])
+        a = int(row['a'])
+        b = int(row['b'])
+        if clk == 1 and prev_clk == 0:
+            sa = a if first else prev_a
+            sb = b if first else prev_b
+            state = (sa & sb) | (sa & state) | (sb & state)
+        q = a ^ b ^ state
+        out.append({'q': q, 'state': state})
+        prev_clk = clk
+        prev_a = a
+        prev_b = b
+        first = False
+    return out

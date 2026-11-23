@@ -1,0 +1,37 @@
+```python
+def reference(vectors):
+    y1 = y2 = y3 = 0
+    res = []
+    for r in vectors:
+        reset = r.get('reset', 0)
+        in1_u = r.get('in_1', 0)
+        in2_u = r.get('in_2', 0)
+        in3_u = r.get('in_3', 0)
+        sel = r.get('filter_select', 0) & 3
+        clk = r.get('clk', r.get('edge', 0))
+        if isinstance(clk, str):
+            is_pos = ('pos' in clk.lower()) or clk == '1'
+        else:
+            is_pos = (clk == 1)
+        in1 = in1_u if in1_u < 32768 else in1_u - 65536
+        in2 = in2_u if in2_u < 32768 else in2_u - 65536
+        in3 = in3_u if in3_u < 32768 else in3_u - 65536
+        if reset == 1:
+            y1 = y2 = y3 = 0
+            out1 = out2 = out3 = 0
+        else:
+            if is_pos:
+                out1, out2, out3 = y1, y2, y3
+                mask = (1 << sel) - 1
+                y1 = (in1 + mask * y1) >> sel
+                y2 = (in2 + mask * y2) >> sel
+                y3 = (in3 + mask * y3) >> sel
+            else:
+                out1, out2, out3 = y1, y2, y3
+        res.append({
+            'out_1': out1 & 0xFFFF,
+            'out_2': out2 & 0xFFFF,
+            'out_3': out3 & 0xFFFF
+        })
+    return res
+```

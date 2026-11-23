@@ -1,0 +1,10 @@
+def reference(vectors):
+    state = 0
+    outputs = []
+    for row in vectors:
+        a = row['a']
+        b = row['b']
+        state = (a & b) | (state & (a | b))
+        q = state ^ a ^ b
+        outputs.append({'q': q, 'state': state})
+    return outputs

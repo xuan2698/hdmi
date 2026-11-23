@@ -1,0 +1,78 @@
+```python
+def reference(vectors):
+    out = []
+    o1 = o2 = o3 = 0
+    d11 = d12 = d13 = 0
+    d21 = d22 = d23 = 0
+    prev_clk = 0
+
+    for row in vectors:
+        rst = row.get('reset', 0)
+        if rst:
+            o1 = o2 = o3 = 0
+            d11 = d12 = d13 = 0
+            d21 = d22 = d23 = 0
+            out.append({'out_1': 0, 'out_2': 0, 'out_3': 0})
+            if 'clk' in row:
+                prev_clk = row['clk'] & 1
+            continue
+
+        is_pos = False
+        if 'edge' in row:
+            e = row['edge']
+            if isinstance(e, str):
+                is_pos = ('pos' in e.lower())
+            else:
+                is_pos = bool(e)
+        elif 'clk' in row:
+            clk = row['clk'] & 1
+            if prev_clk == 0 and clk == 1:
+                is_pos = True
+            prev_clk = clk
+
+        out.append({
+            'out_1': o1 & 0xFFFF,
+            'out_2': o2 & 0xFFFF,
+            'out_3': o3 & 0xFFFF
+        })
+
+        if is_pos:
+            in1 = row.get('in_1', 0) & 0xFFFF
+            in2 = row.get('in_2', 0) & 0xFFFF
+            in3 = row.get('in_3', 0) & 0xFFFF
+            fs = row.get('filter_select', 0) & 3
+
+            s1 = in1 - 0x10000 if in1 & 0x8000 else in1
+            s2 = in2 - 0x10000 if in2 & 0x8000 else in2
+            s3 = in3 - 0x10000 if in3 & 0x8000 else in3
+
+            if fs == 0:
+                no1 = s1
+                no2 = s2
+                no3 = s3
+            elif fs == 1:
+                no1 = (s1 + d11) >> 1
+                no2 = (s2 + d12) >> 1
+                no3 = (s3 + d13) >> 1
+            elif fs == 2:
+                no1 = (s1 + (d11 << 1) + d21) >> 2
+                no2 = (s2 + (d12 << 1) + d22) >> 2
+                no3 = (s3 + (d13 << 1) + d23) >> 2
+            else:
+                no1 = (s1 - (d11 << 1) + d21) >> 2
+                no2 = (s2 - (d12 << 1) + d22) >> 2
+                no3 = (s3 - (d13 << 1) + d23) >> 2
+
+            d21 = d11
+            d22 = d12
+            d23 = d13
+            d11 = s1
+            d12 = s2
+            d13 = s3
+
+            o1 = no1
+            o2 = no2
+            o3 = no3
+
+    return out
+```

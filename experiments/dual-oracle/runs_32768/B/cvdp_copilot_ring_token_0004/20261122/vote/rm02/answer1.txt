@@ -1,0 +1,45 @@
+```python
+def reference(vectors):
+    state = 1
+    res = []
+    for i, row in enumerate(vectors):
+        rst = row.get('rst', 0)
+        data_in = row.get('data_in', 0) & 15
+        has = row.get('has_data_to_send', 0)
+        edge = row.get('edge', None)
+        if edge is None:
+            clk = row.get('clk', None)
+            if clk is None:
+                is_pos = (i % 2 == 0)
+            elif isinstance(clk, str):
+                is_pos = clk.lower().startswith('p')
+            else:
+                is_pos = (int(clk) == 1)
+        else:
+            if isinstance(edge, str):
+                is_pos = edge.lower().startswith('p')
+            else:
+                is_pos = bool(edge)
+        if rst:
+            state = 1
+        if state == 1:
+            nxt = 2
+        elif state == 2:
+            nxt = 4
+        elif state == 4:
+            nxt = 8
+        elif state == 8:
+            nxt = 1
+        else:
+            nxt = 1
+        token_received = state
+        token = 0 if rst else nxt
+        if (not rst) and has and state in (1, 2, 4, 8):
+            data_out = data_in
+        else:
+            data_out = 0
+        res.append({'data_out': data_out, 'token_received': token_received, 'token': token})
+        if is_pos and not rst:
+            state = nxt
+    return res
+```

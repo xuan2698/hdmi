@@ -1,0 +1,33 @@
+```python
+def reference(vectors):
+    q1 = q2 = q3 = 0
+    res = []
+    if isinstance(vectors, dict):
+        keys = list(vectors.keys())
+        n = len(vectors[keys[0]]) if keys else 0
+        rows = [{k: vectors[k][i] for k in keys} for i in range(n)]
+    else:
+        rows = vectors
+    for row in rows:
+        if isinstance(row, dict):
+            reset = row.get("reset", 0)
+            edge = row.get("edge", "")
+            in1 = row.get("in_1", 0)
+            in2 = row.get("in_2", 0)
+            in3 = row.get("in_3", 0)
+        else:
+            reset = edge = 0
+            in1 = in2 = in3 = 0
+        if reset:
+            q1 = q2 = q3 = 0
+        res.append({
+            "out_1": q1 & 0xFFFF,
+            "out_2": q2 & 0xFFFF,
+            "out_3": q3 & 0xFFFF
+        })
+        if edge == "posedge" and not reset:
+            q1 = int(in1) & 0xFFFF
+            q2 = int(in2) & 0xFFFF
+            q3 = int(in3) & 0xFFFF
+    return res
+```

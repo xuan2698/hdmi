@@ -1,0 +1,89 @@
+def reference(vectors):
+    div = sec = mins = hr = 0
+    out = []
+    prev_clk = None
+    prev_pos = None
+
+    for row in vectors:
+        if type(row) is dict:
+            r = row.get('reset', 0)
+            st = row.get('start_stop', 0)
+            ev = row.get('edge', None)
+            cv = row.get('clk', None)
+        else:
+            vals = list(row)
+            ev = None
+            epos = -1
+            for i, v in enumerate(vals):
+                if type(v) is str:
+                    lv = v.lower()
+                    if 'pos' in lv or 'neg' in lv or lv == '1' or lv == '0':
+                        ev = v
+                        epos = i
+                        break
+            ints = [v for i, v in enumerate(vals) if i != epos and type(v) is not str]
+            if len(ints) >= 3:
+                cv, r, st = ints[0], ints[1], ints[2]
+            elif len(ints) == 2:
+                cv = None
+                r, st = ints[0], ints[1]
+            elif len(ints) == 1:
+                cv = None
+                r, st = ints[0], 0
+            else:
+                cv = None
+                r = st = 0
+
+        r = int(r)
+        st = int(st)
+
+        if ev is not None:
+            if type(ev) is str:
+                lv = ev.lower()
+                if 'pos' in lv or lv == '1':
+                    is_pos = True
+                elif 'neg' in lv or lv == '0':
+                    is_pos = False
+                else:
+                    is_pos = True if prev_pos is None else (not prev_pos)
+            else:
+                is_pos = (int(ev) == 1)
+        elif cv is not None:
+            cvi = int(cv)
+            if prev_clk is None:
+                is_pos = (cvi == 1)
+            elif prev_clk == 0 and cvi == 1:
+                is_pos = True
+            elif prev_clk == 1 and cvi == 0:
+                is_pos = False
+            else:
+                is_pos = True if prev_pos is None else (not prev_pos)
+            prev_clk = cvi
+        else:
+            is_pos = True if prev_pos is None else (not prev_pos)
+        prev_pos = is_pos
+
+        if is_pos:
+            if r == 1:
+                div = sec = mins = hr = 0
+            out.append({'seconds': sec, 'minutes': mins, 'hour': hr})
+            if r == 0 and st == 1:
+                if div == 3:
+                    div = 0
+                    if sec == 59:
+                        sec = 0
+                        if mins == 59:
+                            mins = 0
+                            hr = (hr + 1) & 1
+                        else:
+                            mins += 1
+                    else:
+                        sec += 1
+                else:
+                    div += 1
+        else:
+            out.append({'seconds': sec, 'minutes': mins, 'hour': hr})
+            if r == 1:
+                div = sec = mins = hr = 0
+
+    return out

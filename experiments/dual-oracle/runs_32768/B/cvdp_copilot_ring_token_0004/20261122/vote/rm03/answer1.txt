@@ -1,0 +1,46 @@
+```python
+def reference(vectors):
+    token_received = 1
+    results = []
+    for idx, row in enumerate(vectors):
+        if 'edge' in row:
+            e = row['edge']
+            if isinstance(e, str):
+                edge = 'posedge' if 'pos' in e.lower() else 'negedge'
+            else:
+                edge = 'posedge' if e == 1 else 'negedge'
+        elif 'clk' in row:
+            v = row['clk']
+            if isinstance(v, str):
+                edge = 'posedge' if 'pos' in v.lower() else 'negedge'
+            else:
+                edge = 'posedge' if v == 1 else 'negedge'
+        else:
+            edge = 'posedge' if idx % 2 == 0 else 'negedge'
+
+        rst = row.get('rst', 0)
+        if rst == 1:
+            token_received = 1
+            token_received_out = 1
+            token_out = 0
+            data_out = 0
+        else:
+            token_received_out = token_received & 0xF
+            token_out = ((token_received << 1) & 0xF) | ((token_received >> 3) & 0xF)
+            has = row.get('has_data_to_send', 0)
+            if token_received != 0 and has == 1:
+                data_out = row.get('data_in', 0) & 0xF
+            else:
+                data_out = 0
+
+        results.append({
+            'data_out': data_out & 0xF,
+            'token_received': token_received_out & 0xF,
+            'token': token_out & 0xF
+        })
+
+        if edge == 'posedge' and rst != 1:
+            token_received = token_out
+
+    return results
+```

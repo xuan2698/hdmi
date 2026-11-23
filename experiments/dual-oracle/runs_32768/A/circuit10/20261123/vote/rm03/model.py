@@ -1,0 +1,9 @@
+def reference(vectors):
+    state = 0
+    out = []
+    for v in vectors:
+        a = v['a'] & 1
+        b = v['b'] & 1
+        state = (a & b) | (state & (a | b))
+        out.append({'q': state ^ a ^ b, 'state': state})
+    return out

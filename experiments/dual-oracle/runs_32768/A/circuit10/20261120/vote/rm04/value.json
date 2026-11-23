@@ -1,0 +1,1 @@
+"def reference(vectors):\n    state = 0\n    out = []\n    for v in vectors:\n        if isinstance(v, dict):\n            a = v.get('a', 0) & 1\n            b = v.get('b', 0) & 1\n        else:\n            a, b = v[0] & 1, v[1] & 1\n        state = (a & b) | (state & (a | b))\n        q = a ^ b ^ state\n        out.append({'q': q & 1, 'state': state & 1})\n    return out\n"

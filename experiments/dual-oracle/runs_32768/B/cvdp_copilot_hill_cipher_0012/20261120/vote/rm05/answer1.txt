@@ -1,0 +1,92 @@
+def reference(vectors):
+    state = 'IDLE'
+    ciphertext_reg = 0
+    done_reg = 0
+    latched_plaintext = 0
+    latched_key = 0
+
+    cur_reset = 0
+    cur_start = 0
+    cur_plaintext = 0
+    cur_key = 0
+
+    prev_clk = 0
+    expect_pos = True
+    out = []
+
+    for row in vectors:
+        if 'reset' in row:
+            cur_reset = row['reset']
+        if 'start' in row:
+            cur_start = row['start']
+        if 'plaintext' in row:
+            cur_plaintext = row['plaintext']
+        if 'key' in row:
+            cur_key = row['key']
+
+        is_pos = False
+        if 'clk' in row:
+            clk = row['clk']
+            is_pos = (prev_clk == 0 and clk == 1)
+            prev_clk = clk
+        elif 'edge' in row:
+            e = row['edge']
+            if isinstance(e, str):
+                is_pos = ('pos' in e.lower())
+            else:
+                is_pos = bool(e)
+        else:
+            is_pos = expect_pos
+            expect_pos = not expect_pos
+
+        out.append({
+            'ciphertext': ciphertext_reg & 0x7FFF,
+            'done': done_reg & 1
+        })
+
+        if is_pos:
+            if cur_reset == 1:
+                state = 'IDLE'
+                ciphertext_reg = 0
+                done_reg = 0
+                latched_plaintext = 0
+                latched_key = 0
+            else:
+                if state == 'IDLE':
+                    if cur_start == 1:
+                        latched_plaintext = cur_plaintext & 0x7FFF
+                        latched_key = cur_key & ((1 << 45) - 1)
+                        state = 'COMPUTE'
+                    done_reg = 0
+                elif state == 'COMPUTE':
+                    state = 'COMPUTE_MOD'
+                elif state == 'COMPUTE_MOD':
+                    p = latched_plaintext
+                    k = latched_key
+
+                    p0 = p & 0x1F
+                    p1 = (p >> 5) & 0x1F
+                    p2 = (p >> 10) & 0x1F
+
+                    k0 = k & 0x1F
+                    k1 = (k >> 5) & 0x1F
+                    k2 = (k >> 10) & 0x1F
+                    k3 = (k >> 15) & 0x1F
+                    k4 = (k >> 20) & 0x1F
+                    k5 = (k >> 25) & 0x1F
+                    k6 = (k >> 30) & 0x1F
+                    k7 = (k >> 35) & 0x1F
+                    k8 = (k >> 40) & 0x1F
+
+                    c0 = (p0 * k0 + p1 * k1 + p2 * k2) % 26
+                    c1 = (p0 * k3 + p1 * k4 + p2 * k5) % 26
+                    c2 = (p0 * k6 + p1 * k7 + p2 * k8) % 26
+
+                    ciphertext_reg = c0 | (c1 << 5) | (c2 << 10)
+                    done_reg = 1
+                    state = 'DONE'
+                elif state == 'DONE':
+                    done_reg = 0
+                    state = 'IDLE'
+
+    return out

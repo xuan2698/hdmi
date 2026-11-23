@@ -1,0 +1,57 @@
+def reference(vectors):
+    y1 = y2 = y3 = 0
+    result = []
+    for i, row in enumerate(vectors):
+        rst = row.get('reset', 0)
+        def s16(v):
+            v = int(v) & 0xFFFF
+            if v >= 0x8000:
+                v -= 0x10000
+            return v
+        in1 = s16(row.get('in_1', 0))
+        in2 = s16(row.get('in_2', 0))
+        in3 = s16(row.get('in_3', 0))
+        sel = int(row.get('filter_select', 0)) & 3
+
+        if 'edge' in row:
+            e = row['edge']
+            if isinstance(e, str):
+                if 'pos' in e.lower():
+                    edge = 'pos'
+                elif 'neg' in e.lower():
+                    edge = 'neg'
+                else:
+                    edge = 'pos' if i % 2 == 0 else 'neg'
+            else:
+                edge = 'pos' if e else 'neg'
+        elif 'clk' in row:
+            edge = 'pos' if row['clk'] else 'neg'
+        else:
+            edge = 'pos' if i % 2 == 0 else 'neg'
+
+        if rst:
+            y1 = y2 = y3 = 0
+            result.append({'out_1': 0, 'out_2': 0, 'out_3': 0})
+            continue
+
+        result.append({
+            'out_1': y1 & 0xFFFF,
+            'out_2': y2 & 0xFFFF,
+            'out_3': y3 & 0xFFFF
+        })
+
+        if edge == 'pos':
+            shift = sel
+            def update(x, y):
+                diff = x - y
+                delta = diff >> shift if shift > 0 else diff
+                yn = y + delta
+                if yn > 32767:
+                    yn = 32767
+                elif yn < -32768:
+                    yn = -32768
+                return yn
+            y1 = update(in1, y1)
+            y2 = update(in2, y2)
+            y3 = update(in3, y3)
+    return result

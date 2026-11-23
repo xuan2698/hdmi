@@ -1,0 +1,41 @@
+def reference(vectors):
+    sec = 0
+    min_val = 0
+    hour = 0
+    div = 0
+    pulse = 0
+    CLK_FREQ = 4
+    res = []
+    for i, row in enumerate(vectors):
+        reset = row.get('reset', 0)
+        start_stop = row.get('start_stop', 0)
+        if reset == 1:
+            sec = 0
+            min_val = 0
+            hour = 0
+            div = 0
+            pulse = 0
+        out = {
+            'seconds': sec & 0x3F,
+            'minutes': min_val & 0x3F,
+            'hour': hour & 0x1
+        }
+        res.append(out)
+        if (i % 2 == 0) and (reset == 0):
+            if start_stop == 1 and pulse == 1:
+                if sec == 59:
+                    sec = 0
+                    if min_val == 59:
+                        min_val = 0
+                        hour = 1
+                    else:
+                        min_val += 1
+                else:
+                    sec += 1
+            if div == CLK_FREQ - 1:
+                div = 0
+                pulse = 1
+            else:
+                div += 1
+                pulse = 0
+    return res

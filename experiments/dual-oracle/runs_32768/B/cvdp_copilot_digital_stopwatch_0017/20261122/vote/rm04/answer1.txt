@@ -1,0 +1,66 @@
+def reference(vectors):
+    count = 0
+    seconds = 0
+    minutes = 0
+    hour = 0
+    res = []
+    parity = 1
+    for row in vectors:
+        if isinstance(row, dict):
+            reset = row.get('reset', 0)
+            start_stop = row.get('start_stop', 0)
+            edge = row.get('edge', None)
+            if edge is None and 'clk' in row:
+                edge = row['clk']
+            if edge is None:
+                edge = parity
+                parity = 1 - parity
+        else:
+            if len(row) == 3:
+                edge, reset, start_stop = row
+            elif len(row) == 2:
+                reset, start_stop = row
+                edge = parity
+                parity = 1 - parity
+            else:
+                edge = 1
+                reset = 0
+                start_stop = 0
+        if isinstance(edge, str):
+            if 'pos' in edge.lower() or edge == '1':
+                is_pos = True
+            elif 'neg' in edge.lower() or edge == '0':
+                is_pos = False
+            else:
+                is_pos = False
+        else:
+            is_pos = (edge == 1)
+        if reset == 1:
+            count = 0
+            seconds = 0
+            minutes = 0
+            hour = 0
+        res.append({'seconds': seconds, 'minutes': minutes, 'hour': hour})
+        if is_pos:
+            if reset == 1:
+                count = 0
+                seconds = 0
+                minutes = 0
+                hour = 0
+            else:
+                pulse = (count == 3)
+                if count == 3:
+                    count = 0
+                else:
+                    count += 1
+                if start_stop == 1 and pulse:
+                    if seconds == 59:
+                        seconds = 0
+                        if minutes == 59:
+                            minutes = 0
+                            hour = 1
+                        else:
+                            minutes += 1
+                    else:
+                        seconds += 1
+    return res

@@ -1,0 +1,85 @@
+def reference(vectors):
+    state = 0
+    result = 0
+    overflow = 0
+    opa = 0
+    opb = 0
+    prev_clk = 0
+    outs = []
+    for idx, row in enumerate(vectors):
+        def gv(name, default=0):
+            if isinstance(row, dict):
+                return row.get(name, default)
+            if isinstance(row, (list, tuple)):
+                if len(row) == 8:
+                    mp = {'i_clk':0, 'i_rst_n':1, 'i_start':2, 'i_enable':3, 'i_mode':4, 'i_clear':5, 'i_operand_a':6, 'i_operand_b':7}
+                elif len(row) == 7:
+                    mp = {'i_rst_n':0, 'i_start':1, 'i_enable':2, 'i_mode':3, 'i_clear':4, 'i_operand_a':5, 'i_operand_b':6}
+                else:
+                    mp = {}
+                if name in mp and mp[name] < len(row):
+                    return row[mp[name]]
+                return default
+            return getattr(row, name, default)
+
+        clk = gv('i_clk', None)
+        rst = gv('i_rst_n', 1)
+        start = gv('i_start', 0)
+        enable = gv('i_enable', 1)
+        mode = gv('i_mode', 0)
+        clear = gv('i_clear', 0)
+        a = gv('i_operand_a', 0)
+        b = gv('i_operand_b', 0)
+
+        if clk is None:
+            posedge = (idx % 2 == 0)
+            negedge = not posedge
+        else:
+            posedge = (prev_clk == 0 and clk == 1)
+            negedge = (prev_clk == 1 and clk == 0)
+            prev_clk = clk
+
+        if rst == 0:
+            state = 0
+            result = 0
+            overflow = 0
+            opa = 0
+            opb = 0
+
+        outs.append({
+            'o_resultant_sum': result & 0xFF,
+            'o_overflow': overflow & 1,
+            'o_ready': 1 if state == 3 else 0,
+            'o_status': state & 3
+        })
+
+        if posedge and rst != 0:
+            if clear:
+                state = 0
+                result = 0
+                overflow = 0
+                opa = 0
+                opb = 0
+            elif enable == 0:
+                state = 0
+            else:
+                if state == 0:
+                    if start:
+                        state = 1
+                elif state == 1:
+                    opa = a & 0xFF
+                    opb = b & 0xFF
+                    state = 2
+                elif state == 2:
+                    a_s = opa if opa < 128 else opa - 256
+                    b_s = opb if opb < 128 else opb - 256
+                    if mode == 0:
+                        res_s = a_s + b_s
+                    else:
+                        res_s = a_s - b_s
+                    overflow = 1 if (res_s < -128 or res_s > 127) else 0
+                    result = res_s & 0xFF
+                    state = 3
+                elif state == 3:
+                    state = 0
+    return outs

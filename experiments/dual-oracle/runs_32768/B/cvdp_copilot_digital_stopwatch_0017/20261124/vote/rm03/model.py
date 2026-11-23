@@ -1,0 +1,59 @@
+def reference(vectors):
+    count = 0
+    pulse = 0
+    sec = 0
+    mins = 0
+    hr = 0
+    CLK_FREQ = 4
+    res = []
+    for i, row in enumerate(vectors):
+        if isinstance(row, dict):
+            rst = row.get('reset', 0)
+            ss = row.get('start_stop', 0)
+        else:
+            rst = row[0]
+            ss = row[1]
+        if rst:
+            count = 0
+            pulse = 0
+            sec = 0
+            mins = 0
+            hr = 0
+        res.append({'seconds': sec, 'minutes': mins, 'hour': hr})
+        if i % 2 == 0:
+            if rst:
+                n_count = 0
+                n_pulse = 0
+                n_sec = 0
+                n_mins = 0
+                n_hr = 0
+            else:
+                if count == CLK_FREQ - 1:
+                    n_count = 0
+                    n_pulse = 1
+                else:
+                    n_count = count + 1
+                    n_pulse = 0
+                if ss and pulse:
+                    if sec == 59:
+                        n_sec = 0
+                        if mins == 59:
+                            n_mins = 0
+                            n_hr = 1
+                        else:
+                            n_mins = mins + 1
+                            n_hr = hr
+                    else:
+                        n_sec = sec + 1
+                        n_mins = mins
+                        n_hr = hr
+                else:
+                    n_sec = sec
+                    n_mins = mins
+                    n_hr = hr
+            count = n_count
+            pulse = n_pulse
+            sec = n_sec
+            mins = n_mins
+            hr = n_hr
+    return res

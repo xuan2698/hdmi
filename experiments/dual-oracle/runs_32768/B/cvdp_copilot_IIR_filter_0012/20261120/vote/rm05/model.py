@@ -1,0 +1,19 @@
+def reference(vectors):
+    y1 = y2 = y3 = 0
+    result = []
+    for row in vectors:
+        result.append({
+            "out_1": y1 & 0xFFFF,
+            "out_2": y2 & 0xFFFF,
+            "out_3": y3 & 0xFFFF
+        })
+        reset = int(row.get("reset", 0)) & 1
+        if reset:
+            y1 = y2 = y3 = 0
+        else:
+            edge = str(row.get("edge", "")).lower()
+            if "pos" in edge:
+                y1 = int(row.get("in_1", 0)) & 0xFFFF
+                y2 = int(row.get("in_2", 0)) & 0xFFFF
+                y3 = int(row.get("in_3", 0)) & 0xFFFF
+    return result

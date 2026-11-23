@@ -1,0 +1,103 @@
+def reference(vectors):
+    counter = 0
+    pulse = 0
+    seconds = 0
+    minutes = 0
+    hour = 0
+    prev_clk = 0
+    res = []
+    for i, v in enumerate(vectors):
+        if isinstance(v, dict):
+            reset = v.get('reset', 0)
+            start_stop = v.get('start_stop', 0)
+            if 'edge' in v:
+                e = v['edge']
+                if isinstance(e, str):
+                    is_posedge = e.lower().startswith('pos')
+                else:
+                    is_posedge = (e == 1 or e == '1')
+            elif 'clk' in v:
+                clk = v['clk']
+                is_posedge = (prev_clk == 0 and clk == 1)
+                if i == 0 and clk == 1:
+                    is_posedge = True
+                prev_clk = clk
+            else:
+                is_posedge = (i % 2 == 0)
+        else:
+            if len(v) == 2:
+                reset, start_stop = v[0], v[1]
+                is_posedge = (i % 2 == 0)
+            elif len(v) >= 3:
+                first = v[0]
+                if isinstance(first, str):
+                    is_posedge = first.lower().startswith('pos')
+                    reset, start_stop = v[1], v[2]
+                elif first in (0, 1):
+                    clk = first
+                    is_posedge = (prev_clk == 0 and clk == 1)
+                    if i == 0 and clk == 1:
+                        is_posedge = True
+                    prev_clk = clk
+                    reset, start_stop = v[1], v[2]
+                else:
+                    reset, start_stop = v[0], v[1]
+                    is_posedge = (i % 2 == 0)
+            else:
+                reset, start_stop = 0, 0
+                is_posedge = (i % 2 == 0)
+        try:
+            reset = int(reset)
+        except:
+            reset = 0
+        try:
+            start_stop = int(start_stop)
+        except:
+            start_stop = 0
+
+        if reset == 1:
+            counter = 0
+            pulse = 0
+            seconds = 0
+            minutes = 0
+            hour = 0
+
+        res.append({'seconds': seconds, 'minutes': minutes, 'hour': hour})
+
+        if reset == 1:
+            continue
+
+        if is_posedge:
+            old_counter = counter
+            old_pulse = pulse
+            if old_counter == 3:
+                new_counter = 0
+                new_pulse = 1
+            else:
+                new_counter = old_counter + 1
+                new_pulse = 0
+
+            if old_pulse == 1 and start_stop == 1:
+                if seconds == 59:
+                    sec_new = 0
+                    if minutes == 59:
+                        min_new = 0
+                        hour_new = 1
+                    else:
+                        min_new = minutes + 1
+                        hour_new = hour
+                else:
+                    sec_new = seconds + 1
+                    min_new = minutes
+                    hour_new = hour
+            else:
+                sec_new = seconds
+                min_new = minutes
+                hour_new = hour
+
+            counter = new_counter
+            pulse = new_pulse
+            seconds = sec_new
+            minutes = min_new
+            hour = hour_new
+    return res

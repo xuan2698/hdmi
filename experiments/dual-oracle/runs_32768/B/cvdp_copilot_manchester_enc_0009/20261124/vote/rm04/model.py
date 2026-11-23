@@ -1,0 +1,46 @@
+def reference(vectors):
+    enc_valid_out = 0
+    enc_data_out = 0
+    dec_valid_out = 0
+    dec_data_out = 0
+    prev_clk = 0
+    results = []
+    for idx, row in enumerate(vectors):
+        rst = row.get('rst_in', 0)
+        if rst:
+            enc_valid_out = 0
+            enc_data_out = 0
+            dec_valid_out = 0
+            dec_data_out = 0
+        results.append({
+            'enc_valid_out': enc_valid_out,
+            'enc_data_out': enc_data_out,
+            'dec_valid_out': dec_valid_out,
+            'dec_data_out': dec_data_out
+        })
+        if 'clk_in' in row:
+            clk = row['clk_in']
+            is_pos = (clk == 1 and prev_clk == 0)
+            prev_clk = clk
+        else:
+            is_pos = (idx % 2 == 0)
+        if is_pos and not rst:
+            enc_valid_in = row.get('enc_valid_in', 0)
+            dec_valid_in = row.get('dec_valid_in', 0)
+            enc_valid_out = 1 if enc_valid_in else 0
+            dec_valid_out = 1 if dec_valid_in else 0
+            val = row.get('enc_data_in', 0)
+            encoded = 0
+            for i in range(8):
+                bit = (val >> i) & 1
+                pair = 1 if bit else 2
+                encoded |= pair << (2 * i)
+            enc_data_out = encoded & 0xFFFF
+            val = row.get('dec_data_in', 0)
+            decoded = 0
+            for i in range(8):
+                pair = (val >> (2 * i)) & 3
+                if pair == 1:
+                    decoded |= (1 << i)
+            dec_data_out = decoded & 0xFF
+    return results

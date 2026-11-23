@@ -1,0 +1,22 @@
+def reference(vectors):
+    cnt = 0
+    out = []
+    for i, v in enumerate(vectors):
+        if isinstance(v, dict):
+            reset = v.get('reset', 0)
+        elif isinstance(v, (list, tuple)):
+            reset = v[0] if len(v) > 0 else 0
+        else:
+            reset = v
+        reset = int(reset) & 1
+        if i == 0 and reset == 1:
+            cnt = 31
+        gate = 1 if 0 < cnt < 14 else 0
+        release = 1 if cnt < 8 else 0
+        out.append({'cnt_q': cnt, 'gate_clk_o': gate, 'release_reset_o': release})
+        edge_pos = (i % 2 == 0)
+        if reset == 1:
+            cnt = 31
+        elif edge_pos and cnt != 0:
+            cnt -= 1
+    return out

@@ -1,0 +1,52 @@
+```python
+def reference(vectors):
+    def s16(v):
+        v = v & 0xFFFF
+        if v & 0x8000:
+            v -= 0x10000
+        return v
+
+    def u16(v):
+        return v & 0xFFFF
+
+    def sat16(v):
+        if v > 32767:
+            return 32767
+        if v < -32768:
+            return -32768
+        return v
+
+    out1 = 0
+    out2 = 0
+    out3 = 0
+    res = []
+
+    for row in vectors:
+        reset = row['reset']
+        edge = row['edge']
+        in1 = s16(row['in_1'])
+        in2 = s16(row['in_2'])
+        in3 = s16(row['in_3'])
+        fs = row['filter_select'] & 0x3
+
+        if reset:
+            out1 = 0
+            out2 = 0
+            out3 = 0
+
+        res.append({
+            'out_1': u16(out1),
+            'out_2': u16(out2),
+            'out_3': u16(out3)
+        })
+
+        if edge == 'posedge' and not reset:
+            n1 = out1 + ((in1 - out1) >> fs)
+            n2 = out2 + ((in2 - out2) >> fs)
+            n3 = out3 + ((in3 - out3) >> fs)
+            out1 = sat16(n1)
+            out2 = sat16(n2)
+            out3 = sat16(n3)
+
+    return res
+```

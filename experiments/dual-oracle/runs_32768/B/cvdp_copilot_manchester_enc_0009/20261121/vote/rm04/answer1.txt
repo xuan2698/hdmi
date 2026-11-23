@@ -1,0 +1,68 @@
+def reference(vectors):
+    N = 8
+    M = (1 << (2 * N)) - 1
+    K = (1 << N) - 1
+    ev_q = 0
+    ed_q = 0
+    dv_q = 0
+    dd_q = 0
+    out = []
+    for idx, row in enumerate(vectors):
+        if isinstance(row, dict):
+            edge = row.get('edge', row.get('clk_edge', row.get('clk_in', None)))
+            rst = int(row.get('rst_in', 0)) & 1
+        else:
+            edge = None
+            rst = 0
+
+        if edge is None:
+            is_pos = (idx % 2 == 0)
+        elif isinstance(edge, str):
+            s = edge.lower()
+            is_pos = ('pos' in s) or (s == '1') or (s == 'true')
+        else:
+            is_pos = bool(edge)
+
+        if rst:
+            ev_q = 0
+            ed_q = 0
+            dv_q = 0
+            dd_q = 0
+
+        out.append({
+            'enc_valid_out': ev_q & 1,
+            'enc_data_out': ed_q & M,
+            'dec_valid_out': dv_q & 1,
+            'dec_data_out': dd_q & K
+        })
+
+        if is_pos and not rst:
+            if isinstance(row, dict):
+                ev_in = int(row.get('enc_valid_in', 0)) & 1
+                ed_in = int(row.get('enc_data_in', 0)) & K
+                dv_in = int(row.get('dec_valid_in', 0)) & 1
+                dd_in = int(row.get('dec_data_in', 0)) & M
+            else:
+                ev_in = 0
+                ed_in = 0
+                dv_in = 0
+                dd_in = 0
+
+            ev_q = ev_in
+            new_ed = 0
+            for i in range(N):
+                if (ed_in >> i) & 1:
+                    new_ed |= 1 << (2 * i)
+                else:
+                    new_ed |= 2 << (2 * i)
+            ed_q = new_ed & M
+
+            dv_q = dv_in
+            new_dd = 0
+            for i in range(N):
+                pair = (dd_in >> (2 * i)) & 3
+                if pair == 1:
+                    new_dd |= 1 << i
+            dd_q = new_dd & K
+
+    return out

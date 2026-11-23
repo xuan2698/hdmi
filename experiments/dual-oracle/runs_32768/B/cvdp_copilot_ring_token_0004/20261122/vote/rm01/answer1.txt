@@ -1,0 +1,58 @@
+def reference(vectors):
+    if isinstance(vectors, dict):
+        keys = list(vectors.keys())
+        if not keys:
+            return []
+        n = len(vectors[keys[0]])
+        rows = [{k: vectors[k][i] for k in keys} for i in range(n)]
+    else:
+        rows = vectors
+
+    state = 0
+    token_received = 1
+    token = 0
+    data_out = 0
+    result = []
+
+    for i, row in enumerate(rows):
+        rst = row.get('rst', 0)
+        data_in = row.get('data_in', 0) & 0xF
+        has_data = row.get('has_data_to_send', row.get('has_data', 0)) & 1
+
+        edge_val = None
+        if 'edge' in row:
+            e = row['edge']
+            if isinstance(e, str):
+                el = e.lower()
+                if 'pos' in el:
+                    edge_val = 1
+                elif 'neg' in el:
+                    edge_val = 0
+                else:
+                    edge_val = 1 if el not in ('0', 'false', 'low') else 0
+            else:
+                edge_val = 1 if e else 0
+        if edge_val is None and 'clk' in row:
+            edge_val = 1 if row['clk'] else 0
+        if edge_val is None:
+            edge_val = 1 if (i % 2 == 0) else 0
+
+        result.append({
+            'data_out': data_out & 0xF,
+            'token_received': token_received & 0xF,
+            'token': token & 0xF
+        })
+
+        if rst:
+            state = 0
+            token_received = 1
+            token = 0
+            data_out = 0
+        elif edge_val == 1:
+            next_state = (state + 1) & 3
+            token_received = 1 << state
+            token = 1 << next_state
+            data_out = data_in if has_data else 0
+            state = next_state
+
+    return result

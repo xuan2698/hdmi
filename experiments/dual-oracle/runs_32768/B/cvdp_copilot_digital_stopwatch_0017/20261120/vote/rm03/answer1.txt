@@ -1,0 +1,74 @@
+```python
+def reference(vectors):
+    sec = 0
+    min = 0
+    hr = 0
+    cnt = 0
+    res = []
+    prev_clk = None
+    for row in vectors:
+        reset = row.get('reset', 0)
+        start_stop = row.get('start_stop', 0)
+        edge = row.get('edge', None)
+        if edge is not None:
+            if isinstance(edge, str):
+                e = edge.lower()
+                if 'pos' in e:
+                    is_pos = True
+                elif 'neg' in e:
+                    is_pos = False
+                else:
+                    is_pos = (e == '1')
+            else:
+                is_pos = (edge == 1)
+        else:
+            clk = row.get('clk', None)
+            if clk is not None:
+                if prev_clk is None:
+                    is_pos = (clk == 1)
+                else:
+                    is_pos = (prev_clk == 0 and clk == 1)
+                prev_clk = clk
+            else:
+                is_pos = True
+
+        if reset == 1:
+            sec = 0
+            min = 0
+            hr = 0
+            cnt = 0
+
+        res.append({
+            'seconds': sec & 0x3f,
+            'minutes': min & 0x3f,
+            'hour': hr & 0x1
+        })
+
+        if is_pos and reset == 0:
+            one_sec_pulse = (cnt == 3)
+            nsec = sec
+            nmin = min
+            nhr = hr
+            if one_sec_pulse and start_stop == 1:
+                if sec == 59:
+                    nsec = 0
+                    if min == 59:
+                        nmin = 0
+                        nhr = hr ^ 1
+                    else:
+                        nmin = min + 1
+                else:
+                    nsec = sec + 1
+
+            if one_sec_pulse:
+                ncnt = 0
+            else:
+                ncnt = cnt + 1
+
+            sec = nsec
+            min = nmin
+            hr = nhr
+            cnt = ncnt
+
+    return res
+```

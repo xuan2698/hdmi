@@ -1,0 +1,20 @@
+def reference(vectors):
+    st = [0, 0, 0]
+    prev_clk = 0
+    result = []
+    for row in vectors:
+        reset = row.get('reset', 0) & 1
+        clk = row.get('clk', 0) & 1
+        if reset:
+            st = [0, 0, 0]
+        result.append({
+            'out_1': st[0] & 0xFFFF,
+            'out_2': st[1] & 0xFFFF,
+            'out_3': st[2] & 0xFFFF,
+        })
+        if clk == 1 and prev_clk == 0 and not reset:
+            st[0] = row.get('in_1', 0) & 0xFFFF
+            st[1] = row.get('in_2', 0) & 0xFFFF
+            st[2] = row.get('in_3', 0) & 0xFFFF
+        prev_clk = clk
+    return result

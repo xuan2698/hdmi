@@ -1,0 +1,68 @@
+def reference(vectors):
+    IDLE, LOAD, COMPUTE, OUTPUT = 0, 1, 2, 3
+    state = IDLE
+    a_reg = 0
+    b_reg = 0
+    result = 0
+    overflow = 0
+    out = []
+
+    for idx, row in enumerate(vectors):
+        def get(name, default=0):
+            if isinstance(row, dict):
+                return int(row.get(name, default))
+            return default
+
+        rst_n = get('i_rst_n', 1)
+
+        if rst_n == 0:
+            state = IDLE
+            a_reg = 0
+            b_reg = 0
+            result = 0
+            overflow = 0
+
+        out.append({
+            'o_resultant_sum': result & 0xFF,
+            'o_overflow': overflow & 1,
+            'o_ready': 1 if state == OUTPUT else 0,
+            'o_status': state & 3
+        })
+
+        is_posedge = (idx % 2 == 0)
+
+        if is_posedge and rst_n != 0:
+            clear = get('i_clear', 0)
+
+            if clear:
+                state = IDLE
+                a_reg = 0
+                b_reg = 0
+                result = 0
+                overflow = 0
+            else:
+                if state == IDLE:
+                    if get('i_enable', 0) and get('i_start', 0):
+                        state = LOAD
+                elif state == LOAD:
+                    a_reg = get('i_operand_a', 0) & 0xFF
+                    b_reg = get('i_operand_b', 0) & 0xFF
+                    state = COMPUTE
+                elif state == COMPUTE:
+                    av = a_reg & 0xFF
+                    bv = b_reg & 0xFF
+                    av_s = av - 256 if av >= 128 else av
+                    bv_s = bv - 256 if bv >= 128 else bv
+
+                    if get('i_mode', 0):
+                        full = av_s - bv_s
+                    else:
+                        full = av_s + bv_s
+
+                    result = full & 0xFF
+                    overflow = 1 if (full < -128 or full > 127) else 0
+                    state = OUTPUT
+                elif state == OUTPUT:
+                    state = IDLE
+
+    return out

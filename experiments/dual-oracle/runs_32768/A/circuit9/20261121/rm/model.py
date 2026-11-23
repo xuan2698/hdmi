@@ -1,0 +1,10 @@
+def reference(vectors):
+    q = 4
+    result = []
+    for row in vectors:
+        if row["a"]:
+            q = 4
+        else:
+            q = 0 if q == 6 else q + 1
+        result.append({"q": q})
+    return result

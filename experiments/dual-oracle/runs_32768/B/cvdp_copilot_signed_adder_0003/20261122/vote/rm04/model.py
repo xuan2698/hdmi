@@ -1,0 +1,98 @@
+def reference(vectors):
+    state = 0
+    reg_a = 0
+    reg_b = 0
+    result = 0
+    overflow = 0
+    outputs = []
+
+    def getv(row, key, default=0):
+        if isinstance(row, dict):
+            return row.get(key, default)
+        return default
+
+    def signed8(v):
+        v &= 0xFF
+        if v & 0x80:
+            return v - 0x100
+        return v
+
+    def is_pos(row, idx):
+        if isinstance(row, dict):
+            if 'edge' in row:
+                e = row['edge']
+                if isinstance(e, str):
+                    e2 = e.lower()
+                    if 'pos' in e2 or 'rise' in e2 or e2 in ('1', 'high'):
+                        return True
+                    if 'neg' in e2 or 'fall' in e2 or e2 in ('0', 'low'):
+                        return False
+                else:
+                    return bool(e)
+            if 'i_clk' in row:
+                return bool(row['i_clk'])
+            if 'clk' in row:
+                return bool(row['clk'])
+        return idx % 2 == 0
+
+    for idx, row in enumerate(vectors):
+        rst = getv(row, 'i_rst_n', 1)
+        if rst == 0:
+            state = 0
+            reg_a = 0
+            reg_b = 0
+            result = 0
+            overflow = 0
+            outputs.append({
+                'o_resultant_sum': 0,
+                'o_overflow': 0,
+                'o_ready': 0,
+                'o_status': 0
+            })
+            continue
+
+        ready = 1 if state == 3 else 0
+        outputs.append({
+            'o_resultant_sum': result & 0xFF,
+            'o_overflow': overflow & 1,
+            'o_ready': ready,
+            'o_status': state & 3
+        })
+
+        if not is_pos(row, idx):
+            continue
+
+        clear = getv(row, 'i_clear', 0)
+        if clear:
+            state = 0
+            result = 0
+            overflow = 0
+            continue
+
+        enable = getv(row, 'i_enable', 0)
+        start = getv(row, 'i_start', 0)
+        mode = getv(row, 'i_mode', 0)
+        a_in = getv(row, 'i_operand_a', 0) & 0xFF
+        b_in = getv(row, 'i_operand_b', 0) & 0xFF
+
+        if state == 0:
+            if enable and start:
+                state = 1
+        elif state == 1:
+            reg_a = a_in
+            reg_b = b_in
+            state = 2
+        elif state == 2:
+            sa = signed8(reg_a)
+            sb = signed8(reg_b)
+            if mode == 0:
+                full = sa + sb
+            else:
+                full = sa - sb
+            result = full & 0xFF
+            overflow = 1 if (full < -128 or full > 127) else 0
+            state = 3
+        elif state == 3:
+            state = 0
+
+    return outputs

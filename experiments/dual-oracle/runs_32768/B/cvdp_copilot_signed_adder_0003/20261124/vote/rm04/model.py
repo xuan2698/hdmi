@@ -1,0 +1,72 @@
+def reference(vectors):
+    W = 8
+    mask = (1 << W) - 1
+    signbit = 1 << (W - 1)
+    state = 0
+    reg_a = 0
+    reg_b = 0
+    result = 0
+    overflow = 0
+    out = []
+    for idx, row in enumerate(vectors):
+        rst_n = row.get('i_rst_n', 1)
+        start = row.get('i_start', 0)
+        enable = row.get('i_enable', 0)
+        mode = row.get('i_mode', 0)
+        clear = row.get('i_clear', 0)
+        a_in = row.get('i_operand_a', 0)
+        b_in = row.get('i_operand_b', 0)
+        is_posedge = (idx % 2 == 0)
+
+        if rst_n == 0:
+            state = 0
+            reg_a = 0
+            reg_b = 0
+            result = 0
+            overflow = 0
+
+        out.append({
+            'o_resultant_sum': result & mask,
+            'o_overflow': overflow & 1,
+            'o_ready': 1 if state == 3 else 0,
+            'o_status': state & 3
+        })
+
+        if is_posedge and rst_n != 0:
+            if clear:
+                state = 0
+                result = 0
+                overflow = 0
+            elif enable == 0:
+                state = 0
+            else:
+                if state == 0:
+                    if start:
+                        state = 1
+                elif state == 1:
+                    reg_a = a_in & mask
+                    reg_b = b_in & mask
+                    state = 2
+                elif state == 2:
+                    a = reg_a & mask
+                    b = reg_b & mask
+                    a_s = a - (1 << W) if a & signbit else a
+                    b_s = b - (1 << W) if b & signbit else b
+                    if mode & 1:
+                        full = a_s - b_s
+                        res = full & mask
+                        res_s = res - (1 << W) if res & signbit else res
+                        ov = 1 if ((a_s >= 0 and b_s < 0 and res_s < 0) or
+                                   (a_s < 0 and b_s >= 0 and res_s >= 0)) else 0
+                    else:
+                        full = a_s + b_s
+                        res = full & mask
+                        res_s = res - (1 << W) if res & signbit else res
+                        ov = 1 if ((a_s >= 0 and b_s >= 0 and res_s < 0) or
+                                   (a_s < 0 and b_s < 0 and res_s >= 0)) else 0
+                    result = res & mask
+                    overflow = ov & 1
+                    state = 3
+                elif state == 3:
+                    state = 0
+    return out

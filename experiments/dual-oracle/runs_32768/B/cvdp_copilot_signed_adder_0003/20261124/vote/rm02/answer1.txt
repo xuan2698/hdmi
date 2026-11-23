@@ -1,0 +1,72 @@
+```python
+def reference(vectors):
+    state = 0
+    reg_a = 0
+    reg_b = 0
+    result = 0
+    overflow = 0
+    outputs = []
+    for idx, row in enumerate(vectors):
+        rst_n = row.get('i_rst_n', 1)
+        if rst_n == 0:
+            state = 0
+            reg_a = 0
+            reg_b = 0
+            result = 0
+            overflow = 0
+        out = {
+            'o_resultant_sum': result & 0xFF,
+            'o_overflow': overflow & 1,
+            'o_ready': 1 if state == 3 else 0,
+            'o_status': state & 3
+        }
+        outputs.append(out)
+        posedge = (idx % 2 == 0)
+        if posedge:
+            i_clear = row.get('i_clear', 0)
+            i_enable = row.get('i_enable', 0)
+            i_start = row.get('i_start', 0)
+            i_mode = row.get('i_mode', 0)
+            i_a = row.get('i_operand_a', 0) & 0xFF
+            i_b = row.get('i_operand_b', 0) & 0xFF
+            if rst_n == 0:
+                state = 0
+                reg_a = 0
+                reg_b = 0
+                result = 0
+                overflow = 0
+            elif i_clear:
+                state = 0
+                result = 0
+                overflow = 0
+            else:
+                if i_enable == 0:
+                    state = 0
+                else:
+                    if state == 0:
+                        if i_start:
+                            state = 1
+                    elif state == 1:
+                        reg_a = i_a
+                        reg_b = i_b
+                        state = 2
+                    elif state == 2:
+                        if i_mode == 0:
+                            raw = reg_a + reg_b
+                            a_sign = (reg_a >> 7) & 1
+                            b_sign = (reg_b >> 7) & 1
+                            res_sign = (raw >> 7) & 1
+                            ov = 1 if (a_sign == b_sign and res_sign != a_sign) else 0
+                        else:
+                            raw = reg_a - reg_b
+                            a_sign = (reg_a >> 7) & 1
+                            b_sign = (reg_b >> 7) & 1
+                            res_sign = (raw >> 7) & 1
+                            ov = 1 if (a_sign != b_sign and res_sign != a_sign) else 0
+                        result = raw & 0xFF
+                        overflow = ov
+                        state = 3
+                    elif state == 3:
+                        state = 0
+    return outputs
+```

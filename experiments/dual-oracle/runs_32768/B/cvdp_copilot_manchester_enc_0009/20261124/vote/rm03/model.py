@@ -1,0 +1,47 @@
+def reference(vectors):
+    if isinstance(vectors, dict):
+        rows = vectors.get('vectors', [vectors])
+    else:
+        rows = vectors
+    ev = 0
+    ed = 0
+    dv = 0
+    dd = 0
+    out = []
+    for idx, r in enumerate(rows):
+        if not isinstance(r, dict):
+            r = {}
+        rst = int(r.get('rst_in', 0) or 0)
+        if rst:
+            ev = ed = dv = dd = 0
+            out.append({'enc_valid_out': 0, 'enc_data_out': 0, 'dec_valid_out': 0, 'dec_data_out': 0})
+            continue
+        posedge = None
+        if 'edge' in r:
+            e = r['edge']
+            posedge = e.lower().startswith('pos') if isinstance(e, str) else bool(e)
+        elif 'clk_in' in r:
+            posedge = bool(r['clk_in'])
+        if posedge is None:
+            posedge = (idx % 2 == 0)
+        out.append({
+            'enc_valid_out': ev & 1,
+            'enc_data_out': ed & 0xFFFF,
+            'dec_valid_out': dv & 1,
+            'dec_data_out': dd & 0xFF
+        })
+        if posedge:
+            iev = int(r.get('enc_valid_in', 0) or 0) & 1
+            ied = int(r.get('enc_data_in', 0) or 0) & 0xFF
+            idv = int(r.get('dec_valid_in', 0) or 0) & 1
+            idd = int(r.get('dec_data_in', 0) or 0) & 0xFFFF
+            enc = 0
+            for i in range(8):
+                b = (ied >> i) & 1
+                enc |= (1 if b else 2) << (2 * i)
+            dec = 0
+            for i in range(8):
+                if ((idd >> (2 * i)) & 3) == 1:
+                    dec |= 1 << i
+            ev, ed, dv, dd = iev, enc & 0xFFFF, idv, dec & 0xFF
+    return out

@@ -1,0 +1,62 @@
+```python
+def reference(vectors):
+    out1 = 0
+    out2 = 0
+    out3 = 0
+    prev_clk = None
+    res = []
+    for row in vectors:
+        edge = row.get('edge')
+        if isinstance(edge, str):
+            edge = edge.lower()
+        clk = row.get('clk', None)
+        if edge is None and clk is not None:
+            if prev_clk is None:
+                prev_clk = 0
+            if clk != prev_clk:
+                edge = 'posedge' if clk == 1 else 'negedge'
+            prev_clk = clk
+        rst = row.get('reset', 0)
+        if rst:
+            out1 = out2 = out3 = 0
+        res.append({
+            'out_1': out1 & 0xFFFF,
+            'out_2': out2 & 0xFFFF,
+            'out_3': out3 & 0xFFFF
+        })
+        if edge == 'posedge' and not rst:
+            in1 = row.get('in_1', 0) & 0xFFFF
+            if in1 >= 0x8000:
+                in1 -= 0x10000
+            in2 = row.get('in_2', 0) & 0xFFFF
+            if in2 >= 0x8000:
+                in2 -= 0x10000
+            in3 = row.get('in_3', 0) & 0xFFFF
+            if in3 >= 0x8000:
+                in3 -= 0x10000
+            s = int(row.get('filter_select', 0))
+            if s < 0:
+                s = 0
+            elif s > 15:
+                s = 15
+            d1 = in1 - out1
+            d2 = in2 - out2
+            d3 = in3 - out3
+            n1 = out1 + (d1 >> s)
+            n2 = out2 + (d2 >> s)
+            n3 = out3 + (d3 >> s)
+            if n1 > 32767:
+                n1 = 32767
+            elif n1 < -32768:
+                n1 = -32768
+            if n2 > 32767:
+                n2 = 32767
+            elif n2 < -32768:
+                n2 = -32768
+            if n3 > 32767:
+                n3 = 32767
+            elif n3 < -32768:
+                n3 = -32768
+            out1, out2, out3 = n1, n2, n3
+    return res
+```

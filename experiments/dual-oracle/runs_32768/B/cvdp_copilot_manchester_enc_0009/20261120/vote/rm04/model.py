@@ -1,0 +1,50 @@
+def reference(vectors):
+    ev = ed = dv = dd = 0
+    prev_clk = 0
+    out = []
+    for r in vectors:
+        if r.get('rst_in', 0):
+            ev = ed = dv = dd = 0
+        pos = False
+        if 'edge' in r:
+            e = r['edge']
+            if isinstance(e, str):
+                s = e.strip().lower()
+                pos = s.startswith('pos') or s in ('p', '1')
+            else:
+                pos = (e == 1)
+        elif 'clk_in' in r:
+            c = r['clk_in']
+            pos = (c == 1 and prev_clk == 0)
+        elif 'clk' in r:
+            c = r['clk']
+            pos = (c == 1 and prev_clk == 0)
+        out.append({
+            'enc_valid_out': ev & 1,
+            'enc_data_out': ed & 0xffff,
+            'dec_valid_out': dv & 1,
+            'dec_data_out': dd & 0xff
+        })
+        if pos:
+            if r.get('rst_in', 0):
+                ev = ed = dv = dd = 0
+            else:
+                ein = r.get('enc_valid_in', 0) & 1
+                din = r.get('dec_valid_in', 0) & 1
+                ev = ein
+                dv = din
+                if ein:
+                    edi = r.get('enc_data_in', 0) & 0xff
+                    ed = 0
+                    for i in range(8):
+                        ed |= (1 if ((edi >> i) & 1) else 2) << (2 * i)
+                if din:
+                    ddi = r.get('dec_data_in', 0) & 0xffff
+                    dd = 0
+                    for i in range(8):
+                        dd |= (1 if (((ddi >> (2 * i)) & 3) == 1) else 0) << i
+        if 'clk_in' in r:
+            prev_clk = r['clk_in']
+        elif 'clk' in r:
+            prev_clk = r['clk']
+    return out

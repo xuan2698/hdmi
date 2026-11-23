@@ -1,0 +1,51 @@
+```python
+def reference(vectors):
+    N = 8
+    enc_data = 0
+    enc_valid = 0
+    dec_data = 0
+    dec_valid = 0
+    out = []
+
+    for idx, r in enumerate(vectors):
+        rst = r.get('rst_in', 0) if isinstance(r, dict) else 0
+
+        if rst:
+            enc_data = 0
+            enc_valid = 0
+            dec_data = 0
+            dec_valid = 0
+
+        out.append({
+            'enc_valid_out': enc_valid,
+            'enc_data_out': enc_data,
+            'dec_valid_out': dec_valid,
+            'dec_data_out': dec_data
+        })
+
+        if idx % 2 == 0:  # posedge
+            if not rst:
+                ev = r.get('enc_valid_in', 0) & 1
+                ed = r.get('enc_data_in', 0) & ((1 << N) - 1)
+                dv = r.get('dec_valid_in', 0) & 1
+                dd = r.get('dec_data_in', 0) & ((1 << (2 * N)) - 1)
+
+                enc = 0
+                for i in range(N):
+                    bit = (ed >> i) & 1
+                    pair = 1 if bit else 2
+                    enc |= pair << (2 * i)
+
+                dec = 0
+                for i in range(N):
+                    pair = (dd >> (2 * i)) & 3
+                    if pair == 1:
+                        dec |= 1 << i
+
+                enc_data = enc
+                enc_valid = ev
+                dec_data = dec
+                dec_valid = dv
+
+    return out
+```

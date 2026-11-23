@@ -1,0 +1,44 @@
+def reference(vectors):
+    state = 0
+    result = []
+    prev_clk = None
+    for i, row in enumerate(vectors):
+        rst = int(row.get('rst', 0))
+        data_in = int(row.get('data_in', 0)) & 0xF
+        has = int(row.get('has_data_to_send', 0)) & 1
+        if rst:
+            state = 0
+        token_received = 1 << state
+        if rst:
+            token = 0
+            data_out = 0
+        else:
+            token = ((token_received << 1) | (token_received >> 3)) & 0xF
+            data_out = data_in if has else 0
+        result.append({
+            'data_out': data_out,
+            'token_received': token_received,
+            'token': token
+        })
+        is_pos = False
+        edge = row.get('edge')
+        if edge is not None:
+            if isinstance(edge, str):
+                e = edge.lower()
+                is_pos = e.startswith('pos') or e == '1' or e == 'rising'
+            else:
+                is_pos = bool(edge)
+        else:
+            clk = row.get('clk')
+            if clk is not None:
+                clk = int(clk)
+                if prev_clk is None:
+                    is_pos = (clk == 1)
+                else:
+                    is_pos = (clk == 1 and prev_clk == 0)
+                prev_clk = clk
+            else:
+                is_pos = (i % 2 == 0)
+        if is_pos and not rst:
+            state = (state + 1) & 3
+    return result

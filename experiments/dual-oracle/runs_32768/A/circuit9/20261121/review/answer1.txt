@@ -1,0 +1,16 @@
+{
+  "issues": [
+    {
+      "id": "missing_clock",
+      "location": "for row in vectors: / if row[\"a\"]:",
+      "spec_quote": "This is a sequential circuit. Frozen timing: Clock clk; driven input row before the posedge sample, sampled after that edge settles.",
+      "fix": "Only update q on the rising edge of clk (e.g., detect a clk 0->1 transition) instead of updating for every vector row."
+    },
+    {
+      "id": "wrong_a_sampling",
+      "location": "q = 0 if q == 6 else q + 1",
+      "spec_quote": "// 45ns            1                0               4\n// 55ns            1                0               5",
+      "fix": "Use the a value sampled at the previous clock edge (or a registered enable) so q remains 4 at 45ns and first increments to 5 at 55ns when a becomes 0."
+    }
+  ]
+}

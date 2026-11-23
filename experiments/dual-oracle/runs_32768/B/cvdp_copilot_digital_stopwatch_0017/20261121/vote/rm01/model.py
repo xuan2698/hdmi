@@ -1,0 +1,48 @@
+def reference(vectors):
+    cc = 0
+    p = 0
+    s = 0
+    m = 0
+    h = 0
+    out = []
+    for i, v in enumerate(vectors):
+        if isinstance(v, dict):
+            r = v.get('reset', 0)
+            st = v.get('start_stop', 0)
+        else:
+            r = v[0] if len(v) > 0 else 0
+            st = v[1] if len(v) > 1 else 0
+        if r:
+            cc = 0
+            p = 0
+            s = 0
+            m = 0
+            h = 0
+        out.append({'seconds': s, 'minutes': m, 'hour': h})
+        if i % 2 == 0 and not r:
+            oc = cc
+            op = p
+            os = s
+            om = m
+            oh = h
+            if oc == 3:
+                cc = 0
+                p = 1
+            else:
+                cc = oc + 1
+                p = 0
+            if st and op:
+                if os == 59:
+                    s = 0
+                    if om == 59:
+                        m = 0
+                        h = 1 - oh
+                    else:
+                        m = om + 1
+                else:
+                    s = os + 1
+            else:
+                s = os
+                m = om
+                h = oh
+    return out

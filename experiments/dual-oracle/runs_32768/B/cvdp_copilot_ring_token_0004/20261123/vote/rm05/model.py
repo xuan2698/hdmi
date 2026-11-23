@@ -1,0 +1,58 @@
+def reference(vectors):
+    state = 0
+    results = []
+    next_posedge = True
+    for row in vectors:
+        if isinstance(row, dict):
+            rst = row.get('rst', 0)
+            data_in = row.get('data_in', 0)
+            has_data = row.get('has_data_to_send', 0)
+            edge = row.get('edge', None)
+        else:
+            if len(row) >= 4:
+                if isinstance(row[0], str) and ('edge' in row[0].lower() or row[0].lower() in ('posedge', 'negedge')):
+                    edge, rst, data_in, has_data = row[0], row[1], row[2], row[3]
+                else:
+                    rst, data_in, has_data, edge = row[0], row[1], row[2], row[3]
+            else:
+                rst = row[0] if len(row) > 0 else 0
+                data_in = row[1] if len(row) > 1 else 0
+                has_data = row[2] if len(row) > 2 else 0
+                edge = None
+
+        if edge is None:
+            is_posedge = next_posedge
+            next_posedge = not next_posedge
+        else:
+            if isinstance(edge, str):
+                if edge.lower() in ('posedge', 'p', '1', 'positive'):
+                    is_posedge = True
+                elif edge.lower() in ('negedge', 'n', '0', 'negative'):
+                    is_posedge = False
+                else:
+                    is_posedge = ('pos' in edge.lower())
+            else:
+                is_posedge = bool(edge)
+
+        if rst == 1:
+            state = 0
+
+        if rst == 1:
+            data_out = 0
+            token_received = 1
+            token = 0
+        else:
+            token_received = 1 << state
+            token = 1 << ((state + 1) % 4)
+            data_out = (data_in & 0xF) if has_data else 0
+
+        results.append({
+            'data_out': data_out,
+            'token_received': token_received,
+            'token': token
+        })
+
+        if is_posedge and rst == 0:
+            state = (state + 1) % 4
+
+    return results

@@ -1,0 +1,9 @@
+def reference(vectors):
+    s = 0
+    out = []
+    for v in vectors:
+        a = v['a']
+        b = v['b']
+        s = (a | b) if s else (a & b)
+        out.append({'q': a ^ b ^ s, 'state': s})
+    return out

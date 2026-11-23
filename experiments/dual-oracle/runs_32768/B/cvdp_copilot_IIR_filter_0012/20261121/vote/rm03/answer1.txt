@@ -1,0 +1,40 @@
+def reference(vectors):
+    s1 = s2 = s3 = 0
+    prev_clk = 0
+    outs = []
+    for idx, row in enumerate(vectors):
+        pos = False
+        if 'edge' in row:
+            e = row['edge']
+            if isinstance(e, str):
+                el = e.lower()
+                pos = el.startswith('pos') or el in ('rise', 'rising', '1')
+            else:
+                pos = bool(e)
+        else:
+            if 'clk' in row:
+                clk = row['clk']
+                if clk == 1 and (prev_clk == 0 or idx == 0):
+                    pos = True
+                prev_clk = clk
+            elif 'clock' in row:
+                clk = row['clock']
+                if clk == 1 and (prev_clk == 0 or idx == 0):
+                    pos = True
+                prev_clk = clk
+            else:
+                pos = (idx % 2 == 0)
+                prev_clk = 1 if pos else 0
+
+        rst = row.get('reset', row.get('rst', 0))
+        if rst:
+            s1 = s2 = s3 = 0
+
+        outs.append({'out_1': s1 & 0xFFFF, 'out_2': s2 & 0xFFFF, 'out_3': s3 & 0xFFFF})
+
+        if pos and not rst:
+            s1 = int(row.get('in_1', 0)) & 0xFFFF
+            s2 = int(row.get('in_2', 0)) & 0xFFFF
+            s3 = int(row.get('in_3', 0)) & 0xFFFF
+
+    return outs

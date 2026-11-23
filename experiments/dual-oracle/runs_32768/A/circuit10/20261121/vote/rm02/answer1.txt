@@ -1,0 +1,17 @@
+def reference(vectors):
+    state = 0
+    result = []
+    for v in vectors:
+        if isinstance(v, dict):
+            a = v.get('a', 0)
+            b = v.get('b', 0)
+        else:
+            a = v[0]
+            b = v[1]
+        a &= 1
+        b &= 1
+        nxt = (a & b) | (a & state) | (b & state)
+        state = nxt & 1
+        q = (a ^ b ^ state) & 1
+        result.append({'q': q, 'state': state})
+    return result

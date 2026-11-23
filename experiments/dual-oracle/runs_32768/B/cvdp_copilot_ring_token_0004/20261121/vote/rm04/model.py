@@ -1,0 +1,62 @@
+def reference(vectors):
+    state = 1  # NODE0
+    prev_clk = None
+    result = []
+    for i, row in enumerate(vectors):
+        rst = row.get('rst', 0)
+        data_in = row.get('data_in', 0) & 0xF
+        has_data = row.get('has_data_to_send', 0)
+        
+        # Determine if this row is a posedge
+        is_posedge = False
+        edge = row.get('edge', None)
+        if edge is not None:
+            if isinstance(edge, str):
+                if 'pos' in edge.lower():
+                    is_posedge = True
+            else:
+                if edge == 1:
+                    is_posedge = True
+        else:
+            clk = row.get('clk', None)
+            if clk is not None:
+                if prev_clk is None:
+                    is_posedge = (i % 2 == 0)
+                else:
+                    is_posedge = (prev_clk == 0 and clk == 1)
+                prev_clk = clk
+            else:
+                is_posedge = (i % 2 == 0)
+        
+        # Asynchronous reset applies immediately
+        if rst:
+            state = 1
+        
+        if rst:
+            token_received = 1
+            data_out = 0
+            token = 0
+        else:
+            token_received = state & 0xF
+            token = ((state << 1) | (state >> 3)) & 0xF
+            if has_data and state != 0:
+                data_out = data_in
+            else:
+                data_out = 0
+        
+        result.append({
+            'data_out': data_out,
+            'token_received': token_received,
+            'token': token
+        })
+        
+        # State update after posedge, using next-state logic
+        if is_posedge:
+            if rst:
+                state = 1
+            else:
+                nxt = ((state << 1) | (state >> 3)) & 0xF
+                if state not in (1, 2, 4, 8):
+                    nxt = 1
+                state = nxt
+    return result

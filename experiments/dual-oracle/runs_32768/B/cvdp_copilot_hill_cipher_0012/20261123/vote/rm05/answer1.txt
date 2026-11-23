@@ -1,0 +1,69 @@
+```python
+def reference(vectors):
+    state = 0  # 0=IDLE, 1=COMPUTE, 2=COMPUTE_MOD, 3=DONE
+    ciphertext = 0
+    reset = start = plaintext = key = 0
+    prev_clk = 0
+    toggle = 0
+    out = []
+
+    for row in vectors:
+        if 'reset' in row: reset = row['reset']
+        if 'start' in row: start = row['start']
+        if 'plaintext' in row: plaintext = row['plaintext']
+        if 'key' in row: key = row['key']
+
+        is_pos = False
+        if 'edge' in row:
+            ed = row['edge']
+            if isinstance(ed, str):
+                s = ed.lower()
+                is_pos = s.startswith('pos') or s == '1'
+            else:
+                is_pos = bool(ed)
+        elif 'clk' in row:
+            clk = row['clk']
+            is_pos = (prev_clk == 0 and clk == 1)
+            prev_clk = clk
+        else:
+            is_pos = (toggle % 2 == 0)
+            toggle += 1
+
+        out.append({
+            'ciphertext': ciphertext & 0x7fff,
+            'done': 1 if state == 3 else 0
+        })
+
+        if is_pos:
+            if reset:
+                state = 0
+                ciphertext = 0
+            else:
+                if state == 0:
+                    if start:
+                        state = 1
+                elif state == 1:
+                    state = 2
+                elif state == 2:
+                    pt0 = plaintext & 0x1f
+                    pt1 = (plaintext >> 5) & 0x1f
+                    pt2 = (plaintext >> 10) & 0x1f
+                    k0 = key & 0x1f
+                    k1 = (key >> 5) & 0x1f
+                    k2 = (key >> 10) & 0x1f
+                    k3 = (key >> 15) & 0x1f
+                    k4 = (key >> 20) & 0x1f
+                    k5 = (key >> 25) & 0x1f
+                    k6 = (key >> 30) & 0x1f
+                    k7 = (key >> 35) & 0x1f
+                    k8 = (key >> 40) & 0x1f
+                    c0 = (pt0 * k0 + pt1 * k1 + pt2 * k2) % 26
+                    c1 = (pt0 * k3 + pt1 * k4 + pt2 * k5) % 26
+                    c2 = (pt0 * k6 + pt1 * k7 + pt2 * k8) % 26
+                    ciphertext = ((c2 & 0x1f) << 10) | ((c1 & 0x1f) << 5) | (c0 & 0x1f)
+                    state = 3
+                elif state == 3:
+                    state = 0
+
+    return out
+```

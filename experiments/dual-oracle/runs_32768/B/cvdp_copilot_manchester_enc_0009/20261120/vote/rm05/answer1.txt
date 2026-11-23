@@ -1,0 +1,33 @@
+def reference(vectors):
+    ed=ev=dd=dv=0
+    out=[]
+    for idx,row in enumerate(vectors):
+        rst=int(row.get('rst_in',0))&1
+        if rst:
+            ed=ev=dd=dv=0
+            out.append({'enc_valid_out':0,'enc_data_out':0,'dec_valid_out':0,'dec_data_out':0})
+            continue
+        out.append({'enc_valid_out':ev,'enc_data_out':ed,'dec_valid_out':dv,'dec_data_out':dd})
+        if 'clk_in' in row:
+            is_pos=(int(row['clk_in'])&1)==1
+        elif 'clk' in row:
+            is_pos=(int(row['clk'])&1)==1
+        else:
+            is_pos=(idx%2==0)
+        if is_pos:
+            ein=int(row.get('enc_data_in',0))&255
+            nxt_ed=0
+            for i in range(8):
+                b=(ein>>i)&1
+                pair=b|((1-b)<<1)
+                nxt_ed|=pair<<(2*i)
+            din=int(row.get('dec_data_in',0))&65535
+            nxt_dd=0
+            for i in range(8):
+                if ((din>>(2*i))&3)==1:
+                    nxt_dd|=1<<i
+            ed=nxt_ed
+            ev=int(row.get('enc_valid_in',0))&1
+            dd=nxt_dd
+            dv=int(row.get('dec_valid_in',0))&1
+    return out

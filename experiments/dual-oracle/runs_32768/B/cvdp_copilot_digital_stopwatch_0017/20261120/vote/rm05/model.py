@@ -1,0 +1,55 @@
+def reference(vectors):
+    CLK_FREQ = 4
+    count = 0
+    pulse = 0
+    seconds = 0
+    minutes = 0
+    hour = 0
+    posedge = True
+    out = []
+    for row in vectors:
+        if isinstance(row, dict):
+            reset = row.get('reset', 0)
+            start_stop = row.get('start_stop', 0)
+        else:
+            n = len(row)
+            if n == 2:
+                reset, start_stop = row[0], row[1]
+            elif n >= 3:
+                reset, start_stop = row[1], row[2]
+            else:
+                reset = start_stop = 0
+        if reset == 1:
+            count = 0
+            pulse = 0
+            seconds = 0
+            minutes = 0
+            hour = 0
+        out.append({'seconds': seconds, 'minutes': minutes, 'hour': hour})
+        if posedge and reset == 0:
+            if count == CLK_FREQ - 1:
+                n_count = 0
+                n_pulse = 1
+            else:
+                n_count = count + 1
+                n_pulse = 0
+            n_seconds = seconds
+            n_minutes = minutes
+            n_hour = hour
+            if start_stop == 1 and pulse == 1:
+                if seconds == 59:
+                    n_seconds = 0
+                    if minutes == 59:
+                        n_minutes = 0
+                        n_hour = 1
+                    else:
+                        n_minutes = minutes + 1
+                else:
+                    n_seconds = seconds + 1
+            count = n_count
+            pulse = n_pulse
+            seconds = n_seconds
+            minutes = n_minutes
+            hour = n_hour
+        posedge = not posedge
+    return out

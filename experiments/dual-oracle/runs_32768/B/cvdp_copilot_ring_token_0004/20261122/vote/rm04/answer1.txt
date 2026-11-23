@@ -1,0 +1,52 @@
+```python
+def reference(vectors):
+    state = 0
+    result = []
+    for i, row in enumerate(vectors):
+        if isinstance(row, dict):
+            rst = int(row.get('rst', 0))
+            data_in = int(row.get('data_in', 0))
+            has = int(row.get('has_data_to_send', 0))
+            if 'edge' in row:
+                e = row['edge']
+                if isinstance(e, str):
+                    posedge = e.lower().startswith('pos') or e == '1'
+                else:
+                    posedge = int(e) != 0
+            elif 'clk' in row:
+                posedge = int(row['clk']) != 0
+            else:
+                posedge = (i % 2 == 0)
+        else:
+            vals = list(row)
+            rst = int(vals[0]) if len(vals) > 0 else 0
+            data_in = int(vals[1]) if len(vals) > 1 else 0
+            has = int(vals[2]) if len(vals) > 2 else 0
+            posedge = (i % 2 == 0)
+            if len(vals) > 3:
+                posedge = int(vals[3]) != 0
+
+        if rst:
+            state = 0
+
+        if rst:
+            token_received = 1
+            token = 0
+            data_out = 0
+        else:
+            token_received = 1 << (state % 4)
+            next_state = (state + 1) % 4
+            token = 1 << next_state
+            data_out = (data_in & 0xF) if has else 0
+
+        result.append({
+            'data_out': data_out & 0xF,
+            'token_received': token_received & 0xF,
+            'token': token & 0xF
+        })
+
+        if posedge and not rst:
+            state = (state + 1) % 4
+
+    return result
+```

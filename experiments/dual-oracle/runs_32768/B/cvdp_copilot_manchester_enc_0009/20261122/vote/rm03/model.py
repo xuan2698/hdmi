@@ -1,0 +1,51 @@
+def reference(vectors):
+    N = 8
+    e_v = e_d = d_v = d_d = 0
+    res = []
+    for i, row in enumerate(vectors):
+        rst = row.get('rst_in', 0)
+        if rst:
+            e_v = e_d = d_v = d_d = 0
+            res.append({'enc_valid_out': 0, 'enc_data_out': 0, 'dec_valid_out': 0, 'dec_data_out': 0})
+            continue
+
+        if 'clk_in' in row:
+            is_pos = (row['clk_in'] == 1)
+        elif 'edge' in row:
+            val = row['edge']
+            if isinstance(val, str):
+                is_pos = 'pos' in val.lower()
+            else:
+                is_pos = bool(val)
+        else:
+            is_pos = (i % 2 == 0)
+
+        res.append({
+            'enc_valid_out': e_v,
+            'enc_data_out': e_d,
+            'dec_valid_out': d_v,
+            'dec_data_out': d_d
+        })
+
+        if is_pos:
+            ev_in = row.get('enc_valid_in', 0) & 1
+            ed_in = row.get('enc_data_in', 0) & 0xFF
+            enc_out = 0
+            for b in range(N):
+                bit = (ed_in >> b) & 1
+                pair = 1 if bit else 2
+                enc_out |= pair << (2 * b)
+            e_v = ev_in
+            e_d = enc_out & 0xFFFF
+
+            dv_in = row.get('dec_valid_in', 0) & 1
+            dd_in = row.get('dec_data_in', 0) & 0xFFFF
+            dec_out = 0
+            for b in range(N):
+                pair = (dd_in >> (2 * b)) & 3
+                if pair == 1:
+                    dec_out |= 1 << b
+            d_v = dv_in
+            d_d = dec_out & 0xFF
+
+    return res

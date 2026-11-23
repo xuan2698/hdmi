@@ -1,0 +1,15 @@
+def reference(vectors):
+    s = 0
+    pc = None
+    pa = pb = 0
+    out = []
+    for v in vectors:
+        c = v['clk']
+        a = v['a']
+        b = v['b']
+        if pc == 0 and c == 1:
+            s = (pa & pb) | (pa & s) | (pb & s)
+        q = a ^ b ^ s
+        out.append({'q': q, 'state': s})
+        pc, pa, pb = c, a, b
+    return out

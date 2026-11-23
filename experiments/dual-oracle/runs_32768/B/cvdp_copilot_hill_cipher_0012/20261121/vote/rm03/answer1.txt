@@ -1,0 +1,52 @@
+```python
+def reference(vectors):
+    state = 'IDLE'
+    ciphertext_reg = 0
+    sum0 = sum1 = sum2 = 0
+    prev_clk = 0
+    out = []
+    for i, row in enumerate(vectors):
+        clk = row.get('clk', 1 if i % 2 == 0 else 0)
+        reset = row.get('reset', 0)
+        start = row.get('start', 0)
+        plaintext = row.get('plaintext', 0)
+        key = row.get('key', 0)
+        done_out = 1 if state == 'DONE' else 0
+        out.append({'ciphertext': ciphertext_reg & 0x7FFF, 'done': done_out})
+        if clk == 1 and prev_clk == 0:
+            if reset:
+                state = 'IDLE'
+                ciphertext_reg = 0
+                sum0 = sum1 = sum2 = 0
+            else:
+                if state == 'IDLE':
+                    if start:
+                        state = 'COMPUTE'
+                elif state == 'COMPUTE':
+                    p0 = plaintext & 0x1F
+                    p1 = (plaintext >> 5) & 0x1F
+                    p2 = (plaintext >> 10) & 0x1F
+                    k0 = key & 0x1F
+                    k1 = (key >> 5) & 0x1F
+                    k2 = (key >> 10) & 0x1F
+                    k3 = (key >> 15) & 0x1F
+                    k4 = (key >> 20) & 0x1F
+                    k5 = (key >> 25) & 0x1F
+                    k6 = (key >> 30) & 0x1F
+                    k7 = (key >> 35) & 0x1F
+                    k8 = (key >> 40) & 0x1F
+                    sum0 = k0 * p0 + k1 * p1 + k2 * p2
+                    sum1 = k3 * p0 + k4 * p1 + k5 * p2
+                    sum2 = k6 * p0 + k7 * p1 + k8 * p2
+                    state = 'COMPUTE_MOD'
+                elif state == 'COMPUTE_MOD':
+                    c0 = sum0 % 26
+                    c1 = sum1 % 26
+                    c2 = sum2 % 26
+                    ciphertext_reg = (c0 | (c1 << 5) | (c2 << 10)) & 0x7FFF
+                    state = 'DONE'
+                elif state == 'DONE':
+                    state = 'IDLE'
+        prev_clk = clk
+    return out
+```

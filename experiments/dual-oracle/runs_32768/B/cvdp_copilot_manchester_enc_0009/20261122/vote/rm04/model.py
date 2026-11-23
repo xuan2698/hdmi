@@ -1,0 +1,50 @@
+def reference(vectors):
+    ev = ed = dv = dd = 0
+    out = []
+    for idx, row in enumerate(vectors):
+        if 'edge' in row:
+            e = row['edge']
+            if isinstance(e, str):
+                is_pos = 'pos' in e.lower()
+            else:
+                is_pos = bool(e)
+        elif 'clk_in' in row:
+            c = row['clk_in']
+            if isinstance(c, str):
+                is_pos = ('pos' in c.lower()) or (c.strip() == '1')
+            else:
+                is_pos = (c == 1)
+        else:
+            is_pos = (idx % 2 == 0)
+
+        rst = row.get('rst_in', 0)
+        if rst == 1:
+            ev = ed = dv = dd = 0
+
+        out.append({
+            'enc_valid_out': ev & 1,
+            'enc_data_out': ed & 0xFFFF,
+            'dec_valid_out': dv & 1,
+            'dec_data_out': dd & 0xFF
+        })
+
+        if is_pos and rst == 0:
+            ev = row.get('enc_valid_in', 0) & 1
+            data = row.get('enc_data_in', 0) & 0xFF
+            enc = 0
+            for i in range(8):
+                bit = (data >> i) & 1
+                pair = 1 if bit else 2
+                enc |= pair << (2 * i)
+            ed = enc & 0xFFFF
+
+            dv = row.get('dec_valid_in', 0) & 1
+            din = row.get('dec_data_in', 0) & 0xFFFF
+            dec = 0
+            for i in range(8):
+                pair = (din >> (2 * i)) & 3
+                bit = 1 if pair == 1 else 0
+                dec |= bit << i
+            dd = dec & 0xFF
+
+    return out

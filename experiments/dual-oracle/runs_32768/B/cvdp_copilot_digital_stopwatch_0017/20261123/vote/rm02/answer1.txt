@@ -1,0 +1,80 @@
+```python
+def reference(vectors):
+    cnt = 0
+    one_sec = 0
+    sec = 0
+    min = 0
+    hr = 0
+    CLK_FREQ = 4
+    out = []
+    for i, row in enumerate(vectors):
+        if hasattr(row, 'get'):
+            reset = row.get('reset', 0)
+            start_stop = row.get('start_stop', 0)
+        else:
+            reset = row[0] if len(row) > 0 else 0
+            start_stop = row[1] if len(row) > 1 else 0
+        try:
+            reset = int(reset)
+        except:
+            reset = 1 if reset else 0
+        try:
+            start_stop = int(start_stop)
+        except:
+            start_stop = 1 if start_stop else 0
+
+        posedge = False
+        if hasattr(row, 'get'):
+            if 'edge' in row:
+                e = row['edge']
+                posedge = (e == 'posedge' or e == 1 or e == '1')
+            elif 'clk' in row:
+                clk = row['clk']
+                try:
+                    posedge = (int(clk) == 1)
+                except:
+                    posedge = (clk == 'posedge' or clk == '1')
+            else:
+                posedge = (i % 2 == 0)
+        else:
+            posedge = (i % 2 == 0)
+
+        if reset:
+            cnt = 0
+            one_sec = 0
+            sec = 0
+            min = 0
+            hr = 0
+
+        out.append({'seconds': sec, 'minutes': min, 'hour': hr})
+
+        if posedge and not reset:
+            if cnt == CLK_FREQ - 1:
+                next_cnt = 0
+                next_one_sec = 1
+            else:
+                next_cnt = cnt + 1
+                next_one_sec = 0
+
+            next_sec = sec
+            next_min = min
+            next_hr = hr
+            if start_stop and one_sec:
+                if sec == 59:
+                    next_sec = 0
+                    if min == 59:
+                        next_min = 0
+                        next_hr = 1
+                    else:
+                        next_min = min + 1
+                else:
+                    next_sec = sec + 1
+
+            cnt = next_cnt
+            one_sec = next_one_sec
+            sec = next_sec
+            min = next_min
+            hr = next_hr
+
+    return out
+```

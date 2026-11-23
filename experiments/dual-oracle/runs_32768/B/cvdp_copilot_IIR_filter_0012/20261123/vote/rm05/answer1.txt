@@ -1,0 +1,49 @@
+```python
+def reference(vectors):
+    y1 = 0
+    y2 = 0
+    y3 = 0
+    res = []
+    for row in vectors:
+        clk = row['clk']
+        reset = row['reset']
+        in1_u = row['in_1']
+        in2_u = row['in_2']
+        in3_u = row['in_3']
+        sel = row['filter_select']
+
+        in1 = in1_u if in1_u < 32768 else in1_u - 65536
+        in2 = in2_u if in2_u < 32768 else in2_u - 65536
+        in3 = in3_u if in3_u < 32768 else in3_u - 65536
+
+        if reset == 1:
+            y1 = 0
+            y2 = 0
+            y3 = 0
+
+        res.append({
+            'out_1': y1 & 0xFFFF,
+            'out_2': y2 & 0xFFFF,
+            'out_3': y3 & 0xFFFF
+        })
+
+        if clk == 1 and reset == 0:
+            y1 = y1 + ((in1 - y1) >> sel)
+            y2 = y2 + ((in2 - y2) >> sel)
+            y3 = y3 + ((in3 - y3) >> sel)
+
+            if y1 > 32767:
+                y1 = 32767
+            elif y1 < -32768:
+                y1 = -32768
+            if y2 > 32767:
+                y2 = 32767
+            elif y2 < -32768:
+                y2 = -32768
+            if y3 > 32767:
+                y3 = 32767
+            elif y3 < -32768:
+                y3 = -32768
+
+    return res
+```

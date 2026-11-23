@@ -1,0 +1,42 @@
+```python
+def reference(vectors):
+    enc_valid_out = 0
+    enc_data_out = 0
+    dec_valid_out = 0
+    dec_data_out = 0
+    result = []
+    for idx, row in enumerate(vectors):
+        rst = int(row.get('rst_in', 0)) & 1
+        if rst:
+            enc_valid_out = 0
+            enc_data_out = 0
+            dec_valid_out = 0
+            dec_data_out = 0
+        result.append({
+            'enc_valid_out': enc_valid_out,
+            'enc_data_out': enc_data_out,
+            'dec_valid_out': dec_valid_out,
+            'dec_data_out': dec_data_out
+        })
+        if idx % 2 == 0 and not rst:
+            enc_valid_in = int(row.get('enc_valid_in', 0)) & 1
+            enc_data_in = int(row.get('enc_data_in', 0)) & 0xFF
+            dec_valid_in = int(row.get('dec_valid_in', 0)) & 1
+            dec_data_in = int(row.get('dec_data_in', 0)) & 0xFFFF
+            enc_valid_out = enc_valid_in
+            dec_valid_out = dec_valid_in
+            ne = 0
+            for i in range(8):
+                if (enc_data_in >> i) & 1:
+                    ne |= 1 << (2 * i)
+                else:
+                    ne |= 2 << (2 * i)
+            enc_data_out = ne & 0xFFFF
+            nd = 0
+            for i in range(8):
+                pair = (dec_data_in >> (2 * i)) & 3
+                if pair == 1:
+                    nd |= 1 << i
+            dec_data_out = nd & 0xFF
+    return result
+```

@@ -1,0 +1,121 @@
+def reference(vectors):
+    def iv(v):
+        if isinstance(v, bool):
+            return 1 if v else 0
+        if isinstance(v, str):
+            s = v.strip().lower()
+            if s in ('1', 'true', 'high', 'h', 'yes', 'posedge'):
+                return 1
+            if s in ('0', 'false', 'low', 'l', 'no', 'negedge', ''):
+                return 0
+            try:
+                return int(s, 0)
+            except:
+                return 0
+        try:
+            return int(v)
+        except:
+            return 0
+
+    def get_field(row, key, default=0):
+        if isinstance(row, dict):
+            if key in row:
+                return row[key]
+            for k in row.keys():
+                if isinstance(k, str) and k.lower() == key.lower():
+                    return row[k]
+        return default
+
+    def is_posedge(edge, idx):
+        if edge is None:
+            return (idx % 2) == 0
+        if isinstance(edge, str):
+            s = edge.lower()
+            if 'pos' in s:
+                return True
+            if 'neg' in s:
+                return False
+        return iv(edge) != 0
+
+    state = 0
+    result = []
+
+    for idx, row in enumerate(vectors):
+        edge = None
+        rst = data_in = has = 0
+
+        if isinstance(row, dict):
+            edge = get_field(row, 'edge', None)
+            if edge is None:
+                for k in row.keys():
+                    if isinstance(k, str) and 'edge' in k.lower():
+                        edge = row[k]
+                        break
+            if edge is None and 'clk' in row:
+                edge = 'posedge' if iv(row['clk']) else 'negedge'
+            rst = iv(get_field(row, 'rst', get_field(row, 'reset', 0)))
+            data_in = iv(get_field(row, 'data_in', get_field(row, 'data', 0))) & 15
+            has = iv(get_field(row, 'has_data_to_send', get_field(row, 'has_data', 0)))
+        else:
+            try:
+                vals = list(row)
+            except:
+                vals = []
+
+            edge_idx = -1
+            for i, v in enumerate(vals):
+                if isinstance(v, str):
+                    s = v.lower()
+                    if 'pos' in s or 'neg' in s or 'edge' in s:
+                        edge = v
+                        edge_idx = i
+                        break
+
+            if edge_idx >= 0:
+                rem = vals[:edge_idx] + vals[edge_idx + 1:]
+                if len(rem) >= 3:
+                    rst = iv(rem[0])
+                    data_in = iv(rem[1]) & 15
+                    has = iv(rem[2])
+                elif len(rem) == 2:
+                    rst = iv(rem[0])
+                    data_in = iv(rem[1]) & 15
+                elif len(rem) == 1:
+                    rst = iv(rem[0])
+            else:
+                if len(vals) >= 4:
+                    rst = iv(vals[0])
+                    data_in = iv(vals[1]) & 15
+                    has = iv(vals[2])
+                    edge = vals[3]
+                elif len(vals) == 3:
+                    rst = iv(vals[0])
+                    data_in = iv(vals[1]) & 15
+                    has = iv(vals[2])
+                elif len(vals) == 2:
+                    rst = iv(vals[0])
+                    data_in = iv(vals[1]) & 15
+                elif len(vals) == 1:
+                    rst = iv(vals[0])
+
+        if rst:
+            state = 0
+            result.append({'data_out': 0, 'token_received': 1, 'token': 0})
+            continue
+
+        pos = is_posedge(edge, idx)
+
+        token_received = 1 << state
+        token = 1 << ((state + 1) & 3)
+        data_out = data_in if has else 0
+
+        result.append({
+            'data_out': data_out & 15,
+            'token_received': token_received & 15,
+            'token': token & 15
+        })
+
+        if pos:
+            state = (state + 1) & 3
+
+    return result

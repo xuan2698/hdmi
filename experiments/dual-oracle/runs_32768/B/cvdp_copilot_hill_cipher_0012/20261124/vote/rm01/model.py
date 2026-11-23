@@ -1,0 +1,81 @@
+def reference(vectors):
+    state = 0
+    ciphertext = 0
+    sums = [0, 0, 0]
+    out = []
+
+    for i, row in enumerate(vectors):
+        if isinstance(row, dict):
+            edge = row.get('edge', None)
+            reset = row.get('reset', 0)
+            start = row.get('start', 0)
+            plaintext = row.get('plaintext', 0)
+            key = row.get('key', 0)
+        else:
+            if len(row) >= 5 and isinstance(row[0], str):
+                edge, reset, start, plaintext, key = row[0], row[1], row[2], row[3], row[4]
+            elif len(row) == 5:
+                edge, reset, start, plaintext, key = row
+            elif len(row) == 4:
+                edge = None
+                reset, start, plaintext, key = row
+            else:
+                edge = None
+                reset = start = plaintext = key = 0
+
+        if edge is None:
+            is_pos = (i % 2 == 0)
+        elif isinstance(edge, str):
+            s = edge.lower()
+            if s.startswith('p') or 'pos' in s:
+                is_pos = True
+            elif s.startswith('n') or 'neg' in s:
+                is_pos = False
+            else:
+                is_pos = (i % 2 == 0)
+        elif isinstance(edge, int):
+            is_pos = (edge != 0)
+        else:
+            is_pos = (i % 2 == 0)
+
+        out.append({'ciphertext': ciphertext, 'done': 1 if state == 3 else 0})
+
+        if is_pos:
+            if reset:
+                state = 0
+                ciphertext = 0
+                sums = [0, 0, 0]
+            else:
+                if state == 0:
+                    if start:
+                        state = 1
+                elif state == 1:
+                    p0 = plaintext & 0x1F
+                    p1 = (plaintext >> 5) & 0x1F
+                    p2 = (plaintext >> 10) & 0x1F
+
+                    k0 = key & 0x1F
+                    k1 = (key >> 5) & 0x1F
+                    k2 = (key >> 10) & 0x1F
+                    k3 = (key >> 15) & 0x1F
+                    k4 = (key >> 20) & 0x1F
+                    k5 = (key >> 25) & 0x1F
+                    k6 = (key >> 30) & 0x1F
+                    k7 = (key >> 35) & 0x1F
+                    k8 = (key >> 40) & 0x1F
+
+                    s0 = p0 * k0 + p1 * k1 + p2 * k2
+                    s1 = p0 * k3 + p1 * k4 + p2 * k5
+                    s2 = p0 * k6 + p1 * k7 + p2 * k8
+                    sums = [s0, s1, s2]
+                    state = 2
+                elif state == 2:
+                    r0 = sums[0] % 26
+                    r1 = sums[1] % 26
+                    r2 = sums[2] % 26
+                    ciphertext = r0 | (r1 << 5) | (r2 << 10)
+                    state = 3
+                elif state == 3:
+                    state = 0
+
+    return out

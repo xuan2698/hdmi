@@ -1,0 +1,44 @@
+```python
+def reference(vectors):
+    seconds = 0
+    minutes = 0
+    hour = 0
+    div = 0
+    out = []
+    prev_clk = 0
+    pos_edge_next = True
+    for row in vectors:
+        rst = row.get('reset', 0)
+        if rst:
+            seconds = 0
+            minutes = 0
+            hour = 0
+            div = 0
+
+        if 'clk' in row:
+            clk = row['clk']
+            posedge = (clk == 1 and prev_clk == 0)
+            prev_clk = clk
+        else:
+            posedge = pos_edge_next
+            pos_edge_next = not pos_edge_next
+
+        out.append({'seconds': seconds, 'minutes': minutes, 'hour': hour})
+
+        if posedge and not rst and row.get('start_stop', 0):
+            if div == 3:
+                div = 0
+                if seconds == 59:
+                    seconds = 0
+                    if minutes == 59:
+                        minutes = 0
+                        hour = 1
+                    else:
+                        minutes += 1
+                else:
+                    seconds += 1
+            else:
+                div += 1
+
+    return out
+```

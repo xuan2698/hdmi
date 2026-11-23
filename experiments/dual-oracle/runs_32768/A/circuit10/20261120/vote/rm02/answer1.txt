@@ -1,0 +1,14 @@
+def reference(vectors):
+    state = 0
+    prev_clk = 0
+    out = []
+    for v in vectors:
+        clk = v['clk']
+        a = v['a']
+        b = v['b']
+        if clk == 1 and prev_clk == 0:
+            state = (state & (a | b)) | (a & b)
+        q = state ^ a ^ b
+        out.append({'q': q, 'state': state})
+        prev_clk = clk
+    return out

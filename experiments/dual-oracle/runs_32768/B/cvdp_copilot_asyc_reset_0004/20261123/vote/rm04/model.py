@@ -1,0 +1,20 @@
+def reference(vectors):
+    cnt = 0x1F
+    out = []
+    for i, v in enumerate(vectors):
+        if isinstance(v, dict):
+            reset = v.get('reset', 0)
+        elif isinstance(v, (list, tuple)):
+            reset = v[0] if v else 0
+        else:
+            reset = v
+        reset = int(reset) & 1
+        if reset:
+            cnt = 0x1F
+        gate = 1 if 0 < cnt < 0xE else 0
+        rel = 1 if cnt < 0x8 else 0
+        out.append({'cnt_q': cnt, 'gate_clk_o': gate, 'release_reset_o': rel})
+        if i % 2 == 0:
+            if not reset and cnt > 0:
+                cnt -= 1
+    return out

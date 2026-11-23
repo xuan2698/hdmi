@@ -1,0 +1,32 @@
+```python
+def reference(vectors):
+    cnt = 0
+    out = []
+    for i, row in enumerate(vectors):
+        if isinstance(row, dict):
+            reset = int(row.get('reset', 0))
+            if 'clk' in row:
+                c = row['clk']
+                if isinstance(c, str):
+                    posedge = (c == 'posedge' or c == '1')
+                else:
+                    posedge = (int(c) == 1)
+            elif 'edge' in row:
+                e = row['edge']
+                posedge = (e == 'posedge' or e == 1)
+            else:
+                posedge = (i % 2 == 0)
+        else:
+            reset = int(row)
+            posedge = (i % 2 == 0)
+
+        gate = 1 if (cnt > 0 and cnt < 14) else 0
+        rel = 1 if (cnt < 8) else 0
+        out.append({'cnt_q': cnt, 'gate_clk_o': gate, 'release_reset_o': rel})
+
+        if reset == 1:
+            cnt = 31
+        elif posedge and cnt > 0:
+            cnt -= 1
+    return out
+```

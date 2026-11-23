@@ -1,0 +1,20 @@
+```python
+def reference(vectors):
+    state = 0
+    prev_clk = 0
+    prev_a = 0
+    prev_b = 0
+    out = []
+    for v in vectors:
+        clk = v["clk"]
+        a = v["a"]
+        b = v["b"]
+        if clk == 1 and prev_clk == 0:
+            state = (prev_a & prev_b) | (prev_a & state) | (prev_b & state)
+        q = a ^ b ^ state
+        out.append({"q": q, "state": state})
+        prev_clk = clk
+        prev_a = a
+        prev_b = b
+    return out
+```

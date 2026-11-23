@@ -1,0 +1,38 @@
+def reference(vectors):
+    state = 0
+    out = []
+    for i, row in enumerate(vectors):
+        if isinstance(row, dict):
+            clk = row.get('clk', 1 if i % 2 == 0 else 0)
+            rst = row.get('rst', 0) & 1
+            data_in = row.get('data_in', 0) & 0xF
+            has_data = row.get('has_data_to_send', 0) & 1
+        else:
+            clk = row[0] if len(row) > 0 else (1 if i % 2 == 0 else 0)
+            rst = row[1] if len(row) > 1 else 0
+            data_in = row[2] if len(row) > 2 else 0
+            has_data = row[3] if len(row) > 3 else 0
+            rst &= 1
+            data_in &= 0xF
+            has_data &= 1
+        if rst:
+            state = 0
+        token_received = (1 << state) & 0xF
+        if rst:
+            token = 0
+            data_out = 0
+        else:
+            next_state = (state + 1) & 3
+            token = (1 << next_state) & 0xF
+            if has_data and token_received:
+                data_out = data_in & 0xF
+            else:
+                data_out = 0
+        if clk == 1 and not rst:
+            state = (state + 1) & 3
+        out.append({
+            'data_out': data_out,
+            'token_received': token_received,
+            'token': token
+        })
+    return out

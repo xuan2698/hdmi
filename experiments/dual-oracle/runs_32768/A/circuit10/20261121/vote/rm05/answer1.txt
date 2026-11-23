@@ -1,0 +1,21 @@
+```python
+def reference(vectors):
+    s = 0
+    pc = 0
+    pa = 0
+    pb = 0
+    out = []
+    for v in vectors:
+        clk = v['clk']
+        a = v['a']
+        b = v['b']
+        if pc == 0 and clk == 1:
+            s = (pa & pb) | (s & (pa | pb))
+            s &= 1
+        q = (s ^ a ^ b) & 1
+        out.append({'state': s, 'q': q})
+        pc = clk
+        pa = a
+        pb = b
+    return out
+```

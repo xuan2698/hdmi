@@ -1,0 +1,96 @@
+```python
+def reference(vectors):
+    N = 8
+    M = 16
+    enc_valid_out = 0
+    enc_data_out = 0
+    dec_valid_out = 0
+    dec_data_out = 0
+    results = []
+
+    for row in vectors:
+        edge = row.get('edge', row.get('clk_in', 0))
+        rst = int(row.get('rst_in', 0)) & 1
+        e_v = int(row.get('enc_valid_in', 0)) & 1
+        e_d = int(row.get('enc_data_in', 0)) & ((1 << N) - 1)
+        d_v = int(row.get('dec_valid_in', 0)) & 1
+        d_d = int(row.get('dec_data_in', 0)) & ((1 << (2 * N)) - 1)
+
+        is_pos = False
+        is_neg = False
+        if isinstance(edge, str):
+            el = edge.lower()
+            if el.startswith('pos') or el in ('1', 'true'):
+                is_pos = True
+            elif el.startswith('neg') or el in ('0', 'false'):
+                is_neg = True
+        else:
+            if edge == 1 or edge is True:
+                is_pos = True
+            elif edge == 0 or edge is False:
+                is_neg = True
+
+        if is_pos:
+            if rst:
+                enc_valid_out = 0
+                enc_data_out = 0
+                dec_valid_out = 0
+                dec_data_out = 0
+
+            results.append({
+                'enc_valid_out': enc_valid_out,
+                'enc_data_out': enc_data_out,
+                'dec_valid_out': dec_valid_out,
+                'dec_data_out': dec_data_out,
+            })
+
+            if not rst:
+                n_e_v = e_v
+                n_e_d = enc_data_out
+                if e_v:
+                    val = 0
+                    for i in range(N):
+                        bit = (e_d >> i) & 1
+                        pair = 1 if bit else 2
+                        val |= pair << (2 * i)
+                    n_e_d = val & ((1 << M) - 1)
+
+                n_d_v = d_v
+                n_d_d = dec_data_out
+                if d_v:
+                    val = 0
+                    for i in range(N):
+                        pair = (d_d >> (2 * i)) & 3
+                        bit = 1 if pair == 1 else 0
+                        val |= bit << i
+                    n_d_d = val & ((1 << N) - 1)
+
+                enc_valid_out = n_e_v
+                enc_data_out = n_e_d
+                dec_valid_out = n_d_v
+                dec_data_out = n_d_d
+
+        elif is_neg:
+            results.append({
+                'enc_valid_out': enc_valid_out,
+                'enc_data_out': enc_data_out,
+                'dec_valid_out': dec_valid_out,
+                'dec_data_out': dec_data_out,
+            })
+
+            if rst:
+                enc_valid_out = 0
+                enc_data_out = 0
+                dec_valid_out = 0
+                dec_data_out = 0
+
+        else:
+            results.append({
+                'enc_valid_out': enc_valid_out,
+                'enc_data_out': enc_data_out,
+                'dec_valid_out': dec_valid_out,
+                'dec_data_out': dec_data_out,
+            })
+
+    return results
+```

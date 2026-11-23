@@ -1,0 +1,78 @@
+def reference(vectors):
+    cnt = 0
+    prev_clk = None
+    out = []
+    for i, row in enumerate(vectors):
+        if isinstance(row, dict):
+            reset = row.get('reset', 0)
+            clk = row.get('clk', None)
+            edge = row.get('edge', None)
+        elif isinstance(row, (list, tuple)):
+            if len(row) >= 2:
+                clk, reset = row[0], row[1]
+            elif len(row) == 1:
+                clk, reset = None, row[0]
+            else:
+                clk, reset = None, 0
+            edge = None
+        else:
+            clk = None
+            reset = row
+            edge = None
+
+        try:
+            reset = int(reset)
+        except:
+            reset = 1 if reset else 0
+        reset = 1 if reset else 0
+
+        clk_val = None
+        if clk is not None:
+            try:
+                clk_val = int(clk)
+            except:
+                clk_val = 1 if clk else 0
+            clk_val = 1 if clk_val else 0
+
+        if edge is not None:
+            if isinstance(edge, str):
+                e = edge.lower()
+                if e.startswith('pos') or e in ('1', 'rise', 'rising'):
+                    edge_val = 'pos'
+                else:
+                    edge_val = 'neg'
+            else:
+                edge_val = 'pos' if edge else 'neg'
+            if clk_val is None:
+                clk_val = 1 if edge_val == 'pos' else 0
+        else:
+            if clk_val is not None:
+                if prev_clk is None:
+                    edge_val = 'pos' if clk_val == 1 else 'neg'
+                else:
+                    if clk_val != prev_clk:
+                        edge_val = 'pos' if clk_val == 1 else 'neg'
+                    else:
+                        edge_val = 'pos' if i % 2 == 0 else 'neg'
+            else:
+                edge_val = 'pos' if i % 2 == 0 else 'neg'
+                clk_val = 1 if edge_val == 'pos' else 0
+
+        if clk_val is None:
+            clk_val = 1 if edge_val == 'pos' else 0
+
+        if clk is not None:
+            prev_clk = clk_val
+
+        if reset:
+            cnt = 31
+
+        gate = 1 if (cnt > 0 and cnt < 14 and clk_val == 1) else 0
+        release = 1 if cnt < 8 else 0
+        out.append({'cnt_q': cnt, 'gate_clk_o': gate, 'release_reset_o': release})
+
+        if edge_val == 'pos' and not reset:
+            if cnt > 0:
+                cnt -= 1
+
+    return out

@@ -1,0 +1,23 @@
+```python
+def reference(vectors):
+    state = 0
+    prev_clk = 0
+    a_prev = 0
+    b_prev = 0
+    out = []
+    for row in vectors:
+        clk = row['clk']
+        a = row['a']
+        b = row['b']
+        if prev_clk == 0 and clk == 1:
+            if state == 0:
+                state = a_prev & b_prev
+            else:
+                state = a_prev | b_prev
+        q = state ^ a ^ b
+        out.append({'q': q, 'state': state})
+        prev_clk = clk
+        a_prev = a
+        b_prev = b
+    return out
+```

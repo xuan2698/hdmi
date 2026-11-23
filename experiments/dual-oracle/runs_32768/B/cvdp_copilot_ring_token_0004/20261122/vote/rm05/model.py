@@ -1,0 +1,67 @@
+def reference(vectors):
+    state = 0
+    out = []
+    prev_clk = 0
+    for i, row in enumerate(vectors):
+        if isinstance(row, dict):
+            rst = int(row.get('rst', 0))
+            data_in = int(row.get('data_in', 0)) & 15
+            has = int(row.get('has_data_to_send', 0))
+            if 'edge' in row:
+                e = row['edge']
+                if isinstance(e, str):
+                    is_pos = 'pos' in e.lower()
+                else:
+                    is_pos = bool(e)
+            elif 'clk' in row:
+                clk = int(row['clk'])
+                is_pos = (clk == 1 and prev_clk == 0)
+                prev_clk = clk
+            else:
+                is_pos = (i % 2 == 0)
+        else:
+            vals = list(row)
+            rst = int(vals[0]) if len(vals) > 0 else 0
+            data_in = int(vals[1]) if len(vals) > 1 else 0
+            has = int(vals[2]) if len(vals) > 2 else 0
+            if len(vals) > 3:
+                e = vals[3]
+                if isinstance(e, str):
+                    is_pos = 'pos' in e.lower()
+                else:
+                    is_pos = bool(e)
+            else:
+                is_pos = (i % 2 == 0)
+            data_in &= 15
+
+        if rst:
+            state = 0
+
+        if rst:
+            token_received = 1
+            token = 0
+            data_out = 0
+        else:
+            if 0 <= state <= 3:
+                token_received = 1 << state
+                next_state = (state + 1) & 3
+                token = 1 << next_state
+                data_out = data_in if has else 0
+            else:
+                token_received = 0
+                token = 0
+                data_out = 0
+
+        out.append({
+            'data_out': data_out & 15,
+            'token_received': token_received & 15,
+            'token': token & 15
+        })
+
+        if is_pos and not rst:
+            if 0 <= state <= 3:
+                state = (state + 1) & 3
+            else:
+                state = 0
+
+    return out

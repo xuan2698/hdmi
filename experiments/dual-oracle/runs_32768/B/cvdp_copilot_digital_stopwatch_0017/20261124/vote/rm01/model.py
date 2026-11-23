@@ -1,0 +1,64 @@
+def reference(vectors):
+    count = 0
+    pulse = 0
+    sec = 0
+    min = 0
+    hour = 0
+    out = []
+    for i, row in enumerate(vectors):
+        if isinstance(row, dict):
+            reset = row.get('reset', 0)
+            start_stop = row.get('start_stop', 0)
+            edge = row.get('edge', None)
+        else:
+            vals = list(row)
+            edge = None
+            if vals and isinstance(vals[0], str):
+                edge = vals[0]
+                vals = vals[1:]
+            if len(vals) >= 2:
+                reset = vals[-2]
+                start_stop = vals[-1]
+            else:
+                reset = 0
+                start_stop = 0
+        if edge is None:
+            edge = 'posedge' if i % 2 == 0 else 'negedge'
+        elif isinstance(edge, int):
+            edge = 'posedge' if edge == 1 else 'negedge'
+        elif isinstance(edge, str):
+            edge = 'posedge' if edge.lower().startswith('pos') else 'negedge'
+        if reset:
+            count = 0
+            pulse = 0
+            sec = 0
+            min = 0
+            hour = 0
+        out.append({'seconds': sec, 'minutes': min, 'hour': hour})
+        if edge == 'posedge' and not reset:
+            ncount = count
+            npulse = pulse
+            if start_stop:
+                if count == 3:
+                    ncount = 0
+                    npulse = 1
+                else:
+                    ncount = count + 1
+                    npulse = 0
+            else:
+                npulse = 0
+            nsec = sec
+            nmin = min
+            nhour = hour
+            if pulse:
+                if sec == 59:
+                    nsec = 0
+                    if min == 59:
+                        nmin = 0
+                        nhour = 1
+                    else:
+                        nmin = min + 1
+                else:
+                    nsec = sec + 1
+            count, pulse, sec, min, hour = ncount, npulse, nsec, nmin, nhour
+    return out

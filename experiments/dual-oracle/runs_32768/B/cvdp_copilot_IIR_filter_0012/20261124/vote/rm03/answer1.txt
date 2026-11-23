@@ -1,0 +1,66 @@
+```python
+def reference(vectors):
+    s1 = s2 = s3 = 0
+    res = []
+    for idx, row in enumerate(vectors):
+        if isinstance(row, dict):
+            reset = row.get('reset', 0)
+            in1 = row.get('in_1', 0)
+            in2 = row.get('in_2', 0)
+            in3 = row.get('in_3', 0)
+            sel = row.get('filter_select', 0)
+            edge = row.get('edge', None)
+            if edge is not None:
+                if isinstance(edge, str):
+                    is_pos = 'pos' in edge.lower()
+                else:
+                    is_pos = (edge == 1)
+            else:
+                clk = row.get('clk', None)
+                if clk is not None:
+                    is_pos = (clk == 1)
+                else:
+                    is_pos = (idx % 2 == 0)
+        else:
+            if len(row) >= 6:
+                ev = row[0]
+                if isinstance(ev, str):
+                    is_pos = 'pos' in ev.lower()
+                elif ev in (0, 1):
+                    is_pos = (ev == 1)
+                else:
+                    is_pos = (idx % 2 == 0)
+                reset, in1, in2, in3, sel = row[1], row[2], row[3], row[4], row[5]
+            else:
+                reset = row[0] if len(row) > 0 else 0
+                in1 = row[1] if len(row) > 1 else 0
+                in2 = row[2] if len(row) > 2 else 0
+                in3 = row[3] if len(row) > 3 else 0
+                sel = row[4] if len(row) > 4 else 0
+                is_pos = (idx % 2 == 0)
+
+        if reset:
+            s1 = s2 = s3 = 0
+
+        res.append({
+            'out_1': s1 & 0xFFFF,
+            'out_2': s2 & 0xFFFF,
+            'out_3': s3 & 0xFFFF
+        })
+
+        if is_pos and not reset:
+            def s16(x):
+                x = x & 0xFFFF
+                return x - 0x10000 if x & 0x8000 else x
+            shift = sel & 3
+            s1 = s1 + ((s16(in1) - s1) >> shift)
+            s2 = s2 + ((s16(in2) - s2) >> shift)
+            s3 = s3 + ((s16(in3) - s3) >> shift)
+            if s1 > 32767: s1 = 32767
+            elif s1 < -32768: s1 = -32768
+            if s2 > 32767: s2 = 32767
+            elif s2 < -32768: s2 = -32768
+            if s3 > 32767: s3 = 32767
+            elif s3 < -32768: s3 = -32768
+    return res
+```

@@ -1,0 +1,44 @@
+```python
+def reference(vectors):
+    state = 0  # 0=IDLE, 1=COMPUTE, 2=COMPUTE_MOD, 3=DONE
+    cipher_reg = 0
+    out = []
+    for i, v in enumerate(vectors):
+        reset = v.get('reset', 0)
+        start = v.get('start', 0)
+        plaintext = v.get('plaintext', 0)
+        key = v.get('key', 0)
+        done = 1 if state == 3 else 0
+        out.append({'ciphertext': cipher_reg, 'done': done})
+        if i % 2 == 0:  # posedge
+            if reset:
+                state = 0
+                cipher_reg = 0
+            else:
+                if state == 0:
+                    if start:
+                        state = 1
+                elif state == 1:
+                    state = 2
+                elif state == 2:
+                    p0 = plaintext & 31
+                    p1 = (plaintext >> 5) & 31
+                    p2 = (plaintext >> 10) & 31
+                    k0 = key & 31
+                    k1 = (key >> 5) & 31
+                    k2 = (key >> 10) & 31
+                    k3 = (key >> 15) & 31
+                    k4 = (key >> 20) & 31
+                    k5 = (key >> 25) & 31
+                    k6 = (key >> 30) & 31
+                    k7 = (key >> 35) & 31
+                    k8 = (key >> 40) & 31
+                    c0 = (p0*k0 + p1*k1 + p2*k2) % 26
+                    c1 = (p0*k3 + p1*k4 + p2*k5) % 26
+                    c2 = (p0*k6 + p1*k7 + p2*k8) % 26
+                    cipher_reg = (c2 << 10) | (c1 << 5) | c0
+                    state = 3
+                elif state == 3:
+                    state = 0
+    return out
+```

@@ -1,0 +1,93 @@
+```python
+def reference(vectors):
+    def get_int(row, key, default=0, mask=None):
+        v = row.get(key, default)
+        if isinstance(v, str):
+            try:
+                v = int(v, 0)
+            except:
+                v = int(v)
+        else:
+            v = int(v)
+        if mask is not None:
+            v &= mask
+        return v
+
+    enc_data_out = 0
+    enc_valid_out = 0
+    dec_data_out = 0
+    dec_valid_out = 0
+    out_rows = []
+
+    for idx, row in enumerate(vectors):
+        rst = get_int(row, 'rst_in', 0, 1)
+        enc_v = get_int(row, 'enc_valid_in', 0, 1)
+        enc_d = get_int(row, 'enc_data_in', 0, 0xFF)
+        dec_v = get_int(row, 'dec_valid_in', 0, 1)
+        dec_d = get_int(row, 'dec_data_in', 0, 0xFFFF)
+
+        if rst:
+            enc_data_out = 0
+            enc_valid_out = 0
+            dec_data_out = 0
+            dec_valid_out = 0
+
+        is_pos = None
+        if 'edge' in row:
+            e = row['edge']
+            if isinstance(e, str):
+                el = e.lower()
+                if 'pos' in el or 'rise' in el or el == '1':
+                    is_pos = True
+                elif 'neg' in el or 'fall' in el or el == '0':
+                    is_pos = False
+            else:
+                try:
+                    is_pos = bool(int(e) & 1)
+                except:
+                    is_pos = bool(e)
+
+        if is_pos is None:
+            if 'clk_in' in row:
+                is_pos = (get_int(row, 'clk_in', 0, 1) == 1)
+            else:
+                is_pos = (idx % 2 == 0)
+
+        out_rows.append({
+            'enc_valid_out': enc_valid_out,
+            'enc_data_out': enc_data_out,
+            'dec_valid_out': dec_valid_out,
+            'dec_data_out': dec_data_out
+        })
+
+        if is_pos and not rst:
+            new_enc_valid = enc_v
+            new_dec_valid = dec_v
+
+            if enc_v:
+                enc_next = 0
+                for i in range(8):
+                    b = (enc_d >> i) & 1
+                    pair = 1 if b == 1 else 2
+                    enc_next |= pair << (2 * i)
+                new_enc_data = enc_next & 0xFFFF
+            else:
+                new_enc_data = enc_data_out
+
+            if dec_v:
+                dec_next = 0
+                for i in range(8):
+                    pair = (dec_d >> (2 * i)) & 3
+                    b = 1 if pair == 1 else 0
+                    dec_next |= b << i
+                new_dec_data = dec_next & 0xFF
+            else:
+                new_dec_data = dec_data_out
+
+            enc_valid_out = new_enc_valid
+            enc_data_out = new_enc_data
+            dec_valid_out = new_dec_valid
+            dec_data_out = new_dec_data
+
+    return out_rows
+```

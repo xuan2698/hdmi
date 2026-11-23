@@ -1,0 +1,69 @@
+def reference(vectors):
+    state = 0
+    reg_result = 0
+    reg_overflow = 0
+    reg_a = 0
+    reg_b = 0
+    outputs = []
+    for row in vectors:
+        i_rst_n = row.get('i_rst_n', 1)
+        i_start = row.get('i_start', 0)
+        i_enable = row.get('i_enable', 0)
+        i_mode = row.get('i_mode', 0)
+        i_clear = row.get('i_clear', 0)
+        i_operand_a = row.get('i_operand_a', 0)
+        i_operand_b = row.get('i_operand_b', 0)
+        edge_val = row.get('edge', None)
+        if edge_val is None:
+            clk = row.get('i_clk', 0)
+            is_posedge = (clk == 1)
+        else:
+            if isinstance(edge_val, str):
+                e = edge_val.lower()
+                is_posedge = ('pos' in e) or (e == '1') or (e == 'rise') or (e == 'rising')
+            else:
+                is_posedge = bool(edge_val)
+        if i_rst_n == 0:
+            state = 0
+            reg_result = 0
+            reg_overflow = 0
+            reg_a = 0
+            reg_b = 0
+        o_resultant_sum = reg_result & 0xFF
+        o_overflow = reg_overflow & 1
+        o_ready = 1 if state == 3 else 0
+        o_status = state & 3
+        outputs.append({
+            'o_resultant_sum': o_resultant_sum,
+            'o_overflow': o_overflow,
+            'o_ready': o_ready,
+            'o_status': o_status
+        })
+        if is_posedge:
+            if i_rst_n == 0:
+                pass
+            elif i_clear == 1:
+                state = 0
+                reg_result = 0
+                reg_overflow = 0
+            else:
+                if state == 0:
+                    if i_enable == 1 and i_start == 1:
+                        state = 1
+                elif state == 1:
+                    reg_a = i_operand_a & 0xFF
+                    reg_b = i_operand_b & 0xFF
+                    state = 2
+                elif state == 2:
+                    sa = reg_a - 256 if (reg_a & 0x80) else reg_a
+                    sb = reg_b - 256 if (reg_b & 0x80) else reg_b
+                    if i_mode == 0:
+                        res_int = sa + sb
+                    else:
+                        res_int = sa - sb
+                    reg_result = res_int & 0xFF
+                    reg_overflow = 1 if (res_int < -128 or res_int > 127) else 0
+                    state = 3
+                elif state == 3:
+                    state = 0
+    return outputs

@@ -1,0 +1,33 @@
+```python
+def reference(vectors):
+    state = 0
+    out = []
+    has_clk = bool(vectors) and ("clk" in vectors[0])
+    if has_clk:
+        prev_clk = 0
+        prev_a = 0
+        prev_b = 0
+        have_prev = False
+        for v in vectors:
+            clk = int(v["clk"])
+            a = int(v["a"])
+            b = int(v["b"])
+            if clk == 1 and prev_clk == 0:
+                sa = prev_a if have_prev else a
+                sb = prev_b if have_prev else b
+                state = (sa & sb) | (state & (sa | sb))
+            q = state ^ a ^ b
+            out.append({"q": q, "state": state})
+            prev_clk = clk
+            prev_a = a
+            prev_b = b
+            have_prev = True
+    else:
+        for v in vectors:
+            a = int(v["a"])
+            b = int(v["b"])
+            state = (a & b) | (state & (a | b))
+            q = state ^ a ^ b
+            out.append({"q": q, "state": state})
+    return out
+```

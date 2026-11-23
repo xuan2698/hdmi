@@ -1,0 +1,9 @@
+def reference(vectors):
+    st=0; pc=0; pa=0; pb=0; out=[]
+    for r in vectors:
+        c=int(r['clk']); a=int(r['a']); b=int(r['b'])
+        if c==1 and pc==0:
+            st=(pa&pb)|(pa&st)|(pb&st)
+        out.append({'q': a^b^st, 'state': st})
+        pa=a; pb=b; pc=c
+    return out

@@ -1,0 +1,41 @@
+def reference(vectors):
+    def sat(x):
+        if x > 32767:
+            return 32767
+        if x < -32768:
+            return -32768
+        return x
+    def to_s(x):
+        x = x & 0xFFFF
+        return x - 0x10000 if x >= 0x8000 else x
+    s1 = s2 = s3 = 0
+    res = []
+    for v in vectors:
+        reset = v.get('reset', 0)
+        if reset:
+            s1 = s2 = s3 = 0
+            o1 = o2 = o3 = 0
+        else:
+            o1, o2, o3 = s1, s2, s3
+            edge = v.get('edge', v.get('clk', 0))
+            if isinstance(edge, str):
+                is_pos = 'pos' in edge.lower()
+            else:
+                is_pos = (edge == 1 or edge == '1')
+            if is_pos:
+                x1 = to_s(v['in_1'])
+                x2 = to_s(v['in_2'])
+                x3 = to_s(v['in_3'])
+                shift = v.get('filter_select', 0)
+                n1 = s1 + ((x1 - s1) >> shift)
+                n2 = s2 + ((x2 - s2) >> shift)
+                n3 = s3 + ((x3 - s3) >> shift)
+                s1 = sat(n1)
+                s2 = sat(n2)
+                s3 = sat(n3)
+        res.append({
+            'out_1': o1 & 0xFFFF,
+            'out_2': o2 & 0xFFFF,
+            'out_3': o3 & 0xFFFF
+        })
+    return res

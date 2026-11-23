@@ -1,0 +1,81 @@
+def reference(vectors):
+    IDLE, LOAD, COMPUTE, OUTPUT = 0, 1, 2, 3
+    state = IDLE
+    result_reg = 0
+    overflow_reg = 0
+    operand_a_reg = 0
+    operand_b_reg = 0
+    outputs = []
+
+    def to_signed(v):
+        return v - 256 if (v & 0x80) else v
+
+    for idx, row in enumerate(vectors):
+        rst_n = row.get('i_rst_n', 1)
+        start = row.get('i_start', 0)
+        enable = row.get('i_enable', 0)
+        mode = row.get('i_mode', 0)
+        clear = row.get('i_clear', 0)
+        a = row.get('i_operand_a', 0) & 0xFF
+        b = row.get('i_operand_b', 0) & 0xFF
+
+        if 'i_clk' in row:
+            clk = row['i_clk']
+            is_posedge = (clk == 1 or clk == '1')
+        elif 'edge' in row:
+            e = row['edge']
+            if isinstance(e, str):
+                is_posedge = e.lower() in ('posedge', 'pos', 'p', '1', 'rising')
+            else:
+                is_posedge = (e == 1 or e == '1')
+        else:
+            is_posedge = (idx % 2 == 0)
+
+        if rst_n == 0:
+            state = IDLE
+            result_reg = 0
+            overflow_reg = 0
+            operand_a_reg = 0
+            operand_b_reg = 0
+
+        outputs.append({
+            'o_resultant_sum': result_reg & 0xFF,
+            'o_overflow': overflow_reg & 1,
+            'o_ready': 1 if state == OUTPUT else 0,
+            'o_status': state & 3
+        })
+
+        if is_posedge:
+            if rst_n == 0:
+                pass
+            elif clear == 1:
+                state = IDLE
+                result_reg = 0
+                overflow_reg = 0
+                operand_a_reg = 0
+                operand_b_reg = 0
+            else:
+                if state == IDLE:
+                    if enable == 1 and start == 1:
+                        state = LOAD
+                elif state == LOAD:
+                    operand_a_reg = a
+                    operand_b_reg = b
+                    state = COMPUTE
+                elif state == COMPUTE:
+                    sa = to_signed(operand_a_reg)
+                    sb = to_signed(operand_b_reg)
+                    if mode == 0:
+                        res = sa + sb
+                    else:
+                        res = sa - sb
+                    if res < -128 or res > 127:
+                        overflow_reg = 1
+                    else:
+                        overflow_reg = 0
+                    result_reg = res & 0xFF
+                    state = OUTPUT
+                elif state == OUTPUT:
+                    state = IDLE
+
+    return outputs

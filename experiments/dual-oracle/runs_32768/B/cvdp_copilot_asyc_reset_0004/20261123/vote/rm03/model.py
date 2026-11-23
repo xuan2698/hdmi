@@ -1,0 +1,60 @@
+def reference(vectors):
+    cnt = 31
+    out = []
+    idx = 0
+    for row in vectors:
+        reset = 0
+        edge = None
+        if isinstance(row, dict):
+            reset = row.get('reset', 0)
+            if 'edge' in row:
+                edge = row['edge']
+            elif 'clk' in row:
+                edge = row['clk']
+            elif 'clock' in row:
+                edge = row['clock']
+        else:
+            if isinstance(row, (list, tuple)):
+                if len(row) == 1:
+                    reset = row[0]
+                elif len(row) >= 2:
+                    edge = row[0]
+                    reset = row[1]
+            else:
+                reset = row
+        if isinstance(reset, str):
+            r = reset.lower()
+            reset = 1 if r in ('1', 'true', 'high', 'yes') else 0
+        else:
+            reset = 1 if reset else 0
+        if reset:
+            cnt = 31
+        is_pos = False
+        if edge is not None:
+            if isinstance(edge, str):
+                e = edge.lower()
+                if e in ('posedge', 'pos', 'positive', 'p', '1', 'true', 'high'):
+                    is_pos = True
+                elif e in ('negedge', 'neg', 'negative', 'n', '0', 'false', 'low'):
+                    is_pos = False
+                else:
+                    try:
+                        is_pos = int(e) != 0
+                    except:
+                        is_pos = False
+            else:
+                is_pos = bool(edge)
+        else:
+            is_pos = (idx % 2 == 0)
+        c = cnt
+        g = 1 if (c > 0 and c < 14) else 0
+        rr = 1 if c < 8 else 0
+        out.append({'cnt_q': c, 'gate_clk_o': g, 'release_reset_o': rr})
+        if is_pos:
+            if reset:
+                cnt = 31
+            else:
+                if cnt > 0:
+                    cnt -= 1
+        idx += 1
+    return out

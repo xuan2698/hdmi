@@ -1,0 +1,47 @@
+def reference(vectors):
+    def s16(v):
+        u = int(v) & 0xFFFF
+        return u - 0x10000 if u & 0x8000 else u
+
+    y1 = y2 = y3 = 0
+    out_rows = []
+
+    for row in vectors:
+        reset = int(row.get('reset', 0))
+        in1 = s16(row.get('in_1', 0))
+        in2 = s16(row.get('in_2', 0))
+        in3 = s16(row.get('in_3', 0))
+        fs = int(row.get('filter_select', 0)) & 3
+        edge = row.get('edge', '')
+
+        if isinstance(edge, str):
+            is_pos = 'pos' in edge.lower()
+        else:
+            is_pos = bool(edge)
+
+        if reset == 1:
+            y1 = y2 = y3 = 0
+            out_rows.append({'out_1': 0, 'out_2': 0, 'out_3': 0})
+            continue
+
+        out_rows.append({
+            'out_1': y1 & 0xFFFF,
+            'out_2': y2 & 0xFFFF,
+            'out_3': y3 & 0xFFFF
+        })
+
+        if is_pos:
+            n1 = y1 + ((in1 - y1) >> fs)
+            n2 = y2 + ((in2 - y2) >> fs)
+            n3 = y3 + ((in3 - y3) >> fs)
+
+            if n1 > 32767: n1 = 32767
+            elif n1 < -32768: n1 = -32768
+            if n2 > 32767: n2 = 32767
+            elif n2 < -32768: n2 = -32768
+            if n3 > 32767: n3 = 32767
+            elif n3 < -32768: n3 = -32768
+
+            y1, y2, y3 = n1, n2, n3
+
+    return out_rows

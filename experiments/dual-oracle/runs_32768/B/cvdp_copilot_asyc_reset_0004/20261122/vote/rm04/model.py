@@ -1,0 +1,28 @@
+def reference(vectors):
+    state = 0
+    out = []
+    for i, row in enumerate(vectors):
+        if isinstance(row, dict):
+            reset = row.get('reset', row.get('rst', 0))
+            is_pos = (i % 2 == 0)
+            e = row.get('edge', None)
+            if isinstance(e, str):
+                is_pos = e.lower().startswith('pos')
+        else:
+            reset = row[0] if len(row) > 0 else 0
+            is_pos = (i % 2 == 0)
+        reset = int(reset) & 1
+        if reset:
+            state = 31
+        cnt = state
+        gate = 1 if 0 < cnt < 14 else 0
+        rel = 1 if cnt < 8 else 0
+        out.append({'cnt_q': cnt, 'gate_clk_o': gate, 'release_reset_o': rel})
+        if is_pos:
+            if reset:
+                state = 31
+            elif state > 0:
+                state -= 1
+            else:
+                state = 0
+    return out

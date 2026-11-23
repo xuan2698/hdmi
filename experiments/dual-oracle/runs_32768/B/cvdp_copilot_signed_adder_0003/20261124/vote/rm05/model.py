@@ -1,0 +1,88 @@
+def reference(vectors):
+    state = 0
+    reg_a = 0
+    reg_b = 0
+    result = 0
+    overflow = 0
+    outputs = []
+
+    def get(row, key, default):
+        if isinstance(row, dict):
+            return row.get(key, default)
+        return default
+
+    for idx, row in enumerate(vectors):
+        rstn = get(row, 'i_rst_n', 1)
+        start = get(row, 'i_start', 0)
+        enable = get(row, 'i_enable', 0)
+        mode = get(row, 'i_mode', 0)
+        clear = get(row, 'i_clear', 0)
+        opa = get(row, 'i_operand_a', 0)
+        opb = get(row, 'i_operand_b', 0)
+
+        ev = None
+        if isinstance(row, dict):
+            if 'i_clk' in row:
+                ev = row['i_clk']
+            elif 'edge' in row:
+                ev = row['edge']
+
+        if ev is None:
+            posedge = (idx % 2 == 0)
+        elif isinstance(ev, str):
+            posedge = ev.lower() in ('posedge', 'pos', 'p', '1', 'rise', 'rising')
+        else:
+            posedge = (ev == 1)
+
+        if rstn == 0:
+            state = 0
+            reg_a = 0
+            reg_b = 0
+            result = 0
+            overflow = 0
+
+        outputs.append({
+            'o_resultant_sum': result & 0xFF,
+            'o_overflow': overflow & 1,
+            'o_ready': 1 if state == 3 else 0,
+            'o_status': state & 3
+        })
+
+        if posedge:
+            if rstn == 0:
+                state = 0
+                reg_a = 0
+                reg_b = 0
+                result = 0
+                overflow = 0
+            elif clear == 1:
+                state = 0
+                result = 0
+                overflow = 0
+            elif state == 0:
+                if enable == 1 and start == 1:
+                    state = 1
+            elif state == 1:
+                reg_a = opa & 0xFF
+                reg_b = opb & 0xFF
+                state = 2
+            elif state == 2:
+                a = reg_a
+                if a & 0x80:
+                    a -= 256
+                b = reg_b
+                if b & 0x80:
+                    b -= 256
+
+                if mode == 0:
+                    calc = a + b
+                else:
+                    calc = a - b
+
+                result = calc & 0xFF
+                overflow = 1 if (calc < -128 or calc > 127) else 0
+                state = 3
+            elif state == 3:
+                state = 0
+
+    return outputs

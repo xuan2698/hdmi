@@ -1,0 +1,61 @@
+def reference(vectors):
+    def to_signed16(x):
+        if x >= 32768:
+            return x - 65536
+        return x
+
+    def to_unsigned16(x):
+        if x < 0:
+            return x + 65536
+        return x
+
+    def sat16(x):
+        if x > 32767:
+            return 32767
+        if x < -32768:
+            return -32768
+        return x
+
+    out1 = 0
+    out2 = 0
+    out3 = 0
+    prev_clk = 0
+    results = []
+
+    for row in vectors:
+        clk = row.get('clk', 0)
+        rst = row.get('reset', 0)
+
+        if rst == 1:
+            out1 = out2 = out3 = 0
+            results.append({
+                'out_1': 0,
+                'out_2': 0,
+                'out_3': 0
+            })
+            prev_clk = clk
+            continue
+
+        results.append({
+            'out_1': to_unsigned16(out1),
+            'out_2': to_unsigned16(out2),
+            'out_3': to_unsigned16(out3)
+        })
+
+        if clk == 1 and prev_clk == 0:
+            shift = row.get('filter_select', 0) & 0x3
+            in1 = to_signed16(row.get('in_1', 0))
+            in2 = to_signed16(row.get('in_2', 0))
+            in3 = to_signed16(row.get('in_3', 0))
+
+            delta1 = (in1 - out1) >> shift
+            delta2 = (in2 - out2) >> shift
+            delta3 = (in3 - out3) >> shift
+
+            out1 = sat16(out1 + delta1)
+            out2 = sat16(out2 + delta2)
+            out3 = sat16(out3 + delta3)
+
+        prev_clk = clk
+
+    return results

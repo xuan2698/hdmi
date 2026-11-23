@@ -1,0 +1,83 @@
+```python
+def reference(vectors):
+    seconds = 0
+    minutes = 0
+    hour = 0
+    div_cnt = 0
+    one_sec = 0
+    out = []
+    prev_clk = None
+
+    for i, row in enumerate(vectors):
+        if isinstance(row, dict):
+            reset = int(row.get('reset', 0))
+            start_stop = int(row.get('start_stop', 0))
+            edge = None
+            if 'edge' in row:
+                e = row['edge']
+                if isinstance(e, str):
+                    edge = 1 if 'pos' in e.lower() else 0
+                else:
+                    edge = 1 if int(e) else 0
+            elif 'clk' in row:
+                clk = int(row['clk'])
+                if prev_clk is None:
+                    edge = 1 if clk == 1 else 0
+                else:
+                    if prev_clk == 0 and clk == 1:
+                        edge = 1
+                    elif prev_clk == 1 and clk == 0:
+                        edge = 0
+                    else:
+                        edge = None
+                prev_clk = clk
+            else:
+                edge = 1 if i % 2 == 0 else 0
+        else:
+            reset = int(row[0]) if len(row) > 0 else 0
+            start_stop = int(row[1]) if len(row) > 1 else 0
+            edge = 1 if i % 2 == 0 else 0
+
+        if reset:
+            seconds = 0
+            minutes = 0
+            hour = 0
+            div_cnt = 0
+            one_sec = 0
+
+        out.append({'seconds': seconds, 'minutes': minutes, 'hour': hour})
+
+        if edge == 1 and not reset:
+            if start_stop:
+                if div_cnt == 3:
+                    div_cnt_next = 0
+                    one_sec_next = 1
+                else:
+                    div_cnt_next = div_cnt + 1
+                    one_sec_next = 0
+            else:
+                div_cnt_next = div_cnt
+                one_sec_next = 0
+
+            sec_next = seconds
+            min_next = minutes
+            hr_next = hour
+            if one_sec:
+                if seconds == 59:
+                    sec_next = 0
+                    if minutes == 59:
+                        min_next = 0
+                        hr_next = 1
+                    else:
+                        min_next = minutes + 1
+                else:
+                    sec_next = seconds + 1
+
+            div_cnt = div_cnt_next
+            one_sec = one_sec_next
+            seconds = sec_next
+            minutes = min_next
+            hour = hr_next
+
+    return out
+```

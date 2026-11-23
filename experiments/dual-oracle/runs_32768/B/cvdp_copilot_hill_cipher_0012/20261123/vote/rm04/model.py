@@ -1,0 +1,85 @@
+def reference(vectors):
+    IDLE, COMPUTE, COMPUTE_MOD, DONE = 0, 1, 2, 3
+    state = IDLE
+    cipher = 0
+    sum0 = sum1 = sum2 = 0
+    out = []
+    prev_clk = None
+
+    def get(row, name, default=0):
+        if isinstance(row, dict):
+            if name in row:
+                return int(row[name])
+            if name.upper() in row:
+                return int(row[name.upper()])
+            return default
+        if hasattr(row, 'get'):
+            try:
+                v = row.get(name, None)
+                if v is not None:
+                    return int(v)
+            except Exception:
+                pass
+        return default
+
+    for i, row in enumerate(vectors):
+        reset = get(row, 'reset', 0) & 1
+        start = get(row, 'start', 0) & 1
+        plaintext = get(row, 'plaintext', 0) & 0x7FFF
+        key = get(row, 'key', 0) & ((1 << 45) - 1)
+
+        done = 1 if state == DONE else 0
+        out.append({'ciphertext': cipher & 0x7FFF, 'done': done})
+
+        is_posedge = (i % 2 == 0)
+        if isinstance(row, dict):
+            if 'edge' in row:
+                e = row['edge']
+                if isinstance(e, str):
+                    is_posedge = e.lower().startswith('pos')
+                else:
+                    is_posedge = bool(e)
+            elif 'clk' in row:
+                clk = int(row['clk']) & 1
+                if prev_clk is None:
+                    is_posedge = (clk == 1)
+                else:
+                    is_posedge = (prev_clk == 0 and clk == 1)
+                prev_clk = clk
+
+        if is_posedge:
+            if reset:
+                state = IDLE
+                cipher = 0
+                sum0 = sum1 = sum2 = 0
+            else:
+                if state == IDLE:
+                    if start:
+                        state = COMPUTE
+                elif state == COMPUTE:
+                    p0 = plaintext & 0x1F
+                    p1 = (plaintext >> 5) & 0x1F
+                    p2 = (plaintext >> 10) & 0x1F
+                    k0 = key & 0x1F
+                    k1 = (key >> 5) & 0x1F
+                    k2 = (key >> 10) & 0x1F
+                    k3 = (key >> 15) & 0x1F
+                    k4 = (key >> 20) & 0x1F
+                    k5 = (key >> 25) & 0x1F
+                    k6 = (key >> 30) & 0x1F
+                    k7 = (key >> 35) & 0x1F
+                    k8 = (key >> 40) & 0x1F
+                    sum0 = p0 * k0 + p1 * k1 + p2 * k2
+                    sum1 = p0 * k3 + p1 * k4 + p2 * k5
+                    sum2 = p0 * k6 + p1 * k7 + p2 * k8
+                    state = COMPUTE_MOD
+                elif state == COMPUTE_MOD:
+                    c0 = sum0 % 26
+                    c1 = sum1 % 26
+                    c2 = sum2 % 26
+                    cipher = c0 | (c1 << 5) | (c2 << 10)
+                    state = DONE
+                elif state == DONE:
+                    state = IDLE
+
+    return out

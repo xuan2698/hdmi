@@ -1,0 +1,50 @@
+```python
+def reference(vectors):
+    state = [0, 0, 0]
+    results = []
+    prev_clk = 0
+    for row in vectors:
+        reset = int(row.get('reset', 0))
+        # Output current state before any registered updates
+        results.append({
+            'out_1': state[0] & 0xFFFF,
+            'out_2': state[1] & 0xFFFF,
+            'out_3': state[2] & 0xFFFF
+        })
+        # Asynchronous reset (applied after edge sampling, like NBA)
+        if reset == 1:
+            state = [0, 0, 0]
+            prev_clk = int(row.get('clk', 0))
+            continue
+        # Determine if this row is a positive clock edge
+        is_posedge = False
+        if 'edge' in row:
+            e = row['edge']
+            if isinstance(e, str):
+                if 'pos' in e.lower():
+                    is_posedge = True
+            elif isinstance(e, (int, bool)):
+                is_posedge = bool(e)
+        elif 'clk' in row:
+            clk = int(row['clk'])
+            if clk == 1 and prev_clk == 0:
+                is_posedge = True
+            prev_clk = clk
+        if is_posedge:
+            sel = int(row.get('filter_select', 0)) & 0x3
+            for i in range(3):
+                x = int(row.get(f'in_{i+1}', 0)) & 0xFFFF
+                if x & 0x8000:
+                    x_signed = x - 0x10000
+                else:
+                    x_signed = x
+                prev = state[i]
+                s = (4 - sel) * x_signed + sel * prev
+                new_val = s >> 2
+                if new_val > 32767:
+                    new_val = 32767
+                elif new_val < -32768:
+                    new_val = -32768
+                state[i] = new_val
+    return results
+```

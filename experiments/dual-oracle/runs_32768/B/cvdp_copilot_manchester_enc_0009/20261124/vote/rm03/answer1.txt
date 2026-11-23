@@ -1,0 +1,56 @@
+```python
+def reference(vectors):
+    enc_valid_out = 0
+    enc_data_out = 0
+    dec_valid_out = 0
+    dec_data_out = 0
+    prev_clk = 0
+    result = []
+    for row in vectors:
+        # Asynchronous reset applied before the edge event
+        if row['rst_in'] == 1:
+            enc_valid_out = 0
+            enc_data_out = 0
+            dec_valid_out = 0
+            dec_data_out = 0
+
+        # Capture outputs at the immediate edge event (before NBA updates)
+        result.append({
+            'enc_valid_out': enc_valid_out,
+            'enc_data_out': enc_data_out & 0xFFFF,
+            'dec_valid_out': dec_valid_out,
+            'dec_data_out': dec_data_out & 0xFF
+        })
+
+        # Determine clock edge and update registers after the edge
+        curr_clk = row['clk_in']
+        if prev_clk == 0 and curr_clk == 1:  # posedge
+            if row['rst_in'] == 1:
+                enc_valid_out = 0
+                enc_data_out = 0
+                dec_valid_out = 0
+                dec_data_out = 0
+            else:
+                # Encoder
+                enc_valid_out = row['enc_valid_in'] & 1
+                data = row['enc_data_in'] & 0xFF
+                encoded = 0
+                for i in range(8):
+                    bit = (data >> i) & 1
+                    encoded |= (bit << (2 * i))
+                    encoded |= ((bit ^ 1) << (2 * i + 1))
+                enc_data_out = encoded & 0xFFFF
+
+                # Decoder
+                dec_valid_out = row['dec_valid_in'] & 1
+                dec_in = row['dec_data_in'] & 0xFFFF
+                decoded = 0
+                for i in range(8):
+                    pair = (dec_in >> (2 * i)) & 3
+                    if pair == 1:  # 01 -> 1
+                        decoded |= (1 << i)
+                    # 10 -> 0, 00 -> 0, 11 -> 0
+                dec_data_out = decoded & 0xFF
+        prev_clk = curr_clk
+    return result
+```
